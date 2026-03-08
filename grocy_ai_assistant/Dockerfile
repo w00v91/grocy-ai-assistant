@@ -1,16 +1,21 @@
-
-ARG BUILD_FROM=ghcr.io/home-assistant/base:3.19
-FROM $BUILD_FROM
+FROM ghcr.io/home-assistant/amd64-base:latest
 
 WORKDIR /app
 
-COPY ../api /app/api
-COPY ../core /app/core
-COPY ../requirements.txt /app
+# 1. Kopiere zuerst die Verzeichnisse und Dateien einzeln (ohne ..)
+# Stelle sicher, dass diese im gleichen Ordner wie das Dockerfile liegen!
+COPY api/ /app/api/
+COPY core/ /app/core/
+COPY requirements.txt /app/requirements.txt
+COPY run.sh /app/run.sh
+COPY main.py /app/main.py
+COPY custom_components/ /app/custom_components/
 
-# Mache das Start-Script ausführbar
+# 2. Jetzt, wo die Datei da ist, klappt auch das chmod
 RUN chmod a+x /app/run.sh
 
-RUN pip install -r requirements.txt
+# 3. Abhängigkeiten installieren
+RUN pip install --no-cache-dir -r requirements.txt
 
-CMD ["python","-m","uvicorn","api.main:app","--host","0.0.0.0","--port","8000"]
+# Startbefehl
+CMD [ "/app/run.sh" ]
