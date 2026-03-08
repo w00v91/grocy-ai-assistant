@@ -40,55 +40,71 @@ options = get_addon_options()
 EXPECTED_API_KEY = options.get("api_key", "standard_passwort")
 OLLAMA_URL = options.get("ollama_url", "http://localhost:11434/api/generate")
 
+# --- HILFSFUNKTION FÜR GROCY KONTEXT ---
+def get_grocy_context():
+    """
+    Hier könnten wir später die echten IDs von Grocy abrufen.
+    Vorerst nutzen wir Standardwerte, damit die KI weiß, was sie tun soll.
+    """
+    return {
+        "locations": "1: Kuehlschrank, 2: Vorratsschrank, 3: Tiefkuehler",
+        "units": "1: Stueck, 2: Packung, 3: Gramm, 4: Kilogramm"
+    }
+
 @app.route('/api/status', methods=['GET'])
 def get_status():
-    """Status-Check für den HA-Sensor."""
     auth_header = request.headers.get("Authorization")
     if auth_header != f"Bearer {EXPECTED_API_KEY}":
-        logger.warning("Unbefugter Status-Abrufversuch.")
         return jsonify({"status": "Nicht autorisiert"}), 401
-    
-    return jsonify({
-        "status": "Verbunden",
-        "ollama_target": OLLAMA_URL,
-        "model": options.get("ollama_model", "llama3")
-    })
+    return jsonify({"status": "Verbunden", "ollama_ready": True})
 
-@app.route('/api/process', methods=['POST'])
-def process_data():
-    """Verarbeitet KI-Anfragen und leitet sie an Ollama weiter."""
-    # 1. Auth-Check
+@app.route('/api/analyze_product', methods=['POST'])
+def analyze_product():
+    """Analysiert ein Produkt und liefert strukturiertes JSON für Grocy."""
     auth_header = request.headers.get("Authorization")
     if auth_header != f"Bearer {EXPECTED_API_KEY}":
         return jsonify({"error": "Unauthorized"}), 401
 
-    # 2. Daten extrahieren
     data = request.json
-    prompt = data.get("prompt", "")
+    product_name = data.get("name", "")
+    context = get_grocy_context()
 
-    # 3. Payload für Ollama vorbereiten
+    # Der System-Prompt zwingt die KI in ein festes JSON-Format
+    prompt = f"""
+    Analysiere das Produkt '{product_name}'. 
+    Gib NUR ein JSON-Objekt zurueck, das exakt diese Struktur hat:
+    {{
+      "name": "{product_name}",
+      "description": "kurze Beschreibung",
+      "location_id": (Waehle aus: {context['locations']}),
+      "qu_id_purchase": (Waehle aus: {context['units']}),
+      "qu_id_stock": (Waehle aus: {context['units']}),
+      "calories": (Geschaetzte Kalorien pro 100g/ml als Zahl)
+    }}
+    Antworte NUR mit dem JSON, kein Text davor oder danach.
+    """
+
     ollama_payload = {
         "model": options.get("ollama_model", "llama3"),
         "prompt": prompt,
-        "stream": False
+        "stream": False,
+        "format": "json" # Wichtig: Erzwingt JSON-Ausgabe bei modernen Modellen
     }
 
     try:
-        # Anfrage an Ollama senden
         response = requests.post(OLLAMA_URL, json=ollama_payload, timeout=60)
         response.raise_for_status()
-        ollama_data = response.json()
+        raw_answer = response.json().get("response")
         
+        # Die Antwort der KI direkt als JSON parsen und zurueckgeben
         return jsonify({
-            "answer": ollama_data.get("response"),
+            "product_data": json.loads(raw_answer),
             "success": True
         })
     except Exception as e:
-        logger.error(f"Ollama-Fehler: {e}")
+        logger.error(f"Analyse-Fehler: {e}")
         return jsonify({"error": str(e), "success": False}), 500
 
 if __name__ == '__main__':
-    # 'flush=True' ist der wichtigste Teil hier!
-    print(">>> FLASK SERVICE STARTET JETZT AUF PORT 8000 <<<", flush=True)
-    logger.info("Service ist bereit für Anfragen.")
+    print(">>> GROCY AI ENGINE GESTARTET AUF PORT 8000 <<<", flush=True)
     app.run(host='0.0.0.0', port=8000, debug=False)

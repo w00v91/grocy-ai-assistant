@@ -32,6 +32,26 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await hass.config_entries.async_forward_entry_setups(entry, ["sensor"])
 
     return True
+    
+async def handle_ask_ai(call):
+        prompt = call.data.get("prompt", "Hallo")
+        target_sensor = "sensor.grocy_ai_response"
+        
+        # API Call an dein Add-on (Flask)
+        # Wir nutzen hier die interne URL des Add-ons (Hostname)
+        url = "http://localhost:8000/api/process" 
+        headers = {"Authorization": f"Bearer {entry.data.get('api_key')}"}
+        
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, json={"prompt": prompt}, headers=headers) as resp:
+                if resp.status == 200:
+                    result = await resp.json()
+                    # Antwort in einem Helfer oder Sensor speichern
+                    hass.states.async_set(target_sensor, result.get("answer", "Keine Antwort"))
+
+    hass.services.async_register(DOMAIN, "ask_ai", handle_ask_ai)
+    return True
+    
 
 async def update_listener(hass: HomeAssistant, entry: ConfigEntry):
     """Wird aufgerufen, wenn Optionen aktualisiert wurden."""
