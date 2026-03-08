@@ -13,7 +13,12 @@ async def async_setup_entry(hass, entry, async_add_entities):
     ollama_url = conf.get("ollama_url")
 
     # Erstelle die Sensor-Instanz
-    async_add_entities([GrocyAISensor(api_key, ollama_url)], True)
+    entities = [
+        GrocyAISensor(entry),
+        GrocyAIResponseSensor(entry)
+    ]
+    # Übergebe die Liste an HA
+    async_add_entities(entities, update_before_add=True)
 
 class GrocyAISensor(SensorEntity):
     """Ein Sensor, der den Status der KI-Verbindung anzeigt."""
