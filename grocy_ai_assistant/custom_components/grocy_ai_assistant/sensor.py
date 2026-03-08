@@ -65,8 +65,6 @@ class GrocyAIResponseSensor(SensorEntity):
         self._attr_unique_id = f"{entry.entry_id}_response_text"
         self._attr_native_value = "Bereit" # Startwert geben!
         self._attr_icon = "mdi:comment-text-outline"
-        self._attr_entity_category = EntityCategory.SENSOR
-
 
     @property
     def device_info(self):
