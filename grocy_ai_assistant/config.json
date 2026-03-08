@@ -20,11 +20,13 @@
     "8000/tcp": 8000
   },
   "options": {
-    "enable_supermarket_data": true,
-    "enable_optimizer": true
+    "api_key": "GROCY API KEY",
+    "ollama_url": "http://172.17.0.1:11434/api/generate",
+    "ollama_model": "llama3"
   },
   "schema": {
-    "enable_supermarket_data": "bool",
-    "enable_optimizer": "bool"
-  }
+    "api_key": "str",
+    "ollama_url": "str",
+    "ollama_model": "str"
+  },
 }
