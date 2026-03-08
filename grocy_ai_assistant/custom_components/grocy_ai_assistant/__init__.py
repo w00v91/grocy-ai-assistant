@@ -33,6 +33,52 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     return True
     
+async def add_product_via_ai(call):
+    """Dienst: Produkt via KI analysieren und in Grocy anlegen."""
+    product_name = call.data.get("name")
+    _LOGGER.info(f"KI-Analyse gestartet für: {product_name}")
+
+    # URL deines Flask-Add-ons (interner Hostname)
+    ai_url = "http://localhost:8000/api/analyze_product"
+    headers = {"Authorization": f"Bearer {api_key}"}
+
+    async with aiohttp.ClientSession() as session:
+        # 1. Schritt: KI-Add-on nach Daten fragen
+        try:
+            async with session.post(ai_url, json={"name": product_name}, headers=headers) as resp:
+                if resp.status != 200:
+                    _LOGGER.error(f"KI-Add-on Fehler: {resp.status}")
+                    return
+                
+                data = await resp.json()
+                product_attrs = data.get("product_data")
+                _LOGGER.info(f"KI hat Daten geliefert: {product_attrs}")
+
+            # 2. Schritt: Daten an Grocy senden
+            # Hinweis: 'a0d49513_grocy' ist der Standard-Hostname des Grocy Add-ons
+            grocy_url = "http://a0d49513_grocy/api/objects/products"
+            grocy_headers = {
+                "GROCY-API-KEY": "DEIN_GROCY_API_KEY", # Hier deinen echten Grocy Key eintragen
+                "Content-Type": "application/json"
+            }
+
+            async with session.post(grocy_url, json=product_attrs, headers=grocy_headers) as grocy_resp:
+                if grocy_resp.status in [200, 201]:
+                    _LOGGER.info(f"Erfolg! {product_name} wurde in Grocy angelegt.")
+                    hass.bus.async_fire("grocy_ai_success", {"product": product_name})
+                else:
+                    _LOGGER.error(f"Grocy API Fehler: {await grocy_resp.text()}")
+
+        except Exception as e:
+            _LOGGER.error(f"Fehler im Ablauf: {e}")
+
+    # Registrierung des Dienstes in Home Assistant
+    hass.services.async_register(DOMAIN, "add_product_via_ai", add_product_via_ai)
+
+    # Weiterleitung an Sensor-Plattform
+    await hass.config_entries.async_forward_entry_setups(entry, ["sensor"])
+    return True
+    
 async def handle_ask_ai(call):
         prompt = call.data.get("prompt", "Hallo")
         target_sensor = "sensor.grocy_ai_response"
