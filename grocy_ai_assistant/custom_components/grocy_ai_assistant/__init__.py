@@ -45,6 +45,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     
                     res_data = await resp.json()
                     product_attrs = res_data.get("product_data")
+                    
+                    # In der __init__.py nach dem erfolgreichen KI-Call:
+                    response_text = f"Produkt '{product_name}' wurde analysiert und mit lokalem Bild in Grocy angelegt."
+
+                    # Setze den Status des Response-Sensors direkt
+                    hass.states.async_set(
+                        f"sensor.{DOMAIN}_response", 
+                        response_text,
+                        {"friendly_name": "Grocy AI Response", "icon": "mdi:robot-happy"}
+)
 
                 # 2. An Grocy senden
                 grocy_url = "http://a0d49513_grocy/api/objects/products"
