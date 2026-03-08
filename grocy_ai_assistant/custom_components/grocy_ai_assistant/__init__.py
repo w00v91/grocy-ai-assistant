@@ -13,8 +13,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     
     # Konfiguration laden
     conf = {**entry.data, **entry.options}
-    api_key = conf.data.get("api_key")
-    grocy_api_key = conf.data.get("grocy_api_key")
+    api_key = conf.get("api_key")
+    grocy_api_key = conf.get("grocy_api_key")
 
     if not api_key:
         _LOGGER.error("Kein API-Key in der Konfiguration gefunden!")
