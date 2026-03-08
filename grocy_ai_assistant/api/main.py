@@ -1,51 +1,80 @@
+from flask import Flask, request, jsonify
+import requests
 import json
 import os
 import logging
-from flask import Flask, request, jsonify
 
-# Setup Logging
+# Logging einrichten
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("GrocyAIAssistant")
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
 def get_addon_options():
-    """Liest die Konfiguration aus dem Home Assistant Add-on System."""
-    options_path = "/data/options.json"
+    """Liest die Add-on Konfiguration aus der Datei des Supervisors."""
+    options_path = '/data/options.json'
     if os.path.exists(options_path):
-        with open(options_path, 'r') as f:
-            return json.load(f)
-    logger.warning("Keine options.json gefunden, nutze Standardwerte.")
+        try:
+            with open(options_path, 'r') as f:
+                return json.load(f)
+        except Exception as e:
+            logger.error(f"Fehler beim Lesen der options.json: {e}")
     return {}
 
-# Optionen laden
+# Konfiguration initial laden
 options = get_addon_options()
-GROCY_API_KEY = options.get("grocy_api_key", "")
-ENABLE_OPTIMIZER = options.get("enable_optimizer", True)
+# Falls kein Key gesetzt ist, wird ein Fallback genutzt
+EXPECTED_API_KEY = options.get("api_key", "standard_passwort")
+OLLAMA_URL = options.get("ollama_url", "http://localhost:11434/api/generate")
 
-@app.route("/process", methods=["POST"])
-def process_request():
-    """Beispiel-Endpoint für die Custom Integration."""
+@app.route('/api/status', methods=['GET'])
+def get_status():
+    """Status-Check für den HA-Sensor."""
+    auth_header = request.headers.get("Authorization")
+    if auth_header != f"Bearer {EXPECTED_API_KEY}":
+        logger.warning("Unbefugter Status-Abrufversuch.")
+        return jsonify({"status": "Nicht autorisiert"}), 401
+    
+    return jsonify({
+        "status": "Verbunden",
+        "ollama_target": OLLAMA_URL,
+        "model": options.get("ollama_model", "llama3")
+    })
+
+@app.route('/api/process', methods=['POST'])
+def process_data():
+    """Verarbeitet KI-Anfragen und leitet sie an Ollama weiter."""
+    # 1. Auth-Check
+    auth_header = request.headers.get("Authorization")
+    if auth_header != f"Bearer {EXPECTED_API_KEY}":
+        return jsonify({"error": "Unauthorized"}), 401
+
+    # 2. Daten extrahieren
     data = request.json
-    user_input = data.get("text", "")
-    
-    logger.info(f"KI verarbeitet Anfrage: {user_input}")
-    
-    # HIER KOMMT DEINE KI-LOGIK REIN (z.B. OpenAI Call oder lokales Modell)
-    # Beispiel-Antwort:
-    response = {
-        "status": "ok",
-        "answer": f"Ich habe '{user_input}' für Grocy verarbeitet.",
-        "action_taken": "inventory_sync"
+    prompt = data.get("prompt", "")
+
+    # 3. Payload für Ollama vorbereiten
+    ollama_payload = {
+        "model": options.get("ollama_model", "llama3"),
+        "prompt": prompt,
+        "stream": False
     }
-    
-    return jsonify(response)
 
-@app.route("/health", methods=["GET"])
-def health():
-    return jsonify({"status": "running", "grocy_connected": bool(GROCY_API_KEY)})
+    try:
+        # Anfrage an Ollama senden
+        response = requests.post(OLLAMA_URL, json=ollama_payload, timeout=60)
+        response.raise_for_status()
+        ollama_data = response.json()
+        
+        return jsonify({
+            "answer": ollama_data.get("response"),
+            "success": True
+        })
+    except Exception as e:
+        logger.error(f"Ollama-Fehler: {e}")
+        return jsonify({"error": str(e), "success": False}), 500
 
-if __name__ == "__main__":
-    # Home Assistant Add-ons nutzen oft Port 8000 oder den in config.json definierten
-    logger.info("Grocy AI Assistant Service startet auf Port 8000...")
-    app.run(host="0.0.0.0", port=8000)
+if __name__ == '__main__':
+    # Add-on intern auf Port 8000
+    logger.info("Grocy AI Service gestartet auf Port 8000")
+    app.run(host='0.0.0.0', port=8000)
