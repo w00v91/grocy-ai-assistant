@@ -44,9 +44,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 async with aiohttp.ClientSession(timeout=timeout) as session:
                     try:
                         async with session.post(ai_url, json={"name": product_name}, headers=headers) as resp:
-                    if resp.status != 200:
-                        _LOGGER.error(f"KI-Add-on Fehler: {resp.status}")
-                        return
+                            if resp.status != 200:
+                                _LOGGER.error(f"KI-Add-on Fehler: {resp.status}")
+                                return
                     
                     res_data = await resp.json()
                     product_attrs = res_data.get("product_data")
@@ -88,7 +88,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 async with session.post(url, json={"prompt": prompt}, headers=headers) as resp:
                     if resp.status == 200:
                         result = await resp.json()
-                        hass.states.async_set("sensor.grocy_ai_response", result.get("answer", "Keine Antwort"))
+                        hass.states.async_set("sensor.{DOMAIN}_response", result.get("answer", "Keine Antwort"))
             except Exception as e:
                 _LOGGER.error(f"Fehler im ask_ai Ablauf: {e}")
 
