@@ -21,37 +21,37 @@ async def async_setup_entry(hass, entry, async_add_entities):
     async_add_entities(entities, update_before_add=True)
 
 class GrocyAISensor(SensorEntity):
-    """Ein Sensor, der den Status der KI-Verbindung anzeigt."""
-
-    def __init__(self, api_key, ollama_url):
-        self._api_key = api_key
-        self._ollama_url = ollama_url
-        self._state = "Initialisierung"
+"""Sensor für die Erreichbarkeit des Add-ons."""
+    
+    def __init__(self, entry):
+        """Initialisierung nur mit entry."""
+        self._entry = entry
+        # Wir holen uns die URL direkt aus den Daten des entries
+        self._ollama_url = entry.data.get("ollama_url", "http://172.17.0.1:11434/api/generate")
+        
         self._attr_name = "Grocy AI Status"
-        self._attr_unique_id = "grocy_ai_status_unique"
-
-    @property
-    def state(self):
-        return self._state
+        self._attr_unique_id = f"{entry.entry_id}_status"
+        self._attr_native_value = "Initialisiere..."
+        self._attr_icon = "mdi:robot"
+        self._attr_entity_category = EntityCategory.DIAGNOSTIC
 
     async def async_update(self):
-        """Holt den aktuellen Status vom Add-on Service."""
-        # Beispiel: Test-Anfrage an deinen Flask-Service im Add-on
+        """Prüfung der Erreichbarkeit."""
+        # Wir nutzen den API-Key aus dem entry
+        api_key = self._entry.data.get("api_key")
+        # WICHTIG: Port 8000 ist dein Flask-Add-on, nicht Ollama direkt!
         url = "http://localhost:8000/api/status" 
-        headers = {"Authorization": f"Bearer {self._api_key}"}
+        headers = {"Authorization": f"Bearer {api_key}"}
 
         try:
             async with aiohttp.ClientSession() as session:
-                async with session.get(url, headers=headers, timeout=5) as response:
-                    if response.status == 200:
-                        data = await response.json()
-                        self._state = data.get("status", "Verbunden")
+                async with session.get(url, headers=headers, timeout=5) as resp:
+                    if resp.status == 200:
+                        self._attr_native_value = "Online"
                     else:
-                        self._state = f"Fehler: {response.status}"
-        except Exception as e:
-            _LOGGER.error("Fehler beim Update des Grocy AI Sensors: %s", e)
-            self._state = "Nicht erreichbar"
-            
+                        self._attr_native_value = f"Error {resp.status}"
+        except Exception:
+            self._attr_native_value = "Offline"
 
 class GrocyAIResponseSensor(SensorEntity):
     def __init__(self, entry):
@@ -75,3 +75,7 @@ class GrocyAIResponseSensor(SensorEntity):
     @property
     def should_poll(self):
         return False
+        
+    async def async_added_to_hass(self):
+        """Wird aufgerufen, wenn der Sensor zu HA hinzugefügt wird."""
+        _LOGGER.info("Response Sensor registriert und bereit.")
