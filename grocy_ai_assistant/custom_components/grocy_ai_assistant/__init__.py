@@ -38,7 +38,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         # Feedback im Dashboard
         hass.states.async_set(f"sensor.{DOMAIN}_response", "KI arbeitet... (Bild & Daten)", {"icon": "mdi:progress-clock"})
 
-        ai_url = "http://localhost:8000/api/analyze_product"
+        ai_url = "http://10.0.0.2:8000/api/analyze_product"
         headers = {"Authorization": f"Bearer {api_key}"}
         timeout = aiohttp.ClientTimeout(total=150) # Viel Zeit für die Bildgenerierung
 
