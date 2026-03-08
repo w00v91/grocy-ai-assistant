@@ -1,6 +1,6 @@
 {
   "name": "Grocy AI Assistant",
-  "version": "4.1",
+  "version": "4.2",
   "slug": "grocy_ai_assistant",
   "description": "AI assistant for Grocy",
   "startup": "services",
