@@ -46,3 +46,17 @@ class GrocyAISensor(SensorEntity):
         except Exception as e:
             _LOGGER.error("Fehler beim Update des Grocy AI Sensors: %s", e)
             self._state = "Nicht erreichbar"
+            
+class GrocyAIResponseSensor(SensorEntity):
+    """Sensor für die letzte Antwort der KI."""
+    def __init__(self, entry):
+        self._entry = entry
+        self._attr_name = "Grocy AI Response"
+        self._attr_unique_id = f"{entry.entry_id}_response"
+        self._attr_native_value = "Warte auf Eingabe..."
+        self._attr_icon = "mdi:comment-text-outline"
+
+    # Dieser Sensor wird nicht aktiv 'geupdated', sondern von der __init__.py 'beschrieben'
+    @property
+    def should_poll(self):
+        return False
