@@ -70,3 +70,8 @@ class GrocyAIResponseSensor(SensorEntity):
             "name": "Grocy AI Assistant",
             "manufacturer": "Eigene Integration",
         }
+        
+    # Dieser Sensor wird nicht aktiv 'geupdated', sondern von der __init__.py 'beschrieben'
+    @property
+    def should_poll(self):
+        return False
