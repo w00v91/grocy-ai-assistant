@@ -52,16 +52,21 @@ class GrocyAISensor(SensorEntity):
             _LOGGER.error("Fehler beim Update des Grocy AI Sensors: %s", e)
             self._state = "Nicht erreichbar"
             
+
 class GrocyAIResponseSensor(SensorEntity):
-    """Sensor für die letzte Antwort der KI."""
     def __init__(self, entry):
         self._entry = entry
+        # WICHTIG: Benutze DOMAIN aus const.py oder schreibe "grocy_ai_assistant"
         self._attr_name = "Grocy AI Response"
-        self._attr_unique_id = f"{entry.entry_id}_response"
-        self._attr_native_value = "Warte auf Eingabe..."
+        self._attr_unique_id = f"{entry.entry_id}_response_text"
+        self._attr_native_value = "Bereit" # Startwert geben!
         self._attr_icon = "mdi:comment-text-outline"
 
-    # Dieser Sensor wird nicht aktiv 'geupdated', sondern von der __init__.py 'beschrieben'
     @property
-    def should_poll(self):
-        return False
+    def device_info(self):
+        """Verknüpft den Sensor mit dem 'Gerät' deiner Integration."""
+        return {
+            "identifiers": {("domain", "grocy_ai_assistant")},
+            "name": "Grocy AI Assistant",
+            "manufacturer": "Eigene Integration",
+        }

@@ -1,0 +1,22 @@
+add_product_via_ai:
+  name: Produkt via KI anlegen
+  description: Analysiert einen Produktnamen per KI, generiert ein Bild und legt es in Grocy an.
+  fields:
+    name:
+      name: Produktname
+      description: Der Name des Produkts (z.B. Milch, Äpfel). Wenn leer, wird das Textfeld der Integration genutzt.
+      example: "Gala Äpfel 1kg"
+      selector:
+        text:
+
+ask_ai:
+  name: KI Fragen
+  description: Sendet einen einfachen Prompt an das KI-Add-on.
+  fields:
+    prompt:
+      name: Prompt
+      description: Deine Frage an die KI.
+      example: "Wie viele Kalorien hat eine Banane?"
+      required: true
+      selector:
+        text:
