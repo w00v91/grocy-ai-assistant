@@ -38,7 +38,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         async with aiohttp.ClientSession() as session:
             try:
                 # 1. KI-Add-on fragen
-                async with session.post(ai_url, json={"name": product_name}, headers=headers) as resp:
+                # 120 Sekunden Timeout für die Bildgenerierung einplanen
+                timeout = aiohttp.ClientTimeout(total=120) 
+
+                async with aiohttp.ClientSession(timeout=timeout) as session:
+                    try:
+                        async with session.post(ai_url, json={"name": product_name}, headers=headers) as resp:
                     if resp.status != 200:
                         _LOGGER.error(f"KI-Add-on Fehler: {resp.status}")
                         return
