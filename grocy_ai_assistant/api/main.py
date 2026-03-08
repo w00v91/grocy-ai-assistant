@@ -1,5 +1,8 @@
+import requests
+import json
 import sys
 import logging
+import os
 from flask import Flask, request, jsonify
 
 # 1. Logging radikal erzwingen
