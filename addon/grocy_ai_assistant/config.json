@@ -1,0 +1,24 @@
+{
+  "name": "Grocy AI Assistant",
+  "version": "4.0",
+  "slug": "grocy_ai_assistant",
+  "description": "AI assistant for Grocy",
+  "startup": "services",
+  "boot": "auto",
+  "arch": [
+    "amd64",
+    "aarch64",
+    "armv7"
+  ],
+  "ports": {
+    "8000/tcp": 8000
+  },
+  "options": {
+    "enable_supermarket_data": true,
+    "enable_optimizer": true
+  },
+  "schema": {
+    "enable_supermarket_data": "bool",
+    "enable_optimizer": "bool"
+  }
+}

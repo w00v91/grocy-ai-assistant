@@ -1,0 +1,11 @@
+{
+  "domain": "grocy_ai_assistant",
+  "name": "Grocy AI Assistant",
+  "version": "4.0",
+  "documentation": "https://github.com/",
+  "requirements": [],
+  "dependencies": [],
+  "codeowners": [
+    "@local"
+  ]
+}
