@@ -1,14 +1,24 @@
-from flask import Flask, request, jsonify
-import requests
-import json
-import os
+import sys
 import logging
+from flask import Flask, request, jsonify
 
-# Logging einrichten
-logging.basicConfig(level=logging.INFO)
+# 1. Logging radikal erzwingen
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    stream=sys.stdout  # Erzwingt die Ausgabe in den Docker-Standard-Stream
+)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
+
+# Deaktiviere den Flask-internen Puffer
+app.config['ENV'] = 'development' 
+
+@app.before_request
+def log_request_info():
+    # Diese Funktion schreibt JEDE Anfrage sofort ins Log
+    logger.info(f"Anfrage erhalten: {request.method} {request.path}")
 
 def get_addon_options():
     """Liest die Add-on Konfiguration aus der Datei des Supervisors."""
@@ -75,6 +85,7 @@ def process_data():
         return jsonify({"error": str(e), "success": False}), 500
 
 if __name__ == '__main__':
-    # Add-on intern auf Port 8000
-    logger.info("Grocy AI Service gestartet auf Port 8000")
-    app.run(host='0.0.0.0', port=8000)
+    # 'flush=True' ist der wichtigste Teil hier!
+    print(">>> FLASK SERVICE STARTET JETZT AUF PORT 8000 <<<", flush=True)
+    logger.info("Service ist bereit für Anfragen.")
+    app.run(host='0.0.0.0', port=8000, debug=False)

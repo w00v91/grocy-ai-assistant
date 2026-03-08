@@ -3,6 +3,8 @@ FROM ghcr.io/home-assistant/amd64-base:latest
 
 WORKDIR /app
 
+ENV PYTHONUNBUFFERED=1
+
 # 1. System-Abhängigkeiten installieren
 # Wir fügen build-base hinzu, falls pip etwas kompilieren muss
 RUN apk add --no-cache python3 py3-pip build-base python3-dev
