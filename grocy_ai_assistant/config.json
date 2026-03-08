@@ -1,6 +1,6 @@
 {
   "name": "Grocy AI Assistant",
-  "version": "4.9.5",
+  "version": "4.9.6",
   "slug": "grocy_ai_assistant",
   "dependencies": ["a0d49513_grocy"],
   "description": "AI assistant for Grocy",
@@ -18,12 +18,14 @@
     "8000/tcp": 8000
   },
   "options": {
-    "api_key": "GROCY API KEY",
+    "api_key": "DEIN_KI_KEY",
+    "grocy_api_key": "DEIN_GROCY_KEY",
     "ollama_url": "http://172.17.0.1:11434/api/generate",
     "ollama_model": "llama3"
   },
   "schema": {
     "api_key": "str",
+    "grocy_api_key": "str",
     "ollama_url": "str",
     "ollama_model": "str"
   }
