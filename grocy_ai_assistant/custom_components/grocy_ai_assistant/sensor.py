@@ -1,6 +1,10 @@
 import logging
 import aiohttp
 from homeassistant.components.sensor import SensorEntity
+# Dieser Import hat gefehlt:
+from homeassistant.helpers.entity import EntityCategory
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
 from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
@@ -21,7 +25,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
     async_add_entities(entities, update_before_add=True)
 
 class GrocyAISensor(SensorEntity):
-"""Sensor für die Erreichbarkeit des Add-ons."""
+    """Sensor für die Erreichbarkeit des Add-ons."""
     
     def __init__(self, entry):
         """Initialisierung nur mit entry."""
