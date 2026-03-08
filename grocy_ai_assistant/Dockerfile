@@ -8,7 +8,6 @@ COPY api/ /app/api/
 COPY core/ /app/core/
 COPY requirements.txt /app/requirements.txt
 COPY run.sh /app/run.sh
-COPY main.py /app/main.py
 COPY custom_components/ /app/custom_components/
 
 # 2. Jetzt, wo die Datei da ist, klappt auch das chmod
