@@ -27,4 +27,4 @@ bashio::log.info "-------------------------------------------------------"
 
 # Starte nun den eigentlichen AI-Service (deine Python App)
 bashio::log.info "Starte Grocy AI Service..."
-python3 /app/main.py
+python3 /app/api/main.py
