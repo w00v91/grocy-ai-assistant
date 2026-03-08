@@ -4,9 +4,9 @@ FROM $BUILD_FROM
 
 WORKDIR /app
 
-COPY ../../api /app/api
-COPY ../../core /app/core
-COPY ../../requirements.txt /app
+COPY ../api /app/api
+COPY ../core /app/core
+COPY ../requirements.txt /app
 
 # Mache das Start-Script ausführbar
 RUN chmod a+x /app/run.sh
