@@ -11,7 +11,6 @@ COPY api/ /app/api/
 COPY core/ /app/core/
 COPY requirements.txt /app/requirements.txt
 COPY run.sh /app/run.sh
-COPY main.py /app/main.py
 COPY custom_components/ /app/custom_components/
 
 # 3. Rechte setzen (Hat in Screenshot #12 auch geklappt!)
