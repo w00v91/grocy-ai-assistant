@@ -5,10 +5,15 @@
   "description": "AI assistant for Grocy",
   "startup": "services",
   "boot": "auto",
+  "init": false,
   "arch": [
     "amd64",
     "aarch64",
     "armv7"
+  ],
+  "map_config": true,
+  "privileged": [
+    "SYS_ADMIN"
   ],
   "ports": {
     "8000/tcp": 8000
