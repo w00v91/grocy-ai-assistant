@@ -4,7 +4,7 @@ FROM ghcr.io/home-assistant/amd64-base:latest
 WORKDIR /app
 
 # 1. Installiere Python und Pip (Zwingend notwendig für Alpine-Images)
-RUN apk add --no-cache python3 py3-pip
+RUN apk add --no-cache python3 py3-pip --break-system-packages
 
 # 2. Kopiere die Dateien (Das hat laut deinem Screenshot #10 & #11 jetzt geklappt!)
 COPY api/ /app/api/
