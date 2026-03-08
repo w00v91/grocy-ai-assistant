@@ -94,7 +94,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # --- DIENST 2: Einfache Abfrage ---
     async def ask_ai_service(call):
         prompt = call.data.get("prompt", "Hallo")
-        url = "http://localhost:8000/api/process"
+        url = "http://10.0.0.2:8000/api/process"
         headers = {"Authorization": f"Bearer {api_key}"}
         
         async with aiohttp.ClientSession() as session:
