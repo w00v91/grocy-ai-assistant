@@ -58,6 +58,47 @@ def get_status():
         return jsonify({"status": "Nicht autorisiert"}), 401
     return jsonify({"status": "Verbunden", "ollama_ready": True})
 
+# Ein Prompt-Template für die Bildgenerierung
+IMAGE_PROMPT_TEMPLATE = """
+Professionelles Produktfoto von '{product_name}' auf rein weißem Hintergrund. 
+Studiobeleuchtung, scharf, keine Wasserzeichen, fotorealistisch.
+"""
+
+def generate_product_image(product_name):
+    """Erstellt ein Produktbild via Stable Diffusion/Ollama."""
+    prompt = IMAGE_PROMPT_TEMPLATE.format(product_name=product_name)
+    
+    # URL deines Stable Diffusion Endpunkts (z.B. lokal oder in der Cloud)
+    SD_URL = "http://172.17.0.1:7860/sdapi/v1/txt2img" 
+    
+    # Payload für die Generierung
+    payload = {
+        "prompt": prompt,
+        "steps": 20,
+        "width": 512,
+        "height": 512,
+        "cfg_scale": 7
+    }
+
+    try:
+        response = requests.post(SD_URL, json=payload, timeout=60)
+        response.raise_for_status()
+        
+        # Stable Diffusion gibt oft ein Base64 Bild zurück
+        r = response.json()
+        image_base64 = r['images'][0]
+        
+        # Als Datei zwischenspeichern
+        file_path = f"/data/product_images/{product_name.replace(' ', '_')}.png"
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        with open(file_path, "wb") as f:
+            f.write(base64.b64decode(image_base64))
+            
+        return file_path # Rückgabe des lokalen Pfads
+    except Exception as e:
+        logger.error(f"Bildgenerierung fehlgeschlagen: {e}")
+    return None
+
 @app.route('/api/analyze_product', methods=['POST'])
 def analyze_product():
     """Analysiert ein Produkt und liefert strukturiertes JSON für Grocy."""
