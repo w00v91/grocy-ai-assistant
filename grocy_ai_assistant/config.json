@@ -1,6 +1,6 @@
 {
   "name": "Grocy AI Assistant",
-  "version": "5.1.1",
+  "version": "5.1.2",
   "slug": "grocy_ai_assistant",
   "dependencies": ["a0d49513_grocy"],
   "description": "AI assistant for Grocy",
@@ -14,6 +14,7 @@
   ],
   "map": ["config:rw"],
   "privileged": ["SYS_ADMIN"],
+  "host_network": false,
   "ports": {
     "8000/tcp": 8000
   },
