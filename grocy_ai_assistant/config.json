@@ -12,7 +12,7 @@
     "aarch64",
     "armv7"
   ],
-  "map_config": true,
+  "map": ["config:rw"],
   "privileged": [
     "SYS_ADMIN"
   ],

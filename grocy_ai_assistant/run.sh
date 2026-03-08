@@ -7,9 +7,17 @@ TARGET_DIR="/config/custom_components/grocy_ai_assistant"
 bashio::log.info "Prüfe Installation der Custom Integration..."
 
 # Falls der Zielordner nicht existiert, erstelle ihn
-if [ ! -d "$TARGET_DIR" ]; then
-    bashio::log.info "Integration nicht gefunden. Installiere..."
+if [ -d "$SOURCE_DIR" ]; then
+    # Erstelle den Zielordner, falls er fehlt
     mkdir -p "$TARGET_DIR"
+    
+    # Kopiere mit 'v' (verbose), damit wir im Log genau sehen, was passiert
+    cp -rv "$SOURCE_DIR/." "$TARGET_DIR/"
+    
+    bashio::log.info "Inhalt von $TARGET_DIR nach Kopieren:"
+    ls -l "$TARGET_DIR"
+else
+    bashio::log.error "QUELLE NICHT GEFUNDEN: $SOURCE_DIR existiert nicht im Add-on!"
 fi
 
 # Dateien kopieren (nur wenn sie sich unterscheiden oder neu sind)
