@@ -8,6 +8,10 @@ from pydantic import BaseModel
 
 class Settings(BaseModel):
     api_key: str = "standard_passwort"
+    addon_version: str = os.getenv("GROCY_AI_ADDON_VERSION", "dev")
+    required_integration_version: str = os.getenv(
+        "GROCY_AI_REQUIRED_INTEGRATION_VERSION", "1.2.2"
+    )
     ollama_url: str = "http://10.0.0.2:11434/api/generate"
     ollama_model: str = "llama3"
     grocy_base_url: str = "http://homeassistant.local:9192/api"

@@ -27,8 +27,30 @@ def require_auth(
 @router.get("/api/status")
 def get_status(
     _: None = Depends(require_auth),
+    integration_version: str | None = Header(
+        default=None, alias="X-HA-Integration-Version"
+    ),
+    settings: Settings = Depends(get_settings),
 ):
-    return {"status": "Verbunden", "ollama_ready": True}
+    restart_required = bool(
+        integration_version
+        and integration_version != settings.required_integration_version
+    )
+    reason = (
+        f"Installierte Integration {integration_version} weicht von der benötigten Version "
+        f"{settings.required_integration_version} ab."
+        if restart_required
+        else ""
+    )
+
+    return {
+        "status": "Verbunden",
+        "ollama_ready": True,
+        "addon_version": settings.addon_version,
+        "required_integration_version": settings.required_integration_version,
+        "homeassistant_restart_required": restart_required,
+        "update_reason": reason,
+    }
 
 
 @router.post("/api/analyze_product", response_model=AnalyzeProductResponse)
@@ -53,7 +75,9 @@ def dashboard_search(
     settings: Settings = Depends(get_settings),
 ):
     if not settings.grocy_api_key:
-        raise HTTPException(status_code=500, detail="grocy_api_key fehlt in Add-on Optionen")
+        raise HTTPException(
+            status_code=500, detail="grocy_api_key fehlt in Add-on Optionen"
+        )
 
     product_name = payload.name.strip()
     if not product_name:
@@ -65,7 +89,9 @@ def dashboard_search(
     try:
         existing_product = grocy_client.find_product_by_name(product_name)
         if existing_product:
-            grocy_client.add_product_to_shopping_list(existing_product.get("id"), amount=1)
+            grocy_client.add_product_to_shopping_list(
+                existing_product.get("id"), amount=1
+            )
             return DashboardSearchResponse(
                 success=True,
                 action="existing_added",

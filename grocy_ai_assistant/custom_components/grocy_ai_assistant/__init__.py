@@ -1,5 +1,6 @@
 import base64
 import logging
+
 import time
 
 import aiohttp
@@ -7,6 +8,8 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
 from . import panel
+from .addon_client import AddonClient
+from .const import DEFAULT_ADDON_BASE_URL, DOMAIN
 from .const import (
     CONF_API_KEY,
     CONF_DEBUG_MODE,
@@ -19,6 +22,8 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Set up the integration from a config entry."""
 def _normalize_name(value: str) -> str:
     return (value or "").strip().casefold()
 
@@ -42,8 +47,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     _LOGGER.info("Setting up Grocy AI Assistant for entry %s", entry.entry_id)
 
     if not hass.data[DOMAIN].get("_panel_registered"):
-        await panel.async_setup(hass, "http://localhost:8000")
+        panel_url = hass.data[DOMAIN][entry.entry_id].get(
+            "addon_base_url", DEFAULT_ADDON_BASE_URL
+        )
+        await panel.async_setup(hass, panel_url)
         hass.data[DOMAIN]["_panel_registered"] = True
+
+    async def add_product_via_ai_service(call):
         _LOGGER.debug("Registered Grocy AI panel")
 
     async def add_product_via_ai_service(call):
@@ -54,6 +64,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             return
 
         active_conf = {**current_entry.data, **current_entry.options}
+        product_name = (call.data.get("name") or "").strip()
         api_key = active_conf.get(CONF_API_KEY)
         grocy_api_key = active_conf.get(CONF_GROCY_API_KEY)
         grocy_base_url = active_conf.get(CONF_GROCY_BASE_URL, DEFAULT_GROCY_BASE_URL)
@@ -64,9 +75,45 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         product_name = call.data.get("name")
         if not product_name:
             state = hass.states.get(f"text.{DOMAIN}_produkt_name")
-            product_name = state.state if state else ""
+            product_name = (state.state if state else "").strip()
 
         if not product_name:
+            hass.states.async_set(
+                f"sensor.{DOMAIN}_response",
+                "Kein Produktname übergeben",
+                {"icon": "mdi:alert-circle"},
+            )
+            return
+
+        client = AddonClient(
+            active_conf.get("addon_base_url", DEFAULT_ADDON_BASE_URL),
+            active_conf.get("api_key", ""),
+        )
+
+        hass.states.async_set(
+            f"sensor.{DOMAIN}_response",
+            "KI analysiert…",
+            {"icon": "mdi:progress-clock"},
+        )
+
+        try:
+            payload = await client.dashboard_search(product_name)
+            if payload.get("_http_status") != 200:
+                raise RuntimeError(payload.get("detail") or "Unbekannter API-Fehler")
+
+            hass.states.async_set(
+                f"sensor.{DOMAIN}_response",
+                payload.get("message", "Vorgang abgeschlossen"),
+                {"icon": "mdi:check-circle"},
+            )
+            hass.states.async_set(f"text.{DOMAIN}_produkt_name", "")
+        except Exception as error:
+            _LOGGER.error("Fehler beim Add-on Aufruf: %s", error)
+            hass.states.async_set(
+                f"sensor.{DOMAIN}_response",
+                f"Fehler: {error}",
+                {"icon": "mdi:alert-circle"},
+            )
             _LOGGER.warning("No product name provided for analysis")
             return
 
@@ -296,12 +343,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 
 async def async_update_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Handle options update."""
     """Called when options are updated."""
     _LOGGER.info("Reloading config entry %s after options update", entry.entry_id)
     await hass.config_entries.async_reload(entry.entry_id)
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Unload integration entry."""
+    return await hass.config_entries.async_unload_platforms(entry, ["sensor", "text"])
     """Unload the integration."""
     unload_ok = await hass.config_entries.async_unload_platforms(
         entry, ["sensor", "text"]

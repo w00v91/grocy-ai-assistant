@@ -4,6 +4,7 @@ from homeassistant import config_entries
 from homeassistant.core import callback
 import voluptuous as vol
 
+from .const import DEFAULT_ADDON_BASE_URL, DOMAIN
 from .const import (
     CONF_API_KEY,
     CONF_DEBUG_MODE,
@@ -28,6 +29,8 @@ class GrocyAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="user",
             data_schema=vol.Schema(
                 {
+                    vol.Required("api_key"): str,
+                    vol.Required("addon_base_url", default=DEFAULT_ADDON_BASE_URL): str,
                     vol.Required(CONF_API_KEY): str,
                     vol.Required(CONF_GROCY_API_KEY): str,
                     vol.Optional(
@@ -54,14 +57,24 @@ class GrocyAIOptionsFlowHandler(config_entries.OptionsFlow):
             self._pending_options.update(user_input)
             return await self.async_step_debug()
 
-        options = self.config_entry.options if self.config_entry.options else {}
-        data = self.config_entry.data if self.config_entry.data else {}
+        options = self.config_entry.options or {}
+        data = self.config_entry.data or {}
 
         return self.async_show_form(
             step_id="init",
             data_schema=vol.Schema(
                 {
                     vol.Required(
+                        "api_key",
+                        default=options.get("api_key", data.get("api_key", "")),
+                    ): str,
+                    vol.Required(
+                        "addon_base_url",
+                        default=options.get(
+                            "addon_base_url",
+                            data.get("addon_base_url", DEFAULT_ADDON_BASE_URL),
+                        ),
+                    ): str,
                         CONF_API_KEY,
                         default=options.get(CONF_API_KEY, data.get(CONF_API_KEY, "")),
                     ): str,
