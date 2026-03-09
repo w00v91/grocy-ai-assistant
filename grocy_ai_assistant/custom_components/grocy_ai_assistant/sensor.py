@@ -4,17 +4,17 @@ from homeassistant.components.sensor import SensorEntity
 from homeassistant.helpers.entity import EntityCategory
 
 from .addon_client import AddonClient
-from .const import DEFAULT_ADDON_BASE_URL, DOMAIN, INTEGRATION_VERSION
-import aiohttp
-from homeassistant.components.sensor import SensorEntity
-from homeassistant.helpers.entity import EntityCategory
-
-from .const import CONF_API_KEY, CONF_DEBUG_MODE
+from .const import (
+    CONF_DEBUG_MODE,
+    DEFAULT_ADDON_BASE_URL,
+    INTEGRATION_VERSION,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(hass, entry, async_add_entities):
+    """Set up sensors for a config entry."""
     async_add_entities(
         [
             GrocyAISensor(entry),
@@ -39,21 +39,10 @@ class _BaseAddonSensor(SensorEntity):
 
 
 class GrocyAISensor(_BaseAddonSensor):
-    """Sensor für die Erreichbarkeit des Add-ons."""
-
-    def __init__(self, entry):
-        super().__init__(entry)
-    """Set up sensors based on config entry."""
-    _LOGGER.debug("Setting up sensor entities for entry %s", entry.entry_id)
-    entities = [GrocyAISensor(entry), GrocyAIResponseSensor(entry)]
-    async_add_entities(entities, update_before_add=True)
-
-
-class GrocyAISensor(SensorEntity):
     """Sensor for add-on availability."""
 
     def __init__(self, entry):
-        self._entry = entry
+        super().__init__(entry)
         self._debug_mode = bool(entry.options.get(CONF_DEBUG_MODE, False))
         self._attr_name = "Grocy AI Status"
         self._attr_unique_id = f"{entry.entry_id}_status"
@@ -78,25 +67,9 @@ class GrocyAISensor(SensorEntity):
             else:
                 self._attr_native_value = f"Error {payload.get('_http_status')}"
         except Exception as error:
-            _LOGGER.debug("Statusabfrage fehlgeschlagen: %s", error)
-        api_key = self._entry.data.get(CONF_API_KEY)
-        url = "http://localhost:8000/api/status"
-        headers = {"Authorization": f"Bearer {api_key}"}
-
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(url, headers=headers, timeout=5) as resp:
-                    if resp.status == 200:
-                        self._attr_native_value = "Online"
-                    else:
-                        self._attr_native_value = f"Error {resp.status}"
-                    if self._debug_mode:
-                        _LOGGER.debug("Status check returned %s", resp.status)
-        except Exception as err:
             self._attr_native_value = "Offline"
             if self._debug_mode:
-                _LOGGER.debug("Status check failed: %s", err)
-
+                _LOGGER.debug("Statusabfrage fehlgeschlagen: %s", error)
 
 
 class GrocyAIUpdateRequiredSensor(_BaseAddonSensor):
@@ -115,9 +88,7 @@ class GrocyAIUpdateRequiredSensor(_BaseAddonSensor):
                 self._attr_native_value = "Unbekannt"
                 return
 
-            restart_required = bool(
-                payload.get("homeassistant_restart_required", False)
-            )
+            restart_required = bool(payload.get("homeassistant_restart_required", False))
             self._attr_native_value = "Ja" if restart_required else "Nein"
             self._attr_extra_state_attributes = {
                 "required_integration_version": payload.get(
@@ -133,7 +104,6 @@ class GrocyAIUpdateRequiredSensor(_BaseAddonSensor):
 
 class GrocyAIResponseSensor(SensorEntity):
     def __init__(self, entry):
-        self._entry = entry
         self._attr_name = "Grocy AI Response"
         self._attr_unique_id = f"{entry.entry_id}_response_text"
         self._attr_native_value = "Bereit"
