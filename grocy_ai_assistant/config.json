@@ -1,31 +1,43 @@
 {
-    "name": "Grocy AI Assistant",
-    "version": "5.2.14",
-    "slug": "grocy_ai_assistant",
-    "dependencies": ["a0d49513_grocy"],
-    "description": "AI assistant for Grocy",
-    "startup": "services",
-    "boot": "auto",
-    "init": false,
-    "arch": ["amd64", "aarch64", "armv7"],
-    "map": ["config:rw"],
-    "privileged": ["SYS_ADMIN"],
-    "host_network": false,
-    "ports": {"8000/tcp": 8000},
-    "options": {
-        "api_key": "DEIN_KI_KEY",
-        "grocy_api_key": "DEIN_GROCY_KEY",
-        "ollama_url": "http://76e18fb5_ollama:11434/api/generate",
-        "ollama_model": "llama3",
-        "debug_mode": false,
-        "grocy_base_url": "http://homeassistant.local:9192/api",
-    },
-    "schema": {
-        "api_key": "str",
-        "grocy_api_key": "str",
-        "ollama_url": "str",
-        "ollama_model": "str",
-        "debug_mode": "bool",
-        "grocy_base_url": "str",
-    },
+  "name": "Grocy AI Assistant",
+  "version": "5.2.14",
+  "slug": "grocy_ai_assistant",
+  "dependencies": [
+    "a0d49513_grocy"
+  ],
+  "description": "AI assistant for Grocy",
+  "startup": "services",
+  "boot": "auto",
+  "init": false,
+  "arch": [
+    "amd64",
+    "aarch64",
+    "armv7"
+  ],
+  "map": [
+    "config:rw"
+  ],
+  "privileged": [
+    "SYS_ADMIN"
+  ],
+  "host_network": false,
+  "ports": {
+    "8000/tcp": 8000
+  },
+  "options": {
+    "api_key": "DEIN_KI_KEY",
+    "grocy_api_key": "DEIN_GROCY_KEY",
+    "ollama_url": "http://76e18fb5_ollama:11434/api/generate",
+    "ollama_model": "llama3",
+    "debug_mode": false,
+    "grocy_base_url": "http://homeassistant.local:9192/api"
+  },
+  "schema": {
+    "api_key": "str",
+    "grocy_api_key": "str",
+    "ollama_url": "str",
+    "ollama_model": "str",
+    "debug_mode": "bool",
+    "grocy_base_url": "str"
+  }
 }
