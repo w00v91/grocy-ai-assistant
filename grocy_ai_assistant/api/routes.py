@@ -171,6 +171,29 @@ def dashboard_shopping_list(
         raise HTTPException(status_code=500, detail=str(error)) from error
 
 
+@router.delete("/api/dashboard/shopping-list/clear")
+def dashboard_clear_shopping_list(
+    _: None = Depends(require_auth),
+    settings: Settings = Depends(get_settings),
+):
+    if not settings.grocy_api_key:
+        raise HTTPException(
+            status_code=500, detail="grocy_api_key fehlt in Add-on Optionen"
+        )
+
+    try:
+        grocy_client = GrocyClient(settings)
+        removed_items = grocy_client.clear_shopping_list()
+        return {
+            "success": True,
+            "removed_items": removed_items,
+            "message": f"Einkaufsliste geleert ({removed_items} Einträge entfernt).",
+        }
+    except Exception as error:
+        logger.error("Einkaufsliste konnte nicht geleert werden: %s", error)
+        raise HTTPException(status_code=500, detail=str(error)) from error
+
+
 @router.get("/", response_class=HTMLResponse)
 def dashboard(settings: Settings = Depends(get_settings)) -> str:
     configured_api_key = json.dumps(settings.api_key)
@@ -249,6 +272,14 @@ def dashboard(settings: Settings = Depends(get_settings)) -> str:
         padding: 0.25rem 0.55rem;
         font-size: 0.85rem;
       }
+      .shopping-list-section { margin-top: 1rem; }
+      .danger-button {
+        margin-top: 0.85rem;
+        width: 100%;
+        background: #cf202f;
+        border-color: #b81b29;
+      }
+      .danger-button:hover { background: #b81b29; }
     </style>
   </head>
   <body>
@@ -264,10 +295,11 @@ def dashboard(settings: Settings = Depends(get_settings)) -> str:
         <p id='status'>Bereit.</p>
       </section>
 
-      <section class='card' style='margin-top: 1rem;'>
+      <section class='card shopping-list-section'>
         <h2>Einkaufsliste</h2>
         <p class='muted'>Direkt aus Grocy geladen, inklusive Produktbildern (falls vorhanden).</p>
         <ul id='shopping-list'></ul>
+        <button class='danger-button' onclick='clearShoppingList()'>Einkaufsliste leeren</button>
       </section>
     </main>
 
@@ -325,6 +357,30 @@ def dashboard(settings: Settings = Depends(get_settings)) -> str:
 
         renderShoppingList(payload);
         status.textContent = `Einkaufsliste geladen (${payload.length} Einträge).`;
+      }
+
+      async function clearShoppingList() {
+        const key = ensureApiKey();
+        const status = document.getElementById('status');
+        if (!key) {
+          status.textContent = 'Kein API-Key angegeben.';
+          return;
+        }
+
+        status.textContent = 'Leere Einkaufsliste...';
+        const res = await fetch('/api/dashboard/shopping-list/clear', {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${key}` },
+        });
+        const payload = await res.json();
+
+        if (!res.ok) {
+          status.textContent = payload.detail || 'Einkaufsliste konnte nicht geleert werden.';
+          return;
+        }
+
+        status.textContent = payload.message || 'Einkaufsliste geleert.';
+        await loadShoppingList();
       }
 
       async function searchProduct() {
