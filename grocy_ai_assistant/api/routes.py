@@ -9,6 +9,7 @@ from grocy_ai_assistant.models.ingredient import (
     AnalyzeProductRequest,
     AnalyzeProductResponse,
     DashboardSearchResponse,
+    ShoppingListItemResponse,
 )
 from grocy_ai_assistant.services.grocy_client import GrocyClient
 
@@ -113,6 +114,39 @@ def dashboard_search(
         raise HTTPException(status_code=500, detail=str(error)) from error
 
 
+@router.get("/api/dashboard/shopping-list", response_model=list[ShoppingListItemResponse])
+def dashboard_shopping_list(
+    _: None = Depends(require_auth),
+    settings: Settings = Depends(get_settings),
+):
+    if not settings.grocy_api_key:
+        raise HTTPException(
+            status_code=500, detail="grocy_api_key fehlt in Add-on Optionen"
+        )
+
+    try:
+        grocy_client = GrocyClient(settings)
+        items = grocy_client.get_shopping_list()
+        return [
+            ShoppingListItemResponse(
+                id=item.get("id"),
+                amount=str(item.get("amount") or "1"),
+                product_name=item.get("product_name") or "Unbekanntes Produkt",
+                note=item.get("note") or "",
+                picture_url=(
+                    item.get("picture_url")
+                    or item.get("product_picture_url")
+                    or item.get("picture_file_name")
+                    or ""
+                ),
+            )
+            for item in items
+        ]
+    except Exception as error:
+        logger.error("Einkaufsliste konnte nicht geladen werden: %s", error)
+        raise HTTPException(status_code=500, detail=str(error)) from error
+
+
 @router.get("/", response_class=HTMLResponse)
 def dashboard() -> str:
     return """
@@ -122,33 +156,180 @@ def dashboard() -> str:
     <meta charset='utf-8' />
     <meta name='viewport' content='width=device-width,initial-scale=1' />
     <title>Grocy AI Dashboard</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+      }
+      body {
+        font-family: Inter, Arial, sans-serif;
+        margin: 0;
+        background: linear-gradient(140deg, #f3f6ff 0%, #f6fbf8 55%, #ecf4ff 100%);
+        color: #1f2937;
+      }
+      .container {
+        max-width: 900px;
+        margin: 2rem auto;
+        padding: 0 1rem 2rem;
+      }
+      .card {
+        background: rgba(255, 255, 255, 0.86);
+        border: 1px solid #dbe6ff;
+        border-radius: 18px;
+        padding: 1.25rem;
+        box-shadow: 0 12px 28px rgba(38, 77, 182, 0.12);
+      }
+      h1, h2 { margin: 0 0 0.75rem; }
+      .search-row {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+      }
+      input, button {
+        border-radius: 12px;
+        border: 1px solid #cad6f8;
+        padding: 0.7rem 0.9rem;
+        font-size: 1rem;
+      }
+      input { flex: 1; min-width: 220px; }
+      button {
+        background: #2f63ff;
+        color: white;
+        cursor: pointer;
+        font-weight: 600;
+      }
+      .muted { color: #5f6d85; font-size: 0.95rem; }
+      #status { margin-top: 0.85rem; font-weight: 600; }
+      ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.8rem; }
+      li {
+        display: flex;
+        align-items: center;
+        gap: 0.8rem;
+        background: #fff;
+        border: 1px solid #e6ecff;
+        border-radius: 12px;
+        padding: 0.6rem 0.8rem;
+      }
+      img {
+        width: 58px;
+        height: 58px;
+        border-radius: 10px;
+        object-fit: cover;
+        background: #eef2f9;
+      }
+      .badge {
+        margin-left: auto;
+        background: #edf2ff;
+        color: #3555ad;
+        border-radius: 999px;
+        padding: 0.25rem 0.55rem;
+        font-size: 0.85rem;
+      }
+    </style>
   </head>
-  <body style="font-family: Arial, sans-serif; margin: 2rem;">
-    <h2>Grocy AI Suche</h2>
-    <p>Produkt eingeben: vorhanden → Einkaufsliste, nicht vorhanden → per KI anlegen + Einkaufsliste.</p>
-    <input id='name' placeholder='z.B. Hafermilch 1L' />
-    <button onclick='searchProduct()'>Suchen</button>
-    <p id='status'>Bereit.</p>
+  <body>
+    <main class='container'>
+      <section class='card'>
+        <h1>Grocy AI Suche</h1>
+        <p class='muted'>Produkt eingeben: vorhanden → Einkaufsliste, nicht vorhanden → per KI anlegen + Einkaufsliste.</p>
+        <div class='search-row'>
+          <input id='name' placeholder='z.B. Hafermilch 1L' />
+          <button onclick='searchProduct()'>Suchen & hinzufügen</button>
+          <button onclick='loadShoppingList()'>Einkaufsliste aktualisieren</button>
+        </div>
+        <p id='status'>Bereit.</p>
+      </section>
+
+      <section class='card' style='margin-top: 1rem;'>
+        <h2>Einkaufsliste</h2>
+        <p class='muted'>Direkt aus Grocy geladen, inklusive Produktbildern (falls vorhanden).</p>
+        <ul id='shopping-list'></ul>
+      </section>
+    </main>
+
     <script>
-      async function searchProduct() {
-        const name = document.getElementById('name').value;
-        const status = document.getElementById('status');
-        status.textContent = 'Prüfe Produkt...';
-        const apiKey = prompt('Bitte API-Key eingeben:');
+      let apiKey = '';
+
+      function ensureApiKey() {
         if (!apiKey) {
+          apiKey = prompt('Bitte API-Key eingeben:') || '';
+        }
+        return apiKey;
+      }
+
+      function toImageSource(url) {
+        if (!url) return 'https://placehold.co/80x80?text=Kein+Bild';
+        if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) return url;
+        return '/' + url.replace(/^\/+/, '');
+      }
+
+      function renderShoppingList(items) {
+        const list = document.getElementById('shopping-list');
+        if (!items.length) {
+          list.innerHTML = '<li>Keine Einträge in der Einkaufsliste.</li>';
+          return;
+        }
+
+        list.innerHTML = items.map((item) => `
+          <li>
+            <img src="${toImageSource(item.picture_url)}" alt="${item.product_name}" loading="lazy" />
+            <div>
+              <div><strong>${item.product_name}</strong></div>
+              <div class="muted">${item.note || 'Keine Notiz'}</div>
+            </div>
+            <span class="badge">Menge: ${item.amount}</span>
+          </li>
+        `).join('');
+      }
+
+      async function loadShoppingList() {
+        const key = ensureApiKey();
+        const status = document.getElementById('status');
+        if (!key) {
           status.textContent = 'Kein API-Key angegeben.';
           return;
         }
 
+        status.textContent = 'Lade Einkaufsliste...';
+        const res = await fetch('/api/dashboard/shopping-list', {
+          headers: { 'Authorization': `Bearer ${key}` },
+        });
+        const payload = await res.json();
+
+        if (!res.ok) {
+          status.textContent = payload.detail || 'Einkaufsliste konnte nicht geladen werden.';
+          return;
+        }
+
+        renderShoppingList(payload);
+        status.textContent = `Einkaufsliste geladen (${payload.length} Einträge).`;
+      }
+
+      async function searchProduct() {
+        const name = document.getElementById('name').value;
+        const status = document.getElementById('status');
+        const key = ensureApiKey();
+
+        if (!key) {
+          status.textContent = 'Kein API-Key angegeben.';
+          return;
+        }
+
+        status.textContent = 'Prüfe Produkt...';
         const res = await fetch('/api/dashboard/search', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
           body: JSON.stringify({ name })
         });
 
         const payload = await res.json();
         status.textContent = payload.message || payload.detail || 'Unbekannte Antwort';
+
+        if (res.ok) {
+          await loadShoppingList();
+        }
       }
+
+      loadShoppingList();
     </script>
   </body>
 </html>

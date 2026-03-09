@@ -26,3 +26,11 @@ class DashboardSearchResponse(BaseModel):
     action: str
     message: str
     product_id: Optional[int] = None
+
+
+class ShoppingListItemResponse(BaseModel):
+    id: int
+    amount: str
+    product_name: str
+    note: str = ""
+    picture_url: str = ""
