@@ -1,5 +1,6 @@
 import json
 import logging
+from urllib.parse import urljoin
 
 from fastapi import APIRouter, Depends, Header, HTTPException
 from fastapi.responses import HTMLResponse
@@ -16,6 +17,25 @@ from grocy_ai_assistant.services.grocy_client import GrocyClient
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+
+
+def _build_product_picture_url(raw_picture_url: str, settings: Settings) -> str:
+    picture_value = (raw_picture_url or "").strip()
+    if not picture_value:
+        return ""
+
+    if picture_value.startswith(("http://", "https://", "data:")):
+        return picture_value
+
+    grocy_base_url = settings.grocy_base_url.rstrip("/")
+
+    if "/" not in picture_value:
+        picture_value = f"files/productpictures/{picture_value}"
+
+    if picture_value.startswith("/"):
+        return urljoin(f"{grocy_base_url}/", picture_value)
+
+    return f"{grocy_base_url}/{picture_value.lstrip('/')}"
 
 
 def require_auth(
@@ -136,17 +156,41 @@ def dashboard_shopping_list(
                 amount=str(item.get("amount") or "1"),
                 product_name=item.get("product_name") or "Unbekanntes Produkt",
                 note=item.get("note") or "",
-                picture_url=(
+                picture_url=_build_product_picture_url(
                     item.get("picture_url")
                     or item.get("product_picture_url")
                     or item.get("picture_file_name")
-                    or ""
+                    or "",
+                    settings,
                 ),
             )
             for item in items
         ]
     except Exception as error:
         logger.error("Einkaufsliste konnte nicht geladen werden: %s", error)
+        raise HTTPException(status_code=500, detail=str(error)) from error
+
+
+@router.delete("/api/dashboard/shopping-list/clear")
+def dashboard_clear_shopping_list(
+    _: None = Depends(require_auth),
+    settings: Settings = Depends(get_settings),
+):
+    if not settings.grocy_api_key:
+        raise HTTPException(
+            status_code=500, detail="grocy_api_key fehlt in Add-on Optionen"
+        )
+
+    try:
+        grocy_client = GrocyClient(settings)
+        removed_items = grocy_client.clear_shopping_list()
+        return {
+            "success": True,
+            "removed_items": removed_items,
+            "message": f"Einkaufsliste geleert ({removed_items} Einträge entfernt).",
+        }
+    except Exception as error:
+        logger.error("Einkaufsliste konnte nicht geleert werden: %s", error)
         raise HTTPException(status_code=500, detail=str(error)) from error
 
 
@@ -258,6 +302,14 @@ def dashboard(settings: Settings = Depends(get_settings)) -> str:
           margin-left: 0;
         }
       }
+      .shopping-list-section { margin-top: 1rem; }
+      .danger-button {
+        margin-top: 0.85rem;
+        width: 100%;
+        background: #cf202f;
+        border-color: #b81b29;
+      }
+      .danger-button:hover { background: #b81b29; }
     </style>
   </head>
   <body>
@@ -273,10 +325,11 @@ def dashboard(settings: Settings = Depends(get_settings)) -> str:
         <p id='status'>Bereit.</p>
       </section>
 
-      <section class='card' style='margin-top: 1rem;'>
+      <section class='card shopping-list-section'>
         <h2>Einkaufsliste</h2>
         <p class='muted'>Direkt aus Grocy geladen, inklusive Produktbildern (falls vorhanden).</p>
         <ul id='shopping-list'></ul>
+        <button class='danger-button' onclick='clearShoppingList()'>Einkaufsliste leeren</button>
       </section>
     </main>
 
@@ -334,6 +387,30 @@ def dashboard(settings: Settings = Depends(get_settings)) -> str:
 
         renderShoppingList(payload);
         status.textContent = `Einkaufsliste geladen (${payload.length} Einträge).`;
+      }
+
+      async function clearShoppingList() {
+        const key = ensureApiKey();
+        const status = document.getElementById('status');
+        if (!key) {
+          status.textContent = 'Kein API-Key angegeben.';
+          return;
+        }
+
+        status.textContent = 'Leere Einkaufsliste...';
+        const res = await fetch('/api/dashboard/shopping-list/clear', {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${key}` },
+        });
+        const payload = await res.json();
+
+        if (!res.ok) {
+          status.textContent = payload.detail || 'Einkaufsliste konnte nicht geleert werden.';
+          return;
+        }
+
+        status.textContent = payload.message || 'Einkaufsliste geleert.';
+        await loadShoppingList();
       }
 
       async function searchProduct() {
