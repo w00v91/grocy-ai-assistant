@@ -358,7 +358,7 @@ def dashboard(settings: Settings = Depends(get_settings)) -> str:
           }
           return url;
         }
-        return '/' + url.replace(/^\/+/, '');
+        return '/' + url.replace(/^\\/+/, '');
       }
 
       function renderShoppingList(items) {
