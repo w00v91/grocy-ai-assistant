@@ -23,13 +23,13 @@
     "grocy_api_key": "DEIN_GROCY_KEY",
     "ollama_url": "http://76e18fb5_ollama:11434/api/generate",
     "ollama_model": "llama3",
-    "debug": "false"
+    "debug_mode": false
   },
   "schema": {
     "api_key": "str",
     "grocy_api_key": "str",
     "ollama_url": "str",
     "ollama_model": "str",
-    "debug": "bool",
+    "debug_mode": "bool",
   }
 }
