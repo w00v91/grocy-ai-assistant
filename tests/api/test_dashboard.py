@@ -20,15 +20,11 @@ def test_shopping_list_returns_items(client, monkeypatch):
     )
 
     assert response.status_code == 200
-    assert response.json() == [
-        {
-            "id": 11,
-            "amount": "2",
-            "product_name": "Hafermilch",
-            "note": "Barista",
-            "picture_url": "https://example.org/hafermilch.png",
-        }
-    ]
+    assert response.json()[0]["id"] == 11
+    assert response.json()[0]["amount"] == "2"
+    assert response.json()[0]["product_name"] == "Hafermilch"
+    assert response.json()[0]["note"] == "Barista"
+    assert response.json()[0]["picture_url"].startswith("/api/dashboard/product-picture?src=")
 
 
 def test_dashboard_prefills_configured_api_key(client):
@@ -46,6 +42,8 @@ def test_dashboard_has_mobile_friendly_layout_rules(client):
     assert "@media (max-width: 640px)" in response.text
     assert "min-height: 44px;" in response.text
     assert "flex-direction: column;" in response.text
+
+
 def test_shopping_list_can_be_cleared(client, monkeypatch):
     def fake_clear_shopping_list(self):
         return 3
@@ -56,7 +54,18 @@ def test_shopping_list_can_be_cleared(client, monkeypatch):
 
     response = client.delete(
         "/api/dashboard/shopping-list/clear",
-def test_shopping_list_builds_absolute_picture_url_from_filename(client, monkeypatch):
+        headers={"Authorization": "Bearer test-api-key"},
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "success": True,
+        "removed_items": 3,
+        "message": "Einkaufsliste geleert (3 Einträge entfernt).",
+    }
+
+
+def test_shopping_list_builds_proxy_picture_url_from_filename(client, monkeypatch):
     def fake_get_shopping_list(self):
         return [
             {
@@ -75,11 +84,8 @@ def test_shopping_list_builds_absolute_picture_url_from_filename(client, monkeyp
     )
 
     assert response.status_code == 200
-    assert response.json() == {
-        "success": True,
-        "removed_items": 3,
-        "message": "Einkaufsliste geleert (3 Einträge entfernt).",
-    }
+    assert "/api/dashboard/product-picture?src=" in response.json()[0]["picture_url"]
+    assert "files%2Fproductpictures%2Fabc123.jpg" in response.json()[0]["picture_url"]
 
 
 def test_dashboard_contains_clear_button(client):
@@ -88,4 +94,42 @@ def test_dashboard_contains_clear_button(client):
     assert response.status_code == 200
     assert "Einkaufsliste leeren" in response.text
     assert "class='danger-button'" in response.text
-    assert response.json()[0]["picture_url"].endswith("/files/productpictures/abc123.jpg")
+
+
+def test_product_picture_proxy_fetches_with_grocy_api_key(client, monkeypatch):
+    class FakeResponse:
+        content = b"img"
+        headers = {"Content-Type": "image/png"}
+
+        def raise_for_status(self):
+            return None
+
+    captured = {}
+
+    def fake_requests_get(url, headers, timeout):
+        captured["url"] = url
+        captured["headers"] = headers
+        captured["timeout"] = timeout
+        return FakeResponse()
+
+    monkeypatch.setattr(routes.requests, "get", fake_requests_get)
+    response = client.get(
+        "/api/dashboard/product-picture",
+        params={"src": "http://homeassistant.local:9192/files/productpictures/abc123.jpg"},
+    )
+
+    assert response.status_code == 200
+    assert response.content == b"img"
+    assert response.headers["content-type"].startswith("image/png")
+    assert captured["url"] == "http://homeassistant.local:9192/files/productpictures/abc123.jpg"
+    assert captured["headers"]["GROCY-API-KEY"] == "test-grocy-key"
+
+
+def test_product_picture_proxy_rejects_foreign_hosts(client):
+    response = client.get(
+        "/api/dashboard/product-picture",
+        params={"src": "https://example.com/abc.jpg"},
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Ungültige Bildquelle"
