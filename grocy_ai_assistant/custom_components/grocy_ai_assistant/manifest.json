@@ -1,14 +1,12 @@
 {
-  "domain": "grocy_ai_assistant",
-  "name": "Grocy AI Assistant",
-  "codeowners": [
-    "@w00v91"
-  ],
-  "config_flow": true,
-  "dependencies": [],
-  "documentation": "https://github.com/w00v91/grocy-ai-assistant",
-  "iot_class": "local_polling",
-  "issue_tracker": "https://github.com/w00v91/grocy-ai-assistant/issues",
-  "version": "1.2.9",
-  "requirements": []
+    "domain": "grocy_ai_assistant",
+    "name": "Grocy AI Assistant",
+    "codeowners": ["@w00v91"],
+    "config_flow": true,
+    "dependencies": [],
+    "documentation": "https://github.com/w00v91/grocy-ai-assistant",
+    "iot_class": "local_polling",
+    "issue_tracker": "https://github.com/w00v91/grocy-ai-assistant/issues",
+    "version": "1.2.10",
+    "requirements": [],
 }
