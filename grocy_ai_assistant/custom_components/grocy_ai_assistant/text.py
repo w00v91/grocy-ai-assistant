@@ -1,15 +1,23 @@
+import logging
+
 from homeassistant.components.text import TextEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from .const import DOMAIN
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities):
-    """Setzt die Text-Entität auf."""
+_LOGGER = logging.getLogger(__name__)
+
+
+async def async_setup_entry(
+    hass: HomeAssistant, entry: ConfigEntry, async_add_entities
+):
+    """Set up the text entity."""
+    _LOGGER.debug("Setting up text entity for entry %s", entry.entry_id)
     async_add_entities([GrocyProductInput(entry)], True)
 
+
 class GrocyProductInput(TextEntity):
-    """Entität für die Eingabe des Produktnamens."""
-    
+    """Entity for entering the product name."""
+
     def __init__(self, entry):
         self._entry = entry
         self._attr_name = "Grocy AI Produkt Name"
@@ -18,6 +26,6 @@ class GrocyProductInput(TextEntity):
         self._attr_native_value = ""
 
     async def async_set_value(self, value: str) -> None:
-        """Wird aufgerufen, wenn der Nutzer Text im UI eingibt."""
         self._attr_native_value = value
+        _LOGGER.debug("Updated product input text (length=%s)", len(value))
         self.async_write_ha_state()
