@@ -4,12 +4,7 @@ import sys
 import pytest
 from fastapi.testclient import TestClient
 
-from grocy_ai_assistant.api.main import app
-
-
-@pytest.fixture
-def client():
-
+# Ensure project root is importable when tests are run from any cwd
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from grocy_ai_assistant.api.main import app
