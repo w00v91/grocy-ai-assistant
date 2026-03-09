@@ -22,7 +22,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data[DOMAIN][entry.entry_id] = conf
     
     async def add_product_via_ai_service(call):
+        _LOGGER.info("Dienst wurde getriggert!") # Erscheint das im HA-Log?
         product_name = call.data.get("name")
+        _LOGGER.info(f"Name aus Call: {product_name}")
         if not product_name:
             state = hass.states.get(f"text.{DOMAIN}_produkt_name")
             product_name = state.state if state else ""
@@ -35,7 +37,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         hass.states.async_set(f"sensor.{DOMAIN}_response", "KI arbeitet... (Bild & Daten)", {"icon": "mdi:progress-clock"})
 
         # Nutze die IP oder den Hostname aus der Konfiguration
-        ai_url = f"http://localhost:8000/api/analyze_product"
+        ai_url = f"http://71139b3d-grocy-ai-assistant:8000/api/analyze_product"
         headers = {"Authorization": f"Bearer {api_key}"}
         timeout = aiohttp.ClientTimeout(total=180) # Erhöht auf 3 Min für langsame GPUs
 
@@ -103,7 +105,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # --- DIENST 2: Einfache Abfrage ---
     async def ask_ai_service(call):
         prompt = call.data.get("prompt", "Hallo")
-        url = "http://localhost:8000/api/process"
+        url = "http://71139b3d-grocy-ai-assistant:8000/api/process"
         headers = {"Authorization": f"Bearer {api_key}"}
         
         async with aiohttp.ClientSession() as session:
