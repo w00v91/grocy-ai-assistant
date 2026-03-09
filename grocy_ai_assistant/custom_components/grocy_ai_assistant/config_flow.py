@@ -13,7 +13,8 @@ class GrocyAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return self.async_show_form(
             step_id="user",
             data_schema=vol.Schema({
-                vol.Required("api_key"): str
+                vol.Required("api_key"): str,
+                vol.Required("grocy_api_key"): str,
             })
         )
 
@@ -38,6 +39,8 @@ class GrocyAIOptionsFlowHandler(config_entries.OptionsFlow):
         return self.async_show_form(
             step_id="init",
             data_schema=vol.Schema({
-                vol.Required("api_key", default=data.get("api_key", "")): str
+                vol.Required("api_key", default=data.get("api_key", "")): str,
+                vol.Required("grocy_api_key", default=data.get("grocy_api_key", "")): str,
+                vol.Optional("debug_mode", default=opts.get("debug_mode", False)): bool,
             }),
         )
