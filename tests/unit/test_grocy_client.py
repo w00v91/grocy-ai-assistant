@@ -176,3 +176,36 @@ def test_get_shopping_list_raises_non_405_errors(monkeypatch):
 
     with pytest.raises(HTTPError):
         client.get_shopping_list()
+
+
+def test_clear_shopping_list_deletes_all_items(monkeypatch):
+    deleted_urls = []
+
+    def fake_get_shopping_list(self):
+        return [{"id": 3}, {"id": 4}, {"id": None}]
+
+    def fake_delete(url, *args, **kwargs):
+        deleted_urls.append(url)
+        return FakeResponse({})
+
+    monkeypatch.setattr(GrocyClient, "get_shopping_list", fake_get_shopping_list)
+    monkeypatch.setattr(
+        "grocy_ai_assistant.services.grocy_client.requests.delete", fake_delete
+    )
+
+    client = GrocyClient(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+        )
+    )
+
+    removed_items = client.clear_shopping_list()
+
+    assert removed_items == 2
+    assert deleted_urls == [
+        "http://homeassistant.local:9192/api/objects/shopping_list/3",
+        "http://homeassistant.local:9192/api/objects/shopping_list/4",
+    ]

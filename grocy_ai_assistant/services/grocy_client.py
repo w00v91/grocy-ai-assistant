@@ -142,3 +142,22 @@ class GrocyClient:
             }
             for item in shopping_items
         ]
+
+    def clear_shopping_list(self) -> int:
+        items = self.get_shopping_list()
+        removed_items = 0
+
+        for item in items:
+            item_id = item.get("id")
+            if not item_id:
+                continue
+
+            response = requests.delete(
+                f"{self.settings.grocy_base_url}/objects/shopping_list/{item_id}",
+                headers=self.headers,
+                timeout=30,
+            )
+            response.raise_for_status()
+            removed_items += 1
+
+        return removed_items
