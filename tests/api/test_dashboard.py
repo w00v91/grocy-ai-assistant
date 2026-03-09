@@ -37,3 +37,12 @@ def test_dashboard_prefills_configured_api_key(client):
     assert response.status_code == 200
     assert 'const configuredApiKey = "test-api-key";' in response.text
     assert "prompt('Bitte API-Key eingeben:'" not in response.text
+
+
+def test_dashboard_has_mobile_friendly_layout_rules(client):
+    response = client.get("/")
+
+    assert response.status_code == 200
+    assert "@media (max-width: 640px)" in response.text
+    assert "min-height: 44px;" in response.text
+    assert "flex-direction: column;" in response.text
