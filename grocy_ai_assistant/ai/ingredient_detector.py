@@ -1,0 +1,73 @@
+import base64
+import json
+import os
+from typing import Any, Dict
+
+import requests
+
+from grocy_ai_assistant.config.settings import Settings
+
+IMAGE_PROMPT_TEMPLATE = """
+Professionelles Produktfoto von '{product_name}' auf rein weißem Hintergrund.
+Studiobeleuchtung, scharf, keine Wasserzeichen, fotorealistisch.
+"""
+
+
+class IngredientDetector:
+    def __init__(self, settings: Settings):
+        self.settings = settings
+
+    @staticmethod
+    def _grocy_context() -> Dict[str, str]:
+        return {
+            "locations": "1: Kuehlschrank, 2: Vorratsschrank, 3: Tiefkuehler",
+            "units": "1: Stueck, 2: Packung, 3: Gramm, 4: Kilogramm",
+        }
+
+    def analyze_product_name(self, product_name: str) -> Dict[str, Any]:
+        context = self._grocy_context()
+        prompt = f"""
+        Analysiere das Produkt '{product_name}'.
+        Gib NUR ein JSON-Objekt zurueck, das exakt diese Struktur hat:
+        {{
+          "name": "{product_name}",
+          "description": "kurze Beschreibung",
+          "location_id": (Waehle aus: {context['locations']}),
+          "qu_id_purchase": (Waehle aus: {context['units']}),
+          "qu_id_stock": (Waehle aus: {context['units']}),
+          "calories": (Geschaetzte Kalorien pro 100g/ml als Zahl)
+        }}
+        Antworte NUR mit dem JSON, kein Text davor oder danach.
+        """
+
+        ollama_payload = {
+            "model": self.settings.ollama_model,
+            "prompt": prompt,
+            "stream": False,
+            "format": "json",
+        }
+
+        response = requests.post(self.settings.ollama_url, json=ollama_payload, timeout=60)
+        response.raise_for_status()
+        raw_answer = response.json().get("response")
+        return json.loads(raw_answer)
+
+    def generate_product_image(self, product_name: str):
+        prompt = IMAGE_PROMPT_TEMPLATE.format(product_name=product_name)
+        payload = {
+            "prompt": prompt,
+            "steps": 20,
+            "width": 512,
+            "height": 512,
+            "cfg_scale": 7,
+        }
+
+        response = requests.post(self.settings.stable_diffusion_url, json=payload, timeout=60)
+        response.raise_for_status()
+        image_base64 = response.json()["images"][0]
+
+        file_path = f"/data/product_images/{product_name.replace(' ', '_')}.png"
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        with open(file_path, "wb") as file:
+            file.write(base64.b64decode(image_base64))
+        return file_path
