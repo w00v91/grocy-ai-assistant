@@ -5,8 +5,13 @@ import time  # Für die Performance-Messung
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from .const import DOMAIN
+from . import panel
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _normalize_name(value: str) -> str:
+    return (value or "").strip().casefold()
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Setzt die Integration auf."""
@@ -15,6 +20,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     entry.async_on_unload(entry.add_update_listener(async_update_options))
 
     hass.data.setdefault(DOMAIN, {})
+    hass.data[DOMAIN][entry.entry_id] = {**entry.data, **entry.options}
+
+    if not hass.data[DOMAIN].get("_panel_registered"):
+        await panel.async_setup(hass, "http://localhost:8000")
+        hass.data[DOMAIN]["_panel_registered"] = True
     
     # --- DIENST 1: Produkt via KI hinzufügen ---
     async def add_product_via_ai_service(call):
@@ -44,7 +54,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
         # URLs definieren
         ai_url = "http://71139b3d-grocy-ai-assistant:8000/api/analyze_product"
-        grocy_base_url = "http://homeassistant.local:9192/api"
+        grocy_base_url = active_conf.get("grocy_base_url", "http://homeassistant.local:9192/api")
         
         headers = {"Authorization": f"Bearer {api_key}"}
         grocy_headers = {
@@ -57,6 +67,35 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
         async with aiohttp.ClientSession(timeout=timeout) as session:
             try:
+                # --- SCHRITT 0: Vorhandenes Produkt direkt in Grocy finden ---
+                existing_product = None
+                async with session.get(f"{grocy_base_url}/objects/products", headers=grocy_headers) as list_resp:
+                    if list_resp.status == 200:
+                        products = await list_resp.json()
+                        normalized_input = _normalize_name(product_name)
+                        existing_product = next(
+                            (p for p in products if _normalize_name(p.get("name")) == normalized_input),
+                            None,
+                        )
+
+                if existing_product:
+                    product_id = existing_product.get("id")
+                    shopping_url = f"{grocy_base_url}/stock/shoppinglist/add-product"
+                    payload = {"product_id": product_id, "amount": 1}
+
+                    async with session.post(shopping_url, json=payload, headers=grocy_headers) as shopping_resp:
+                        if shopping_resp.status not in [200, 204]:
+                            error_text = await shopping_resp.text()
+                            raise Exception(f"Shoppingliste konnte nicht aktualisiert werden: {error_text}")
+
+                    hass.states.async_set(
+                        f"sensor.{DOMAIN}_response",
+                        f"Vorhanden: {product_name} zur Einkaufsliste hinzugefügt",
+                        {"icon": "mdi:cart-check"},
+                    )
+                    hass.states.async_set(f"text.{DOMAIN}_produkt_name", "")
+                    return True
+
                 # --- SCHRITT 1: KI-Analyse mit Zeitmessung ---
                 start_time = time.perf_counter()
                 
@@ -117,8 +156,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     except Exception as img_err:
                         _LOGGER.error(f"Bild-Upload fehlgeschlagen: {img_err}")
 
+                # --- SCHRITT 4: In Einkaufsliste eintragen ---
+                shopping_url = f"{grocy_base_url}/stock/shoppinglist/add-product"
+                shopping_payload = {"product_id": new_id, "amount": 1}
+                async with session.post(shopping_url, json=shopping_payload, headers=grocy_headers) as shopping_resp:
+                    if shopping_resp.status not in [200, 204]:
+                        error_text = await shopping_resp.text()
+                        raise Exception(f"Shoppingliste konnte nicht aktualisiert werden: {error_text}")
+
                 # Erfolgs-Feedback
-                final_msg = f"Erfolg: {product_name} {image_status} ({duration}s)"
+                final_msg = f"Erfolg: {product_name} {image_status} erstellt + Einkaufsliste ({duration}s)"
                 hass.states.async_set(f"sensor.{DOMAIN}_response", final_msg, {"icon": "mdi:check-circle"})
                 hass.states.async_set(f"text.{DOMAIN}_produkt_name", "")
 
