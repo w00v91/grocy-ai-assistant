@@ -16,14 +16,11 @@ from .const import (
     CONF_GROCY_API_KEY,
     CONF_GROCY_BASE_URL,
     DEFAULT_GROCY_BASE_URL,
-    DOMAIN,
 )
 
 _LOGGER = logging.getLogger(__name__)
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Set up the integration from a config entry."""
 def _normalize_name(value: str) -> str:
     return (value or "").strip().casefold()
 
@@ -52,9 +49,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         )
         await panel.async_setup(hass, panel_url)
         hass.data[DOMAIN]["_panel_registered"] = True
-
-    async def add_product_via_ai_service(call):
-        _LOGGER.debug("Registered Grocy AI panel")
 
     async def add_product_via_ai_service(call):
         """Main service for product analysis and import."""

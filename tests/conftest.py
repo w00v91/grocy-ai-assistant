@@ -1,10 +1,10 @@
 import pytest
+from fastapi.testclient import TestClient
 
-from grocy_ai_assistant.api.main import app as flask_app
+from grocy_ai_assistant.api.main import app
 
 
 @pytest.fixture
 def client():
-    flask_app.config.update(TESTING=True)
-    with flask_app.test_client() as test_client:
+    with TestClient(app) as test_client:
         yield test_client
