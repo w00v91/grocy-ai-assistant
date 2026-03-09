@@ -21,11 +21,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN][entry.entry_id] = conf
     
-    # --- DIENST 1: Produkt via KI anlegen ---
     async def add_product_via_ai_service(call):
         product_name = call.data.get("name")
         if not product_name:
-            # Falls Name leer, versuche aus dem Text-Helfer zu lesen
             state = hass.states.get(f"text.{DOMAIN}_produkt_name")
             product_name = state.state if state else ""
 
@@ -34,67 +32,78 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             return
 
         _LOGGER.info(f"KI-Analyse startet für: {product_name}")
-        
-        # Feedback im Dashboard
         hass.states.async_set(f"sensor.{DOMAIN}_response", "KI arbeitet... (Bild & Daten)", {"icon": "mdi:progress-clock"})
 
-        ai_url = "http://10.0.0.2:8000/api/analyze_product"
+        # Nutze die IP oder den Hostname aus der Konfiguration
+        ai_url = f"http://localhost:8000/api/analyze_product"
         headers = {"Authorization": f"Bearer {api_key}"}
-        timeout = aiohttp.ClientTimeout(total=150) # Viel Zeit für die Bildgenerierung
+        timeout = aiohttp.ClientTimeout(total=180) # Erhöht auf 3 Min für langsame GPUs
 
         async with aiohttp.ClientSession(timeout=timeout) as session:
             try:
-                # 1. KI-Analyse & Bildgenerierung
+                # --- SCHRITT 1: KI-Analyse ---
                 async with session.post(ai_url, json={"name": product_name}, headers=headers) as resp:
                     if resp.status != 200:
-                        _LOGGER.error(f"KI-Add-on Fehler: {resp.status}")
-                        hass.states.async_set(f"sensor.{DOMAIN}_response", "Fehler bei KI-Analyse")
-                        return
+                        raise Exception(f"KI-Add-on antwortet mit Status {resp.status}")
                     
                     res_data = await resp.json()
                     product_attrs = res_data.get("product_data")
                     image_b64 = res_data.get("image_base64")
-                
-                # 2. Produkt in Grocy erstellen
+
+                if not product_attrs:
+                    raise Exception("KI hat keine Produktdaten geliefert.")
+
+                # --- SCHRITT 2: Produkt in Grocy erstellen ---
                 grocy_url = "http://a0d49513_grocy/api/objects/products"
                 grocy_headers = {"GROCY-API-KEY": grocy_api_key, "Content-Type": "application/json"}
                 
                 async with session.post(grocy_url, json=product_attrs, headers=grocy_headers) as g_resp:
                     if g_resp.status not in [200, 201]:
-                        _LOGGER.error(f"Grocy Produkt Fehler: {await g_resp.text()}")
-                        return
+                        error_text = await g_resp.text()
+                        raise Exception(f"Grocy API Fehler: {error_text}")
                     
                     grocy_res_data = await g_resp.json()
                     new_id = grocy_res_data.get('created_object_id')
 
-                # 3. Bild-Upload (Weg B)
+                # --- SCHRITT 3: Optionaler Bild-Upload ---
+                image_success = False
                 if image_b64 and new_id:
-                    file_name = f"product_{new_id}.png"
-                    img_bytes = base64.b64decode(image_b64)
-                    
-                    # Upload zu Grocy Files
-                    upload_path_b64 = base64.b64encode(file_name.encode()).decode()
-                    upload_url = f"http://a0d49513_grocy/api/files/productpictures/{upload_path_b64}"
-                    
-                    await session.put(upload_url, data=img_bytes, headers={"GROCY-API-KEY": grocy_api_key})
-                    
-                    # Bild dem Produkt zuordnen
-                    update_url = f"http://a0d49513_grocy/api/objects/products/{new_id}"
-                    await session.put(update_url, json={"picture_file_name": file_name}, headers=grocy_headers)
+                    try:
+                        file_name = f"product_{new_id}.png"
+                        img_bytes = base64.b64decode(image_b64)
+                        upload_path_b64 = base64.b64encode(file_name.encode()).decode()
+                        upload_url = f"http://a0d49513_grocy/api/files/productpictures/{upload_path_b64}"
+                        
+                        # Upload Bild
+                        img_resp = await session.put(upload_url, data=img_bytes, headers={"GROCY-API-KEY": grocy_api_key})
+                        
+                        if img_resp.status in [200, 201, 204]:
+                            # Verknüpfung Bild <-> Produkt
+                            update_url = f"http://a0d49513_grocy/api/objects/products/{new_id}"
+                            await session.put(update_url, json={"picture_file_name": file_name}, headers=grocy_headers)
+                            image_success = True
+                        else:
+                            _LOGGER.warning(f"Bild-Upload fehlgeschlagen (Status {img_resp.status})")
+                    except Exception as img_err:
+                        _LOGGER.error(f"Fehler bei Bild-Verarbeitung: {img_err}")
 
-                # Erfolg melden
-                hass.states.async_set(f"sensor.{DOMAIN}_response", f"Erfolg: {product_name} angelegt!", {"icon": "mdi:check-circle"})
-                # Textfeld leeren
+                # --- ABSCHLUSS & FEEDBACK ---
+                if image_success:
+                    final_msg = f"Erfolg: '{product_name}' mit Bild angelegt!"
+                else:
+                    final_msg = f"Teilerfolg: '{product_name}' ohne Bild angelegt."
+                
+                hass.states.async_set(f"sensor.{DOMAIN}_response", final_msg, {"icon": "mdi:check-circle"})
                 hass.states.async_set(f"text.{DOMAIN}_produkt_name", "")
 
             except Exception as e:
                 _LOGGER.error(f"Fehler im Ablauf: {e}")
-                hass.states.async_set(f"sensor.{DOMAIN}_response", f"Fehler: {e}")
+                hass.states.async_set(f"sensor.{DOMAIN}_response", f"Fehler: {str(e)[:50]}...", {"icon": "mdi:alert-circle"})
 
     # --- DIENST 2: Einfache Abfrage ---
     async def ask_ai_service(call):
         prompt = call.data.get("prompt", "Hallo")
-        url = "http://10.0.0.2:8000/api/process"
+        url = "http://localhost:8000/api/process"
         headers = {"Authorization": f"Bearer {api_key}"}
         
         async with aiohttp.ClientSession() as session:

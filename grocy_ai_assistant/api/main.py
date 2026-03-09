@@ -100,7 +100,8 @@ def generate_product_image(product_name):
     return None
 
 @app.route('/api/analyze_product', methods=['POST'])
-def analyze_product():
+def analyze():
+    app.logger.info("ANALYSE-ANFRAGE GEKOMMEN!")
     """Analysiert ein Produkt und liefert strukturiertes JSON für Grocy."""
     auth_header = request.headers.get("Authorization")
     if auth_header != f"Bearer {EXPECTED_API_KEY}":
