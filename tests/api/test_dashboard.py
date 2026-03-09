@@ -39,6 +39,13 @@ def test_dashboard_prefills_configured_api_key(client):
     assert "prompt('Bitte API-Key eingeben:'" not in response.text
 
 
+def test_dashboard_has_mobile_friendly_layout_rules(client):
+    response = client.get("/")
+
+    assert response.status_code == 200
+    assert "@media (max-width: 640px)" in response.text
+    assert "min-height: 44px;" in response.text
+    assert "flex-direction: column;" in response.text
 def test_shopping_list_can_be_cleared(client, monkeypatch):
     def fake_clear_shopping_list(self):
         return 3

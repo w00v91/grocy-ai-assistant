@@ -232,13 +232,16 @@ def dashboard(settings: Settings = Depends(get_settings)) -> str:
         gap: 0.75rem;
         flex-wrap: wrap;
       }
+      .search-row > * {
+        flex: 1 1 220px;
+      }
       input, button {
         border-radius: 12px;
         border: 1px solid #cad6f8;
         padding: 0.7rem 0.9rem;
         font-size: 1rem;
       }
-      input { flex: 1; min-width: 220px; }
+      input { min-width: 0; }
       button {
         background: #2f63ff;
         color: white;
@@ -271,6 +274,33 @@ def dashboard(settings: Settings = Depends(get_settings)) -> str:
         border-radius: 999px;
         padding: 0.25rem 0.55rem;
         font-size: 0.85rem;
+      }
+      @media (max-width: 640px) {
+        .container {
+          margin: 1rem auto;
+          padding: 0 0.75rem 1rem;
+        }
+        .card {
+          border-radius: 14px;
+          padding: 1rem;
+        }
+        .search-row {
+          flex-direction: column;
+        }
+        .search-row > * {
+          width: 100%;
+          flex-basis: auto;
+        }
+        button {
+          min-height: 44px;
+        }
+        li {
+          align-items: flex-start;
+          flex-wrap: wrap;
+        }
+        .badge {
+          margin-left: 0;
+        }
       }
       .shopping-list-section { margin-top: 1rem; }
       .danger-button {
