@@ -30,6 +30,6 @@
     "grocy_api_key": "str",
     "ollama_url": "str",
     "ollama_model": "str",
-    "debug_mode": "bool",
+    "debug_mode": "bool"
   }
 }
