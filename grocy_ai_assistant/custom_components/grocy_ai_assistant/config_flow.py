@@ -31,16 +31,16 @@ class GrocyAIOptionsFlowHandler(config_entries.OptionsFlow):
         if user_input is not None:
             return self.async_create_entry(title="", data=user_input)
 
-        # WICHTIG: Sicherer Zugriff auf Daten
-        # Wir nutzen .get() mit Fallback, falls ein Key fehlt
-        data = self.config_entry.data or {}
-        opts = self.config_entry.options or {}
+        # Holen der Daten mit Fallback auf leeres Dictionary
+        # Das verhindert den 500er Fehler, falls noch keine Optionen da sind
+        options = self.config_entry.options if self.config_entry.options else {}
+        data = self.config_entry.data if self.config_entry.data else {}
 
         return self.async_show_form(
             step_id="init",
             data_schema=vol.Schema({
                 vol.Required("api_key", default=data.get("api_key", "")): str,
                 vol.Required("grocy_api_key", default=data.get("grocy_api_key", "")): str,
-                vol.Optional("debug_mode", default=opts.get("debug_mode", False)): bool,
+                vol.Optional("debug_mode", default=options.get("debug_mode", False)): bool,
             }),
         )
