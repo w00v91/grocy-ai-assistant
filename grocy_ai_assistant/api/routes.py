@@ -1,5 +1,6 @@
 import json
 import logging
+from urllib.parse import urljoin
 
 from fastapi import APIRouter, Depends, Header, HTTPException
 from fastapi.responses import HTMLResponse
@@ -16,6 +17,25 @@ from grocy_ai_assistant.services.grocy_client import GrocyClient
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+
+
+def _build_product_picture_url(raw_picture_url: str, settings: Settings) -> str:
+    picture_value = (raw_picture_url or "").strip()
+    if not picture_value:
+        return ""
+
+    if picture_value.startswith(("http://", "https://", "data:")):
+        return picture_value
+
+    grocy_base_url = settings.grocy_base_url.rstrip("/")
+
+    if "/" not in picture_value:
+        picture_value = f"files/productpictures/{picture_value}"
+
+    if picture_value.startswith("/"):
+        return urljoin(f"{grocy_base_url}/", picture_value)
+
+    return f"{grocy_base_url}/{picture_value.lstrip('/')}"
 
 
 def require_auth(
@@ -136,11 +156,12 @@ def dashboard_shopping_list(
                 amount=str(item.get("amount") or "1"),
                 product_name=item.get("product_name") or "Unbekanntes Produkt",
                 note=item.get("note") or "",
-                picture_url=(
+                picture_url=_build_product_picture_url(
                     item.get("picture_url")
                     or item.get("product_picture_url")
                     or item.get("picture_file_name")
-                    or ""
+                    or "",
+                    settings,
                 ),
             )
             for item in items

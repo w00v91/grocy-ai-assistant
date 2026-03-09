@@ -49,6 +49,21 @@ def test_shopping_list_can_be_cleared(client, monkeypatch):
 
     response = client.delete(
         "/api/dashboard/shopping-list/clear",
+def test_shopping_list_builds_absolute_picture_url_from_filename(client, monkeypatch):
+    def fake_get_shopping_list(self):
+        return [
+            {
+                "id": 12,
+                "amount": "1",
+                "product_name": "Nudeln",
+                "note": "",
+                "picture_file_name": "abc123.jpg",
+            }
+        ]
+
+    monkeypatch.setattr(routes.GrocyClient, "get_shopping_list", fake_get_shopping_list)
+    response = client.get(
+        "/api/dashboard/shopping-list",
         headers={"Authorization": "Bearer test-api-key"},
     )
 
@@ -66,3 +81,4 @@ def test_dashboard_contains_clear_button(client):
     assert response.status_code == 200
     assert "Einkaufsliste leeren" in response.text
     assert "class='danger-button'" in response.text
+    assert response.json()[0]["picture_url"].endswith("/files/productpictures/abc123.jpg")
