@@ -18,6 +18,7 @@ def test_settings() -> Settings:
         api_key="test-api-key",
         addon_version="2026.03.0",
         required_integration_version="1.2.5",
+        grocy_api_key="test-grocy-key",
     )
 
 

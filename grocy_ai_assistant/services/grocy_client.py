@@ -51,3 +51,12 @@ class GrocyClient:
             timeout=30,
         )
         response.raise_for_status()
+
+    def get_shopping_list(self) -> list[Dict[str, Any]]:
+        response = requests.get(
+            f"{self.settings.grocy_base_url}/stock/shoppinglist",
+            headers=self.headers,
+            timeout=30,
+        )
+        response.raise_for_status()
+        return response.json()
