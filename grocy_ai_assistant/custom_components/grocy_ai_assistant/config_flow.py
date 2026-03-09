@@ -47,7 +47,7 @@ class GrocyAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
 class GrocyAIOptionsFlowHandler(config_entries.OptionsFlow):
     def __init__(self, config_entry):
-        self.config_entry = config_entry
+        self._config_entry = config_entry
         self._pending_options: dict = {}
 
     async def async_step_init(self, user_input=None):
@@ -56,8 +56,8 @@ class GrocyAIOptionsFlowHandler(config_entries.OptionsFlow):
             self._pending_options.update(user_input)
             return await self.async_step_debug()
 
-        options = self.config_entry.options or {}
-        data = self.config_entry.data or {}
+        options = self._config_entry.options or {}
+        data = self._config_entry.data or {}
 
         return self.async_show_form(
             step_id="init",
@@ -98,7 +98,7 @@ class GrocyAIOptionsFlowHandler(config_entries.OptionsFlow):
             _LOGGER.debug("Saving options with debug section values")
             return self.async_create_entry(title="", data=self._pending_options)
 
-        options = self.config_entry.options or {}
+        options = self._config_entry.options or {}
 
         return self.async_show_form(
             step_id="debug",
