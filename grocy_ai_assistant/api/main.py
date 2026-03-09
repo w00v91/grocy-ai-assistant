@@ -19,7 +19,9 @@ app.include_router(router)
 
 @app.middleware("http")
 async def log_request_info(request: Request, call_next):
-    logger.info("Anfrage erhalten: %s %s", request.method, request.url.path)
+    is_status_check = request.method == "GET" and request.url.path == "/api/status"
+    if not is_status_check:
+        logger.info("Anfrage erhalten: %s %s", request.method, request.url.path)
     return await call_next(request)
 
 
