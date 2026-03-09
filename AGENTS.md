@@ -33,7 +33,7 @@ format:
 - Keep AI code inside /ai
 - Grocy communication only in /services
 - Home Assistant integration must stay in /custom_components
-- Bump always both versions on service changes
+- Bump always both versions on changes
 
 ## Tasks Codex may perform
 
