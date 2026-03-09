@@ -5,3 +5,5 @@ requests
 rapidfuzz
 pydantic
 python-dotenv
+aiohttp
+httpx

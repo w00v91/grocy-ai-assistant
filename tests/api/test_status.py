@@ -1,6 +1,3 @@
-from grocy_ai_assistant.config.settings import get_settings
-
-
 def test_status_requires_authorization(client):
     response = client.get("/api/status")
 
@@ -9,10 +6,9 @@ def test_status_requires_authorization(client):
 
 
 def test_status_returns_ok_when_authorized(client):
-    settings = get_settings()
     response = client.get(
         "/api/status",
-        headers={"Authorization": f"Bearer {settings.api_key}"},
+        headers={"Authorization": "Bearer test-api-key"},
     )
 
     assert response.status_code == 200
@@ -29,7 +25,7 @@ def test_status_returns_homeassistant_compatible_payload(client):
         "status": "Verbunden",
         "ollama_ready": True,
         "addon_version": "2026.03.0",
-        "required_integration_version": "1.2.3",
+        "required_integration_version": "1.2.5",
         "homeassistant_restart_required": False,
         "update_reason": "",
     }
@@ -40,7 +36,7 @@ def test_status_requires_homeassistant_restart_when_integration_version_differs(
         '/api/status',
         headers={
             "Authorization": "Bearer test-api-key",
-            "X-HA-Integration-Version": "1.2.2",
+            "X-HA-Integration-Version": "1.2.4",
         },
     )
 
@@ -48,7 +44,7 @@ def test_status_requires_homeassistant_restart_when_integration_version_differs(
     payload = response.json()
 
     assert payload["homeassistant_restart_required"] is True
-    assert payload["required_integration_version"] == "1.2.3"
+    assert payload["required_integration_version"] == "1.2.5"
     assert payload["update_reason"] == (
-        "Installierte Integration 1.2.2 weicht von der benötigten Version 1.2.3 ab."
+        "Installierte Integration 1.2.4 weicht von der benötigten Version 1.2.5 ab."
     )
