@@ -29,3 +29,11 @@ def test_shopping_list_returns_items(client, monkeypatch):
             "picture_url": "https://example.org/hafermilch.png",
         }
     ]
+
+
+def test_dashboard_prefills_configured_api_key(client):
+    response = client.get("/")
+
+    assert response.status_code == 200
+    assert 'const configuredApiKey = "test-api-key";' in response.text
+    assert "prompt('Bitte API-Key eingeben:'" not in response.text

@@ -3,6 +3,7 @@ from math import sqrt
 from typing import Any, Dict, Optional
 
 import requests
+from requests import HTTPError
 
 from grocy_ai_assistant.config.settings import Settings
 
@@ -35,7 +36,9 @@ class GrocyClient:
             return 0.0
 
         shared_dimensions = set(left_vector) & set(right_vector)
-        dot_product = sum(left_vector[key] * right_vector[key] for key in shared_dimensions)
+        dot_product = sum(
+            left_vector[key] * right_vector[key] for key in shared_dimensions
+        )
         left_norm = sqrt(sum(weight * weight for weight in left_vector.values()))
         right_norm = sqrt(sum(weight * weight for weight in right_vector.values()))
 
@@ -99,10 +102,43 @@ class GrocyClient:
         response.raise_for_status()
 
     def get_shopping_list(self) -> list[Dict[str, Any]]:
-        response = requests.get(
-            f"{self.settings.grocy_base_url}/stock/shoppinglist",
+        stock_endpoint = f"{self.settings.grocy_base_url}/stock/shoppinglist"
+        response = requests.get(stock_endpoint, headers=self.headers, timeout=30)
+
+        try:
+            response.raise_for_status()
+            return response.json()
+        except HTTPError:
+            status_code = response.status_code
+            if status_code != 405:
+                raise
+
+        objects_endpoint = f"{self.settings.grocy_base_url}/objects/shopping_list"
+        response = requests.get(objects_endpoint, headers=self.headers, timeout=30)
+        response.raise_for_status()
+        shopping_items = response.json()
+
+        products_response = requests.get(
+            f"{self.settings.grocy_base_url}/objects/products",
             headers=self.headers,
             timeout=30,
         )
-        response.raise_for_status()
-        return response.json()
+        products_response.raise_for_status()
+        products = {
+            str(product.get("id")): product
+            for product in products_response.json()
+            if product.get("id")
+        }
+
+        return [
+            {
+                **item,
+                "product_name": products.get(str(item.get("product_id")), {}).get(
+                    "name", "Unbekanntes Produkt"
+                ),
+                "picture_url": products.get(str(item.get("product_id")), {}).get(
+                    "picture_url", ""
+                ),
+            }
+            for item in shopping_items
+        ]
