@@ -1,9 +1,10 @@
 import json
 import logging
-from urllib.parse import urljoin
+from urllib.parse import quote, urljoin, urlparse
 
+import requests
 from fastapi import APIRouter, Depends, Header, HTTPException
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, Response
 
 from grocy_ai_assistant.ai.ingredient_detector import IngredientDetector
 from grocy_ai_assistant.config.settings import Settings, get_settings
@@ -36,6 +37,14 @@ def _build_product_picture_url(raw_picture_url: str, settings: Settings) -> str:
         return urljoin(f"{grocy_base_url}/", picture_value)
 
     return f"{grocy_base_url}/{picture_value.lstrip('/')}"
+
+
+def _build_dashboard_picture_proxy_url(raw_picture_url: str, settings: Settings) -> str:
+    absolute_picture_url = _build_product_picture_url(raw_picture_url, settings)
+    if not absolute_picture_url:
+        return ""
+
+    return f"/api/dashboard/product-picture?src={quote(absolute_picture_url, safe='')}"
 
 
 def require_auth(
@@ -135,6 +144,42 @@ def dashboard_search(
         raise HTTPException(status_code=500, detail=str(error)) from error
 
 
+@router.get("/api/dashboard/product-picture")
+def dashboard_product_picture(
+    src: str,
+    settings: Settings = Depends(get_settings),
+):
+    if not settings.grocy_api_key:
+        raise HTTPException(
+            status_code=500, detail="grocy_api_key fehlt in Add-on Optionen"
+        )
+
+    if not src:
+        raise HTTPException(status_code=400, detail="Bildquelle fehlt")
+
+    parsed_src = urlparse(src)
+    parsed_grocy = urlparse(settings.grocy_base_url)
+    if (
+        parsed_src.scheme not in ("http", "https")
+        or parsed_src.netloc != parsed_grocy.netloc
+    ):
+        raise HTTPException(status_code=400, detail="Ungültige Bildquelle")
+
+    response = requests.get(
+        src,
+        headers={"GROCY-API-KEY": settings.grocy_api_key},
+        timeout=30,
+    )
+
+    try:
+        response.raise_for_status()
+    except requests.HTTPError as error:
+        raise HTTPException(status_code=404, detail="Bild nicht gefunden") from error
+
+    content_type = response.headers.get("Content-Type", "image/jpeg")
+    return Response(content=response.content, media_type=content_type)
+
+
 @router.get(
     "/api/dashboard/shopping-list", response_model=list[ShoppingListItemResponse]
 )
@@ -156,7 +201,7 @@ def dashboard_shopping_list(
                 amount=str(item.get("amount") or "1"),
                 product_name=item.get("product_name") or "Unbekanntes Produkt",
                 note=item.get("note") or "",
-                picture_url=_build_product_picture_url(
+                picture_url=_build_dashboard_picture_proxy_url(
                     item.get("picture_url")
                     or item.get("product_picture_url")
                     or item.get("picture_file_name")
