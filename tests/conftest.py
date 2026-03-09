@@ -1,10 +1,28 @@
-import pytest
+from pathlib import Path
+import sys
 
-from grocy_ai_assistant.api.main import app as flask_app
+import pytest
+from fastapi.testclient import TestClient
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from grocy_ai_assistant.api.main import app
+from grocy_ai_assistant.api.routes import get_settings
+from grocy_ai_assistant.config.settings import Settings
 
 
 @pytest.fixture
-def client():
-    flask_app.config.update(TESTING=True)
-    with flask_app.test_client() as test_client:
+def test_settings() -> Settings:
+    return Settings(
+        api_key="test-api-key",
+        addon_version="2026.03.0",
+        required_integration_version="1.2.3",
+    )
+
+
+@pytest.fixture
+def client(test_settings: Settings):
+    app.dependency_overrides[get_settings] = lambda: test_settings
+    with TestClient(app) as test_client:
         yield test_client
+    app.dependency_overrides.clear()
