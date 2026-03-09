@@ -56,7 +56,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     raise Exception("KI hat keine Produktdaten geliefert.")
 
                 # --- SCHRITT 2: Produkt in Grocy erstellen ---
-                grocy_url = "http://a0d49513_grocy/api/objects/products"
+                grocy_url = "http://homeassistant.local:8123/api/hassio_ingress/a0d49513_grocy/api/objects/products"
                 grocy_headers = {"GROCY-API-KEY": grocy_api_key, "Content-Type": "application/json"}
                 
                 async with session.post(grocy_url, json=product_attrs, headers=grocy_headers) as g_resp:
@@ -74,14 +74,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                         file_name = f"product_{new_id}.png"
                         img_bytes = base64.b64decode(image_b64)
                         upload_path_b64 = base64.b64encode(file_name.encode()).decode()
-                        upload_url = f"http://a0d49513_grocy/api/files/productpictures/{upload_path_b64}"
+                        upload_url = f"http://homeassistant.local:8123/api/hassio_ingress/a0d49513_grocy/api/files/productpictures/{upload_path_b64}"
                         
                         # Upload Bild
                         img_resp = await session.put(upload_url, data=img_bytes, headers={"GROCY-API-KEY": grocy_api_key})
                         
                         if img_resp.status in [200, 201, 204]:
                             # Verknüpfung Bild <-> Produkt
-                            update_url = f"http://a0d49513_grocy/api/objects/products/{new_id}"
+                            update_url = f"http://homeassistant.local:8123/api/hassio_ingress/a0d49513_grocy/api/objects/products/{new_id}"
                             await session.put(update_url, json={"picture_file_name": file_name}, headers=grocy_headers)
                             image_success = True
                         else:
