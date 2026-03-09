@@ -25,7 +25,7 @@ def test_status_returns_homeassistant_compatible_payload(client):
         "status": "Verbunden",
         "ollama_ready": True,
         "addon_version": "2026.03.0",
-        "required_integration_version": "1.2.6",
+        "required_integration_version": "1.2.8",
         "homeassistant_restart_required": False,
         "update_reason": "",
     }
@@ -36,7 +36,7 @@ def test_status_requires_homeassistant_restart_when_integration_version_differs(
         '/api/status',
         headers={
             "Authorization": "Bearer test-api-key",
-            "X-HA-Integration-Version": "1.2.4",
+            "X-HA-Integration-Version": "1.2.6",
         },
     )
 
@@ -44,7 +44,7 @@ def test_status_requires_homeassistant_restart_when_integration_version_differs(
     payload = response.json()
 
     assert payload["homeassistant_restart_required"] is True
-    assert payload["required_integration_version"] == "1.2.6"
+    assert payload["required_integration_version"] == "1.2.8"
     assert payload["update_reason"] == (
-        "Installierte Integration 1.2.4 weicht von der benötigten Version 1.2.6 ab."
+        "Installierte Integration 1.2.6 weicht von der benötigten Version 1.2.8 ab."
     )
