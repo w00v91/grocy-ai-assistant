@@ -11,7 +11,12 @@ _LOGGER = logging.getLogger(__name__)
 async def async_setup(hass: HomeAssistant, dashboard_url: str) -> None:
     """Register a custom dashboard panel."""
     resolved_url = dashboard_url
-    if dashboard_url.startswith("http://localhost") or dashboard_url.startswith("https://localhost"):
+    if dashboard_url.startswith("http://"):
+        _LOGGER.warning(
+            "Dashboard URL uses HTTP and would be blocked in HTTPS Home Assistant. Falling back to ingress path."
+        )
+        resolved_url = DEFAULT_ADDON_INGRESS_PATH
+    elif dashboard_url.startswith("http://localhost") or dashboard_url.startswith("https://localhost"):
         resolved_url = DEFAULT_ADDON_INGRESS_PATH
 
     _LOGGER.debug("Registering panel with URL %s", resolved_url)
