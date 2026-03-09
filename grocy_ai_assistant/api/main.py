@@ -38,7 +38,7 @@ def get_addon_options():
 options = get_addon_options()
 # Falls kein Key gesetzt ist, wird ein Fallback genutzt
 EXPECTED_API_KEY = options.get("api_key", "standard_passwort")
-OLLAMA_URL = options.get("ollama_url", "http://localhost:11434/api/generate")
+OLLAMA_URL = options.get("ollama_url", "http://10.0.0.2:11434/api/generate")
 
 # --- HILFSFUNKTION FÜR GROCY KONTEXT ---
 def get_grocy_context():
