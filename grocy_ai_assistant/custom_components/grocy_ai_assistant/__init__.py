@@ -6,6 +6,7 @@ import time
 import aiohttp
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import entity_registry as er
 
 from . import panel
 from .addon_client import AddonClient
@@ -19,6 +20,36 @@ from .const import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _get_entity_id(
+    hass: HomeAssistant, entry_id: str, platform: str, unique_id: str, fallback: str
+) -> str:
+    registry = er.async_get(hass)
+    entity_id = registry.async_get_entity_id(
+        platform, DOMAIN, f"{entry_id}_{unique_id}"
+    )
+    return entity_id or fallback
+
+
+def _response_sensor_entity_id(hass: HomeAssistant, entry: ConfigEntry) -> str:
+    return _get_entity_id(
+        hass,
+        entry.entry_id,
+        "sensor",
+        "response_text",
+        f"sensor.{DOMAIN}_response",
+    )
+
+
+def _product_input_entity_id(hass: HomeAssistant, entry: ConfigEntry) -> str:
+    return _get_entity_id(
+        hass,
+        entry.entry_id,
+        "text",
+        "product_input",
+        f"text.{DOMAIN}_produkt_name",
+    )
 
 
 def _normalize_name(value: str) -> str:
@@ -68,12 +99,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
         product_name = call.data.get("name")
         if not product_name:
-            state = hass.states.get(f"text.{DOMAIN}_produkt_name")
+            state = hass.states.get(_product_input_entity_id(hass, entry))
             product_name = (state.state if state else "").strip()
 
         if not product_name:
             hass.states.async_set(
-                f"sensor.{DOMAIN}_response",
+                _response_sensor_entity_id(hass, entry),
                 "Kein Produktname übergeben",
                 {"icon": "mdi:alert-circle"},
             )
@@ -85,7 +116,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         )
 
         hass.states.async_set(
-            f"sensor.{DOMAIN}_response",
+            _response_sensor_entity_id(hass, entry),
             "KI analysiert…",
             {"icon": "mdi:progress-clock"},
         )
@@ -96,15 +127,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 raise RuntimeError(payload.get("detail") or "Unbekannter API-Fehler")
 
             hass.states.async_set(
-                f"sensor.{DOMAIN}_response",
+                _response_sensor_entity_id(hass, entry),
                 payload.get("message", "Vorgang abgeschlossen"),
                 {"icon": "mdi:check-circle"},
             )
-            hass.states.async_set(f"text.{DOMAIN}_produkt_name", "")
+            hass.states.async_set(_product_input_entity_id(hass, entry), "")
         except Exception as error:
             _LOGGER.error("Fehler beim Add-on Aufruf: %s", error)
             hass.states.async_set(
-                f"sensor.{DOMAIN}_response",
+                _response_sensor_entity_id(hass, entry),
                 f"Fehler: {error}",
                 {"icon": "mdi:alert-circle"},
             )
@@ -112,7 +143,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             return
 
         hass.states.async_set(
-            f"sensor.{DOMAIN}_response",
+            _response_sensor_entity_id(hass, entry),
             "KI analysiert...",
             {"icon": "mdi:progress-clock"},
         )
@@ -171,11 +202,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                             )
 
                     hass.states.async_set(
-                        f"sensor.{DOMAIN}_response",
+                        _response_sensor_entity_id(hass, entry),
                         f"Vorhanden: {product_name} zur Einkaufsliste hinzugefügt",
                         {"icon": "mdi:cart-check"},
                     )
-                    hass.states.async_set(f"text.{DOMAIN}_produkt_name", "")
+                    hass.states.async_set(_product_input_entity_id(hass, entry), "")
                     _LOGGER.info(
                         "Existing product '%s' added to shopping list", product_name
                     )
@@ -213,7 +244,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                         notification_id="grocy_ai_debug",
                     )
                     hass.states.async_set(
-                        f"sensor.{DOMAIN}_response",
+                        _response_sensor_entity_id(hass, entry),
                         f"Debug fertig ({duration}s)",
                         {"icon": "mdi:flask"},
                     )
@@ -279,9 +310,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
                 final_msg = f"Erfolg: {product_name} {image_status} erstellt + Einkaufsliste ({duration}s)"
                 hass.states.async_set(
-                    f"sensor.{DOMAIN}_response", final_msg, {"icon": "mdi:check-circle"}
+                    _response_sensor_entity_id(hass, entry),
+                    final_msg,
+                    {"icon": "mdi:check-circle"},
                 )
-                hass.states.async_set(f"text.{DOMAIN}_produkt_name", "")
+                hass.states.async_set(_product_input_entity_id(hass, entry), "")
                 _LOGGER.info(
                     "Successfully created '%s' and updated shopping list", product_name
                 )
@@ -289,7 +322,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             except Exception as err:
                 _LOGGER.error("Fehler im Ablauf: %s", err)
                 hass.states.async_set(
-                    f"sensor.{DOMAIN}_response",
+                    _response_sensor_entity_id(hass, entry),
                     f"Fehler nach {duration}s",
                     {"icon": "mdi:alert-circle"},
                 )
@@ -317,7 +350,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     if resp.status == 200:
                         result = await resp.json()
                         hass.states.async_set(
-                            f"sensor.{DOMAIN}_response",
+                            _response_sensor_entity_id(hass, entry),
                             result.get("answer", "Keine Antwort"),
                         )
                         _debug_log(active_conf, "ask_ai responded successfully")
