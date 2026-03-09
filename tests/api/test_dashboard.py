@@ -37,3 +37,25 @@ def test_dashboard_prefills_configured_api_key(client):
     assert response.status_code == 200
     assert 'const configuredApiKey = "test-api-key";' in response.text
     assert "prompt('Bitte API-Key eingeben:'" not in response.text
+
+
+def test_shopping_list_builds_absolute_picture_url_from_filename(client, monkeypatch):
+    def fake_get_shopping_list(self):
+        return [
+            {
+                "id": 12,
+                "amount": "1",
+                "product_name": "Nudeln",
+                "note": "",
+                "picture_file_name": "abc123.jpg",
+            }
+        ]
+
+    monkeypatch.setattr(routes.GrocyClient, "get_shopping_list", fake_get_shopping_list)
+    response = client.get(
+        "/api/dashboard/shopping-list",
+        headers={"Authorization": "Bearer test-api-key"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()[0]["picture_url"].endswith("/files/productpictures/abc123.jpg")
