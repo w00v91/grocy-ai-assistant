@@ -1,3 +1,5 @@
+from .const import DEFAULT_ADDON_INGRESS_PATH
+
 import aiohttp
 
 
@@ -7,7 +9,7 @@ class AddonClient:
     def __init__(
         self, base_url: str, api_key: str, integration_version: str | None = None
     ):
-        self._base_url = (base_url or "http://localhost:8000").rstrip("/")
+        self._base_url = (base_url or DEFAULT_ADDON_INGRESS_PATH).rstrip("/")
         self._headers = {"Authorization": f"Bearer {api_key}"}
         if integration_version:
             self._headers["X-HA-Integration-Version"] = integration_version
