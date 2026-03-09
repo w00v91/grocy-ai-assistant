@@ -1,3 +1,4 @@
+import json
 import logging
 
 from fastapi import APIRouter, Depends, Header, HTTPException
@@ -114,7 +115,9 @@ def dashboard_search(
         raise HTTPException(status_code=500, detail=str(error)) from error
 
 
-@router.get("/api/dashboard/shopping-list", response_model=list[ShoppingListItemResponse])
+@router.get(
+    "/api/dashboard/shopping-list", response_model=list[ShoppingListItemResponse]
+)
 def dashboard_shopping_list(
     _: None = Depends(require_auth),
     settings: Settings = Depends(get_settings),
@@ -148,7 +151,8 @@ def dashboard_shopping_list(
 
 
 @router.get("/", response_class=HTMLResponse)
-def dashboard() -> str:
+def dashboard(settings: Settings = Depends(get_settings)) -> str:
+    configured_api_key = json.dumps(settings.api_key)
     return """
 <!doctype html>
 <html lang='de'>
@@ -247,12 +251,10 @@ def dashboard() -> str:
     </main>
 
     <script>
-      let apiKey = '';
+      const configuredApiKey = __CONFIGURED_API_KEY__;
+      let apiKey = configuredApiKey || '';
 
       function ensureApiKey() {
-        if (!apiKey) {
-          apiKey = prompt('Bitte API-Key eingeben:') || '';
-        }
         return apiKey;
       }
 
@@ -333,4 +335,6 @@ def dashboard() -> str:
     </script>
   </body>
 </html>
-"""
+""".replace(
+        "__CONFIGURED_API_KEY__", configured_api_key
+    )
