@@ -25,7 +25,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     entry.async_on_unload(entry.add_update_listener(async_update_options))
     
     async def add_product_via_ai_service(call):
-        _LOGGER.info("Dienst wurde getriggert!") # Erscheint das im HA-Log?
+        # WICHTIG: Lade die Daten HIER frisch aus dem Entry, 
+        # damit Änderungen am Debug-Modus ohne Neustart greifen!
+        current_entry = hass.config_entries.async_get_entry(entry.entry_id)
+        active_conf = {**current_entry.data, **current_entry.options}
+        
+        debug_enabled = active_conf.get("debug_mode", False)
+        api_key = active_conf.get("api_key")
+        grocy_api_key = active_conf.get("grocy_api_key")
+
+        _LOGGER.info(f"Dienst getriggert! Debug: {debug_enabled}")
         product_name = call.data.get("name")
         _LOGGER.info(f"Name aus Call: {product_name}")
         if not product_name:
@@ -60,17 +69,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     
                 if debug_enabled:
                     _LOGGER.info("🧪 DEBUG MODE AKTIV: Simulation des Grocy-Imports")
-                    _LOGGER.info(f"🧠 KI-Analyse Ergebnis: {ai_result}")
+                    _LOGGER.info(f"🧠 KI-Analyse Ergebnis: {res_data}")
                     
                     # Benachrichtigung im HA Dashboard anzeigen statt Import
                     hass.components.persistent_notification.create(
-                        f"KI Ergebnis (Simulation):\n{ai_result}",
+                        f"KI Ergebnis (Simulation):\n{res_data}",
                         title="Grocy AI Debug"
                     )
                     return True # Beende hier, kein POST an Grocy
 
                 # --- SCHRITT 2: Produkt in Grocy erstellen ---
-                grocy_url = "http://homeassistant.local:8123/api/hassio_ingress/a0d49513_grocy/api/objects/products"
+                grocy_url = "http://homeassistant.local:8123/api/objects/products"
                 grocy_headers = {"GROCY-API-KEY": grocy_api_key, "Content-Type": "application/json"}
                 
                 async with session.post(grocy_url, json=product_attrs, headers=grocy_headers) as g_resp:
@@ -88,14 +97,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                         file_name = f"product_{new_id}.png"
                         img_bytes = base64.b64decode(image_b64)
                         upload_path_b64 = base64.b64encode(file_name.encode()).decode()
-                        upload_url = f"http://homeassistant.local:8123/api/hassio_ingress/a0d49513_grocy/api/files/productpictures/{upload_path_b64}"
+                        upload_url = f"http://homeassistant.local:8123/api/files/productpictures/{upload_path_b64}"
                         
                         # Upload Bild
                         img_resp = await session.put(upload_url, data=img_bytes, headers={"GROCY-API-KEY": grocy_api_key})
                         
                         if img_resp.status in [200, 201, 204]:
                             # Verknüpfung Bild <-> Produkt
-                            update_url = f"http://homeassistant.local:8123/api/hassio_ingress/a0d49513_grocy/api/objects/products/{new_id}"
+                            update_url = f"http://homeassistant.local:8123/api/objects/products/{new_id}"
                             await session.put(update_url, json={"picture_file_name": file_name}, headers=grocy_headers)
                             image_success = True
                         else:
