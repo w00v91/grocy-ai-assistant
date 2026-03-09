@@ -17,6 +17,22 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 
+def _safe_str(value, fallback: str = "") -> str:
+    """Return a safe string value for config defaults."""
+    if value is None:
+        return fallback
+    if isinstance(value, str):
+        return value
+    return str(value)
+
+
+def _safe_bool(value, fallback: bool = False) -> bool:
+    """Return a safe boolean value for config defaults."""
+    if value is None:
+        return fallback
+    return bool(value)
+
+
 class GrocyAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 1
 
@@ -65,26 +81,34 @@ class GrocyAIOptionsFlowHandler(config_entries.OptionsFlow):
                 {
                     vol.Required(
                         CONF_API_KEY,
-                        default=options.get(CONF_API_KEY, data.get(CONF_API_KEY, "")),
+                        default=_safe_str(
+                            options.get(CONF_API_KEY, data.get(CONF_API_KEY)),
+                        ),
                     ): str,
                     vol.Required(
                         "addon_base_url",
-                        default=options.get(
-                            "addon_base_url",
-                            data.get("addon_base_url", DEFAULT_ADDON_BASE_URL),
+                        default=_safe_str(
+                            options.get("addon_base_url", data.get("addon_base_url")),
+                            DEFAULT_ADDON_BASE_URL,
                         ),
                     ): str,
                     vol.Required(
                         CONF_GROCY_API_KEY,
-                        default=options.get(
-                            CONF_GROCY_API_KEY, data.get(CONF_GROCY_API_KEY, "")
+                        default=_safe_str(
+                            options.get(
+                                CONF_GROCY_API_KEY,
+                                data.get(CONF_GROCY_API_KEY),
+                            )
                         ),
                     ): str,
                     vol.Required(
                         CONF_GROCY_BASE_URL,
-                        default=options.get(
-                            CONF_GROCY_BASE_URL,
-                            data.get(CONF_GROCY_BASE_URL, DEFAULT_GROCY_BASE_URL),
+                        default=_safe_str(
+                            options.get(
+                                CONF_GROCY_BASE_URL,
+                                data.get(CONF_GROCY_BASE_URL),
+                            ),
+                            DEFAULT_GROCY_BASE_URL,
                         ),
                     ): str,
                 }
@@ -106,7 +130,7 @@ class GrocyAIOptionsFlowHandler(config_entries.OptionsFlow):
                 {
                     vol.Optional(
                         CONF_DEBUG_MODE,
-                        default=options.get(CONF_DEBUG_MODE, False),
+                        default=_safe_bool(options.get(CONF_DEBUG_MODE), False),
                     ): bool,
                 }
             ),
