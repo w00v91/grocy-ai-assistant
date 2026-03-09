@@ -1,8 +1,10 @@
 import logging
 import sys
+from ipaddress import ip_address
 
 import uvicorn
 from fastapi import FastAPI, Request
+from fastapi.responses import RedirectResponse
 
 from grocy_ai_assistant.api.routes import router
 
@@ -15,6 +17,38 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Grocy AI Assistant API")
 app.include_router(router)
+
+
+def _is_external_host(host: str) -> bool:
+    normalized_host = (host or "").split(":", 1)[0].strip("[]").lower()
+    if not normalized_host:
+        return False
+    if normalized_host in {"localhost", "::1"}:
+        return False
+    if normalized_host.endswith(".local"):
+        return False
+    try:
+        parsed_ip = ip_address(normalized_host)
+        return not (
+            parsed_ip.is_private
+            or parsed_ip.is_loopback
+            or parsed_ip.is_link_local
+        )
+    except ValueError:
+        return True
+
+
+@app.middleware("http")
+async def enforce_https_for_external_requests(request: Request, call_next):
+    forwarded_proto = request.headers.get("x-forwarded-proto", "").lower()
+    host = request.headers.get("x-forwarded-host") or request.headers.get("host", "")
+    scheme_is_http = request.url.scheme == "http" and forwarded_proto != "https"
+
+    if scheme_is_http and _is_external_host(host):
+        https_url = request.url.replace(scheme="https")
+        return RedirectResponse(url=str(https_url), status_code=307)
+
+    return await call_next(request)
 
 
 @app.middleware("http")

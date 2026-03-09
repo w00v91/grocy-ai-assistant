@@ -343,7 +343,21 @@ def dashboard(settings: Settings = Depends(get_settings)) -> str:
 
       function toImageSource(url) {
         if (!url) return 'https://placehold.co/80x80?text=Kein+Bild';
-        if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) return url;
+        if (url.startsWith('data:')) return url;
+        if (url.startsWith('http://') || url.startsWith('https://')) {
+          const isExternal = (() => {
+            try {
+              return new URL(url).host !== window.location.host;
+            } catch (_) {
+              return false;
+            }
+          })();
+
+          if (window.location.protocol === 'https:' && isExternal && url.startsWith('http://')) {
+            return 'https://' + url.slice('http://'.length);
+          }
+          return url;
+        }
         return '/' + url.replace(/^\/+/, '');
       }
 
