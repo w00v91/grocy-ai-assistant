@@ -41,7 +41,7 @@ grocy_ai_assistant/
 ## Lokale Entwicklung
 
 ```bash
-pip install -r requirements.txt
+pip install -r grocy_ai_assistant/requirements.txt
 python -m grocy_ai_assistant.api.main
 ```
 
@@ -70,8 +70,8 @@ Wichtige Felder:
 ## Versionen
 
 Aktueller Stand:
-- **Add-on:** `5.2.13`
-- **Integration:** `1.2.9`
+- **Add-on:** `5.2.14`
+- **Integration:** `1.2.10`
 
 ## Qualitätssicherung
 
@@ -80,3 +80,10 @@ pytest
 ruff check .
 black .
 ```
+
+### Testumfang (Kurzüberblick)
+
+- API-Tests für Status, Dashboard, HTTPS-Redirect und Produkt-Workflow
+- Unit-Tests für Engine, Grocy-Client, Add-on-Client und Panel-URL-Logik
+- Hilfsfunktions-Tests für Produktbild-URL-Aufbereitung
+
