@@ -3,9 +3,9 @@ import aiohttp
 import base64
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
-DOMAIN = "grocy_ai_assistant"
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Setzt die Integration auf."""
@@ -13,6 +13,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     conf = {**entry.data, **entry.options}
     api_key = conf.get("api_key")
     grocy_api_key = conf.get("grocy_api_key")
+    debug_enabled = conf.get("debug_mode", False)
 
     if not api_key or not grocy_api_key:
         _LOGGER.error("API-Keys fehlen in der Konfiguration!")
@@ -20,6 +21,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN][entry.entry_id] = conf
+    
+    entry.async_on_unload(entry.add_update_listener(async_update_options))
     
     async def add_product_via_ai_service(call):
         _LOGGER.info("Dienst wurde getriggert!") # Erscheint das im HA-Log?
@@ -54,6 +57,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
                 if not product_attrs:
                     raise Exception("KI hat keine Produktdaten geliefert.")
+                    
+                if debug_enabled:
+                    _LOGGER.info("🧪 DEBUG MODE AKTIV: Simulation des Grocy-Imports")
+                    _LOGGER.info(f"🧠 KI-Analyse Ergebnis: {ai_result}")
+                    
+                    # Benachrichtigung im HA Dashboard anzeigen statt Import
+                    hass.components.persistent_notification.create(
+                        f"KI Ergebnis (Simulation):\n{ai_result}",
+                        title="Grocy AI Debug"
+                    )
+                    return True # Beende hier, kein POST an Grocy
 
                 # --- SCHRITT 2: Produkt in Grocy erstellen ---
                 grocy_url = "http://homeassistant.local:8123/api/hassio_ingress/a0d49513_grocy/api/objects/products"
@@ -128,6 +142,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.states.async_set(f"sensor.{DOMAIN}_response", "System bereit", {"friendly_name": "Grocy AI Response"})
 
     return True
+    
+async def async_update_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Wird aufgerufen, wenn die Optionen im UI aktualisiert wurden."""
+    await hass.config_entries.async_reload(entry.entry_id)
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Entladen."""
