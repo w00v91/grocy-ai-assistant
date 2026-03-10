@@ -15,11 +15,11 @@ SETTINGS = Settings(
 
 def test_build_product_picture_url_supports_filename_relative_and_absolute_paths():
     assert _build_product_picture_url("milk.jpg", SETTINGS).endswith(
-        "/files/productpictures/milk.jpg"
+        "/files/productpictures/bWlsay5qcGc="
     )
     assert _build_product_picture_url(
         "files/productpictures/milk.jpg", SETTINGS
-    ).endswith("/files/productpictures/milk.jpg")
+    ).endswith("/files/productpictures/bWlsay5qcGc=")
     assert _build_product_picture_url("/custom/path/image.jpg", SETTINGS).endswith(
         "/custom/path/image.jpg"
     )
@@ -38,11 +38,14 @@ def test_build_product_picture_url_rewrites_localhost_host_to_configured_grocy_h
 
     rewritten = _build_product_picture_url(localhost_url, SETTINGS)
 
-    assert rewritten == "http://homeassistant.local:9192/files/productpictures/milk.jpg"
+    assert (
+        rewritten
+        == "http://homeassistant.local:9192/files/productpictures/bWlsay5qcGc="
+    )
 
 
 def test_build_dashboard_picture_proxy_url_encodes_absolute_url():
     proxy_url = _build_dashboard_picture_proxy_url("milk.jpg", SETTINGS)
 
     assert proxy_url.startswith("/api/dashboard/product-picture?src=")
-    assert "files%2Fproductpictures%2Fmilk.jpg" in proxy_url
+    assert "files%2Fproductpictures%2FbWlsay5qcGc%3D" in proxy_url

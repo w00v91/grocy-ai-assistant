@@ -1,4 +1,5 @@
 import logging
+from base64 import b64encode
 from pathlib import Path
 from urllib.parse import ParseResult, quote, urljoin, urlparse
 
@@ -26,6 +27,18 @@ templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
 bearer_auth = HTTPBearer(auto_error=False)
 
 
+def _maybe_encode_product_picture_path(path: str) -> str:
+    if "/productpictures/" not in path:
+        return path
+
+    prefix, _, suffix = path.rpartition("/")
+    if not suffix or "." not in suffix:
+        return path
+
+    encoded_picture_name = b64encode(suffix.encode("utf-8")).decode("ascii")
+    return f"{prefix}/{encoded_picture_name}"
+
+
 def _build_product_picture_url(raw_picture_url: str, settings: Settings) -> str:
     picture_value = (raw_picture_url or "").strip()
     if not picture_value:
@@ -48,7 +61,7 @@ def _build_product_picture_url(raw_picture_url: str, settings: Settings) -> str:
             rewritten_picture = ParseResult(
                 scheme=parsed_grocy_base.scheme or parsed_picture.scheme,
                 netloc=parsed_grocy_base.netloc or parsed_picture.netloc,
-                path=parsed_picture.path,
+                path=_maybe_encode_product_picture_path(parsed_picture.path),
                 params=parsed_picture.params,
                 query=parsed_picture.query,
                 fragment=parsed_picture.fragment,
@@ -62,7 +75,10 @@ def _build_product_picture_url(raw_picture_url: str, settings: Settings) -> str:
         return picture_value
 
     if "/" not in picture_value:
-        picture_value = f"files/productpictures/{picture_value}"
+        encoded_picture_name = b64encode(picture_value.encode("utf-8")).decode("ascii")
+        picture_value = f"files/productpictures/{encoded_picture_name}"
+
+    picture_value = _maybe_encode_product_picture_path(picture_value)
 
     if picture_value.startswith("/"):
         return urljoin(f"{grocy_base_url}/", picture_value)

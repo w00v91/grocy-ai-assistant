@@ -98,7 +98,10 @@ def test_shopping_list_builds_proxy_picture_url_from_filename(client, monkeypatc
 
     assert response.status_code == 200
     assert "/api/dashboard/product-picture?src=" in response.json()[0]["picture_url"]
-    assert "files%2Fproductpictures%2Fabc123.jpg" in response.json()[0]["picture_url"]
+    assert (
+        "files%2Fproductpictures%2FYWJjMTIzLmpwZw%3D%3D"
+        in response.json()[0]["picture_url"]
+    )
 
 
 def test_shopping_list_uses_nested_product_picture_filename(client, monkeypatch):
@@ -125,7 +128,10 @@ def test_shopping_list_uses_nested_product_picture_filename(client, monkeypatch)
 
     assert response.status_code == 200
     assert "/api/dashboard/product-picture?src=" in response.json()[0]["picture_url"]
-    assert "files%2Fproductpictures%2Fcookies.jpg" in response.json()[0]["picture_url"]
+    assert (
+        "files%2Fproductpictures%2FY29va2llcy5qcGc%3D"
+        in response.json()[0]["picture_url"]
+    )
 
 
 def test_dashboard_contains_clear_button(client):
