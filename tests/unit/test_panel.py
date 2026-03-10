@@ -49,7 +49,7 @@ def _load_panel_module(monkeypatch):
     return module, calls
 
 
-def test_panel_upgrades_http_urls_to_https(monkeypatch):
+def test_panel_uses_ingress_for_absolute_http_urls(monkeypatch):
     panel_module, calls = _load_panel_module(monkeypatch)
 
     import asyncio
@@ -57,10 +57,10 @@ def test_panel_upgrades_http_urls_to_https(monkeypatch):
     asyncio.run(panel_module.async_setup(object(), "http://example.local:8000"))
 
     _, kwargs = calls[0]
-    assert kwargs["config"]["url"] == "https://example.local:8000"
+    assert kwargs["config"]["url"] == "/api/hassio_ingress/grocy_ai_assistant/"
 
 
-def test_panel_keeps_https_urls(monkeypatch):
+def test_panel_uses_ingress_for_absolute_https_urls(monkeypatch):
     panel_module, calls = _load_panel_module(monkeypatch)
 
     import asyncio
@@ -68,7 +68,7 @@ def test_panel_keeps_https_urls(monkeypatch):
     asyncio.run(panel_module.async_setup(object(), "https://example.org/dashboard"))
 
     _, kwargs = calls[0]
-    assert kwargs["config"]["url"] == "https://example.org/dashboard"
+    assert kwargs["config"]["url"] == "/api/hassio_ingress/grocy_ai_assistant/"
 
 
 def test_panel_adds_trailing_slash_for_ingress_paths(monkeypatch):
