@@ -84,8 +84,8 @@ Wichtige Felder:
 ## Versionen
 
 Aktueller Stand:
-- **Add-on:** `6.0.4`
-- **Integration:** `2.0.4`
+- **Add-on:** `6.0.7`
+- **Integration:** `2.0.7`
 
 ## Qualitätssicherung
 
@@ -110,7 +110,8 @@ Positiv aufgefallen:
 - Dashboard als Template/Static aufgeteilt, wodurch Frontend-Änderungen strukturiert bleiben.
 
 In diesem Update verbessert:
-- Bereinigung einer doppelten FastAPI-App-Initialisierung in `api/main.py`, damit nur noch der konfigurierte `create_app()`-Pfad aktiv ist.
+- Settings laden Standard-Versionen nun automatisch aus `config.json` (Add-on) und `manifest.json` (Integration), wodurch Versionsdrift zwischen Code und Metadaten verhindert wird.
+- Ergänzender Unit-Test stellt sicher, dass diese Versionen dauerhaft synchron bleiben.
 - Kleine Dokumentations- und Versionspflege für konsistente Release-Stände zwischen Add-on und Integration.
 
 Empfohlene nächste Schritte (optional):
