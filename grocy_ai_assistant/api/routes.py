@@ -72,6 +72,18 @@ def _build_dashboard_picture_proxy_url(raw_picture_url: str, settings: Settings)
     return f"/api/dashboard/product-picture?src={quote(absolute_picture_url, safe='')}"
 
 
+def _extract_shopping_item_picture_value(item: dict) -> str:
+    product = item.get("product") if isinstance(item.get("product"), dict) else {}
+    return (
+        item.get("picture_url")
+        or item.get("product_picture_url")
+        or item.get("picture_file_name")
+        or product.get("picture_url")
+        or product.get("picture_file_name")
+        or ""
+    )
+
+
 def require_auth(
     authorization: str = Header(default=None),
     settings: Settings = Depends(get_settings),
@@ -238,10 +250,7 @@ def dashboard_shopping_list(
                 product_name=item.get("product_name") or "Unbekanntes Produkt",
                 note=item.get("note") or "",
                 picture_url=_build_dashboard_picture_proxy_url(
-                    item.get("picture_url")
-                    or item.get("product_picture_url")
-                    or item.get("picture_file_name")
-                    or "",
+                    _extract_shopping_item_picture_value(item),
                     settings,
                 ),
             )
