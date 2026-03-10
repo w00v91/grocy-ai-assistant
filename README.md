@@ -84,8 +84,8 @@ Wichtige Felder:
 ## Versionen
 
 Aktueller Stand:
-- **Add-on:** `5.2.22`
-- **Integration:** `1.2.18`
+- **Add-on:** `5.2.23`
+- **Integration:** `1.2.19`
 
 ## Qualitätssicherung
 
