@@ -6,6 +6,7 @@ import requests
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from fastapi.responses import HTMLResponse, Response
 from fastapi.templating import Jinja2Templates
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from grocy_ai_assistant.ai.ingredient_detector import IngredientDetector
 from grocy_ai_assistant.config.settings import Settings, get_settings
@@ -22,6 +23,7 @@ from grocy_ai_assistant.services.grocy_client import GrocyClient
 logger = logging.getLogger(__name__)
 router = APIRouter()
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
+bearer_auth = HTTPBearer(auto_error=False)
 
 
 def _build_product_picture_url(raw_picture_url: str, settings: Settings) -> str:
@@ -93,10 +95,14 @@ def _get_product_image_cache(request: Request):
 
 
 def require_auth(
-    authorization: str = Header(default=None),
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_auth),
     settings: Settings = Depends(get_settings),
 ) -> None:
-    if authorization != f"Bearer {settings.api_key}":
+    if (
+        credentials is None
+        or credentials.scheme.lower() != "bearer"
+        or credentials.credentials != settings.api_key
+    ):
         raise HTTPException(status_code=401, detail="Unauthorized")
 
 

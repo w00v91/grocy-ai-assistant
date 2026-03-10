@@ -84,8 +84,8 @@ Wichtige Felder:
 ## Versionen
 
 Aktueller Stand:
-- **Add-on:** `5.2.23`
-- **Integration:** `1.2.19`
+- **Add-on:** `6.0.0`
+- **Integration:** `2.0.0`
 
 ## Qualitätssicherung
 
@@ -100,4 +100,20 @@ black .
 - API-Tests für Status, Dashboard, HTTPS-Redirect und Produkt-Workflow
 - Unit-Tests für Engine, Grocy-Client, Add-on-Client und Panel-URL-Logik
 - Hilfsfunktions-Tests für Produktbild-URL-Aufbereitung
+
+
+## Architektur-Review (aktueller Stand)
+
+Positiv aufgefallen:
+- Saubere Schichtentrennung zwischen API (`api/`), Orchestrierung (`core/`), KI (`ai/`) und Grocy-Client (`services/`).
+- Gute Testabdeckung für API-Flows, Ingress-/Panel-Logik und Service-Clients.
+
+Verbesserungen in diesem Update:
+- FastAPI-Lifecycle auf modernes `lifespan`-Pattern umgestellt (statt veraltetem `on_event`).
+- App-Erzeugung über `create_app()` gekapselt, damit Initialisierung klarer und langfristig testfreundlicher ist.
+- Versionierung auf neuen Major-Stand angehoben (Add-on + Integration synchron).
+
+Empfohlene nächste Schritte (optional):
+- Das große Inline-Dashboard-HTML langfristig in Templates/Static-Dateien auslagern, um Wartbarkeit weiter zu steigern.
+- API-Auth mittelfristig auf zentrale Security-Dependency (z. B. `HTTPBearer`) umstellen.
 
