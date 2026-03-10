@@ -483,7 +483,7 @@ def _render_dashboard(settings: Settings, request: Request) -> str:
           }
           return url;
         }
-        const normalized = '/' + url.replace(/^\\/+/, '');
+        const normalized = '/' + url.replace(/^\/+/, '');
         if (normalized.startsWith('/api/')) {
           return buildApiUrl(normalized);
         }
