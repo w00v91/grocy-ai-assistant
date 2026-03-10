@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Grocy AI Dashboard</title>
-    <link rel="stylesheet" href="{{ request.url_for('dashboard_static', path='dashboard.css') }}" />
+    <link rel="stylesheet" href="{{ static_base_path }}/dashboard.css" />
   </head>
   <body>
     <button id='theme-toggle' class='theme-toggle' onclick='toggleTheme()'>🌙 Darkmode</button>
@@ -34,6 +34,6 @@
       </section>
     </main>
 
-    <script src="{{ request.url_for('dashboard_static', path='dashboard.js') }}"></script>
+    <script src="{{ static_base_path }}/dashboard.js"></script>
   </body>
 </html>

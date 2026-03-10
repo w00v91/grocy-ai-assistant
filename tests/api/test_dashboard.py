@@ -143,10 +143,12 @@ def test_dashboard_contains_clear_button(client):
 
 
 def test_dashboard_fallback_serves_ingress_path(client):
-    response = client.get("/api/hassio_ingress/71139b3d_grocy_ai_assistant")
+    ingress_path = "/api/hassio_ingress/71139b3d_grocy_ai_assistant"
+    response = client.get(ingress_path)
 
     assert response.status_code == 200
     assert "Grocy AI Suche" in response.text
+    assert f"{ingress_path}/dashboard-static/dashboard.js" in response.text
 
 
 def test_dashboard_fallback_keeps_404_for_unknown_api_paths(client):
