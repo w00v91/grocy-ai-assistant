@@ -1,11 +1,11 @@
 import logging
 
+from homeassistant.components.frontend import async_remove_panel
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.event import async_call_later
 
-from . import panel
 from .addon_client import AddonClient
 from .const import DEFAULT_ADDON_BASE_URL, DOMAIN, INTEGRATION_VERSION
 
@@ -51,17 +51,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     _LOGGER.info("Setting up Grocy AI Assistant for entry %s", entry.entry_id)
 
-    panel_url = hass.data[DOMAIN][entry.entry_id].get(
-        "addon_base_url", DEFAULT_ADDON_BASE_URL
-    )
-    previous_panel_url = hass.data[DOMAIN].get("_panel_url")
-    if (
-        not hass.data[DOMAIN].get("_panel_registered")
-        or previous_panel_url != panel_url
-    ):
-        await panel.async_setup(hass, panel_url)
-        hass.data[DOMAIN]["_panel_registered"] = True
-        hass.data[DOMAIN]["_panel_url"] = panel_url
+    # Cleanup legacy sidebar panel from previous integration versions.
+    async_remove_panel(hass, "grocy-ai")
 
     response_reset_unsubs = hass.data[DOMAIN].setdefault("_response_reset_unsubs", {})
 
@@ -171,5 +162,6 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     unload_ok = await hass.config_entries.async_unload_platforms(
         entry, ["sensor", "text"]
     )
+    async_remove_panel(hass, "grocy-ai")
     _LOGGER.debug("Unload entry %s result: %s", entry.entry_id, unload_ok)
     return unload_ok
