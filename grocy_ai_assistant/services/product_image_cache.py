@@ -181,6 +181,10 @@ class ProductImageCache:
                     path=parsed_source.path.removeprefix("/api")
                 ).geturl()
             )
+        elif parsed_source.path.startswith("/files/"):
+            candidate_urls.append(
+                parsed_source._replace(path=f"/api{parsed_source.path}").geturl()
+            )
 
         for candidate_url in candidate_urls:
             cache_path = self._cache_path_for_url(source_url)

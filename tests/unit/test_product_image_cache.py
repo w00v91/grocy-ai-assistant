@@ -165,3 +165,48 @@ def test_refresh_all_product_images_falls_back_to_picture_file_name(
         "http://homeassistant.local:9192/files/productpictures/40b3s07zk17fd14nuym0i8chiasamen.jpg",
         "http://homeassistant.local:9192/api/files/productpictures/chiasamen.jpg",
     ]
+
+
+def test_download_to_cache_falls_back_from_files_path_to_api_files(
+    monkeypatch, tmp_path
+):
+    settings = Settings(
+        grocy_base_url="http://homeassistant.local:9192/api", grocy_api_key="x"
+    )
+    cache = ProductImageCache(settings, cache_dir=str(tmp_path))
+
+    class FakeResponse:
+        def __init__(self, status_code=200, content=b"img"):
+            self.status_code = status_code
+            self.content = content
+
+        def raise_for_status(self):
+            if self.status_code >= 400:
+                import requests
+
+                error = requests.HTTPError("not found")
+                error.response = self
+                raise error
+
+    calls = []
+
+    def fake_get(url, headers, timeout):
+        calls.append(url)
+        if "/files/" in url and "/api/files/" not in url:
+            return FakeResponse(status_code=404)
+        return FakeResponse(content=b"api-fallback-img")
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.services.product_image_cache.requests.get", fake_get
+    )
+
+    content, media_type = cache.get_cached_image(
+        "http://homeassistant.local:9192/files/productpictures/quinoa.png"
+    )
+
+    assert content == b"api-fallback-img"
+    assert media_type == "image/png"
+    assert calls == [
+        "http://homeassistant.local:9192/files/productpictures/quinoa.png",
+        "http://homeassistant.local:9192/api/files/productpictures/quinoa.png",
+    ]
