@@ -158,6 +158,66 @@ class GrocyClient:
             for item in shopping_items
         ]
 
+    def get_stock_products(self) -> list[Dict[str, Any]]:
+        response = requests.get(
+            f"{self.settings.grocy_base_url}/stock",
+            headers=self.headers,
+            timeout=30,
+        )
+        response.raise_for_status()
+        stock_entries = response.json()
+
+        products = {
+            int(product.get("id")): product
+            for product in self._get_all_products()
+            if product.get("id") is not None
+        }
+
+        locations_response = requests.get(
+            f"{self.settings.grocy_base_url}/objects/locations",
+            headers=self.headers,
+            timeout=30,
+        )
+        locations_response.raise_for_status()
+        locations = {
+            int(location.get("id")): location.get("name", "")
+            for location in locations_response.json()
+            if location.get("id") is not None
+        }
+
+        result: list[Dict[str, Any]] = []
+        for entry in stock_entries:
+            product_id = entry.get("product_id")
+            if product_id is None:
+                continue
+
+            product = products.get(int(product_id), {})
+            location_id = product.get("location_id") or entry.get("location_id")
+            location_name = locations.get(int(location_id), "") if location_id else ""
+
+            result.append(
+                {
+                    "id": int(product_id),
+                    "name": product.get("name")
+                    or entry.get("product_name")
+                    or "Unbekanntes Produkt",
+                    "location_name": location_name,
+                    "amount": str(entry.get("amount") or ""),
+                }
+            )
+
+        result.sort(key=lambda item: item["name"].casefold())
+        return result
+
+    def get_recipes(self) -> list[Dict[str, Any]]:
+        response = requests.get(
+            f"{self.settings.grocy_base_url}/objects/recipes",
+            headers=self.headers,
+            timeout=30,
+        )
+        response.raise_for_status()
+        return response.json()
+
     def clear_shopping_list(self) -> int:
         items = self.get_shopping_list()
         removed_items = 0

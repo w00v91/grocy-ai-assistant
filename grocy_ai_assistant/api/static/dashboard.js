@@ -276,3 +276,97 @@ const savedTheme = localStorage.getItem(themeStorageKey) || 'light';
 applyTheme(savedTheme);
 loadShoppingList();
 loadVariants();
+loadStockProducts();
+
+
+function renderStockProducts(items) {
+  const container = document.getElementById('stock-products');
+  if (!items.length) {
+    container.innerHTML = '<div class="muted">Keine Produkte im Lager/Kühlschrank gefunden.</div>';
+    return;
+  }
+
+  container.innerHTML = items.map((item) => `
+    <label class="stock-item">
+      <input type="checkbox" value="${item.id}" />
+      <span><strong>${item.name}</strong> <small class="muted">${item.location_name || 'Lager'} · ${item.amount || '-'} </small></span>
+    </label>
+  `).join('');
+}
+
+function renderRecipeList(elementId, items, emptyText) {
+  const list = document.getElementById(elementId);
+  if (!items.length) {
+    list.innerHTML = `<li>${emptyText}</li>`;
+    return;
+  }
+
+  list.innerHTML = items.map((item) => `
+    <li>
+      <div>
+        <div><strong>${item.title}</strong></div>
+        <div class="muted">${item.reason || ''}</div>
+      </div>
+    </li>
+  `).join('');
+}
+
+async function loadStockProducts() {
+  const key = ensureApiKey();
+  if (!key) return;
+
+  try {
+    const res = await fetch(buildApiUrl('/api/dashboard/stock-products'), {
+      headers: { 'Authorization': `Bearer ${key}` },
+    });
+    const payload = await parseJsonSafe(res);
+
+    if (!res.ok) {
+      document.getElementById('status').textContent = payload.detail || 'Bestand konnte nicht geladen werden.';
+      return;
+    }
+
+    renderStockProducts(payload);
+  } catch (_) {
+    document.getElementById('status').textContent = 'Bestand konnte nicht geladen werden (Netzwerk-/Ingress-Fehler).';
+  }
+}
+
+async function loadRecipeSuggestions() {
+  const key = ensureApiKey();
+  const status = document.getElementById('status');
+  if (!key) {
+    status.textContent = 'Kein API-Key angegeben.';
+    return;
+  }
+
+  const selectedIds = Array.from(document.querySelectorAll('#stock-products input[type="checkbox"]:checked'))
+    .map((checkbox) => Number(checkbox.value));
+
+  if (!selectedIds.length) {
+    status.textContent = 'Bitte zuerst Produkte aus dem Lager/Kühlschrank auswählen.';
+    return;
+  }
+
+  status.textContent = 'Lade Rezeptvorschläge...';
+
+  try {
+    const res = await fetch(buildApiUrl('/api/dashboard/recipe-suggestions'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
+      body: JSON.stringify({ product_ids: selectedIds }),
+    });
+    const payload = await parseJsonSafe(res);
+
+    if (!res.ok) {
+      status.textContent = payload.detail || 'Rezeptvorschläge konnten nicht geladen werden.';
+      return;
+    }
+
+    renderRecipeList('grocy-recipe-list', payload.grocy_recipes || [], 'Keine gespeicherten Grocy-Rezepte gefunden.');
+    renderRecipeList('ai-recipe-list', payload.ai_recipes || [], 'Keine KI-Rezepte erzeugt.');
+    status.textContent = `Rezeptvorschläge geladen für: ${(payload.selected_products || []).join(', ')}`;
+  } catch (_) {
+    status.textContent = 'Rezeptvorschläge konnten nicht geladen werden (Netzwerk-/Ingress-Fehler).';
+  }
+}

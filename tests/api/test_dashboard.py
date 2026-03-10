@@ -160,7 +160,6 @@ def test_dashboard_fallback_serves_token_path(client):
     assert f"{token_path}/dashboard-static/dashboard.js" in response.text
 
 
-
 def test_dashboard_uses_ingress_header_for_static_assets(client):
     ingress_path = "/DSjkRSg2MQhfRCPVJYCvOW2o9DXs2ZwTf_Lm8z3CytA"
     response = client.get("/", headers={"x-ingress-path": ingress_path})
@@ -175,6 +174,7 @@ def test_dashboard_uses_forwarded_prefix_header_for_static_assets(client):
 
     assert response.status_code == 200
     assert f"{ingress_path}/dashboard-static/dashboard.js" in response.text
+
 
 def test_dashboard_fallback_keeps_404_for_unknown_api_paths(client):
     response = client.get("/api/not-a-real-endpoint")
@@ -323,3 +323,94 @@ def test_refresh_product_picture_cache_endpoint(client):
 
     assert response.status_code == 200
     assert response.json() == {"success": True, "refreshed_images": 7}
+
+
+def test_stock_products_endpoint_returns_items(client, monkeypatch):
+    def fake_get_stock_products(self):
+        return [
+            {
+                "id": 1,
+                "name": "Milch",
+                "location_name": "Kühlschrank",
+                "amount": "1",
+            }
+        ]
+
+    monkeypatch.setattr(
+        routes.GrocyClient, "get_stock_products", fake_get_stock_products
+    )
+
+    response = client.get(
+        "/api/dashboard/stock-products",
+        headers={"Authorization": "Bearer test-api-key"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()[0]["name"] == "Milch"
+
+
+def test_recipe_suggestions_prioritize_grocy_then_ai(client, monkeypatch):
+    def fake_get_stock_products(self):
+        return [
+            {"id": 1, "name": "Tomate", "location_name": "Kühlschrank", "amount": "2"},
+            {"id": 2, "name": "Nudeln", "location_name": "Vorrat", "amount": "1"},
+        ]
+
+    def fake_get_recipes(self):
+        return [
+            {"name": "Tomaten Pasta"},
+            {"name": "Gemüsepfanne"},
+        ]
+
+    class FakeDetector:
+        def __init__(self, settings):
+            self.settings = settings
+
+        def generate_recipe_suggestions(
+            self, selected_products, existing_recipe_titles
+        ):
+            assert selected_products == ["Tomate"]
+            assert "Tomaten Pasta" in existing_recipe_titles
+            return [{"title": "Tomaten-Suppe", "reason": "Tomate ist vorhanden"}]
+
+    monkeypatch.setattr(
+        routes.GrocyClient, "get_stock_products", fake_get_stock_products
+    )
+    monkeypatch.setattr(routes.GrocyClient, "get_recipes", fake_get_recipes)
+    monkeypatch.setattr(routes, "IngredientDetector", FakeDetector)
+
+    response = client.post(
+        "/api/dashboard/recipe-suggestions",
+        headers={"Authorization": "Bearer test-api-key"},
+        json={"product_ids": [1]},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["selected_products"] == ["Tomate"]
+    assert payload["grocy_recipes"][0]["source"] == "grocy"
+    assert payload["grocy_recipes"][0]["title"] == "Tomaten Pasta"
+    assert payload["ai_recipes"][0]["source"] == "ai"
+
+
+def test_recipe_suggestions_rejects_empty_selection(client):
+    response = client.post(
+        "/api/dashboard/recipe-suggestions",
+        headers={"Authorization": "Bearer test-api-key"},
+        json={"product_ids": []},
+    )
+
+    assert response.status_code == 400
+    assert "mindestens ein Produkt" in response.json()["detail"]
+
+
+def test_dashboard_contains_recipe_section(client):
+    response = client.get("/")
+
+    assert response.status_code == 200
+    assert "Rezeptvorschläge aus Lager/Kühlschrank" in response.text
+
+    js_response = client.get("/dashboard-static/dashboard.js")
+    assert js_response.status_code == 200
+    assert "loadRecipeSuggestions" in js_response.text
+    assert "/api/dashboard/recipe-suggestions" in js_response.text

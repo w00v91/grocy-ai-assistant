@@ -18,7 +18,11 @@ from grocy_ai_assistant.models.ingredient import (
     DashboardSearchResponse,
     ExistingProductAddRequest,
     ProductVariantResponse,
+    RecipeSuggestionItem,
+    RecipeSuggestionRequest,
+    RecipeSuggestionResponse,
     ShoppingListItemResponse,
+    StockProductResponse,
 )
 from grocy_ai_assistant.services.grocy_client import GrocyClient
 
@@ -105,6 +109,22 @@ def _extract_shopping_item_picture_value(item: dict) -> str:
         or product.get("picture_file_name")
         or ""
     )
+
+
+def _score_recipe_match(recipe: dict, selected_products: list[str]) -> tuple[int, str]:
+    title = str(recipe.get("name") or "")
+    normalized_title = title.casefold()
+    matches = [
+        product
+        for product in selected_products
+        if product.casefold() in normalized_title
+    ]
+    reason = (
+        f"Passt zu: {', '.join(matches)}"
+        if matches
+        else "Grundrezept aus Grocy für deine Vorräte"
+    )
+    return len(matches), reason
 
 
 def _get_product_image_cache(request: Request):
@@ -375,6 +395,104 @@ def dashboard_shopping_list(
         ]
     except Exception as error:
         logger.error("Einkaufsliste konnte nicht geladen werden: %s", error)
+        raise HTTPException(status_code=500, detail=str(error)) from error
+
+
+@router.get("/api/dashboard/stock-products", response_model=list[StockProductResponse])
+def dashboard_stock_products(
+    _: None = Depends(require_auth),
+    settings: Settings = Depends(get_settings),
+):
+    if not settings.grocy_api_key:
+        raise HTTPException(
+            status_code=500, detail="grocy_api_key fehlt in Add-on Optionen"
+        )
+
+    try:
+        grocy_client = GrocyClient(settings)
+        return [
+            StockProductResponse(**item) for item in grocy_client.get_stock_products()
+        ]
+    except Exception as error:
+        logger.error("Lagerprodukte konnten nicht geladen werden: %s", error)
+        raise HTTPException(status_code=500, detail=str(error)) from error
+
+
+@router.post(
+    "/api/dashboard/recipe-suggestions", response_model=RecipeSuggestionResponse
+)
+def dashboard_recipe_suggestions(
+    payload: RecipeSuggestionRequest,
+    _: None = Depends(require_auth),
+    settings: Settings = Depends(get_settings),
+):
+    if not settings.grocy_api_key:
+        raise HTTPException(
+            status_code=500, detail="grocy_api_key fehlt in Add-on Optionen"
+        )
+
+    selected_ids = set(payload.product_ids)
+    if not selected_ids:
+        raise HTTPException(
+            status_code=400,
+            detail="Bitte mindestens ein Produkt aus dem Lager auswählen",
+        )
+
+    try:
+        grocy_client = GrocyClient(settings)
+        stock_products = grocy_client.get_stock_products()
+        selected_products = [
+            product.get("name", "")
+            for product in stock_products
+            if product.get("id") in selected_ids
+        ]
+
+        if not selected_products:
+            raise HTTPException(
+                status_code=400,
+                detail="Auswahl enthält keine gültigen Lagerprodukte",
+            )
+
+        grocy_recipes_raw = grocy_client.get_recipes()
+        scored = []
+        for recipe in grocy_recipes_raw:
+            score, reason = _score_recipe_match(recipe, selected_products)
+            scored.append((score, recipe, reason))
+
+        scored.sort(key=lambda row: (-row[0], str(row[1].get("name") or "").casefold()))
+        grocy_recipes = [
+            RecipeSuggestionItem(
+                title=str(recipe.get("name") or "Unbenanntes Rezept"),
+                source="grocy",
+                reason=reason,
+            )
+            for _, recipe, reason in scored[:5]
+        ]
+
+        detector = IngredientDetector(settings)
+        ai_raw = detector.generate_recipe_suggestions(
+            selected_products,
+            [item.title for item in grocy_recipes],
+        )
+        ai_recipes = [
+            RecipeSuggestionItem(
+                title=str(item.get("title") or "KI-Rezept"),
+                source="ai",
+                reason=str(item.get("reason") or ""),
+            )
+            for item in ai_raw[:5]
+            if isinstance(item, dict)
+        ]
+
+        return RecipeSuggestionResponse(
+            selected_products=selected_products,
+            grocy_recipes=grocy_recipes,
+            ai_recipes=ai_recipes,
+        )
+    except HTTPException:
+        raise
+    except Exception as error:
+        logger.error("Rezeptvorschläge konnten nicht erzeugt werden: %s", error)
         raise HTTPException(status_code=500, detail=str(error)) from error
 
 

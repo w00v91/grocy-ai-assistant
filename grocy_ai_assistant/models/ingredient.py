@@ -45,3 +45,26 @@ class ProductVariantResponse(BaseModel):
     id: int
     name: str
     picture_url: str = ""
+
+
+class StockProductResponse(BaseModel):
+    id: int
+    name: str
+    location_name: str = ""
+    amount: str = ""
+
+
+class RecipeSuggestionRequest(BaseModel):
+    product_ids: list[int] = Field(default_factory=list)
+
+
+class RecipeSuggestionItem(BaseModel):
+    title: str
+    source: str
+    reason: str = ""
+
+
+class RecipeSuggestionResponse(BaseModel):
+    selected_products: list[str] = Field(default_factory=list)
+    grocy_recipes: list[RecipeSuggestionItem] = Field(default_factory=list)
+    ai_recipes: list[RecipeSuggestionItem] = Field(default_factory=list)
