@@ -84,8 +84,8 @@ Wichtige Felder:
 ## Versionen
 
 Aktueller Stand:
-- **Add-on:** `6.0.2`
-- **Integration:** `2.0.2`
+- **Add-on:** `6.0.4`
+- **Integration:** `2.0.4`
 
 ## Qualitätssicherung
 
@@ -105,15 +105,15 @@ black .
 ## Architektur-Review (aktueller Stand)
 
 Positiv aufgefallen:
-- Saubere Schichtentrennung zwischen API (`api/`), Orchestrierung (`core/`), KI (`ai/`) und Grocy-Client (`services/`).
-- Gute Testabdeckung für API-Flows, Ingress-/Panel-Logik und Service-Clients.
+- Klare Schichtentrennung zwischen API (`api/`), Orchestrierung (`core/`), KI (`ai/`) und Infrastruktur (`services/`).
+- Solide Testabdeckung mit API- und Unit-Tests für Kernflüsse und Hilfslogik.
+- Dashboard als Template/Static aufgeteilt, wodurch Frontend-Änderungen strukturiert bleiben.
 
-Verbesserungen in diesem Update:
-- FastAPI-Lifecycle auf modernes `lifespan`-Pattern umgestellt (statt veraltetem `on_event`).
-- App-Erzeugung über `create_app()` gekapselt, damit Initialisierung klarer und langfristig testfreundlicher ist.
-- Versionierung auf neuen Major-Stand angehoben (Add-on + Integration synchron).
+In diesem Update verbessert:
+- Bereinigung einer doppelten FastAPI-App-Initialisierung in `api/main.py`, damit nur noch der konfigurierte `create_app()`-Pfad aktiv ist.
+- Kleine Dokumentations- und Versionspflege für konsistente Release-Stände zwischen Add-on und Integration.
 
 Empfohlene nächste Schritte (optional):
-- Das große Inline-Dashboard-HTML langfristig in Templates/Static-Dateien auslagern, um Wartbarkeit weiter zu steigern.
-- API-Auth mittelfristig auf zentrale Security-Dependency (z. B. `HTTPBearer`) umstellen.
+- Gemeinsame URL-Helfer für Produktbilder (aktuell ähnlich in `api/routes.py` und `services/product_image_cache.py`) in ein Shared-Modul extrahieren, um Duplikate zu reduzieren.
+- Optional zentrale API-Fehlerstruktur (einheitliches Error-Schema) einführen, damit Frontend und Integration Fehlermeldungen konsistenter verarbeiten können.
 
