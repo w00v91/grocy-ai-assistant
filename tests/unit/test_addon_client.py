@@ -76,3 +76,21 @@ def test_addon_client_sends_homeassistant_version_header(monkeypatch):
     assert method == "POST"
     assert url == "http://localhost:8000/api/dashboard/search"
     assert body == {"name": "Hafermilch"}
+
+
+def test_addon_client_uses_default_ingress_path(monkeypatch):
+    sessions = []
+
+    def fake_client_session(*, timeout):
+        session = FakeSession(timeout)
+        sessions.append(session)
+        return session
+
+    monkeypatch.setattr(addon_client_module.aiohttp, "ClientSession", fake_client_session)
+
+    client = AddonClient(base_url="", api_key="secret")
+    asyncio.run(client.get_status())
+
+    method, url, _, _ = sessions[0].calls[0]
+    assert method == "GET"
+    assert url == "/api/hassio_ingress/grocy_ai_assistant/api/status"
