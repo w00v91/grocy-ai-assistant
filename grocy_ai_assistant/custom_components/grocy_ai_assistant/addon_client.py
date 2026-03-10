@@ -1,6 +1,6 @@
 import aiohttp
 
-DEFAULT_ADDON_INGRESS_PATH = "/api/hassio_ingress/71139b3d_grocy_ai_assistant"
+DEFAULT_ADDON_INGRESS_PATH = "/api/hassio_ingress/grocy_ai_assistant/"
 
 
 class AddonClient:
