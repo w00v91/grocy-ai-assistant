@@ -7,6 +7,11 @@ class AnalyzeProductRequest(BaseModel):
     name: str = Field(..., min_length=1)
 
 
+class ExistingProductAddRequest(BaseModel):
+    product_id: int
+    product_name: str = Field(..., min_length=1)
+
+
 class ProductData(BaseModel):
     name: str
     description: str
@@ -33,4 +38,10 @@ class ShoppingListItemResponse(BaseModel):
     amount: str
     product_name: str
     note: str = ""
+    picture_url: str = ""
+
+
+class ProductVariantResponse(BaseModel):
+    id: int
+    name: str
     picture_url: str = ""

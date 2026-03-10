@@ -209,3 +209,31 @@ def test_clear_shopping_list_deletes_all_items(monkeypatch):
         "http://homeassistant.local:9192/api/objects/shopping_list/3",
         "http://homeassistant.local:9192/api/objects/shopping_list/4",
     ]
+
+
+def test_search_products_by_partial_name_returns_all_variants(monkeypatch):
+    def fake_get(*args, **kwargs):
+        return FakeResponse(
+            [
+                {"id": 1, "name": "Apfel"},
+                {"id": 2, "name": "Apfelessig"},
+                {"id": 3, "name": "Banane"},
+            ]
+        )
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.services.grocy_client.requests.get", fake_get
+    )
+
+    client = GrocyClient(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+        )
+    )
+
+    result = client.search_products_by_partial_name("apf")
+
+    assert [product["name"] for product in result] == ["Apfel", "Apfelessig"]

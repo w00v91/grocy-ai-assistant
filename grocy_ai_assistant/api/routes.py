@@ -12,6 +12,8 @@ from grocy_ai_assistant.models.ingredient import (
     AnalyzeProductRequest,
     AnalyzeProductResponse,
     DashboardSearchResponse,
+    ExistingProductAddRequest,
+    ProductVariantResponse,
     ShoppingListItemResponse,
 )
 from grocy_ai_assistant.services.grocy_client import GrocyClient
@@ -84,8 +86,6 @@ def _extract_shopping_item_picture_value(item: dict) -> str:
     )
 
 
-
-
 def _get_product_image_cache(request: Request):
     return getattr(request.app.state, "product_image_cache", None)
 
@@ -139,6 +139,72 @@ def analyze_product(
         return AnalyzeProductResponse(product_data=product_data)
     except Exception as error:
         logger.error("Analyse-Fehler: %s", error)
+        raise HTTPException(status_code=500, detail=str(error)) from error
+
+
+@router.get(
+    "/api/dashboard/search-variants", response_model=list[ProductVariantResponse]
+)
+def dashboard_search_variants(
+    q: str,
+    _: None = Depends(require_auth),
+    settings: Settings = Depends(get_settings),
+):
+    if not settings.grocy_api_key:
+        raise HTTPException(
+            status_code=500, detail="grocy_api_key fehlt in Add-on Optionen"
+        )
+
+    query = q.strip()
+    if not query:
+        return []
+
+    try:
+        grocy_client = GrocyClient(settings)
+        matches = grocy_client.search_products_by_partial_name(query)
+        return [
+            ProductVariantResponse(
+                id=product.get("id"),
+                name=product.get("name") or "Unbekanntes Produkt",
+                picture_url=_build_dashboard_picture_proxy_url(
+                    product.get("picture_url")
+                    or product.get("picture_file_name")
+                    or "",
+                    settings,
+                ),
+            )
+            for product in matches
+            if product.get("id")
+        ]
+    except Exception as error:
+        logger.error("Produktsuche fehlgeschlagen: %s", error)
+        raise HTTPException(status_code=500, detail=str(error)) from error
+
+
+@router.post(
+    "/api/dashboard/add-existing-product", response_model=DashboardSearchResponse
+)
+def dashboard_add_existing_product(
+    payload: ExistingProductAddRequest,
+    _: None = Depends(require_auth),
+    settings: Settings = Depends(get_settings),
+):
+    if not settings.grocy_api_key:
+        raise HTTPException(
+            status_code=500, detail="grocy_api_key fehlt in Add-on Optionen"
+        )
+
+    try:
+        grocy_client = GrocyClient(settings)
+        grocy_client.add_product_to_shopping_list(payload.product_id, amount=1)
+        return DashboardSearchResponse(
+            success=True,
+            action="existing_added",
+            message=f"{payload.product_name} wurde zur Einkaufsliste hinzugefügt.",
+            product_id=payload.product_id,
+        )
+    except Exception as error:
+        logger.error("Produkt konnte nicht hinzugefügt werden: %s", error)
         raise HTTPException(status_code=500, detail=str(error)) from error
 
 
@@ -461,6 +527,32 @@ def _render_dashboard(settings: Settings, request: Request) -> str:
         border-color: #b81b29;
       }
       .danger-button:hover { background: #b81b29; }
+      .variant-section { margin-top: 1rem; }
+      .variant-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 0.75rem;
+      }
+      .variant-card {
+        background: var(--item-bg);
+        border: 1px solid var(--item-border);
+        border-radius: 12px;
+        padding: 0.6rem;
+        text-align: center;
+      }
+      .variant-card button {
+        width: 100%;
+        background: transparent;
+        border: none;
+        padding: 0;
+        color: inherit;
+      }
+      .variant-card img {
+        width: 72px;
+        height: 72px;
+        margin-bottom: 0.4rem;
+        cursor: pointer;
+      }
     </style>
   </head>
   <body>
@@ -475,6 +567,12 @@ def _render_dashboard(settings: Settings, request: Request) -> str:
           <button onclick='loadShoppingList()'>Einkaufsliste aktualisieren</button>
         </div>
         <p id='status'>Bereit.</p>
+      </section>
+
+      <section class='card variant-section'>
+        <h2>Gefundene Produktvarianten</h2>
+        <p class='muted'>Teilnamen wie "apf" zeigen passende Produkte. Klick auf das Bild fügt den Artikel direkt zur Einkaufsliste hinzu.</p>
+        <div id='variant-list' class='variant-grid'></div>
       </section>
 
       <section class='card shopping-list-section'>
@@ -607,6 +705,80 @@ def _render_dashboard(settings: Settings, request: Request) -> str:
         }
       }
 
+      function renderVariants(items) {
+        const list = document.getElementById('variant-list');
+        if (!items.length) {
+          list.innerHTML = '<div class="muted">Keine passenden Varianten gefunden.</div>';
+          return;
+        }
+
+        list.innerHTML = items.map((item) => `
+          <div class="variant-card">
+            <button type="button" class="variant-select" data-product-id="${item.id}" data-product-name="${encodeURIComponent(item.name)}">
+              <img src="${toImageSource(item.picture_url)}" alt="${item.name}" loading="lazy" />
+              <div><strong>${item.name}</strong></div>
+            </button>
+          </div>
+        `).join('');
+      }
+
+      async function loadVariants() {
+        const key = ensureApiKey();
+        const status = document.getElementById('status');
+        const name = document.getElementById('name').value || '';
+
+        if (!key) return;
+
+        const query = name.trim();
+        if (!query) {
+          document.getElementById('variant-list').innerHTML = '';
+          return;
+        }
+
+        try {
+          const res = await fetch(buildApiUrl(`/api/dashboard/search-variants?q=${encodeURIComponent(query)}`), {
+            headers: { 'Authorization': `Bearer ${key}` },
+          });
+          const payload = await parseJsonSafe(res);
+
+          if (!res.ok) {
+            status.textContent = payload.detail || 'Varianten konnten nicht geladen werden.';
+            return;
+          }
+
+          renderVariants(payload);
+        } catch (_) {
+          status.textContent = 'Varianten konnten nicht geladen werden (Netzwerk-/Ingress-Fehler).';
+        }
+      }
+
+      async function confirmVariant(productId, productName) {
+        const key = ensureApiKey();
+        const status = document.getElementById('status');
+
+        if (!key) {
+          status.textContent = 'Kein API-Key angegeben.';
+          return;
+        }
+
+        status.textContent = `Füge ${productName} zur Einkaufsliste hinzu...`;
+        try {
+          const res = await fetch(buildApiUrl('/api/dashboard/add-existing-product'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
+            body: JSON.stringify({ product_id: productId, product_name: productName }),
+          });
+          const payload = await parseJsonSafe(res);
+          status.textContent = payload.message || payload.detail || 'Unbekannte Antwort';
+
+          if (res.ok) {
+            await loadShoppingList();
+          }
+        } catch (_) {
+          status.textContent = 'Produkt konnte nicht hinzugefügt werden (Netzwerk-/Ingress-Fehler).';
+        }
+      }
+
       async function clearShoppingList() {
         const key = ensureApiKey();
         const status = document.getElementById('status');
@@ -668,9 +840,27 @@ def _render_dashboard(settings: Settings, request: Request) -> str:
         }
       }
 
+      let variantsDebounce;
+      document.getElementById('variant-list').addEventListener('click', (event) => {
+        const target = event.target.closest('.variant-select');
+        if (!target) return;
+
+        const productId = Number(target.dataset.productId);
+        const productName = decodeURIComponent(target.dataset.productName || '');
+        confirmVariant(productId, productName);
+      });
+
+      document.getElementById('name').addEventListener('input', () => {
+        clearTimeout(variantsDebounce);
+        variantsDebounce = setTimeout(() => {
+          loadVariants();
+        }, 250);
+      });
+
       const savedTheme = localStorage.getItem(themeStorageKey) || 'light';
       applyTheme(savedTheme);
       loadShoppingList();
+      loadVariants();
     </script>
   </body>
 </html>
