@@ -1,5 +1,6 @@
 import logging
 import sys
+import time
 from ipaddress import ip_address
 
 import uvicorn
@@ -10,7 +11,7 @@ from grocy_ai_assistant.api.routes import router
 
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s",
+    format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
     stream=sys.stdout,
 )
 logger = logging.getLogger(__name__)
@@ -52,9 +53,28 @@ async def enforce_https_for_external_requests(request: Request, call_next):
 @app.middleware("http")
 async def log_request_info(request: Request, call_next):
     is_status_check = request.method == "GET" and request.url.path == "/api/status"
+    start_time = time.perf_counter()
     if not is_status_check:
-        logger.info("Anfrage erhalten: %s %s", request.method, request.url.path)
-    return await call_next(request)
+        logger.info(
+            "Anfrage erhalten: method=%s path=%s query=%s client=%s",
+            request.method,
+            request.url.path,
+            request.url.query,
+            request.client.host if request.client else "unknown",
+        )
+
+    response = await call_next(request)
+
+    if not is_status_check:
+        duration_ms = (time.perf_counter() - start_time) * 1000
+        logger.info(
+            "Antwort gesendet: method=%s path=%s status=%s dauer_ms=%.1f",
+            request.method,
+            request.url.path,
+            response.status_code,
+            duration_ms,
+        )
+    return response
 
 
 if __name__ == "__main__":
