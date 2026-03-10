@@ -84,6 +84,12 @@ def _extract_shopping_item_picture_value(item: dict) -> str:
     )
 
 
+
+
+def _get_product_image_cache(request: Request):
+    return getattr(request.app.state, "product_image_cache", None)
+
+
 def require_auth(
     authorization: str = Header(default=None),
     settings: Settings = Depends(get_settings),
@@ -184,6 +190,7 @@ def dashboard_search(
 @router.get("/api/dashboard/product-picture")
 def dashboard_product_picture(
     src: str,
+    request: Request,
     settings: Settings = Depends(get_settings),
 ):
     if not settings.grocy_api_key:
@@ -201,6 +208,12 @@ def dashboard_product_picture(
         or parsed_src.netloc != parsed_grocy.netloc
     ):
         raise HTTPException(status_code=400, detail="Ungültige Bildquelle")
+
+    image_cache = _get_product_image_cache(request)
+    if image_cache:
+        cached_content, cached_media_type = image_cache.get_cached_image(src)
+        if cached_content is not None:
+            return Response(content=cached_content, media_type=cached_media_type)
 
     logger.info("Lade Produktbild via Proxy: %s", src)
     try:
@@ -226,6 +239,19 @@ def dashboard_product_picture(
 
     content_type = response.headers.get("Content-Type", "image/jpeg")
     return Response(content=response.content, media_type=content_type)
+
+
+@router.post("/api/dashboard/product-picture-cache/refresh")
+def refresh_product_picture_cache(
+    request: Request,
+    _: None = Depends(require_auth),
+):
+    image_cache = _get_product_image_cache(request)
+    if not image_cache:
+        raise HTTPException(status_code=503, detail="Bildcache nicht verfügbar")
+
+    refreshed = image_cache.refresh_all_product_images()
+    return {"success": True, "refreshed_images": refreshed}
 
 
 @router.get(
