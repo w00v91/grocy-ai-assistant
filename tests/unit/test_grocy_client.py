@@ -279,3 +279,70 @@ def test_search_products_by_partial_name_returns_all_variants(monkeypatch):
     result = client.search_products_by_partial_name("apf")
 
     assert [product["name"] for product in result] == ["Apfel", "Apfelessig"]
+
+
+def test_get_stock_products_resolves_product_and_location_names(monkeypatch):
+    def fake_get(url, *args, **kwargs):
+        if url.endswith("/stock"):
+            return FakeResponse(
+                [
+                    {"product_id": 2, "amount": 3},
+                    {"product_id": 1, "amount": 1},
+                ]
+            )
+        if url.endswith("/objects/products"):
+            return FakeResponse(
+                [
+                    {"id": 1, "name": "Apfel", "location_id": 4},
+                    {"id": 2, "name": "Milch", "location_id": 1},
+                ]
+            )
+        if url.endswith("/objects/locations"):
+            return FakeResponse(
+                [
+                    {"id": 1, "name": "Kühlschrank"},
+                    {"id": 4, "name": "Obstkorb"},
+                ]
+            )
+        raise AssertionError(f"Unexpected url: {url}")
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.services.grocy_client.requests.get", fake_get
+    )
+
+    client = GrocyClient(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+        )
+    )
+
+    result = client.get_stock_products()
+
+    assert result == [
+        {"id": 1, "name": "Apfel", "location_name": "Obstkorb", "amount": "1"},
+        {"id": 2, "name": "Milch", "location_name": "Kühlschrank", "amount": "3"},
+    ]
+
+
+def test_get_recipes_returns_grocy_recipes(monkeypatch):
+    def fake_get(url, *args, **kwargs):
+        assert url.endswith("/objects/recipes")
+        return FakeResponse([{"id": 1, "name": "Pasta"}])
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.services.grocy_client.requests.get", fake_get
+    )
+
+    client = GrocyClient(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+        )
+    )
+
+    assert client.get_recipes() == [{"id": 1, "name": "Pasta"}]

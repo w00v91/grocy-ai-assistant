@@ -26,6 +26,24 @@
         <div id='variant-list' class='variant-grid'></div>
       </section>
 
+
+      <section class='card recipe-section'>
+        <h2>Rezeptvorschläge aus Lager/Kühlschrank</h2>
+        <p class='muted'>Wähle Produkte aus dem Bestand. Zuerst kommen passende Grocy-Rezepte, danach KI-Ideen.</p>
+        <div id='stock-products' class='stock-products'></div>
+        <button onclick='loadRecipeSuggestions()'>Rezeptvorschläge laden</button>
+        <div class='recipe-columns'>
+          <div>
+            <h3>Gespeicherte Grocy-Rezepte</h3>
+            <ul id='grocy-recipe-list'></ul>
+          </div>
+          <div>
+            <h3>KI-Rezeptvorschläge</h3>
+            <ul id='ai-recipe-list'></ul>
+          </div>
+        </div>
+      </section>
+
       <section class='card shopping-list-section'>
         <h2>Einkaufsliste</h2>
         <p class='muted'>Direkt aus Grocy geladen, inklusive Produktbildern (falls vorhanden).</p>

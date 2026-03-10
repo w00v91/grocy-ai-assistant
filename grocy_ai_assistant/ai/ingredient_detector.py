@@ -54,6 +54,47 @@ class IngredientDetector:
         raw_answer = response.json().get("response")
         return json.loads(raw_answer)
 
+    def generate_recipe_suggestions(
+        self,
+        selected_products: list[str],
+        existing_recipe_titles: list[str],
+    ) -> list[Dict[str, Any]]:
+        ingredients = ", ".join(selected_products)
+        existing = (
+            ", ".join(existing_recipe_titles) if existing_recipe_titles else "keine"
+        )
+
+        prompt = f"""
+        Erstelle Rezeptvorschläge basierend auf diesen verfügbaren Zutaten: {ingredients}.
+        Bereits in Grocy vorhandene Rezepte (nicht erneut vorschlagen): {existing}.
+
+        Gib NUR ein JSON-Array mit maximal 5 Einträgen zurück.
+        Jeder Eintrag hat exakt diese Struktur:
+        {{
+          "title": "Rezeptname",
+          "reason": "Warum passt es zu den ausgewählten Zutaten"
+        }}
+
+        Antworte NUR mit dem JSON-Array, kein Text davor oder danach.
+        """
+
+        ollama_payload = {
+            "model": self.settings.ollama_model,
+            "prompt": prompt,
+            "stream": False,
+            "format": "json",
+        }
+
+        response = requests.post(
+            self.settings.ollama_url, json=ollama_payload, timeout=60
+        )
+        response.raise_for_status()
+        raw_answer = response.json().get("response")
+        parsed = json.loads(raw_answer)
+        if isinstance(parsed, list):
+            return parsed
+        return []
+
     def generate_product_image(self, product_name: str):
         prompt = IMAGE_PROMPT_TEMPLATE.format(product_name=product_name)
         payload = {
