@@ -151,8 +151,6 @@ def test_dashboard_fallback_serves_ingress_path(client):
     assert f"{ingress_path}/dashboard-static/dashboard.js" in response.text
 
 
-
-
 def test_dashboard_fallback_serves_token_path(client):
     token_path = "/DSjkRSg2MQhfRCPVJYCvOW2o9DXs2ZwTf_Lm8z3CytA"
     response = client.get(token_path)
@@ -160,6 +158,23 @@ def test_dashboard_fallback_serves_token_path(client):
     assert response.status_code == 200
     assert "Grocy AI Suche" in response.text
     assert f"{token_path}/dashboard-static/dashboard.js" in response.text
+
+
+
+def test_dashboard_uses_ingress_header_for_static_assets(client):
+    ingress_path = "/DSjkRSg2MQhfRCPVJYCvOW2o9DXs2ZwTf_Lm8z3CytA"
+    response = client.get("/", headers={"x-ingress-path": ingress_path})
+
+    assert response.status_code == 200
+    assert f"{ingress_path}/dashboard-static/dashboard.js" in response.text
+
+
+def test_dashboard_uses_forwarded_prefix_header_for_static_assets(client):
+    ingress_path = "/DSjkRSg2MQhfRCPVJYCvOW2o9DXs2ZwTf_Lm8z3CytA"
+    response = client.get("/", headers={"x-forwarded-prefix": ingress_path})
+
+    assert response.status_code == 200
+    assert f"{ingress_path}/dashboard-static/dashboard.js" in response.text
 
 def test_dashboard_fallback_keeps_404_for_unknown_api_paths(client):
     response = client.get("/api/not-a-real-endpoint")
