@@ -70,8 +70,8 @@ Wichtige Felder:
 ## Versionen
 
 Aktueller Stand:
-- **Add-on:** `5.2.15`
-- **Integration:** `1.2.11`
+- **Add-on:** `5.2.16`
+- **Integration:** `1.2.12`
 
 ## Qualitätssicherung
 
