@@ -134,6 +134,20 @@ def test_shopping_list_uses_nested_product_picture_filename(client, monkeypatch)
     )
 
 
+def test_dashboard_has_clear_search_input_button(client):
+    response = client.get("/")
+
+    assert response.status_code == 200
+    assert "id='clear-name'" in response.text
+    assert "onclick='clearSearchInput()'" in response.text
+
+    static_response = client.get("/dashboard-static/dashboard.js")
+
+    assert static_response.status_code == 200
+    assert "function clearSearchInput()" in static_response.text
+    assert "updateClearButtonVisibility();" in static_response.text
+
+
 def test_dashboard_contains_clear_button(client):
     response = client.get("/")
 

@@ -74,6 +74,21 @@ function toImageSource(url) {
   return normalized;
 }
 
+
+function updateClearButtonVisibility() {
+  const clearButton = document.getElementById('clear-name');
+  const nameInput = document.getElementById('name');
+  clearButton.classList.toggle('visible', Boolean(nameInput.value));
+}
+
+function clearSearchInput() {
+  const nameInput = document.getElementById('name');
+  nameInput.value = '';
+  updateClearButtonVisibility();
+  document.getElementById('variant-list').innerHTML = '';
+  nameInput.focus();
+}
+
 function renderShoppingList(items) {
   const list = document.getElementById('shopping-list');
   if (!items.length) {
@@ -266,6 +281,7 @@ document.getElementById('variant-list').addEventListener('click', (event) => {
 });
 
 document.getElementById('name').addEventListener('input', () => {
+  updateClearButtonVisibility();
   clearTimeout(variantsDebounce);
   variantsDebounce = setTimeout(() => {
     loadVariants();
@@ -274,6 +290,7 @@ document.getElementById('name').addEventListener('input', () => {
 
 const savedTheme = localStorage.getItem(themeStorageKey) || 'light';
 applyTheme(savedTheme);
+updateClearButtonVisibility();
 loadShoppingList();
 loadVariants();
 loadStockProducts();
