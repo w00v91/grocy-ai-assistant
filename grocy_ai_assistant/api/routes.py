@@ -1,6 +1,6 @@
 import json
 import logging
-from urllib.parse import quote, urljoin, urlparse
+from urllib.parse import ParseResult, quote, urljoin, urlparse
 
 import requests
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
@@ -25,10 +25,35 @@ def _build_product_picture_url(raw_picture_url: str, settings: Settings) -> str:
     if not picture_value:
         return ""
 
-    if picture_value.startswith(("http://", "https://", "data:")):
+    if picture_value.startswith("data:"):
         return picture_value
 
-    grocy_base_url = settings.grocy_base_url.rstrip("/")
+    parsed_grocy_base = urlparse(settings.grocy_base_url.rstrip("/"))
+    grocy_base_url = parsed_grocy_base.geturl().rstrip("/")
+
+    if picture_value.startswith(("http://", "https://")):
+        parsed_picture = urlparse(picture_value)
+        if parsed_picture.hostname in {
+            "localhost",
+            "127.0.0.1",
+            "::1",
+            "homeassistant",
+        }:
+            rewritten_picture = ParseResult(
+                scheme=parsed_grocy_base.scheme or parsed_picture.scheme,
+                netloc=parsed_grocy_base.netloc or parsed_picture.netloc,
+                path=parsed_picture.path,
+                params=parsed_picture.params,
+                query=parsed_picture.query,
+                fragment=parsed_picture.fragment,
+            ).geturl()
+            logger.info(
+                "Produktbild-URL auf konfigurierten Grocy-Host umgeschrieben: %s -> %s",
+                picture_value,
+                rewritten_picture,
+            )
+            return rewritten_picture
+        return picture_value
 
     if "/" not in picture_value:
         picture_value = f"files/productpictures/{picture_value}"
@@ -165,15 +190,26 @@ def dashboard_product_picture(
     ):
         raise HTTPException(status_code=400, detail="Ungültige Bildquelle")
 
-    response = requests.get(
-        src,
-        headers={"GROCY-API-KEY": settings.grocy_api_key},
-        timeout=30,
-    )
+    logger.info("Lade Produktbild via Proxy: %s", src)
+    try:
+        response = requests.get(
+            src,
+            headers={"GROCY-API-KEY": settings.grocy_api_key},
+            timeout=30,
+        )
+    except requests.RequestException as error:
+        logger.error("Netzwerkfehler beim Laden des Produktbilds %s: %s", src, error)
+        raise HTTPException(
+            status_code=502,
+            detail="Produktbild konnte nicht geladen werden",
+        ) from error
 
     try:
         response.raise_for_status()
     except requests.HTTPError as error:
+        logger.warning(
+            "Produktbild nicht gefunden oder nicht erreichbar (%s): %s", src, error
+        )
         raise HTTPException(status_code=404, detail="Bild nicht gefunden") from error
 
     content_type = response.headers.get("Content-Type", "image/jpeg")

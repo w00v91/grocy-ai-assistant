@@ -25,12 +25,20 @@ def test_build_product_picture_url_supports_filename_relative_and_absolute_paths
     )
 
 
-def test_build_product_picture_url_keeps_absolute_or_data_urls():
+def test_build_product_picture_url_keeps_external_absolute_or_data_urls():
     https_url = "https://cdn.example.com/image.png"
     data_url = "data:image/png;base64,abc"
 
     assert _build_product_picture_url(https_url, SETTINGS) == https_url
     assert _build_product_picture_url(data_url, SETTINGS) == data_url
+
+
+def test_build_product_picture_url_rewrites_localhost_host_to_configured_grocy_host():
+    localhost_url = "http://localhost:9192/files/productpictures/milk.jpg"
+
+    rewritten = _build_product_picture_url(localhost_url, SETTINGS)
+
+    assert rewritten == "http://homeassistant.local:9192/files/productpictures/milk.jpg"
 
 
 def test_build_dashboard_picture_proxy_url_encodes_absolute_url():
