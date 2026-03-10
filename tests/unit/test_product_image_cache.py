@@ -20,7 +20,7 @@ def test_get_cached_image_downloads_and_reads(monkeypatch, tmp_path):
     )
 
     content, media_type = cache.get_cached_image(
-        "http://homeassistant.local:9192/files/productpictures/milk.png"
+        "http://homeassistant.local:9192/files/productpictures/bWlsay5wbmc="
     )
 
     assert content == b"img-bytes"
@@ -99,14 +99,14 @@ def test_download_to_cache_falls_back_from_api_files_path(monkeypatch, tmp_path)
     )
 
     content, media_type = cache.get_cached_image(
-        "http://homeassistant.local:9192/api/files/productpictures/milk.png"
+        "http://homeassistant.local:9192/api/files/productpictures/bWlsay5wbmc="
     )
 
     assert content == b"fallback-img"
     assert media_type == "image/png"
     assert calls == [
-        "http://homeassistant.local:9192/api/files/productpictures/milk.png",
-        "http://homeassistant.local:9192/files/productpictures/milk.png",
+        "http://homeassistant.local:9192/api/files/productpictures/bWlsay5wbmc=",
+        "http://homeassistant.local:9192/files/productpictures/bWlsay5wbmc=",
     ]
 
 
@@ -149,7 +149,7 @@ def test_refresh_all_product_images_falls_back_to_picture_file_name(
         if url.endswith("/objects/products"):
             return FakeResponse(payload=products_payload)
         download_calls.append(url)
-        if "40b3s07zk17fd14nuym0i8chiasamen.jpg" in url:
+        if "NDBiM3MwN3prMTdmZDE0bnV5bTBpOGNoaWFzYW1lbi5qcGc=" in url:
             return FakeResponse(status_code=404)
         return FakeResponse(content=b"fallback-img")
 
@@ -161,9 +161,9 @@ def test_refresh_all_product_images_falls_back_to_picture_file_name(
 
     assert refreshed == 1
     assert download_calls == [
-        "http://homeassistant.local:9192/api/files/productpictures/40b3s07zk17fd14nuym0i8chiasamen.jpg",
-        "http://homeassistant.local:9192/files/productpictures/40b3s07zk17fd14nuym0i8chiasamen.jpg",
-        "http://homeassistant.local:9192/api/files/productpictures/chiasamen.jpg",
+        "http://homeassistant.local:9192/api/files/productpictures/NDBiM3MwN3prMTdmZDE0bnV5bTBpOGNoaWFzYW1lbi5qcGc=",
+        "http://homeassistant.local:9192/files/productpictures/NDBiM3MwN3prMTdmZDE0bnV5bTBpOGNoaWFzYW1lbi5qcGc=",
+        "http://homeassistant.local:9192/api/files/productpictures/Y2hpYXNhbWVuLmpwZw==",
     ]
 
 
@@ -201,12 +201,12 @@ def test_download_to_cache_falls_back_from_files_path_to_api_files(
     )
 
     content, media_type = cache.get_cached_image(
-        "http://homeassistant.local:9192/files/productpictures/quinoa.png"
+        "http://homeassistant.local:9192/files/productpictures/cXVpbm9hLnBuZw=="
     )
 
     assert content == b"api-fallback-img"
     assert media_type == "image/png"
     assert calls == [
-        "http://homeassistant.local:9192/files/productpictures/quinoa.png",
-        "http://homeassistant.local:9192/api/files/productpictures/quinoa.png",
+        "http://homeassistant.local:9192/files/productpictures/cXVpbm9hLnBuZw==",
+        "http://homeassistant.local:9192/api/files/productpictures/cXVpbm9hLnBuZw==",
     ]

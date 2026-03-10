@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import binascii
 import hashlib
 import logging
 import threading
+from base64 import b64decode, b64encode
 from pathlib import Path
 from urllib.parse import ParseResult, urljoin, urlparse
 
@@ -11,6 +13,18 @@ import requests
 from grocy_ai_assistant.config.settings import Settings
 
 logger = logging.getLogger(__name__)
+
+
+def _maybe_encode_product_picture_path(path: str) -> str:
+    if "/productpictures/" not in path:
+        return path
+
+    prefix, _, suffix = path.rpartition("/")
+    if not suffix or "." not in suffix:
+        return path
+
+    encoded_picture_name = b64encode(suffix.encode("utf-8")).decode("ascii")
+    return f"{prefix}/{encoded_picture_name}"
 
 
 class ProductImageCache:
@@ -146,7 +160,7 @@ class ProductImageCache:
                 return ParseResult(
                     scheme=parsed_grocy_base.scheme or parsed_picture.scheme,
                     netloc=parsed_grocy_base.netloc or parsed_picture.netloc,
-                    path=parsed_picture.path,
+                    path=_maybe_encode_product_picture_path(parsed_picture.path),
                     params=parsed_picture.params,
                     query=parsed_picture.query,
                     fragment=parsed_picture.fragment,
@@ -154,7 +168,10 @@ class ProductImageCache:
             return value
 
         if "/" not in value:
-            value = f"files/productpictures/{value}"
+            encoded_picture_name = b64encode(value.encode("utf-8")).decode("ascii")
+            value = f"files/productpictures/{encoded_picture_name}"
+
+        value = _maybe_encode_product_picture_path(value)
 
         if value.startswith("/"):
             return urljoin(f"{grocy_base_url}/", value)
@@ -227,7 +244,16 @@ class ProductImageCache:
 
     def _cache_path_for_url(self, source_url: str) -> Path:
         parsed = urlparse(source_url)
-        extension = Path(parsed.path).suffix or ".img"
+        extension = Path(parsed.path).suffix
+        if not extension:
+            encoded_name = Path(parsed.path).name
+            try:
+                decoded_name = b64decode(encoded_name).decode("utf-8")
+                extension = Path(decoded_name).suffix
+            except (binascii.Error, UnicodeDecodeError):
+                extension = ""
+
+        extension = extension or ".img"
         file_name = hashlib.sha256(source_url.encode("utf-8")).hexdigest()
         return self._cache_dir / f"{file_name}{extension[:10]}"
 
