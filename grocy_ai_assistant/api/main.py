@@ -3,10 +3,12 @@ import sys
 import time
 from contextlib import asynccontextmanager
 from ipaddress import ip_address
+from pathlib import Path
 
 import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.responses import RedirectResponse
+from fastapi.staticfiles import StaticFiles
 
 from grocy_ai_assistant.api.routes import router
 from grocy_ai_assistant.config.settings import get_settings
@@ -19,6 +21,13 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+app = FastAPI(title="Grocy AI Assistant API")
+app.mount(
+    "/dashboard-static",
+    StaticFiles(directory=str(Path(__file__).parent / "static")),
+    name="dashboard_static",
+)
+app.include_router(router)
 
 @asynccontextmanager
 async def _lifespan(app: FastAPI):

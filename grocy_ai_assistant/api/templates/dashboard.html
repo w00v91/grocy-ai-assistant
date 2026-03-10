@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="de" data-configured-api-key="{{ configured_api_key }}" data-api-base-path="{{ api_base_path }}">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Grocy AI Dashboard</title>
+    <link rel="stylesheet" href="{{ request.url_for('dashboard_static', path='dashboard.css') }}" />
+  </head>
+  <body>
+    <button id='theme-toggle' class='theme-toggle' onclick='toggleTheme()'>🌙 Darkmode</button>
+    <main class='container'>
+      <section class='card'>
+        <h1>Grocy AI Suche</h1>
+        <p class='muted'>Produkt eingeben: vorhanden → Einkaufsliste, nicht vorhanden → per KI anlegen + Einkaufsliste.</p>
+        <div class='search-row'>
+          <input id='name' placeholder='z.B. Hafermilch 1L' />
+          <button onclick='searchProduct()'>Suchen & hinzufügen</button>
+          <button onclick='loadShoppingList()'>Einkaufsliste aktualisieren</button>
+        </div>
+        <p id='status'>Bereit.</p>
+      </section>
+
+      <section class='card variant-section'>
+        <h2>Gefundene Produktvarianten</h2>
+        <p class='muted'>Teilnamen wie "apf" zeigen passende Produkte. Klick auf das Bild fügt den Artikel direkt zur Einkaufsliste hinzu.</p>
+        <div id='variant-list' class='variant-grid'></div>
+      </section>
+
+      <section class='card shopping-list-section'>
+        <h2>Einkaufsliste</h2>
+        <p class='muted'>Direkt aus Grocy geladen, inklusive Produktbildern (falls vorhanden).</p>
+        <ul id='shopping-list'></ul>
+        <button class='danger-button' onclick='clearShoppingList()'>Einkaufsliste leeren</button>
+      </section>
+    </main>
+
+    <script src="{{ request.url_for('dashboard_static', path='dashboard.js') }}"></script>
+  </body>
+</html>
