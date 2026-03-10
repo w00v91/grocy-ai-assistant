@@ -29,11 +29,19 @@ def test_shopping_list_returns_items(client, monkeypatch):
     )
 
 
+def test_dashboard_references_external_template_assets(client):
+    response = client.get("/")
+
+    assert response.status_code == 200
+    assert "/dashboard-static/dashboard.css" in response.text
+    assert "/dashboard-static/dashboard.js" in response.text
+
+
 def test_dashboard_prefills_configured_api_key(client):
     response = client.get("/")
 
     assert response.status_code == 200
-    assert 'const configuredApiKey = "test-api-key";' in response.text
+    assert 'data-configured-api-key="test-api-key"' in response.text
     assert "prompt('Bitte API-Key eingeben:'" not in response.text
 
 
@@ -41,9 +49,12 @@ def test_dashboard_has_mobile_friendly_layout_rules(client):
     response = client.get("/")
 
     assert response.status_code == 200
-    assert "@media (max-width: 640px)" in response.text
-    assert "min-height: 44px;" in response.text
-    assert "flex-direction: column;" in response.text
+    static_response = client.get("/dashboard-static/dashboard.css")
+
+    assert static_response.status_code == 200
+    assert "@media (max-width: 640px)" in static_response.text
+    assert "min-height: 44px;" in static_response.text
+    assert "flex-direction: column;" in static_response.text
 
 
 def test_shopping_list_can_be_cleared(client, monkeypatch):
@@ -187,29 +198,38 @@ def test_dashboard_handles_network_errors_in_ui(client):
     response = client.get("/")
 
     assert response.status_code == 200
-    assert "Netzwerk-/Ingress-Fehler" in response.text
-    assert "parseJsonSafe" in response.text
+    static_response = client.get("/dashboard-static/dashboard.js")
+
+    assert static_response.status_code == 200
+    assert "Netzwerk-/Ingress-Fehler" in static_response.text
+    assert "parseJsonSafe" in static_response.text
 
 
 def test_dashboard_uses_relative_api_fallback_when_base_path_missing(client):
     response = client.get("/")
 
     assert response.status_code == 200
-    assert "function buildApiUrl(path)" in response.text
-    assert "return normalizedPath.replace(/^\\//, '');" in response.text
-    assert "fetch(buildApiUrl('/api/dashboard/search')" in response.text
+    static_response = client.get("/dashboard-static/dashboard.js")
+
+    assert static_response.status_code == 200
+    assert "function buildApiUrl(path)" in static_response.text
+    assert "return normalizedPath.replace(/^\\//, '');" in static_response.text
+    assert "fetch(buildApiUrl('/api/dashboard/search')" in static_response.text
 
 
 def test_dashboard_detects_ingress_prefix_from_location(client):
     response = client.get("/")
 
     assert response.status_code == 200
+    static_response = client.get("/dashboard-static/dashboard.js")
+
+    assert static_response.status_code == 200
     assert (
         r"const ingressPrefixMatch = window.location.pathname.match(/^\/api\/hassio_ingress\/[^\/]+/);"
-        in response.text
+        in static_response.text
     )
-    assert "if (ingressPrefix) {" in response.text
-    assert "return `${ingressPrefix}${normalizedPath}`;" in response.text
+    assert "if (ingressPrefix) {" in static_response.text
+    assert "return `${ingressPrefix}${normalizedPath}`;" in static_response.text
 
 
 def test_dashboard_contains_darkmode_toggle_in_top_right(client):
@@ -217,15 +237,24 @@ def test_dashboard_contains_darkmode_toggle_in_top_right(client):
 
     assert response.status_code == 200
     assert "id='theme-toggle'" in response.text
-    assert "right: 1rem;" in response.text
+
+    static_response = client.get("/dashboard-static/dashboard.css")
+    assert static_response.status_code == 200
+    assert "right: 1rem;" in static_response.text
     assert "toggleTheme()" in response.text
-    assert "localStorage.setItem(themeStorageKey, nextTheme);" in response.text
+
+    js_response = client.get("/dashboard-static/dashboard.js")
+    assert js_response.status_code == 200
+    assert "localStorage.setItem(themeStorageKey, nextTheme);" in js_response.text
 
 
 def test_product_picture_uses_app_cache_when_available(client):
     class FakeCache:
         def get_cached_image(self, src):
-            assert src == "http://homeassistant.local:9192/files/productpictures/abc123.jpg"
+            assert (
+                src
+                == "http://homeassistant.local:9192/files/productpictures/abc123.jpg"
+            )
             return b"cached", "image/jpeg"
 
         def stop(self):

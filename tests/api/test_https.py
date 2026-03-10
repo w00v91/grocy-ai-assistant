@@ -30,6 +30,11 @@ def test_does_not_redirect_internal_http(client):
 
 def test_dashboard_contains_https_upgrade_logic(client):
     response = client.get("/", headers={"host": "localhost:8000"})
+    js_response = client.get(
+        "/dashboard-static/dashboard.js", headers={"host": "localhost:8000"}
+    )
 
-    assert "window.location.protocol === 'https:'" in response.text
-    assert "new URL(url).host !== window.location.host" in response.text
+    assert response.status_code == 200
+    assert js_response.status_code == 200
+    assert "window.location.protocol === 'https:'" in js_response.text
+    assert "new URL(url).host !== window.location.host" in js_response.text
