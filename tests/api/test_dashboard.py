@@ -90,6 +90,33 @@ def test_shopping_list_builds_proxy_picture_url_from_filename(client, monkeypatc
     assert "files%2Fproductpictures%2Fabc123.jpg" in response.json()[0]["picture_url"]
 
 
+def test_shopping_list_uses_nested_product_picture_filename(client, monkeypatch):
+    def fake_get_shopping_list(self):
+        return [
+            {
+                "id": 13,
+                "amount": "1",
+                "product_name": "Cookies",
+                "note": "",
+                "product": {
+                    "id": "1",
+                    "name": "Cookies",
+                    "picture_file_name": "cookies.jpg",
+                },
+            }
+        ]
+
+    monkeypatch.setattr(routes.GrocyClient, "get_shopping_list", fake_get_shopping_list)
+    response = client.get(
+        "/api/dashboard/shopping-list",
+        headers={"Authorization": "Bearer test-api-key"},
+    )
+
+    assert response.status_code == 200
+    assert "/api/dashboard/product-picture?src=" in response.json()[0]["picture_url"]
+    assert "files%2Fproductpictures%2Fcookies.jpg" in response.json()[0]["picture_url"]
+
+
 def test_dashboard_contains_clear_button(client):
     response = client.get("/")
 
