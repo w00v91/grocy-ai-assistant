@@ -405,8 +405,13 @@ def _render_dashboard(settings: Settings, request: Request):
     api_base_path = (request.scope.get("root_path") or "").rstrip("/")
     ingress_prefix_match = re.match(r"^(/api/hassio_ingress/[^/]+)", request.url.path)
     ingress_prefix = ingress_prefix_match.group(1) if ingress_prefix_match else ""
+    token_prefix_match = re.match(r"^(/[^/]+)", request.url.path)
+    token_prefix = token_prefix_match.group(1) if token_prefix_match else ""
 
     resolved_base_path = api_base_path or ingress_prefix
+    if not resolved_base_path and token_prefix not in {"", "/api", "/dashboard-static"}:
+        resolved_base_path = token_prefix
+
     static_base_path = (
         f"{resolved_base_path}/dashboard-static"
         if resolved_base_path
