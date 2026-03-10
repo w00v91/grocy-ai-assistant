@@ -3,7 +3,7 @@ import logging
 from urllib.parse import quote, urljoin, urlparse
 
 import requests
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from fastapi.responses import HTMLResponse, Response
 
 from grocy_ai_assistant.ai.ingredient_detector import IngredientDetector
@@ -239,9 +239,9 @@ def dashboard_clear_shopping_list(
         raise HTTPException(status_code=500, detail=str(error)) from error
 
 
-@router.get("/", response_class=HTMLResponse)
-def dashboard(settings: Settings = Depends(get_settings)) -> str:
+def _render_dashboard(settings: Settings, request: Request) -> str:
     configured_api_key = json.dumps(settings.api_key)
+    api_base_path = json.dumps((request.scope.get("root_path") or "").rstrip("/"))
     return """
 <!doctype html>
 <html lang='de'>
@@ -380,10 +380,32 @@ def dashboard(settings: Settings = Depends(get_settings)) -> str:
 
     <script>
       const configuredApiKey = __CONFIGURED_API_KEY__;
+      const apiBasePath = __API_BASE_PATH__;
       let apiKey = configuredApiKey || '';
+      const ingressPrefixMatch = window.location.pathname.match(/^\/api\/hassio_ingress\/[^\/]+/);
+      const ingressPrefix = ingressPrefixMatch ? ingressPrefixMatch[0] : '';
 
       function ensureApiKey() {
         return apiKey;
+      }
+
+      async function parseJsonSafe(response) {
+        try {
+          return await response.json();
+        } catch (_) {
+          return {};
+        }
+      }
+
+      function buildApiUrl(path) {
+        const normalizedPath = '/' + String(path || '').replace(/^\/+/, '');
+        if (apiBasePath) {
+          return `${apiBasePath}${normalizedPath}`;
+        }
+        if (ingressPrefix) {
+          return `${ingressPrefix}${normalizedPath}`;
+        }
+        return normalizedPath.replace(/^\//, '');
       }
 
       function toImageSource(url) {
@@ -403,7 +425,11 @@ def dashboard(settings: Settings = Depends(get_settings)) -> str:
           }
           return url;
         }
-        return '/' + url.replace(/^\\/+/, '');
+        const normalized = '/' + url.replace(/^\\/+/, '');
+        if (normalized.startsWith('/api/')) {
+          return buildApiUrl(normalized);
+        }
+        return normalized;
       }
 
       function renderShoppingList(items) {
@@ -434,18 +460,22 @@ def dashboard(settings: Settings = Depends(get_settings)) -> str:
         }
 
         status.textContent = 'Lade Einkaufsliste...';
-        const res = await fetch('/api/dashboard/shopping-list', {
-          headers: { 'Authorization': `Bearer ${key}` },
-        });
-        const payload = await res.json();
+        try {
+          const res = await fetch(buildApiUrl('/api/dashboard/shopping-list'), {
+            headers: { 'Authorization': `Bearer ${key}` },
+          });
+          const payload = await parseJsonSafe(res);
 
-        if (!res.ok) {
-          status.textContent = payload.detail || 'Einkaufsliste konnte nicht geladen werden.';
-          return;
+          if (!res.ok) {
+            status.textContent = payload.detail || 'Einkaufsliste konnte nicht geladen werden.';
+            return;
+          }
+
+          renderShoppingList(payload);
+          status.textContent = `Einkaufsliste geladen (${payload.length} Einträge).`;
+        } catch (_) {
+          status.textContent = 'Einkaufsliste konnte nicht geladen werden (Netzwerk-/Ingress-Fehler).';
         }
-
-        renderShoppingList(payload);
-        status.textContent = `Einkaufsliste geladen (${payload.length} Einträge).`;
       }
 
       async function clearShoppingList() {
@@ -457,19 +487,23 @@ def dashboard(settings: Settings = Depends(get_settings)) -> str:
         }
 
         status.textContent = 'Leere Einkaufsliste...';
-        const res = await fetch('/api/dashboard/shopping-list/clear', {
-          method: 'DELETE',
-          headers: { 'Authorization': `Bearer ${key}` },
-        });
-        const payload = await res.json();
+        try {
+          const res = await fetch(buildApiUrl('/api/dashboard/shopping-list/clear'), {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${key}` },
+          });
+          const payload = await parseJsonSafe(res);
 
-        if (!res.ok) {
-          status.textContent = payload.detail || 'Einkaufsliste konnte nicht geleert werden.';
-          return;
+          if (!res.ok) {
+            status.textContent = payload.detail || 'Einkaufsliste konnte nicht geleert werden.';
+            return;
+          }
+
+          status.textContent = payload.message || 'Einkaufsliste geleert.';
+          await loadShoppingList();
+        } catch (_) {
+          status.textContent = 'Einkaufsliste konnte nicht geleert werden (Netzwerk-/Ingress-Fehler).';
         }
-
-        status.textContent = payload.message || 'Einkaufsliste geleert.';
-        await loadShoppingList();
       }
 
       async function searchProduct() {
@@ -481,19 +515,27 @@ def dashboard(settings: Settings = Depends(get_settings)) -> str:
           status.textContent = 'Kein API-Key angegeben.';
           return;
         }
+        if (!name || !name.trim()) {
+          status.textContent = 'Bitte Produktname eingeben.';
+          return;
+        }
 
         status.textContent = 'Prüfe Produkt...';
-        const res = await fetch('/api/dashboard/search', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
-          body: JSON.stringify({ name })
-        });
+        try {
+          const res = await fetch(buildApiUrl('/api/dashboard/search'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
+            body: JSON.stringify({ name })
+          });
 
-        const payload = await res.json();
-        status.textContent = payload.message || payload.detail || 'Unbekannte Antwort';
+          const payload = await parseJsonSafe(res);
+          status.textContent = payload.message || payload.detail || 'Unbekannte Antwort';
 
-        if (res.ok) {
-          await loadShoppingList();
+          if (res.ok) {
+            await loadShoppingList();
+          }
+        } catch (_) {
+          status.textContent = 'Produkt konnte nicht geprüft werden (Netzwerk-/Ingress-Fehler).';
         }
       }
 
@@ -503,4 +545,26 @@ def dashboard(settings: Settings = Depends(get_settings)) -> str:
 </html>
 """.replace(
         "__CONFIGURED_API_KEY__", configured_api_key
+    ).replace(
+        "__API_BASE_PATH__", api_base_path
     )
+
+
+@router.get("/", response_class=HTMLResponse)
+def dashboard(request: Request, settings: Settings = Depends(get_settings)) -> str:
+    return _render_dashboard(settings, request)
+
+
+@router.get("/{full_path:path}", response_class=HTMLResponse)
+def dashboard_fallback(
+    full_path: str,
+    request: Request,
+    settings: Settings = Depends(get_settings),
+):
+    normalized_path = full_path.strip("/").lower()
+    if normalized_path.startswith("api/") and not normalized_path.startswith(
+        "api/hassio_ingress/"
+    ):
+        raise HTTPException(status_code=404, detail="Not Found")
+
+    return _render_dashboard(settings, request)
