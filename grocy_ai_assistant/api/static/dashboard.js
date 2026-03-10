@@ -140,7 +140,7 @@ function renderVariants(items) {
   const list = document.getElementById('variant-list');
   const section = document.getElementById('variant-section');
   if (!items.length) {
-    list.innerHTML = '<div class="muted">Keine passenden Varianten gefunden.</div>';
+    list.innerHTML = '';
     section.classList.add('hidden');
     return;
   }
@@ -208,6 +208,8 @@ async function confirmVariant(productId, productName) {
     status.textContent = payload.message || payload.detail || 'Unbekannte Antwort';
 
     if (res.ok) {
+      document.getElementById('variant-list').innerHTML = '';
+      document.getElementById('variant-section').classList.add('hidden');
       await loadShoppingList();
     }
   } catch (_) {
@@ -269,6 +271,8 @@ async function searchProduct() {
     status.textContent = payload.message || payload.detail || 'Unbekannte Antwort';
 
     if (res.ok) {
+      document.getElementById('variant-list').innerHTML = '';
+      document.getElementById('variant-section').classList.add('hidden');
       await loadShoppingList();
     }
   } catch (_) {
@@ -298,7 +302,6 @@ const savedTheme = localStorage.getItem(themeStorageKey) || 'light';
 applyTheme(savedTheme);
 updateClearButtonVisibility();
 loadShoppingList();
-loadVariants();
 loadStockProducts();
 
 

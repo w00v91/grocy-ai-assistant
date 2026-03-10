@@ -148,6 +148,26 @@ def test_dashboard_has_clear_search_input_button(client):
     assert "updateClearButtonVisibility();" in static_response.text
 
 
+
+
+def test_dashboard_places_variant_section_below_search(client):
+    response = client.get("/")
+
+    assert response.status_code == 200
+    search_pos = response.text.index("Grocy AI Suche")
+    variant_pos = response.text.index("id='variant-section'")
+    recipe_pos = response.text.index("Rezeptvorschläge aus Lager/Kühlschrank")
+
+    assert search_pos < variant_pos < recipe_pos
+
+
+def test_dashboard_does_not_autoload_variants(client):
+    static_response = client.get("/dashboard-static/dashboard.js")
+
+    assert static_response.status_code == 200
+    assert "\nloadVariants();\nloadStockProducts();" not in static_response.text
+    assert "list.innerHTML = '';" in static_response.text
+
 def test_dashboard_contains_clear_button(client):
     response = client.get("/")
 

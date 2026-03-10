@@ -1,3 +1,8 @@
+
+* {
+  box-sizing: border-box;
+}
+
 :root {
   color-scheme: light;
   --bg-gradient: linear-gradient(140deg, #f3f6ff 0%, #f6fbf8 55%, #ecf4ff 100%);
@@ -39,7 +44,7 @@ body {
   z-index: 20;
 }
 .container {
-  max-width: 900px;
+  width: min(900px, 100%);
   margin: 2rem auto;
   padding: 0 1rem 2rem;
   display: grid;
@@ -66,6 +71,7 @@ h1, h2 { margin: 0 0 0.75rem; }
 }
 .search-input-wrapper {
   position: relative;
+  min-width: 0;
 }
 .clear-input-button {
   position: absolute;
@@ -85,7 +91,9 @@ h1, h2 { margin: 0 0 0.75rem; }
   font-size: 1.2rem;
   line-height: 1;
   cursor: pointer;
+  z-index: 2;
 }
+
 .clear-input-button.visible {
   display: flex;
 }
@@ -158,6 +166,11 @@ img {
     width: 100%;
     flex-basis: auto;
   }
+  .theme-toggle {
+    position: static;
+    margin: 0.75rem 0.75rem 0;
+    width: calc(100% - 1.5rem);
+  }
   button {
     min-height: 44px;
   }
@@ -177,6 +190,16 @@ img {
   border-color: #b81b29;
 }
 .danger-button:hover { background: #b81b29; }
+.variant-section {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--item-border);
+}
+
+.variant-section h2 {
+  margin-bottom: 0.6rem;
+}
+
 .variant-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
@@ -201,7 +224,9 @@ img {
   height: 72px;
   margin-bottom: 0.4rem;
   cursor: pointer;
+  z-index: 2;
 }
+
 .stock-products {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
