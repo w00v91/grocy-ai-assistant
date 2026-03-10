@@ -54,14 +54,29 @@ class GrocyClient:
             "Content-Type": "application/json",
         }
 
-    def find_product_by_name(self, product_name: str) -> Optional[Dict[str, Any]]:
+    def _get_all_products(self) -> list[Dict[str, Any]]:
         response = requests.get(
             f"{self.settings.grocy_base_url}/objects/products",
             headers=self.headers,
             timeout=30,
         )
         response.raise_for_status()
-        products = response.json()
+        return response.json()
+
+    def search_products_by_partial_name(self, query: str) -> list[Dict[str, Any]]:
+        normalized_query = self._normalize_name(query)
+        if not normalized_query:
+            return []
+
+        products = self._get_all_products()
+        return [
+            product
+            for product in products
+            if normalized_query in self._normalize_name(product.get("name", ""))
+        ]
+
+    def find_product_by_name(self, product_name: str) -> Optional[Dict[str, Any]]:
+        products = self._get_all_products()
 
         normalized_name = self._normalize_name(product_name)
         for product in products:
