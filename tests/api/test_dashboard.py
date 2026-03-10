@@ -155,6 +155,7 @@ def test_product_picture_proxy_fetches_with_grocy_api_key(client, monkeypatch):
         return FakeResponse()
 
     monkeypatch.setattr(routes.requests, "get", fake_requests_get)
+    client.app.state.product_image_cache = None
     response = client.get(
         "/api/dashboard/product-picture",
         params={
@@ -219,3 +220,44 @@ def test_dashboard_contains_darkmode_toggle_in_top_right(client):
     assert "right: 1rem;" in response.text
     assert "toggleTheme()" in response.text
     assert "localStorage.setItem(themeStorageKey, nextTheme);" in response.text
+
+
+def test_product_picture_uses_app_cache_when_available(client):
+    class FakeCache:
+        def get_cached_image(self, src):
+            assert src == "http://homeassistant.local:9192/files/productpictures/abc123.jpg"
+            return b"cached", "image/jpeg"
+
+        def stop(self):
+            return None
+
+    client.app.state.product_image_cache = FakeCache()
+
+    response = client.get(
+        "/api/dashboard/product-picture",
+        params={
+            "src": "http://homeassistant.local:9192/files/productpictures/abc123.jpg"
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.content == b"cached"
+
+
+def test_refresh_product_picture_cache_endpoint(client):
+    class FakeCache:
+        def refresh_all_product_images(self):
+            return 7
+
+        def stop(self):
+            return None
+
+    client.app.state.product_image_cache = FakeCache()
+
+    response = client.post(
+        "/api/dashboard/product-picture-cache/refresh",
+        headers={"Authorization": "Bearer test-api-key"},
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {"success": True, "refreshed_images": 7}

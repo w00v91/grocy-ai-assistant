@@ -8,6 +8,8 @@ from fastapi import FastAPI, Request
 from fastapi.responses import RedirectResponse
 
 from grocy_ai_assistant.api.routes import router
+from grocy_ai_assistant.config.settings import get_settings
+from grocy_ai_assistant.services.product_image_cache import ProductImageCache
 
 logging.basicConfig(
     level=logging.INFO,
@@ -18,6 +20,21 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Grocy AI Assistant API")
 app.include_router(router)
+
+
+@app.on_event("startup")
+async def startup_product_image_cache() -> None:
+    settings = get_settings()
+    image_cache = ProductImageCache(settings)
+    image_cache.start()
+    app.state.product_image_cache = image_cache
+
+
+@app.on_event("shutdown")
+async def shutdown_product_image_cache() -> None:
+    image_cache = getattr(app.state, "product_image_cache", None)
+    if image_cache:
+        image_cache.stop()
 
 
 def _is_external_host(host: str) -> bool:
