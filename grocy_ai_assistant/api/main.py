@@ -1,6 +1,7 @@
 import logging
 import sys
 import time
+from contextlib import asynccontextmanager
 from ipaddress import ip_address
 
 import uvicorn
@@ -18,23 +19,64 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Grocy AI Assistant API")
-app.include_router(router)
 
-
-@app.on_event("startup")
-async def startup_product_image_cache() -> None:
+@asynccontextmanager
+async def _lifespan(app: FastAPI):
     settings = get_settings()
     image_cache = ProductImageCache(settings)
     image_cache.start()
     app.state.product_image_cache = image_cache
-
-
-@app.on_event("shutdown")
-async def shutdown_product_image_cache() -> None:
-    image_cache = getattr(app.state, "product_image_cache", None)
-    if image_cache:
+    try:
+        yield
+    finally:
         image_cache.stop()
+
+
+def create_app() -> FastAPI:
+    app_instance = FastAPI(title="Grocy AI Assistant API", lifespan=_lifespan)
+    app_instance.include_router(router)
+
+    @app_instance.middleware("http")
+    async def enforce_https_for_external_requests(request: Request, call_next):
+        forwarded_proto = request.headers.get("x-forwarded-proto", "").lower()
+        host = request.headers.get("x-forwarded-host") or request.headers.get(
+            "host", ""
+        )
+        scheme_is_http = request.url.scheme == "http" and forwarded_proto != "https"
+
+        if scheme_is_http and _is_external_host(host):
+            https_url = request.url.replace(scheme="https")
+            return RedirectResponse(url=str(https_url), status_code=307)
+
+        return await call_next(request)
+
+    @app_instance.middleware("http")
+    async def log_request_info(request: Request, call_next):
+        is_status_check = request.method == "GET" and request.url.path == "/api/status"
+        start_time = time.perf_counter()
+        if not is_status_check:
+            logger.info(
+                "Anfrage erhalten: method=%s path=%s query=%s client=%s",
+                request.method,
+                request.url.path,
+                request.url.query,
+                request.client.host if request.client else "unknown",
+            )
+
+        response = await call_next(request)
+
+        if not is_status_check:
+            duration_ms = (time.perf_counter() - start_time) * 1000
+            logger.info(
+                "Antwort gesendet: method=%s path=%s status=%s dauer_ms=%.1f",
+                request.method,
+                request.url.path,
+                response.status_code,
+                duration_ms,
+            )
+        return response
+
+    return app_instance
 
 
 def _is_external_host(host: str) -> bool:
@@ -54,45 +96,7 @@ def _is_external_host(host: str) -> bool:
         return True
 
 
-@app.middleware("http")
-async def enforce_https_for_external_requests(request: Request, call_next):
-    forwarded_proto = request.headers.get("x-forwarded-proto", "").lower()
-    host = request.headers.get("x-forwarded-host") or request.headers.get("host", "")
-    scheme_is_http = request.url.scheme == "http" and forwarded_proto != "https"
-
-    if scheme_is_http and _is_external_host(host):
-        https_url = request.url.replace(scheme="https")
-        return RedirectResponse(url=str(https_url), status_code=307)
-
-    return await call_next(request)
-
-
-@app.middleware("http")
-async def log_request_info(request: Request, call_next):
-    is_status_check = request.method == "GET" and request.url.path == "/api/status"
-    start_time = time.perf_counter()
-    if not is_status_check:
-        logger.info(
-            "Anfrage erhalten: method=%s path=%s query=%s client=%s",
-            request.method,
-            request.url.path,
-            request.url.query,
-            request.client.host if request.client else "unknown",
-        )
-
-    response = await call_next(request)
-
-    if not is_status_check:
-        duration_ms = (time.perf_counter() - start_time) * 1000
-        logger.info(
-            "Antwort gesendet: method=%s path=%s status=%s dauer_ms=%.1f",
-            request.method,
-            request.url.path,
-            response.status_code,
-            duration_ms,
-        )
-    return response
-
+app = create_app()
 
 if __name__ == "__main__":
     print(">>> GROCY AI ENGINE GESTARTET AUF PORT 8000 <<<", flush=True)
