@@ -59,6 +59,35 @@ h1, h2 { margin: 0 0 0.75rem; }
 .search-row > * {
   flex: 1 1 220px;
 }
+.search-input-wrapper {
+  position: relative;
+}
+.clear-input-button {
+  position: absolute;
+  right: 0.45rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1.8rem;
+  height: 1.8rem;
+  border-radius: 999px;
+  border: none;
+  padding: 0;
+  background: transparent;
+  color: var(--muted);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.clear-input-button.visible {
+  display: flex;
+}
+.clear-input-button:hover {
+  background: var(--badge-bg);
+  color: var(--text);
+}
 input, button {
   border-radius: 12px;
   border: 1px solid var(--input-border);
@@ -68,6 +97,10 @@ input, button {
 input {
   background: var(--item-bg);
   color: var(--text);
+}
+.search-input-wrapper input {
+  width: 100%;
+  padding-right: 2.4rem;
 }
 input { min-width: 0; }
 button {

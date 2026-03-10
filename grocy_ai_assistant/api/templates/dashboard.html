@@ -13,7 +13,18 @@
         <h1>Grocy AI Suche</h1>
         <p class='muted'>Produkt eingeben: vorhanden → Einkaufsliste, nicht vorhanden → per KI anlegen + Einkaufsliste.</p>
         <div class='search-row'>
-          <input id='name' placeholder='z.B. Hafermilch 1L' />
+          <div class='search-input-wrapper'>
+            <input id='name' placeholder='z.B. Hafermilch 1L' />
+            <button
+              id='clear-name'
+              class='clear-input-button'
+              type='button'
+              aria-label='Sucheingabe löschen'
+              onclick='clearSearchInput()'
+            >
+              ×
+            </button>
+          </div>
           <button onclick='searchProduct()'>Suchen & hinzufügen</button>
           <button onclick='loadShoppingList()'>Einkaufsliste aktualisieren</button>
         </div>
