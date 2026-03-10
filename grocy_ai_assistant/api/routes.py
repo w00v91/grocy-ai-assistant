@@ -251,13 +251,44 @@ def _render_dashboard(settings: Settings, request: Request) -> str:
     <title>Grocy AI Dashboard</title>
     <style>
       :root {
-        color-scheme: light dark;
+        color-scheme: light;
+        --bg-gradient: linear-gradient(140deg, #f3f6ff 0%, #f6fbf8 55%, #ecf4ff 100%);
+        --text: #1f2937;
+        --card-bg: rgba(255, 255, 255, 0.86);
+        --card-border: #dbe6ff;
+        --item-bg: #fff;
+        --item-border: #e6ecff;
+        --muted: #5f6d85;
+        --input-border: #cad6f8;
+        --badge-bg: #edf2ff;
+        --badge-text: #3555ad;
+        --image-bg: #eef2f9;
+      }
+      :root[data-theme='dark'] {
+        color-scheme: dark;
+        --bg-gradient: linear-gradient(140deg, #0f172a 0%, #0b1a21 55%, #111827 100%);
+        --text: #e5ecff;
+        --card-bg: rgba(20, 32, 58, 0.88);
+        --card-border: #334155;
+        --item-bg: #172036;
+        --item-border: #304263;
+        --muted: #a7b6d4;
+        --input-border: #42587f;
+        --badge-bg: #273a63;
+        --badge-text: #dbe7ff;
+        --image-bg: #1f2b44;
       }
       body {
         font-family: Inter, Arial, sans-serif;
         margin: 0;
-        background: linear-gradient(140deg, #f3f6ff 0%, #f6fbf8 55%, #ecf4ff 100%);
-        color: #1f2937;
+        background: var(--bg-gradient);
+        color: var(--text);
+      }
+      .theme-toggle {
+        position: fixed;
+        top: 1rem;
+        right: 1rem;
+        z-index: 20;
       }
       .container {
         max-width: 900px;
@@ -265,8 +296,8 @@ def _render_dashboard(settings: Settings, request: Request) -> str:
         padding: 0 1rem 2rem;
       }
       .card {
-        background: rgba(255, 255, 255, 0.86);
-        border: 1px solid #dbe6ff;
+        background: var(--card-bg);
+        border: 1px solid var(--card-border);
         border-radius: 18px;
         padding: 1.25rem;
         box-shadow: 0 12px 28px rgba(38, 77, 182, 0.12);
@@ -282,9 +313,13 @@ def _render_dashboard(settings: Settings, request: Request) -> str:
       }
       input, button {
         border-radius: 12px;
-        border: 1px solid #cad6f8;
+        border: 1px solid var(--input-border);
         padding: 0.7rem 0.9rem;
         font-size: 1rem;
+      }
+      input {
+        background: var(--item-bg);
+        color: var(--text);
       }
       input { min-width: 0; }
       button {
@@ -293,15 +328,15 @@ def _render_dashboard(settings: Settings, request: Request) -> str:
         cursor: pointer;
         font-weight: 600;
       }
-      .muted { color: #5f6d85; font-size: 0.95rem; }
+      .muted { color: var(--muted); font-size: 0.95rem; }
       #status { margin-top: 0.85rem; font-weight: 600; }
       ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.8rem; }
       li {
         display: flex;
         align-items: center;
         gap: 0.8rem;
-        background: #fff;
-        border: 1px solid #e6ecff;
+        background: var(--item-bg);
+        border: 1px solid var(--item-border);
         border-radius: 12px;
         padding: 0.6rem 0.8rem;
       }
@@ -310,12 +345,12 @@ def _render_dashboard(settings: Settings, request: Request) -> str:
         height: 58px;
         border-radius: 10px;
         object-fit: cover;
-        background: #eef2f9;
+        background: var(--image-bg);
       }
       .badge {
         margin-left: auto;
-        background: #edf2ff;
-        color: #3555ad;
+        background: var(--badge-bg);
+        color: var(--badge-text);
         border-radius: 999px;
         padding: 0.25rem 0.55rem;
         font-size: 0.85rem;
@@ -358,6 +393,7 @@ def _render_dashboard(settings: Settings, request: Request) -> str:
     </style>
   </head>
   <body>
+    <button id='theme-toggle' class='theme-toggle' onclick='toggleTheme()'>🌙 Darkmode</button>
     <main class='container'>
       <section class='card'>
         <h1>Grocy AI Suche</h1>
@@ -381,7 +417,29 @@ def _render_dashboard(settings: Settings, request: Request) -> str:
     <script>
       const configuredApiKey = __CONFIGURED_API_KEY__;
       const apiBasePath = __API_BASE_PATH__;
+      const themeStorageKey = 'grocy-dashboard-theme';
       let apiKey = configuredApiKey || '';
+
+      function applyTheme(theme) {
+        const root = document.documentElement;
+        const toggle = document.getElementById('theme-toggle');
+
+        if (theme === 'dark') {
+          root.setAttribute('data-theme', 'dark');
+          toggle.textContent = '☀️ Lightmode';
+          return;
+        }
+
+        root.removeAttribute('data-theme');
+        toggle.textContent = '🌙 Darkmode';
+      }
+
+      function toggleTheme() {
+        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+        const nextTheme = isDark ? 'light' : 'dark';
+        localStorage.setItem(themeStorageKey, nextTheme);
+        applyTheme(nextTheme);
+      }
 
       function ensureApiKey() {
         return apiKey;
@@ -502,6 +560,8 @@ def _render_dashboard(settings: Settings, request: Request) -> str:
         }
       }
 
+      const savedTheme = localStorage.getItem(themeStorageKey) || 'light';
+      applyTheme(savedTheme);
       loadShoppingList();
     </script>
   </body>
