@@ -86,6 +86,7 @@ function clearSearchInput() {
   nameInput.value = '';
   updateClearButtonVisibility();
   document.getElementById('variant-list').innerHTML = '';
+  document.getElementById('variant-section').classList.add('hidden');
   nameInput.focus();
 }
 
@@ -137,10 +138,14 @@ async function loadShoppingList() {
 
 function renderVariants(items) {
   const list = document.getElementById('variant-list');
+  const section = document.getElementById('variant-section');
   if (!items.length) {
     list.innerHTML = '<div class="muted">Keine passenden Varianten gefunden.</div>';
+    section.classList.add('hidden');
     return;
   }
+
+  section.classList.remove('hidden');
 
   list.innerHTML = items.map((item) => `
     <div class="variant-card">
@@ -162,6 +167,7 @@ async function loadVariants() {
   const query = name.trim();
   if (!query) {
     document.getElementById('variant-list').innerHTML = '';
+    document.getElementById('variant-section').classList.add('hidden');
     return;
   }
 

@@ -9,9 +9,13 @@
   <body>
     <button id='theme-toggle' class='theme-toggle' onclick='toggleTheme()'>🌙 Darkmode</button>
     <main class='container'>
+      <section id='variant-section' class='card variant-section hidden'>
+        <h2>Gefundene Produktvarianten</h2>
+        <div id='variant-list' class='variant-grid'></div>
+      </section>
+
       <section class='card'>
         <h1>Grocy AI Suche</h1>
-        <p class='muted'>Produkt eingeben: vorhanden → Einkaufsliste, nicht vorhanden → per KI anlegen + Einkaufsliste.</p>
         <div class='search-row'>
           <div class='search-input-wrapper'>
             <input id='name' placeholder='z.B. Hafermilch 1L' />
@@ -26,21 +30,12 @@
             </button>
           </div>
           <button onclick='searchProduct()'>Suchen & hinzufügen</button>
-          <button onclick='loadShoppingList()'>Einkaufsliste aktualisieren</button>
         </div>
-        <p id='status'>Bereit.</p>
-      </section>
-
-      <section class='card variant-section'>
-        <h2>Gefundene Produktvarianten</h2>
-        <p class='muted'>Teilnamen wie "apf" zeigen passende Produkte. Klick auf das Bild fügt den Artikel direkt zur Einkaufsliste hinzu.</p>
-        <div id='variant-list' class='variant-grid'></div>
       </section>
 
 
       <section class='card recipe-section'>
         <h2>Rezeptvorschläge aus Lager/Kühlschrank</h2>
-        <p class='muted'>Wähle Produkte aus dem Bestand. Zuerst kommen passende Grocy-Rezepte, danach KI-Ideen.</p>
         <div id='stock-products' class='stock-products'></div>
         <button onclick='loadRecipeSuggestions()'>Rezeptvorschläge laden</button>
         <div class='recipe-columns'>
@@ -57,8 +52,9 @@
 
       <section class='card shopping-list-section'>
         <h2>Einkaufsliste</h2>
-        <p class='muted'>Direkt aus Grocy geladen, inklusive Produktbildern (falls vorhanden).</p>
+        <button onclick='loadShoppingList()'>Einkaufsliste aktualisieren</button>
         <ul id='shopping-list'></ul>
+        <p id='status'>Bereit.</p>
         <button class='danger-button' onclick='clearShoppingList()'>Einkaufsliste leeren</button>
       </section>
     </main>
