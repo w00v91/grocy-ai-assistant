@@ -147,6 +147,7 @@ def test_product_picture_proxy_rejects_foreign_hosts(client):
     assert response.status_code == 400
     assert response.json()["detail"] == "Ungültige Bildquelle"
 
+
     
 def test_dashboard_handles_network_errors_in_ui(client):
     response = client.get("/")
@@ -154,6 +155,24 @@ def test_dashboard_handles_network_errors_in_ui(client):
     assert response.status_code == 200
     assert "Netzwerk-/Ingress-Fehler" in response.text
     assert "parseJsonSafe" in response.text
+
+
+def test_dashboard_uses_relative_api_fallback_when_base_path_missing(client):
+    response = client.get("/")
+
+    assert response.status_code == 200
+    assert "function buildApiUrl(path)" in response.text
+    assert "return normalizedPath.replace(/^\\//, '');" in response.text
+    assert "fetch(buildApiUrl('/api/dashboard/search')" in response.text
+
+
+def test_dashboard_detects_ingress_prefix_from_location(client):
+    response = client.get("/")
+
+    assert response.status_code == 200
+    assert "const ingressPrefixMatch = window.location.pathname.match(/^\/api\/hassio_ingress\/[^\/]+/);" in response.text
+    assert "if (ingressPrefix) {" in response.text
+    assert "return `${ingressPrefix}${normalizedPath}`;" in response.text
     
     
 def test_dashboard_contains_darkmode_toggle_in_top_right(client):

@@ -419,6 +419,8 @@ def _render_dashboard(settings: Settings, request: Request) -> str:
       const apiBasePath = __API_BASE_PATH__;
       const themeStorageKey = 'grocy-dashboard-theme';
       let apiKey = configuredApiKey || '';
+      const ingressPrefixMatch = window.location.pathname.match(/^\/api\/hassio_ingress\/[^\/]+/);
+      const ingressPrefix = ingressPrefixMatch ? ingressPrefixMatch[0] : '';
 
       function applyTheme(theme) {
         const root = document.documentElement;
@@ -453,6 +455,17 @@ def _render_dashboard(settings: Settings, request: Request) -> str:
         }
       }
 
+      function buildApiUrl(path) {
+        const normalizedPath = '/' + String(path || '').replace(/^\/+/, '');
+        if (apiBasePath) {
+          return `${apiBasePath}${normalizedPath}`;
+        }
+        if (ingressPrefix) {
+          return `${ingressPrefix}${normalizedPath}`;
+        }
+        return normalizedPath.replace(/^\//, '');
+      }
+
       function toImageSource(url) {
         if (!url) return 'https://placehold.co/80x80?text=Kein+Bild';
         if (url.startsWith('data:')) return url;
@@ -471,8 +484,8 @@ def _render_dashboard(settings: Settings, request: Request) -> str:
           return url;
         }
         const normalized = '/' + url.replace(/^\\/+/, '');
-        if (apiBasePath && normalized.startsWith('/api/')) {
-          return apiBasePath + normalized;
+        if (normalized.startsWith('/api/')) {
+          return buildApiUrl(normalized);
         }
         return normalized;
       }
@@ -506,7 +519,7 @@ def _render_dashboard(settings: Settings, request: Request) -> str:
 
         status.textContent = 'Lade Einkaufsliste...';
         try {
-          const res = await fetch(`${apiBasePath}/api/dashboard/shopping-list`, {
+          const res = await fetch(buildApiUrl('/api/dashboard/shopping-list'), {
             headers: { 'Authorization': `Bearer ${key}` },
           });
           const payload = await parseJsonSafe(res);
@@ -533,7 +546,7 @@ def _render_dashboard(settings: Settings, request: Request) -> str:
 
         status.textContent = 'Leere Einkaufsliste...';
         try {
-          const res = await fetch(`${apiBasePath}/api/dashboard/shopping-list/clear`, {
+          const res = await fetch(buildApiUrl('/api/dashboard/shopping-list/clear'), {
             method: 'DELETE',
             headers: { 'Authorization': `Bearer ${key}` },
           });
@@ -567,7 +580,7 @@ def _render_dashboard(settings: Settings, request: Request) -> str:
 
         status.textContent = 'Prüfe Produkt...';
         try {
-          const res = await fetch(`${apiBasePath}/api/dashboard/search`, {
+          const res = await fetch(buildApiUrl('/api/dashboard/search'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
             body: JSON.stringify({ name })
