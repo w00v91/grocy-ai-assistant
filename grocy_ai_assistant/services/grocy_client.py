@@ -152,7 +152,10 @@ class GrocyClient:
                     "name", "Unbekanntes Produkt"
                 ),
                 "picture_url": products.get(str(item.get("product_id")), {}).get(
-                    "picture_url", ""
+                    "picture_url",
+                    products.get(str(item.get("product_id")), {}).get(
+                        "picture_file_name", ""
+                    ),
                 ),
             }
             for item in shopping_items
