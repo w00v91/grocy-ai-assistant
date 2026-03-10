@@ -401,12 +401,31 @@ def dashboard_clear_shopping_list(
         raise HTTPException(status_code=500, detail=str(error)) from error
 
 
+def _normalize_base_path(value: str) -> str:
+    normalized_value = (value or "").strip().rstrip("/")
+    if not normalized_value:
+        return ""
+    if not normalized_value.startswith("/"):
+        normalized_value = f"/{normalized_value}"
+    return normalized_value
+
+
 def _render_dashboard(settings: Settings, request: Request):
-    api_base_path = (request.scope.get("root_path") or "").rstrip("/")
+    api_base_path = _normalize_base_path(request.scope.get("root_path") or "")
     ingress_prefix_match = re.match(r"^(/api/hassio_ingress/[^/]+)", request.url.path)
     ingress_prefix = ingress_prefix_match.group(1) if ingress_prefix_match else ""
+    token_prefix_match = re.match(r"^(/[^/]+)", request.url.path)
+    token_prefix = token_prefix_match.group(1) if token_prefix_match else ""
+    header_prefix = _normalize_base_path(request.headers.get("x-ingress-path") or "")
+    forwarded_prefix_header = request.headers.get("x-forwarded-prefix") or ""
+    forwarded_prefix = _normalize_base_path(forwarded_prefix_header.split(",", 1)[0])
 
     resolved_base_path = api_base_path or ingress_prefix
+    if not resolved_base_path:
+        resolved_base_path = header_prefix or forwarded_prefix
+    if not resolved_base_path and token_prefix not in {"", "/api", "/dashboard-static"}:
+        resolved_base_path = token_prefix
+
     static_base_path = (
         f"{resolved_base_path}/dashboard-static"
         if resolved_base_path
