@@ -3,7 +3,7 @@ import logging
 from urllib.parse import quote, urljoin, urlparse
 
 import requests
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from fastapi.responses import HTMLResponse, Response
 
 from grocy_ai_assistant.ai.ingredient_detector import IngredientDetector
@@ -239,9 +239,9 @@ def dashboard_clear_shopping_list(
         raise HTTPException(status_code=500, detail=str(error)) from error
 
 
-@router.get("/", response_class=HTMLResponse)
-def dashboard(settings: Settings = Depends(get_settings)) -> str:
+def _render_dashboard(settings: Settings, request: Request) -> str:
     configured_api_key = json.dumps(settings.api_key)
+    api_base_path = json.dumps((request.scope.get("root_path") or "").rstrip("/"))
     return """
 <!doctype html>
 <html lang='de'>
@@ -380,6 +380,7 @@ def dashboard(settings: Settings = Depends(get_settings)) -> str:
 
     <script>
       const configuredApiKey = __CONFIGURED_API_KEY__;
+      const apiBasePath = __API_BASE_PATH__;
       let apiKey = configuredApiKey || '';
 
       function ensureApiKey() {
@@ -403,7 +404,11 @@ def dashboard(settings: Settings = Depends(get_settings)) -> str:
           }
           return url;
         }
-        return '/' + url.replace(/^\\/+/, '');
+        const normalized = '/' + url.replace(/^\\/+/, '');
+        if (apiBasePath && normalized.startsWith('/api/')) {
+          return apiBasePath + normalized;
+        }
+        return normalized;
       }
 
       function renderShoppingList(items) {
@@ -434,7 +439,7 @@ def dashboard(settings: Settings = Depends(get_settings)) -> str:
         }
 
         status.textContent = 'Lade Einkaufsliste...';
-        const res = await fetch('/api/dashboard/shopping-list', {
+        const res = await fetch(`${apiBasePath}/api/dashboard/shopping-list`, {
           headers: { 'Authorization': `Bearer ${key}` },
         });
         const payload = await res.json();
@@ -457,7 +462,7 @@ def dashboard(settings: Settings = Depends(get_settings)) -> str:
         }
 
         status.textContent = 'Leere Einkaufsliste...';
-        const res = await fetch('/api/dashboard/shopping-list/clear', {
+        const res = await fetch(`${apiBasePath}/api/dashboard/shopping-list/clear`, {
           method: 'DELETE',
           headers: { 'Authorization': `Bearer ${key}` },
         });
@@ -483,7 +488,7 @@ def dashboard(settings: Settings = Depends(get_settings)) -> str:
         }
 
         status.textContent = 'Prüfe Produkt...';
-        const res = await fetch('/api/dashboard/search', {
+        const res = await fetch(`${apiBasePath}/api/dashboard/search`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
           body: JSON.stringify({ name })
@@ -503,4 +508,26 @@ def dashboard(settings: Settings = Depends(get_settings)) -> str:
 </html>
 """.replace(
         "__CONFIGURED_API_KEY__", configured_api_key
+    ).replace(
+        "__API_BASE_PATH__", api_base_path
     )
+
+
+@router.get("/", response_class=HTMLResponse)
+def dashboard(request: Request, settings: Settings = Depends(get_settings)) -> str:
+    return _render_dashboard(settings, request)
+
+
+@router.get("/{full_path:path}", response_class=HTMLResponse)
+def dashboard_fallback(
+    full_path: str,
+    request: Request,
+    settings: Settings = Depends(get_settings),
+):
+    normalized_path = full_path.strip("/").lower()
+    if normalized_path.startswith("api/") and not normalized_path.startswith(
+        "api/hassio_ingress/"
+    ):
+        raise HTTPException(status_code=404, detail="Not Found")
+
+    return _render_dashboard(settings, request)

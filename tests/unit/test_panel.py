@@ -29,7 +29,7 @@ def _load_panel_module(monkeypatch):
     monkeypatch.setitem(sys.modules, package_name, package)
 
     const_module = types.ModuleType(f"{package_name}.const")
-    const_module.DEFAULT_ADDON_INGRESS_PATH = "/api/hassio_ingress/71139b3d_grocy_ai_assistant"
+    const_module.DEFAULT_ADDON_INGRESS_PATH = "/api/hassio_ingress/71139b3d_grocy_ai_assistant/"
     monkeypatch.setitem(sys.modules, f"{package_name}.const", const_module)
 
     module_path = (
@@ -56,7 +56,7 @@ def test_panel_uses_ingress_for_http_urls(monkeypatch):
     asyncio.run(panel_module.async_setup(object(), "http://example.local:8000"))
 
     _, kwargs = calls[0]
-    assert kwargs["config"]["url"] == "/api/hassio_ingress/71139b3d_grocy_ai_assistant"
+    assert kwargs["config"]["url"] == "/api/hassio_ingress/71139b3d_grocy_ai_assistant/"
 
 
 def test_panel_keeps_https_urls(monkeypatch):
@@ -67,3 +67,13 @@ def test_panel_keeps_https_urls(monkeypatch):
 
     _, kwargs = calls[0]
     assert kwargs["config"]["url"] == "https://example.org/dashboard"
+
+
+def test_panel_adds_trailing_slash_for_ingress_paths(monkeypatch):
+    panel_module, calls = _load_panel_module(monkeypatch)
+
+    import asyncio
+    asyncio.run(panel_module.async_setup(object(), "/api/hassio_ingress/71139b3d_grocy_ai_assistant"))
+
+    _, kwargs = calls[0]
+    assert kwargs["config"]["url"] == "/api/hassio_ingress/71139b3d_grocy_ai_assistant/"

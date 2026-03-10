@@ -96,6 +96,19 @@ def test_dashboard_contains_clear_button(client):
     assert "class='danger-button'" in response.text
 
 
+def test_dashboard_fallback_serves_ingress_path(client):
+    response = client.get("/api/hassio_ingress/71139b3d_grocy_ai_assistant")
+
+    assert response.status_code == 200
+    assert "Grocy AI Suche" in response.text
+
+
+def test_dashboard_fallback_keeps_404_for_unknown_api_paths(client):
+    response = client.get("/api/not-a-real-endpoint")
+
+    assert response.status_code == 404
+
+
 def test_product_picture_proxy_fetches_with_grocy_api_key(client, monkeypatch):
     class FakeResponse:
         content = b"img"
