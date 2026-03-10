@@ -9,11 +9,6 @@
   <body>
     <button id='theme-toggle' class='theme-toggle' onclick='toggleTheme()'>🌙 Darkmode</button>
     <main class='container'>
-      <section id='variant-section' class='card variant-section hidden'>
-        <h2>Gefundene Produktvarianten</h2>
-        <div id='variant-list' class='variant-grid'></div>
-      </section>
-
       <section class='card'>
         <h1>Grocy AI Suche</h1>
         <div class='search-row'>
@@ -31,6 +26,11 @@
           </div>
           <button onclick='searchProduct()'>Suchen & hinzufügen</button>
         </div>
+
+        <section id='variant-section' class='variant-section hidden'>
+          <h2>Gefundene Produktvarianten</h2>
+          <div id='variant-list' class='variant-grid'></div>
+        </section>
       </section>
 
 
