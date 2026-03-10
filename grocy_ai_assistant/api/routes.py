@@ -1,4 +1,5 @@
 import logging
+import re
 from base64 import b64encode
 from pathlib import Path
 from urllib.parse import ParseResult, quote, urljoin, urlparse
@@ -402,12 +403,22 @@ def dashboard_clear_shopping_list(
 
 def _render_dashboard(settings: Settings, request: Request):
     api_base_path = (request.scope.get("root_path") or "").rstrip("/")
+    ingress_prefix_match = re.match(r"^(/api/hassio_ingress/[^/]+)", request.url.path)
+    ingress_prefix = ingress_prefix_match.group(1) if ingress_prefix_match else ""
+
+    resolved_base_path = api_base_path or ingress_prefix
+    static_base_path = (
+        f"{resolved_base_path}/dashboard-static"
+        if resolved_base_path
+        else "/dashboard-static"
+    )
     return templates.TemplateResponse(
         request,
         "dashboard.html",
         {
             "configured_api_key": settings.api_key,
             "api_base_path": api_base_path,
+            "static_base_path": static_base_path,
         },
     )
 
