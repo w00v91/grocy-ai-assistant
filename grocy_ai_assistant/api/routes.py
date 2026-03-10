@@ -525,7 +525,9 @@ def dashboard_fallback(
     settings: Settings = Depends(get_settings),
 ):
     normalized_path = full_path.strip("/").lower()
-    if normalized_path.startswith("api"):
+    if normalized_path.startswith("api/") and not normalized_path.startswith(
+        "api/hassio_ingress/"
+    ):
         raise HTTPException(status_code=404, detail="Not Found")
 
     return _render_dashboard(settings, request)
