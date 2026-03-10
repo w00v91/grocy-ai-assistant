@@ -30,9 +30,7 @@ def _is_external_host(host: str) -> bool:
     try:
         parsed_ip = ip_address(normalized_host)
         return not (
-            parsed_ip.is_private
-            or parsed_ip.is_loopback
-            or parsed_ip.is_link_local
+            parsed_ip.is_private or parsed_ip.is_loopback or parsed_ip.is_link_local
         )
     except ValueError:
         return True

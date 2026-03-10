@@ -46,7 +46,9 @@ class GrocyAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             data_schema=vol.Schema(
                 {
                     vol.Required(CONF_API_KEY): str,
-                    vol.Required("addon_base_url", default=DEFAULT_ADDON_INGRESS_PATH): str,
+                    vol.Required(
+                        "addon_base_url", default=DEFAULT_ADDON_INGRESS_PATH
+                    ): str,
                     vol.Required(CONF_GROCY_API_KEY): str,
                     vol.Optional(
                         CONF_GROCY_BASE_URL, default=DEFAULT_GROCY_BASE_URL

@@ -242,7 +242,7 @@ def dashboard_clear_shopping_list(
 def _render_dashboard(settings: Settings, request: Request) -> str:
     configured_api_key = json.dumps(settings.api_key)
     api_base_path = json.dumps((request.scope.get("root_path") or "").rstrip("/"))
-    return """
+    return r"""
 <!doctype html>
 <html lang='de'>
   <head>

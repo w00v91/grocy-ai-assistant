@@ -88,7 +88,9 @@ class GrocyAIUpdateRequiredSensor(_BaseAddonSensor):
                 self._attr_native_value = "Unbekannt"
                 return
 
-            restart_required = bool(payload.get("homeassistant_restart_required", False))
+            restart_required = bool(
+                payload.get("homeassistant_restart_required", False)
+            )
             self._attr_native_value = "Ja" if restart_required else "Nein"
             self._attr_extra_state_attributes = {
                 "required_integration_version": payload.get(

@@ -24,7 +24,9 @@ def test_shopping_list_returns_items(client, monkeypatch):
     assert response.json()[0]["amount"] == "2"
     assert response.json()[0]["product_name"] == "Hafermilch"
     assert response.json()[0]["note"] == "Barista"
-    assert response.json()[0]["picture_url"].startswith("/api/dashboard/product-picture?src=")
+    assert response.json()[0]["picture_url"].startswith(
+        "/api/dashboard/product-picture?src="
+    )
 
 
 def test_dashboard_prefills_configured_api_key(client):
@@ -128,13 +130,18 @@ def test_product_picture_proxy_fetches_with_grocy_api_key(client, monkeypatch):
     monkeypatch.setattr(routes.requests, "get", fake_requests_get)
     response = client.get(
         "/api/dashboard/product-picture",
-        params={"src": "http://homeassistant.local:9192/files/productpictures/abc123.jpg"},
+        params={
+            "src": "http://homeassistant.local:9192/files/productpictures/abc123.jpg"
+        },
     )
 
     assert response.status_code == 200
     assert response.content == b"img"
     assert response.headers["content-type"].startswith("image/png")
-    assert captured["url"] == "http://homeassistant.local:9192/files/productpictures/abc123.jpg"
+    assert (
+        captured["url"]
+        == "http://homeassistant.local:9192/files/productpictures/abc123.jpg"
+    )
     assert captured["headers"]["GROCY-API-KEY"] == "test-grocy-key"
 
 
@@ -148,7 +155,6 @@ def test_product_picture_proxy_rejects_foreign_hosts(client):
     assert response.json()["detail"] == "Ungültige Bildquelle"
 
 
-    
 def test_dashboard_handles_network_errors_in_ui(client):
     response = client.get("/")
 
@@ -170,11 +176,14 @@ def test_dashboard_detects_ingress_prefix_from_location(client):
     response = client.get("/")
 
     assert response.status_code == 200
-    assert "const ingressPrefixMatch = window.location.pathname.match(/^\/api\/hassio_ingress\/[^\/]+/);" in response.text
+    assert (
+        r"const ingressPrefixMatch = window.location.pathname.match(/^\/api\/hassio_ingress\/[^\/]+/);"
+        in response.text
+    )
     assert "if (ingressPrefix) {" in response.text
     assert "return `${ingressPrefix}${normalizedPath}`;" in response.text
-    
-    
+
+
 def test_dashboard_contains_darkmode_toggle_in_top_right(client):
     response = client.get("/")
 

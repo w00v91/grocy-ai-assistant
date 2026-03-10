@@ -47,7 +47,9 @@ class IngredientDetector:
             "format": "json",
         }
 
-        response = requests.post(self.settings.ollama_url, json=ollama_payload, timeout=60)
+        response = requests.post(
+            self.settings.ollama_url, json=ollama_payload, timeout=60
+        )
         response.raise_for_status()
         raw_answer = response.json().get("response")
         return json.loads(raw_answer)
@@ -62,7 +64,9 @@ class IngredientDetector:
             "cfg_scale": 7,
         }
 
-        response = requests.post(self.settings.stable_diffusion_url, json=payload, timeout=60)
+        response = requests.post(
+            self.settings.stable_diffusion_url, json=payload, timeout=60
+        )
         response.raise_for_status()
         image_base64 = response.json()["images"][0]
 
