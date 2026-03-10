@@ -21,8 +21,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Grocy AI Assistant API")
-app.include_router(router)
 
 @asynccontextmanager
 async def _lifespan(app: FastAPI):
@@ -37,6 +35,7 @@ async def _lifespan(app: FastAPI):
 
 
 def create_app() -> FastAPI:
+    """Create and configure the FastAPI application instance."""
     app_instance = FastAPI(title="Grocy AI Assistant API", lifespan=_lifespan)
     app_instance.mount(
         "/dashboard-static",
