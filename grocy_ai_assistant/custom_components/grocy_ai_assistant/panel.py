@@ -23,6 +23,8 @@ def _normalize_panel_url(url: str) -> str:
     if normalized.startswith("/api/hassio_ingress/") and not normalized.endswith("/"):
         normalized = f"{normalized}/"
 
+    parsed = urlparse(normalized)
+
     if (
         parsed.scheme
         and parsed.netloc
@@ -35,6 +37,9 @@ def _normalize_panel_url(url: str) -> str:
     ):
         return ""
 
+    if parsed.scheme == "http" and parsed.netloc:
+        return parsed._replace(scheme="https").geturl()
+
     return normalized
 
 
@@ -43,13 +48,8 @@ async def async_setup(hass: HomeAssistant, dashboard_url: str) -> None:
     resolved_url = _normalize_panel_url(dashboard_url)
     if not resolved_url:
         resolved_url = _normalize_panel_url(DEFAULT_ADDON_INGRESS_PATH)
-    elif (
-        resolved_url.startswith("http://")
-        and "/api/hassio_ingress/" not in resolved_url
-    ):
-        _LOGGER.warning(
-            "Dashboard URL uses plain HTTP outside ingress path; this may be blocked in HTTPS Home Assistant."
-        )
+    elif resolved_url.startswith("https://"):
+        _LOGGER.debug("Using HTTPS dashboard URL for iframe compatibility")
 
     _LOGGER.debug("Registering panel with URL %s", resolved_url)
     async_register_built_in_panel(

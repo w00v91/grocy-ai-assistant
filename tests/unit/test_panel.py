@@ -49,7 +49,7 @@ def _load_panel_module(monkeypatch):
     return module, calls
 
 
-def test_panel_keeps_http_urls_when_configured_explicitly(monkeypatch):
+def test_panel_upgrades_http_urls_to_https(monkeypatch):
     panel_module, calls = _load_panel_module(monkeypatch)
 
     import asyncio
@@ -57,7 +57,7 @@ def test_panel_keeps_http_urls_when_configured_explicitly(monkeypatch):
     asyncio.run(panel_module.async_setup(object(), "http://example.local:8000"))
 
     _, kwargs = calls[0]
-    assert kwargs["config"]["url"] == "http://example.local:8000"
+    assert kwargs["config"]["url"] == "https://example.local:8000"
 
 
 def test_panel_keeps_https_urls(monkeypatch):
