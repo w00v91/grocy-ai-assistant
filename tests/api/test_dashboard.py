@@ -148,6 +148,7 @@ def test_product_picture_proxy_rejects_foreign_hosts(client):
     assert response.json()["detail"] == "Ungültige Bildquelle"
 
 
+    
 def test_dashboard_handles_network_errors_in_ui(client):
     response = client.get("/")
 
@@ -172,3 +173,13 @@ def test_dashboard_detects_ingress_prefix_from_location(client):
     assert "const ingressPrefixMatch = window.location.pathname.match(/^\/api\/hassio_ingress\/[^\/]+/);" in response.text
     assert "if (ingressPrefix) {" in response.text
     assert "return `${ingressPrefix}${normalizedPath}`;" in response.text
+    
+    
+def test_dashboard_contains_darkmode_toggle_in_top_right(client):
+    response = client.get("/")
+
+    assert response.status_code == 200
+    assert "id='theme-toggle'" in response.text
+    assert "right: 1rem;" in response.text
+    assert "toggleTheme()" in response.text
+    assert "localStorage.setItem(themeStorageKey, nextTheme);" in response.text
