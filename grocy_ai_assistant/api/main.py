@@ -22,11 +22,6 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Grocy AI Assistant API")
-app.mount(
-    "/dashboard-static",
-    StaticFiles(directory=str(Path(__file__).parent / "static")),
-    name="dashboard_static",
-)
 app.include_router(router)
 
 @asynccontextmanager
@@ -43,6 +38,11 @@ async def _lifespan(app: FastAPI):
 
 def create_app() -> FastAPI:
     app_instance = FastAPI(title="Grocy AI Assistant API", lifespan=_lifespan)
+    app_instance.mount(
+        "/dashboard-static",
+        StaticFiles(directory=str(Path(__file__).parent / "static")),
+        name="dashboard_static",
+    )
     app_instance.include_router(router)
 
     @app_instance.middleware("http")
