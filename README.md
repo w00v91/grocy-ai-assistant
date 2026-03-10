@@ -67,11 +67,25 @@ Wichtige Felder:
 - `ollama_model`
 - `required_integration_version`
 
+
+## Architektur-Notizen
+
+- **API-Schicht (`api/`)** bleibt rein für HTTP-Endpunkte, Dashboard-Rendering und Request-Validierung.
+- **Domain/Orchestrierung (`core/`)** enthält die Ablaufsteuerung für Analyse und Produktlogik.
+- **Service-Schicht (`services/`)** kapselt die Grocy-Kommunikation vollständig.
+- **Integration (`custom_components/`)** ruft das Add-on über den `AddonClient` auf und enthält keine direkte Grocy- oder Ollama-HTTP-Logik mehr.
+
+### Ingress & Dashboard
+
+- Das Dashboard baut API-URLs robust für Standardbetrieb und Home-Assistant-Ingress (`/api/hassio_ingress/...`).
+- Panel-URLs werden normalisiert: absolute Ingress-URLs werden auf den relativen Ingress-Pfad reduziert, Loopback-Ziele (`localhost`, `127.0.0.1`, `::1`) automatisch auf den Standard-Ingress-Fallback gesetzt.
+- Produktbilder werden über einen Proxy-Endpunkt bereitgestellt, damit Authentifizierung und gemischte HTTP/HTTPS-Szenarien stabil bleiben.
+
 ## Versionen
 
 Aktueller Stand:
-- **Add-on:** `5.2.21`
-- **Integration:** `1.2.17`
+- **Add-on:** `5.2.22`
+- **Integration:** `1.2.18`
 
 ## Qualitätssicherung
 

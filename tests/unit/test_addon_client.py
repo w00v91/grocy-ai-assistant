@@ -3,7 +3,13 @@ import importlib.util
 from pathlib import Path
 
 
-module_path = Path(__file__).resolve().parents[2] / "grocy_ai_assistant" / "custom_components" / "grocy_ai_assistant" / "addon_client.py"
+module_path = (
+    Path(__file__).resolve().parents[2]
+    / "grocy_ai_assistant"
+    / "custom_components"
+    / "grocy_ai_assistant"
+    / "addon_client.py"
+)
 spec = importlib.util.spec_from_file_location("addon_client_module", module_path)
 addon_client_module = importlib.util.module_from_spec(spec)
 assert spec and spec.loader
@@ -54,7 +60,9 @@ def test_addon_client_sends_homeassistant_version_header(monkeypatch):
         sessions.append(session)
         return session
 
-    monkeypatch.setattr(addon_client_module.aiohttp, "ClientSession", fake_client_session)
+    monkeypatch.setattr(
+        addon_client_module.aiohttp, "ClientSession", fake_client_session
+    )
 
     client = AddonClient(
         base_url="http://localhost:8000/",
@@ -86,7 +94,9 @@ def test_addon_client_uses_default_ingress_path(monkeypatch):
         sessions.append(session)
         return session
 
-    monkeypatch.setattr(addon_client_module.aiohttp, "ClientSession", fake_client_session)
+    monkeypatch.setattr(
+        addon_client_module.aiohttp, "ClientSession", fake_client_session
+    )
 
     client = AddonClient(base_url="", api_key="secret")
     asyncio.run(client.get_status())

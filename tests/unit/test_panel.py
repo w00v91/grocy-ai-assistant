@@ -53,6 +53,7 @@ def test_panel_keeps_http_urls_when_configured_explicitly(monkeypatch):
     panel_module, calls = _load_panel_module(monkeypatch)
 
     import asyncio
+
     asyncio.run(panel_module.async_setup(object(), "http://example.local:8000"))
 
     _, kwargs = calls[0]
@@ -63,6 +64,7 @@ def test_panel_keeps_https_urls(monkeypatch):
     panel_module, calls = _load_panel_module(monkeypatch)
 
     import asyncio
+
     asyncio.run(panel_module.async_setup(object(), "https://example.org/dashboard"))
 
     _, kwargs = calls[0]
@@ -73,7 +75,12 @@ def test_panel_adds_trailing_slash_for_ingress_paths(monkeypatch):
     panel_module, calls = _load_panel_module(monkeypatch)
 
     import asyncio
-    asyncio.run(panel_module.async_setup(object(), "/api/hassio_ingress/71139b3d_grocy_ai_assistant"))
+
+    asyncio.run(
+        panel_module.async_setup(
+            object(), "/api/hassio_ingress/71139b3d_grocy_ai_assistant"
+        )
+    )
 
     _, kwargs = calls[0]
     assert kwargs["config"]["url"] == "/api/hassio_ingress/71139b3d_grocy_ai_assistant/"
@@ -83,7 +90,34 @@ def test_panel_uses_ingress_for_localhost_urls(monkeypatch):
     panel_module, calls = _load_panel_module(monkeypatch)
 
     import asyncio
+
     asyncio.run(panel_module.async_setup(object(), "http://localhost:8000"))
+
+    _, kwargs = calls[0]
+    assert kwargs["config"]["url"] == "/api/hassio_ingress/grocy_ai_assistant/"
+
+
+def test_panel_normalizes_absolute_ingress_urls(monkeypatch):
+    panel_module, calls = _load_panel_module(monkeypatch)
+
+    import asyncio
+
+    asyncio.run(
+        panel_module.async_setup(
+            object(), "http://supervisor/api/hassio_ingress/71139b3d_grocy_ai_assistant"
+        )
+    )
+
+    _, kwargs = calls[0]
+    assert kwargs["config"]["url"] == "/api/hassio_ingress/71139b3d_grocy_ai_assistant/"
+
+
+def test_panel_uses_ingress_for_loopback_ip_urls(monkeypatch):
+    panel_module, calls = _load_panel_module(monkeypatch)
+
+    import asyncio
+
+    asyncio.run(panel_module.async_setup(object(), "http://127.0.0.1:8000"))
 
     _, kwargs = calls[0]
     assert kwargs["config"]["url"] == "/api/hassio_ingress/grocy_ai_assistant/"
