@@ -387,6 +387,14 @@ def _render_dashboard(settings: Settings, request: Request) -> str:
         return apiKey;
       }
 
+      async function parseJsonSafe(response) {
+        try {
+          return await response.json();
+        } catch (_) {
+          return {};
+        }
+      }
+
       function toImageSource(url) {
         if (!url) return 'https://placehold.co/80x80?text=Kein+Bild';
         if (url.startsWith('data:')) return url;
@@ -439,18 +447,22 @@ def _render_dashboard(settings: Settings, request: Request) -> str:
         }
 
         status.textContent = 'Lade Einkaufsliste...';
-        const res = await fetch(`${apiBasePath}/api/dashboard/shopping-list`, {
-          headers: { 'Authorization': `Bearer ${key}` },
-        });
-        const payload = await res.json();
+        try {
+          const res = await fetch(`${apiBasePath}/api/dashboard/shopping-list`, {
+            headers: { 'Authorization': `Bearer ${key}` },
+          });
+          const payload = await parseJsonSafe(res);
 
-        if (!res.ok) {
-          status.textContent = payload.detail || 'Einkaufsliste konnte nicht geladen werden.';
-          return;
+          if (!res.ok) {
+            status.textContent = payload.detail || 'Einkaufsliste konnte nicht geladen werden.';
+            return;
+          }
+
+          renderShoppingList(payload);
+          status.textContent = `Einkaufsliste geladen (${payload.length} Einträge).`;
+        } catch (_) {
+          status.textContent = 'Einkaufsliste konnte nicht geladen werden (Netzwerk-/Ingress-Fehler).';
         }
-
-        renderShoppingList(payload);
-        status.textContent = `Einkaufsliste geladen (${payload.length} Einträge).`;
       }
 
       async function clearShoppingList() {
@@ -462,19 +474,23 @@ def _render_dashboard(settings: Settings, request: Request) -> str:
         }
 
         status.textContent = 'Leere Einkaufsliste...';
-        const res = await fetch(`${apiBasePath}/api/dashboard/shopping-list/clear`, {
-          method: 'DELETE',
-          headers: { 'Authorization': `Bearer ${key}` },
-        });
-        const payload = await res.json();
+        try {
+          const res = await fetch(`${apiBasePath}/api/dashboard/shopping-list/clear`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${key}` },
+          });
+          const payload = await parseJsonSafe(res);
 
-        if (!res.ok) {
-          status.textContent = payload.detail || 'Einkaufsliste konnte nicht geleert werden.';
-          return;
+          if (!res.ok) {
+            status.textContent = payload.detail || 'Einkaufsliste konnte nicht geleert werden.';
+            return;
+          }
+
+          status.textContent = payload.message || 'Einkaufsliste geleert.';
+          await loadShoppingList();
+        } catch (_) {
+          status.textContent = 'Einkaufsliste konnte nicht geleert werden (Netzwerk-/Ingress-Fehler).';
         }
-
-        status.textContent = payload.message || 'Einkaufsliste geleert.';
-        await loadShoppingList();
       }
 
       async function searchProduct() {
@@ -486,19 +502,27 @@ def _render_dashboard(settings: Settings, request: Request) -> str:
           status.textContent = 'Kein API-Key angegeben.';
           return;
         }
+        if (!name || !name.trim()) {
+          status.textContent = 'Bitte Produktname eingeben.';
+          return;
+        }
 
         status.textContent = 'Prüfe Produkt...';
-        const res = await fetch(`${apiBasePath}/api/dashboard/search`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
-          body: JSON.stringify({ name })
-        });
+        try {
+          const res = await fetch(`${apiBasePath}/api/dashboard/search`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
+            body: JSON.stringify({ name })
+          });
 
-        const payload = await res.json();
-        status.textContent = payload.message || payload.detail || 'Unbekannte Antwort';
+          const payload = await parseJsonSafe(res);
+          status.textContent = payload.message || payload.detail || 'Unbekannte Antwort';
 
-        if (res.ok) {
-          await loadShoppingList();
+          if (res.ok) {
+            await loadShoppingList();
+          }
+        } catch (_) {
+          status.textContent = 'Produkt konnte nicht geprüft werden (Netzwerk-/Ingress-Fehler).';
         }
       }
 
