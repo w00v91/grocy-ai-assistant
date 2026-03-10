@@ -60,20 +60,20 @@ class ProductImageCache:
             try:
                 products = self._fetch_products()
             except requests.RequestException as error:
-                logger.warning("Produktbild-Cache konnte Produktliste nicht laden: %s", error)
+                logger.warning(
+                    "Produktbild-Cache konnte Produktliste nicht laden: %s", error
+                )
                 return 0
             refreshed_images = 0
             for product in products:
-                picture_value = (product.get("picture_url") or product.get("picture_file_name") or "").strip()
-                if not picture_value:
+                source_urls = self._build_product_picture_urls(product)
+                if not source_urls:
                     continue
 
-                source_url = self._build_product_picture_url(picture_value)
-                if not source_url:
-                    continue
-
-                if self._download_to_cache(source_url):
-                    refreshed_images += 1
+                for source_url in source_urls:
+                    if self._download_to_cache(source_url):
+                        refreshed_images += 1
+                        break
 
             logger.info("Produktbild-Cache aktualisiert: %s Bilder", refreshed_images)
             return refreshed_images
@@ -93,7 +93,9 @@ class ProductImageCache:
             media_type = self._guess_media_type(cache_path.suffix)
             return content, media_type
         except OSError as error:
-            logger.error("Konnte Bildcache-Datei nicht lesen (%s): %s", cache_path, error)
+            logger.error(
+                "Konnte Bildcache-Datei nicht lesen (%s): %s", cache_path, error
+            )
             return None, ""
 
     def _refresh_loop(self) -> None:
@@ -111,6 +113,20 @@ class ProductImageCache:
         payload = response.json()
         return payload if isinstance(payload, list) else []
 
+    def _build_product_picture_urls(self, product: dict) -> list[str]:
+        candidate_values: list[str] = []
+        for key in ("picture_url", "picture_file_name"):
+            raw_value = (product.get(key) or "").strip()
+            if raw_value and raw_value not in candidate_values:
+                candidate_values.append(raw_value)
+
+        source_urls: list[str] = []
+        for value in candidate_values:
+            source_url = self._build_product_picture_url(value)
+            if source_url and source_url not in source_urls:
+                source_urls.append(source_url)
+        return source_urls
+
     def _build_product_picture_url(self, picture_value: str) -> str:
         value = (picture_value or "").strip()
         if not value or value.startswith("data:"):
@@ -121,7 +137,12 @@ class ProductImageCache:
 
         if value.startswith(("http://", "https://")):
             parsed_picture = urlparse(value)
-            if parsed_picture.hostname in {"localhost", "127.0.0.1", "::1", "homeassistant"}:
+            if parsed_picture.hostname in {
+                "localhost",
+                "127.0.0.1",
+                "::1",
+                "homeassistant",
+            }:
                 return ParseResult(
                     scheme=parsed_grocy_base.scheme or parsed_picture.scheme,
                     netloc=parsed_grocy_base.netloc or parsed_picture.netloc,
@@ -143,23 +164,62 @@ class ProductImageCache:
     def _download_to_cache(self, source_url: str) -> bool:
         parsed_source = urlparse(source_url)
         parsed_grocy = urlparse(self._settings.grocy_base_url)
-        if parsed_source.scheme not in {"http", "https"} or parsed_source.netloc != parsed_grocy.netloc:
-            logger.warning("Überspringe externes Produktbild außerhalb des Grocy-Hosts: %s", source_url)
+        if (
+            parsed_source.scheme not in {"http", "https"}
+            or parsed_source.netloc != parsed_grocy.netloc
+        ):
+            logger.warning(
+                "Überspringe externes Produktbild außerhalb des Grocy-Hosts: %s",
+                source_url,
+            )
             return False
 
-        cache_path = self._cache_path_for_url(source_url)
-        try:
-            response = requests.get(
-                source_url,
-                headers={"GROCY-API-KEY": self._settings.grocy_api_key},
-                timeout=30,
+        candidate_urls = [source_url]
+        if parsed_source.path.startswith("/api/files/"):
+            candidate_urls.append(
+                parsed_source._replace(
+                    path=parsed_source.path.removeprefix("/api")
+                ).geturl()
             )
-            response.raise_for_status()
-            cache_path.write_bytes(response.content)
-            return True
-        except (requests.RequestException, OSError) as error:
-            logger.warning("Produktbild konnte nicht gecacht werden (%s): %s", source_url, error)
-            return False
+
+        for candidate_url in candidate_urls:
+            cache_path = self._cache_path_for_url(source_url)
+            try:
+                response = requests.get(
+                    candidate_url,
+                    headers={"GROCY-API-KEY": self._settings.grocy_api_key},
+                    timeout=30,
+                )
+                response.raise_for_status()
+                cache_path.write_bytes(response.content)
+                return True
+            except requests.HTTPError as error:
+                is_not_found = (
+                    error.response is not None and error.response.status_code == 404
+                )
+                has_fallback = candidate_url != candidate_urls[-1]
+                if is_not_found and has_fallback:
+                    logger.info(
+                        "Produktbild unter %s nicht gefunden, versuche Fallback-URL %s",
+                        candidate_url,
+                        candidate_urls[-1],
+                    )
+                    continue
+                logger.warning(
+                    "Produktbild konnte nicht gecacht werden (%s): %s",
+                    candidate_url,
+                    error,
+                )
+                return False
+            except (requests.RequestException, OSError) as error:
+                logger.warning(
+                    "Produktbild konnte nicht gecacht werden (%s): %s",
+                    candidate_url,
+                    error,
+                )
+                return False
+
+        return False
 
     def _cache_path_for_url(self, source_url: str) -> Path:
         parsed = urlparse(source_url)
