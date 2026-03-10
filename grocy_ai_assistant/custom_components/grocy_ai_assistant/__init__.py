@@ -51,12 +51,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     _LOGGER.info("Setting up Grocy AI Assistant for entry %s", entry.entry_id)
 
-    if not hass.data[DOMAIN].get("_panel_registered"):
-        panel_url = hass.data[DOMAIN][entry.entry_id].get(
-            "addon_base_url", DEFAULT_ADDON_BASE_URL
-        )
+    panel_url = hass.data[DOMAIN][entry.entry_id].get(
+        "addon_base_url", DEFAULT_ADDON_BASE_URL
+    )
+    previous_panel_url = hass.data[DOMAIN].get("_panel_url")
+    if (
+        not hass.data[DOMAIN].get("_panel_registered")
+        or previous_panel_url != panel_url
+    ):
         await panel.async_setup(hass, panel_url)
         hass.data[DOMAIN]["_panel_registered"] = True
+        hass.data[DOMAIN]["_panel_url"] = panel_url
 
     response_reset_unsubs = hass.data[DOMAIN].setdefault("_response_reset_unsubs", {})
 
