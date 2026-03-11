@@ -278,7 +278,7 @@ async function purchaseShoppingItem(shoppingListId) {
     return;
   }
 
-  const res = await fetch(buildApiUrl(`/api/dashboard/shopping-list/item/${shoppingListId}/complete`), {
+  const res = await fetch(buildApiUrl(`/api/dashboard/shopping-list/${shoppingListId}/complete`), {
     method: 'POST',
     headers: { 'Authorization': `Bearer ${key}` },
   });
@@ -351,13 +351,13 @@ function bindShoppingSwipeInteractions() {
 
       if (deltaX <= -55) {
         item.classList.add('swiping-left');
-        await removeShoppingItem(shoppingListId);
+        await purchaseShoppingItem(shoppingListId);
         return;
       }
 
       if (deltaX >= 55) {
         item.classList.add('swiping-right');
-        await purchaseShoppingItem(shoppingListId);
+        await removeShoppingItem(shoppingListId);
         return;
       }
 
