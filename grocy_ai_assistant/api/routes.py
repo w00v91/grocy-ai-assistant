@@ -17,6 +17,7 @@ from grocy_ai_assistant.models.ingredient import (
     AnalyzeProductResponse,
     DashboardSearchResponse,
     ExistingProductAddRequest,
+    LocationResponse,
     ProductVariantResponse,
     RecipeSuggestionItem,
     RecipeSuggestionRequest,
@@ -131,6 +132,10 @@ def _get_product_image_cache(request: Request):
     return getattr(request.app.state, "product_image_cache", None)
 
 
+def _get_location_cache(request: Request):
+    return getattr(request.app.state, "location_cache", None)
+
+
 def require_auth(
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_auth),
     settings: Settings = Depends(get_settings),
@@ -175,12 +180,20 @@ def get_status(
 @router.post("/api/analyze_product", response_model=AnalyzeProductResponse)
 def analyze_product(
     payload: AnalyzeProductRequest,
+    request: Request,
     _: None = Depends(require_auth),
     settings: Settings = Depends(get_settings),
 ):
     detector = IngredientDetector(settings)
     try:
-        product_data = detector.analyze_product_name(payload.name)
+        cache = _get_location_cache(request)
+        locations = cache.get_locations() if cache else []
+        if locations:
+            product_data = detector.analyze_product_name(
+                payload.name, locations=locations
+            )
+        else:
+            product_data = detector.analyze_product_name(payload.name)
         return AnalyzeProductResponse(product_data=product_data)
     except Exception as error:
         logger.error("Analyse-Fehler: %s", error)
@@ -256,6 +269,7 @@ def dashboard_add_existing_product(
 @router.post("/api/dashboard/search", response_model=DashboardSearchResponse)
 def dashboard_search(
     payload: AnalyzeProductRequest,
+    request: Request,
     _: None = Depends(require_auth),
     settings: Settings = Depends(get_settings),
 ):
@@ -283,7 +297,14 @@ def dashboard_search(
                 message=f"{product_name} war vorhanden und wurde zur Einkaufsliste hinzugefügt.",
             )
 
-        product_data = detector.analyze_product_name(product_name)
+        cache = _get_location_cache(request)
+        locations = cache.get_locations() if cache else []
+        if locations:
+            product_data = detector.analyze_product_name(
+                product_name, locations=locations
+            )
+        else:
+            product_data = detector.analyze_product_name(product_name)
         created_object_id = grocy_client.create_product(product_data)
         grocy_client.add_product_to_shopping_list(created_object_id, amount=1)
 
@@ -398,8 +419,9 @@ def dashboard_shopping_list(
         raise HTTPException(status_code=500, detail=str(error)) from error
 
 
-@router.get("/api/dashboard/stock-products", response_model=list[StockProductResponse])
-def dashboard_stock_products(
+@router.get("/api/dashboard/locations", response_model=list[LocationResponse])
+def dashboard_locations(
+    request: Request,
     _: None = Depends(require_auth),
     settings: Settings = Depends(get_settings),
 ):
@@ -409,10 +431,42 @@ def dashboard_stock_products(
         )
 
     try:
-        grocy_client = GrocyClient(settings)
-        return [
-            StockProductResponse(**item) for item in grocy_client.get_stock_products()
+        cache = _get_location_cache(request)
+        locations = cache.get_locations() if cache else None
+        if locations is None:
+            grocy_client = GrocyClient(settings)
+            locations = grocy_client.get_locations()
+
+        return [LocationResponse(**item) for item in locations]
+    except Exception as error:
+        logger.error("Standorte konnten nicht geladen werden: %s", error)
+        raise HTTPException(status_code=500, detail=str(error)) from error
+
+
+@router.get("/api/dashboard/stock-products", response_model=list[StockProductResponse])
+def dashboard_stock_products(
+    location_ids: str = "",
+    _: None = Depends(require_auth),
+    settings: Settings = Depends(get_settings),
+):
+    if not settings.grocy_api_key:
+        raise HTTPException(
+            status_code=500, detail="grocy_api_key fehlt in Add-on Optionen"
+        )
+
+    try:
+        selected_location_ids = [
+            int(value.strip())
+            for value in location_ids.split(",")
+            if value.strip().isdigit()
         ]
+        grocy_client = GrocyClient(settings)
+        stock_products = (
+            grocy_client.get_stock_products(selected_location_ids)
+            if selected_location_ids
+            else grocy_client.get_stock_products()
+        )
+        return [StockProductResponse(**item) for item in stock_products]
     except Exception as error:
         logger.error("Lagerprodukte konnten nicht geladen werden: %s", error)
         raise HTTPException(status_code=500, detail=str(error)) from error
@@ -435,7 +489,13 @@ def dashboard_recipe_suggestions(
 
     try:
         grocy_client = GrocyClient(settings)
-        stock_products = grocy_client.get_stock_products()
+        
+        stock_products = (
+            grocy_client.get_stock_products(payload.location_ids)
+            if payload.location_ids
+            else grocy_client.get_stock_products()
+        )
+        
         if not selected_ids:
             selected_products = [product.get("name", "") for product in stock_products]
         else:
@@ -444,7 +504,7 @@ def dashboard_recipe_suggestions(
                 for product in stock_products
                 if product.get("id") in selected_ids
             ]
-
+        
         if not selected_products:
             raise HTTPException(
                 status_code=400,

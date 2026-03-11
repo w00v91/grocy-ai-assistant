@@ -84,8 +84,8 @@ Wichtige Felder:
 ## Versionen
 
 Aktueller Stand:
-- **Add-on:** `6.0.7`
-- **Integration:** `2.0.7`
+- **Add-on:** `6.0.10`
+- **Integration:** `2.0.10`
 
 ## Qualitätssicherung
 

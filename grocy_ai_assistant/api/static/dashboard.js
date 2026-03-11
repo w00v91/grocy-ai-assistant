@@ -93,9 +93,12 @@ function clearSearchInput() {
 function renderShoppingList(items) {
   const list = document.getElementById('shopping-list');
   if (!items.length) {
-    list.innerHTML = '<li>Keine Einträge in der Einkaufsliste.</li>';
+    list.innerHTML = '';
+    list.classList.add('hidden');
     return;
   }
+
+  list.classList.remove('hidden');
 
   list.innerHTML = items.map((item) => `
     <li>
@@ -290,6 +293,12 @@ document.getElementById('variant-list').addEventListener('click', (event) => {
   confirmVariant(productId, productName);
 });
 
+document.addEventListener('change', (event) => {
+  if (event.target && event.target.closest('#location-filters')) {
+    loadStockProducts();
+  }
+});
+
 document.getElementById('name').addEventListener('input', () => {
   updateClearButtonVisibility();
   clearTimeout(variantsDebounce);
@@ -302,13 +311,35 @@ const savedTheme = localStorage.getItem(themeStorageKey) || 'light';
 applyTheme(savedTheme);
 updateClearButtonVisibility();
 loadShoppingList();
-loadStockProducts();
+loadLocations();
 
+
+function getSelectedLocationIds() {
+  return Array.from(document.querySelectorAll('#location-filters input[type="checkbox"]:checked'))
+    .map((checkbox) => Number(checkbox.value));
+}
+
+function renderLocations(items) {
+  const container = document.getElementById('location-filters');
+  if (!container) return;
+
+  if (!items.length) {
+    container.innerHTML = '<div class="muted">Keine Lagerstandorte gefunden.</div>';
+    return;
+  }
+
+  container.innerHTML = items.map((item) => `
+    <label class="stock-item">
+      <input type="checkbox" value="${item.id}" checked />
+      <span><strong>${item.name}</strong></span>
+    </label>
+  `).join('');
+}
 
 function renderStockProducts(items) {
   const container = document.getElementById('stock-products');
   if (!items.length) {
-    container.innerHTML = '<div class="muted">Keine Produkte im Lager/Kühlschrank gefunden.</div>';
+    container.innerHTML = '<div class="muted">Keine Produkte für die ausgewählten Lagerstandorte gefunden.</div>';
     return;
   }
 
@@ -337,12 +368,36 @@ function renderRecipeList(elementId, items, emptyText) {
   `).join('');
 }
 
+async function loadLocations() {
+  const key = ensureApiKey();
+  if (!key) return;
+
+  try {
+    const res = await fetch(buildApiUrl('/api/dashboard/locations'), {
+      headers: { 'Authorization': `Bearer ${key}` },
+    });
+    const payload = await parseJsonSafe(res);
+
+    if (!res.ok) {
+      document.getElementById('status').textContent = payload.detail || 'Standorte konnten nicht geladen werden.';
+      return;
+    }
+
+    renderLocations(payload);
+    await loadStockProducts();
+  } catch (_) {
+    document.getElementById('status').textContent = 'Standorte konnten nicht geladen werden (Netzwerk-/Ingress-Fehler).';
+  }
+}
+
 async function loadStockProducts() {
   const key = ensureApiKey();
   if (!key) return;
 
   try {
-    const res = await fetch(buildApiUrl('/api/dashboard/stock-products'), {
+    const selectedLocationIds = getSelectedLocationIds();
+    const query = selectedLocationIds.length ? `?location_ids=${selectedLocationIds.join(',')}` : '';
+    const res = await fetch(buildApiUrl(`/api/dashboard/stock-products${query}`), {
       headers: { 'Authorization': `Bearer ${key}` },
     });
     const payload = await parseJsonSafe(res);
@@ -369,6 +424,7 @@ async function loadRecipeSuggestions() {
 
   const selectedIds = Array.from(document.querySelectorAll('#stock-products input[type="checkbox"]:checked'))
     .map((checkbox) => Number(checkbox.value));
+  const selectedLocationIds = getSelectedLocationIds();
 
   status.textContent = selectedIds.length
     ? 'Lade Rezeptvorschläge für Auswahl...'
@@ -378,7 +434,7 @@ async function loadRecipeSuggestions() {
     const res = await fetch(buildApiUrl('/api/dashboard/recipe-suggestions'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
-      body: JSON.stringify({ product_ids: selectedIds }),
+      body: JSON.stringify({ product_ids: selectedIds, location_ids: selectedLocationIds }),
     });
     const payload = await parseJsonSafe(res);
 

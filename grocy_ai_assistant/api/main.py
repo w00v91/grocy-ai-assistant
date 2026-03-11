@@ -12,6 +12,7 @@ from fastapi.staticfiles import StaticFiles
 
 from grocy_ai_assistant.api.routes import router
 from grocy_ai_assistant.config.settings import get_settings
+from grocy_ai_assistant.services.location_cache import LocationCache
 from grocy_ai_assistant.services.product_image_cache import ProductImageCache
 
 logging.basicConfig(
@@ -26,12 +27,16 @@ logger = logging.getLogger(__name__)
 async def _lifespan(app: FastAPI):
     settings = get_settings()
     image_cache = ProductImageCache(settings)
+    location_cache = LocationCache(settings)
     image_cache.start()
+    location_cache.start()
     app.state.product_image_cache = image_cache
+    app.state.location_cache = location_cache
     try:
         yield
     finally:
         image_cache.stop()
+        location_cache.stop()
 
 
 def create_app() -> FastAPI:

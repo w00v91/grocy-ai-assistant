@@ -50,12 +50,19 @@ class ProductVariantResponse(BaseModel):
 class StockProductResponse(BaseModel):
     id: int
     name: str
+    location_id: int | None = None
     location_name: str = ""
     amount: str = ""
 
 
+class LocationResponse(BaseModel):
+    id: int
+    name: str
+
+
 class RecipeSuggestionRequest(BaseModel):
     product_ids: list[int] = Field(default_factory=list)
+    location_ids: list[int] = Field(default_factory=list)
 
 
 class RecipeSuggestionItem(BaseModel):
