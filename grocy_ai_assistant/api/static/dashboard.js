@@ -150,14 +150,20 @@ function renderVariants(items) {
 
   section.classList.remove('hidden');
 
-  list.innerHTML = items.map((item) => `
+  list.innerHTML = items.map((item) => {
+    const productId = item.id ?? '';
+    const source = item.source || 'grocy';
+    const sourceLabel = source === 'ai' ? 'KI-Vorschlag' : 'Grocy';
+    return `
     <div class="variant-card">
-      <button type="button" class="variant-select" data-product-id="${item.id}" data-product-name="${encodeURIComponent(item.name)}">
+      <button type="button" class="variant-select" data-product-id="${productId}" data-product-name="${encodeURIComponent(item.name)}" data-product-source="${source}">
         <img src="${toImageSource(item.picture_url)}" alt="${item.name}" loading="lazy" />
         <div><strong>${item.name}</strong></div>
+        <small class="muted">${sourceLabel}</small>
       </button>
     </div>
-  `).join('');
+  `;
+  }).join('');
 }
 
 async function loadVariants() {
@@ -211,6 +217,12 @@ async function confirmVariant(productId, productName) {
     status.textContent = payload.message || payload.detail || 'Unbekannte Antwort';
 
     if (res.ok) {
+      const variants = payload.variants || [];
+      if (payload.action === 'variant_selection_required' && variants.length) {
+        renderVariants(variants);
+        return;
+      }
+
       document.getElementById('variant-list').innerHTML = '';
       document.getElementById('variant-section').classList.add('hidden');
       await loadShoppingList();
@@ -274,6 +286,12 @@ async function searchProduct() {
     status.textContent = payload.message || payload.detail || 'Unbekannte Antwort';
 
     if (res.ok) {
+      const variants = payload.variants || [];
+      if (payload.action === 'variant_selection_required' && variants.length) {
+        renderVariants(variants);
+        return;
+      }
+
       document.getElementById('variant-list').innerHTML = '';
       document.getElementById('variant-section').classList.add('hidden');
       await loadShoppingList();
@@ -288,8 +306,21 @@ document.getElementById('variant-list').addEventListener('click', (event) => {
   const target = event.target.closest('.variant-select');
   if (!target) return;
 
-  const productId = Number(target.dataset.productId);
+  const productIdRaw = target.dataset.productId;
+  const productId = Number(productIdRaw);
   const productName = decodeURIComponent(target.dataset.productName || '');
+  const source = target.dataset.productSource || 'grocy';
+
+  if (!Number.isFinite(productId) || !productIdRaw) {
+    searchSuggestedProduct(productName);
+    return;
+  }
+
+  if (source === 'ai') {
+    searchSuggestedProduct(productName);
+    return;
+  }
+
   confirmVariant(productId, productName);
 });
 
@@ -313,6 +344,13 @@ updateClearButtonVisibility();
 loadShoppingList();
 loadLocations();
 
+
+async function searchSuggestedProduct(productName) {
+  const nameInput = document.getElementById('name');
+  nameInput.value = productName;
+  updateClearButtonVisibility();
+  await searchProduct();
+}
 
 function getSelectedLocationIds() {
   return Array.from(document.querySelectorAll('#location-filters input[type="checkbox"]:checked'))

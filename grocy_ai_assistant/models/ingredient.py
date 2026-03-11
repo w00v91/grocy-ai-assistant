@@ -31,6 +31,7 @@ class DashboardSearchResponse(BaseModel):
     action: str
     message: str
     product_id: Optional[int] = None
+    variants: list["ProductVariantResponse"] = Field(default_factory=list)
 
 
 class ShoppingListItemResponse(BaseModel):
@@ -42,9 +43,10 @@ class ShoppingListItemResponse(BaseModel):
 
 
 class ProductVariantResponse(BaseModel):
-    id: int
+    id: Optional[int] = None
     name: str
     picture_url: str = ""
+    source: str = "grocy"
 
 
 class StockProductResponse(BaseModel):

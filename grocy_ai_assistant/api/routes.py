@@ -88,6 +88,66 @@ def _get_location_cache(request: Request):
     return getattr(request.app.state, "location_cache", None)
 
 
+def _variant_from_grocy_product(
+    product: dict, settings: Settings
+) -> ProductVariantResponse:
+    return ProductVariantResponse(
+        id=product.get("id"),
+        name=product.get("name") or "Unbekanntes Produkt",
+        picture_url=_build_dashboard_picture_proxy_url(
+            product.get("picture_url") or product.get("picture_file_name") or "",
+            settings,
+        ),
+        source="grocy",
+    )
+
+
+def _build_fallback_variants(
+    product_name: str,
+    grocy_client: GrocyClient,
+    detector: IngredientDetector,
+    settings: Settings,
+) -> list[ProductVariantResponse]:
+    variants: list[ProductVariantResponse] = []
+    seen_names: set[str] = set()
+
+    for product in grocy_client.search_products_by_partial_name(product_name):
+        variant = _variant_from_grocy_product(product, settings)
+        normalized_name = variant.name.casefold()
+        if normalized_name in seen_names:
+            continue
+        variants.append(variant)
+        seen_names.add(normalized_name)
+
+    ai_suggestions = detector.suggest_similar_products(product_name)
+    for item in ai_suggestions:
+        suggested_name = str(item.get("name") or "").strip()
+        if not suggested_name:
+            continue
+
+        for product in grocy_client.search_products_by_partial_name(suggested_name):
+            variant = _variant_from_grocy_product(product, settings)
+            normalized_name = variant.name.casefold()
+            if normalized_name in seen_names:
+                continue
+            variants.append(variant)
+            seen_names.add(normalized_name)
+
+        normalized_suggestion = suggested_name.casefold()
+        if normalized_suggestion not in seen_names:
+            variants.append(
+                ProductVariantResponse(
+                    id=None,
+                    name=suggested_name,
+                    picture_url="",
+                    source="ai",
+                )
+            )
+            seen_names.add(normalized_suggestion)
+
+    return variants[:10]
+
+
 def require_auth(
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_auth),
     settings: Settings = Depends(get_settings),
@@ -173,16 +233,7 @@ def dashboard_search_variants(
         grocy_client = GrocyClient(settings)
         matches = grocy_client.search_products_by_partial_name(query)
         return [
-            ProductVariantResponse(
-                id=product.get("id"),
-                name=product.get("name") or "Unbekanntes Produkt",
-                picture_url=_build_dashboard_picture_proxy_url(
-                    product.get("picture_url")
-                    or product.get("picture_file_name")
-                    or "",
-                    settings,
-                ),
-            )
+            _variant_from_grocy_product(product, settings)
             for product in matches
             if product.get("id")
         ]
@@ -247,6 +298,23 @@ def dashboard_search(
                 success=True,
                 action="existing_added",
                 message=f"{product_name} war vorhanden und wurde zur Einkaufsliste hinzugefügt.",
+            )
+
+        fallback_variants = _build_fallback_variants(
+            product_name=product_name,
+            grocy_client=grocy_client,
+            detector=detector,
+            settings=settings,
+        )
+        if fallback_variants:
+            return DashboardSearchResponse(
+                success=False,
+                action="variant_selection_required",
+                message=(
+                    f"{product_name} wurde nicht direkt als Produkt übernommen. "
+                    "Bitte wähle ein passendes Produkt aus den Vorschlägen."
+                ),
+                variants=fallback_variants,
             )
 
         cache = _get_location_cache(request)
