@@ -632,7 +632,7 @@ def _render_dashboard(settings: Settings, request: Request):
         "dashboard.html",
         {
             "configured_api_key": settings.api_key,
-            "api_base_path": api_base_path,
+            "api_base_path": resolved_base_path,
             "static_base_path": static_base_path,
         },
     )
