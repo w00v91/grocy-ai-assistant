@@ -322,6 +322,12 @@ img {
   display: flex;
   align-items: center;
   gap: 0.65rem;
+  cursor: pointer;
+  padding: 0.45rem;
+  border-radius: 10px;
+}
+.recipe-item:hover {
+  background: var(--item-bg);
 }
 .recipe-thumb {
   width: 56px;
@@ -467,3 +473,6 @@ img {
 @media (max-width: 640px) {
   .shopping-details-grid { grid-template-columns: 1fr; }
 }
+
+#recipe-modal-preparation { white-space: pre-wrap; }
+#recipe-modal-missing-products { margin: 0.4rem 0 0.8rem; padding-left: 1.1rem; }

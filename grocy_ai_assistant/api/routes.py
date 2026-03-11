@@ -608,15 +608,25 @@ def dashboard_recipe_suggestions(
             scored.append((score, recipe, reason))
 
         scored.sort(key=lambda row: (-row[0], str(row[1].get("name") or "").casefold()))
-        grocy_recipes = [
-            RecipeSuggestionItem(
-                title=str(recipe.get("name") or "Unbenanntes Rezept"),
-                source="grocy",
-                reason=reason,
-                picture_url=str(recipe.get("picture_url") or ""),
+        grocy_recipes = []
+        for _, recipe, reason in scored[:5]:
+            recipe_id = int(recipe.get("id")) if str(recipe.get("id") or "").isdigit() else None
+            missing_products = (
+                grocy_client.get_missing_recipe_products(recipe_id)
+                if recipe_id is not None
+                else []
             )
-            for _, recipe, reason in scored[:5]
-        ]
+            grocy_recipes.append(
+                RecipeSuggestionItem(
+                    recipe_id=recipe_id,
+                    title=str(recipe.get("name") or "Unbenanntes Rezept"),
+                    source="grocy",
+                    reason=reason,
+                    preparation=str(recipe.get("description") or ""),
+                    picture_url=str(recipe.get("picture_url") or ""),
+                    missing_products=missing_products,
+                )
+            )
 
         detector = IngredientDetector(settings)
         ai_raw = detector.generate_recipe_suggestions(
@@ -643,6 +653,7 @@ def dashboard_recipe_suggestions(
                 title=str(item.get("title") or "KI-Rezept"),
                 source="ai",
                 reason=str(item.get("reason") or ""),
+                preparation=str(item.get("preparation") or ""),
                 picture_url="",
             )
             for item in ai_raw[:5]
@@ -666,6 +677,45 @@ def dashboard_recipe_suggestions(
         )
         raise HTTPException(status_code=500, detail=str(error)) from error
 
+
+
+
+@router.post("/api/dashboard/recipe/{recipe_id}/add-missing")
+def dashboard_add_missing_recipe_products(
+    recipe_id: int,
+    request: Request,
+    _: None = Depends(require_auth),
+    settings: Settings = Depends(get_settings),
+):
+    if not settings.grocy_api_key:
+        raise HTTPException(
+            status_code=500, detail="grocy_api_key fehlt in Add-on Optionen"
+        )
+
+    try:
+        grocy_client = GrocyClient(settings)
+        missing_products = grocy_client.get_missing_recipe_products(recipe_id)
+        added_count = 0
+        for product in missing_products:
+            product_id = product.get("id")
+            if isinstance(product_id, int):
+                grocy_client.add_product_to_shopping_list(product_id)
+                added_count += 1
+
+        return {
+            "success": True,
+            "added_items": added_count,
+            "message": f"{added_count} fehlende Produkte wurden zur Einkaufsliste hinzugefügt.",
+        }
+    except Exception as error:
+        log_api_error(
+            logger,
+            request=request,
+            status_code=500,
+            message=str(error),
+            exc=error,
+        )
+        raise HTTPException(status_code=500, detail=str(error)) from error
 
 @router.delete("/api/dashboard/shopping-list/item/{shopping_list_id}")
 def dashboard_delete_shopping_list_item(

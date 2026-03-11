@@ -7,6 +7,7 @@ const ingressPrefixMatch = window.location.pathname.match(/^\/api\/hassio_ingres
 const ingressPrefix = ingressPrefixMatch ? ingressPrefixMatch[0] : '';
 
 let pendingRequests = 0;
+let activeRecipeItem = null;
 
 function setBusyState(isBusy) {
   const spinner = document.getElementById('activity-spinner');
@@ -554,6 +555,8 @@ document.getElementById('name').addEventListener('input', () => {
 const savedTheme = localStorage.getItem(themeStorageKey) || 'light';
 applyTheme(savedTheme);
 updateClearButtonVisibility();
+const addMissingButton = document.getElementById('recipe-add-missing-button');
+if (addMissingButton) addMissingButton.addEventListener('click', addMissingRecipeProducts);
 loadShoppingList();
 loadLocations();
 
@@ -617,7 +620,7 @@ function renderRecipeList(elementId, items, emptyText) {
   }
 
   list.innerHTML = items.map((item) => `
-    <li class="recipe-item">
+    <li class="recipe-item" data-recipe-item="${encodeURIComponent(JSON.stringify(item))}">
       ${item.picture_url ? `<img class="recipe-thumb" src="${item.picture_url}" alt="${item.title}" loading="lazy" />` : '<div class="recipe-thumb recipe-thumb-fallback">🍽️</div>'}
       <div>
         <div><strong>${item.title}</strong></div>
@@ -625,6 +628,8 @@ function renderRecipeList(elementId, items, emptyText) {
       </div>
     </li>
   `).join('');
+
+  bindRecipeItemInteractions();
 }
 
 async function loadLocations() {
@@ -717,4 +722,75 @@ async function loadRecipeSuggestions() {
   }
 
   });
+}
+
+
+function openRecipeDetails(item) {
+  const modal = document.getElementById('recipe-modal');
+  const title = document.getElementById('recipe-modal-title');
+  const reason = document.getElementById('recipe-modal-reason');
+  const preparation = document.getElementById('recipe-modal-preparation');
+  const missingProducts = document.getElementById('recipe-modal-missing-products');
+  const addButton = document.getElementById('recipe-add-missing-button');
+
+  activeRecipeItem = item;
+  title.textContent = item.title || 'Rezeptdetails';
+  reason.textContent = item.reason || '';
+  preparation.textContent = item.preparation || 'Keine Zubereitungsdetails vorhanden.';
+
+  const missingItems = Array.isArray(item.missing_products) ? item.missing_products : [];
+  if (!missingItems.length) {
+    missingProducts.innerHTML = '<li class="muted">Keine fehlenden Produkte.</li>';
+  } else {
+    missingProducts.innerHTML = missingItems.map((product) => `<li>${product.name}</li>`).join('');
+  }
+
+  addButton.disabled = !(item.source === 'grocy' && Number.isInteger(item.recipe_id));
+  modal.classList.remove('hidden');
+}
+
+function closeRecipeDetails() {
+  const modal = document.getElementById('recipe-modal');
+  modal.classList.add('hidden');
+  activeRecipeItem = null;
+}
+
+function bindRecipeItemInteractions() {
+  const recipes = document.querySelectorAll('.recipe-item[data-recipe-item]');
+  recipes.forEach((recipe) => {
+    recipe.style.cursor = 'pointer';
+    recipe.onclick = () => {
+      try {
+        const payloadText = decodeURIComponent(recipe.dataset.recipeItem || '');
+        const payload = JSON.parse(payloadText || '{}');
+        openRecipeDetails(payload);
+      } catch (_) {
+        // ignore malformed payload
+      }
+    };
+  });
+}
+
+async function addMissingRecipeProducts() {
+  const key = ensureApiKey();
+  const status = document.getElementById('status');
+  if (!key || !activeRecipeItem || !Number.isInteger(activeRecipeItem.recipe_id)) return;
+
+  try {
+    const res = await fetch(buildApiUrl(`/api/dashboard/recipe/${activeRecipeItem.recipe_id}/add-missing`), {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${key}` },
+    });
+    const payload = await parseJsonSafe(res);
+    if (!res.ok) {
+      status.textContent = getErrorMessage(payload, 'Fehlende Produkte konnten nicht hinzugefügt werden.');
+      return;
+    }
+
+    status.textContent = payload.message || 'Fehlende Produkte wurden hinzugefügt.';
+    closeRecipeDetails();
+    await loadShoppingList();
+  } catch (_) {
+    status.textContent = 'Fehlende Produkte konnten nicht hinzugefügt werden (Netzwerk-/Ingress-Fehler).';
+  }
 }
