@@ -274,10 +274,7 @@ def test_product_picture_proxy_rejects_foreign_hosts(client):
 
     assert response.status_code == 400
     payload = response.json()
-    assert (
-        payload.get("detail") == "Ungültige Bildquelle"
-        or payload.get("error", {}).get("message") == "Ungültige Bildquelle"
-    )
+    assert payload.get("detail") == "Ungültige Bildquelle" or payload.get("error", {}).get("message") == "Ungültige Bildquelle"
 
 
 def test_dashboard_handles_network_errors_in_ui(client):
@@ -600,15 +597,14 @@ def test_dashboard_swipe_actions_match_labels(client):
 def test_shopping_list_item_can_be_deleted(client, monkeypatch):
     captured = {}
 
-    def fake_delete_shopping_list_item(self, shopping_list_id):
+    def fake_get_shopping_list(self):
+        return [{"id": 42, "amount": "2"}]
+
+    def fake_delete_shopping_list_item(self, shopping_list_id, amount="1"):
         captured["shopping_list_id"] = shopping_list_id
+        captured["amount"] = amount
 
-    monkeypatch.setattr(
-        routes.GrocyClient,
-        "delete_shopping_list_item",
-        fake_delete_shopping_list_item,
-    )
-
+    monkeypatch.setattr(routes.GrocyClient, "get_shopping_list", fake_get_shopping_list)
     response = client.delete(
         "/api/dashboard/shopping-list/item/42",
         headers={"Authorization": "Bearer test-api-key"},
@@ -617,6 +613,7 @@ def test_shopping_list_item_can_be_deleted(client, monkeypatch):
     assert response.status_code == 200
     assert captured["shopping_list_id"] == 42
     assert response.json()["success"] is True
+    assert captured["amount"] == "2"
 
 
 def test_shopping_list_can_be_completed(client, monkeypatch):
@@ -642,6 +639,31 @@ def test_shopping_list_can_be_completed(client, monkeypatch):
     }
 
 
+def test_shopping_list_item_can_be_completed(client, monkeypatch):
+    captured = {}
+
+    def fake_get_shopping_list(self):
+        return [{"id": 9, "product_id": 11, "amount": "3"}]
+
+    def fake_complete_shopping_list_item(self, shopping_list_id, product_id, amount="1"):
+        captured["shopping_list_id"] = shopping_list_id
+        captured["product_id"] = product_id
+        captured["amount"] = amount
+
+    monkeypatch.setattr(routes.GrocyClient, "get_shopping_list", fake_get_shopping_list)
+    monkeypatch.setattr(
+        routes.GrocyClient,
+        "complete_shopping_list_item",
+        fake_complete_shopping_list_item,
+    )
+
+    response = client.post(
+        "/api/dashboard/shopping-list/item/9/complete",
+        headers={"Authorization": "Bearer test-api-key"},
+    )
+
+    assert response.status_code == 200
+    assert captured == {"shopping_list_id": 9, "product_id": 11, "amount": "3"}
 def test_dashboard_shows_activity_spinner_in_header(client):
     response = client.get("/")
 
