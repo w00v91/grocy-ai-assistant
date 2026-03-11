@@ -421,7 +421,7 @@ def test_recipe_suggestions_prioritize_grocy_then_ai(client, monkeypatch):
         ):
             assert selected_products == ["Tomate"]
             assert "Tomaten Pasta" in existing_recipe_titles
-            return [{"title": "Tomaten-Suppe", "reason": "Tomate ist vorhanden"}]
+            return [{"title": "Tomaten-Suppe", "reason": "Tomate ist vorhanden", "preparation": "Tomaten schneiden und köcheln."}]
 
     monkeypatch.setattr(
         routes.GrocyClient, "get_stock_products", fake_get_stock_products
@@ -444,6 +444,7 @@ def test_recipe_suggestions_prioritize_grocy_then_ai(client, monkeypatch):
     assert payload["grocy_recipes"][0]["recipe_id"] == 10
     assert payload["grocy_recipes"][0]["preparation"] == "Pasta kochen"
     assert payload["ai_recipes"][0]["source"] == "ai"
+    assert payload["ai_recipes"][0]["preparation"] == "Tomaten schneiden und köcheln."
 
 
 def test_recipe_suggestions_uses_stock_products_when_selection_is_empty(
@@ -701,6 +702,34 @@ def test_shopping_list_item_can_be_completed(client, monkeypatch):
 
     assert response.status_code == 200
     assert captured == {"shopping_list_id": 9, "product_id": 11, "amount": "3"}
+
+
+def test_shopping_list_item_can_be_completed_with_legacy_endpoint(client, monkeypatch):
+    captured = {}
+
+    def fake_get_shopping_list(self):
+        return [{"id": 9, "product_id": 11, "amount": "3"}]
+
+    def fake_complete_shopping_list_item(self, shopping_list_id, product_id, amount="1"):
+        captured["shopping_list_id"] = shopping_list_id
+        captured["product_id"] = product_id
+        captured["amount"] = amount
+
+    monkeypatch.setattr(routes.GrocyClient, "get_shopping_list", fake_get_shopping_list)
+    monkeypatch.setattr(
+        routes.GrocyClient,
+        "complete_shopping_list_item",
+        fake_complete_shopping_list_item,
+    )
+
+    response = client.post(
+        "/api/dashboard/shopping-list/9/complete",
+        headers={"Authorization": "Bearer test-api-key"},
+    )
+
+    assert response.status_code == 200
+    assert captured == {"shopping_list_id": 9, "product_id": 11, "amount": "3"}
+
 def test_dashboard_shows_activity_spinner_in_header(client):
     response = client.get("/")
 

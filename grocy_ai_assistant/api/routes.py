@@ -707,6 +707,8 @@ def dashboard_add_missing_recipe_products(
             "added_items": added_count,
             "message": f"{added_count} fehlende Produkte wurden zur Einkaufsliste hinzugefügt.",
         }
+    except HTTPException:
+        raise
     except Exception as error:
         log_api_error(
             logger,
@@ -746,6 +748,8 @@ def dashboard_delete_shopping_list_item(
             "success": True,
             "message": f"Eintrag {shopping_list_id} gelöscht.",
         }
+    except HTTPException:
+        raise
     except Exception as error:
         log_api_error(
             logger,
@@ -802,6 +806,21 @@ def dashboard_complete_shopping_list_item(
             exc=error,
         )
         raise HTTPException(status_code=500, detail=str(error)) from error
+
+
+@router.post("/api/dashboard/shopping-list/{shopping_list_id}/complete")
+def dashboard_complete_shopping_list_item_legacy(
+    shopping_list_id: int,
+    request: Request,
+    _: None = Depends(require_auth),
+    settings: Settings = Depends(get_settings),
+):
+    return dashboard_complete_shopping_list_item(
+        shopping_list_id=shopping_list_id,
+        request=request,
+        _=_,
+        settings=settings,
+    )
 
 
 @router.post("/api/dashboard/shopping-list/complete")
