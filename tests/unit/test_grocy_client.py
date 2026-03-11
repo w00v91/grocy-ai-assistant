@@ -196,8 +196,16 @@ def test_get_shopping_list_sorts_stock_endpoint_by_newest_first(monkeypatch):
         if url.endswith("/stock/shoppinglist"):
             return FakeResponse(
                 [
-                    {"id": 3, "product_name": "Alt", "row_created_timestamp": "2024-01-01 10:00:00"},
-                    {"id": 5, "product_name": "Neu", "row_created_timestamp": "2024-01-01 11:00:00"},
+                    {
+                        "id": 3,
+                        "product_name": "Alt",
+                        "row_created_timestamp": "2024-01-01 10:00:00",
+                    },
+                    {
+                        "id": 5,
+                        "product_name": "Neu",
+                        "row_created_timestamp": "2024-01-01 11:00:00",
+                    },
                     {"id": 4, "product_name": "Ohne Zeit"},
                 ]
             )
@@ -234,8 +242,16 @@ def test_get_shopping_list_sorts_objects_fallback_by_newest_first(monkeypatch):
         if url.endswith("/objects/shopping_list"):
             return FakeResponse(
                 [
-                    {"id": 7, "product_id": 10, "row_created_timestamp": "2024-01-01 08:00:00"},
-                    {"id": 8, "product_id": 10, "row_created_timestamp": "2024-01-01 09:00:00"},
+                    {
+                        "id": 7,
+                        "product_id": 10,
+                        "row_created_timestamp": "2024-01-01 08:00:00",
+                    },
+                    {
+                        "id": 8,
+                        "product_id": 10,
+                        "row_created_timestamp": "2024-01-01 09:00:00",
+                    },
                     {"id": 6, "product_id": 10},
                 ]
             )
@@ -530,3 +546,63 @@ def test_get_stock_products_uses_stock_location_for_filter_and_display(monkeypat
             "amount": "1",
         }
     ]
+
+
+def test_complete_shopping_item_posts_purchase(monkeypatch):
+    captured = {}
+
+    def fake_post(url, *args, **kwargs):
+        captured["url"] = url
+        captured["json"] = kwargs.get("json")
+        return FakeResponse({})
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.services.grocy_client.requests.post", fake_post
+    )
+
+    client = GrocyClient(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+        )
+    )
+
+    client.complete_shopping_item(12, 2.5)
+
+    assert captured["url"].endswith("/stock/shoppinglist/12/purchase")
+    assert captured["json"] == {"amount": 2.5, "transaction_type": "purchase"}
+
+
+def test_complete_shopping_list_marks_all_entries(monkeypatch):
+    called = []
+
+    def fake_get_shopping_list(self):
+        return [
+            {"id": 1, "amount": "2"},
+            {"id": 2, "amount": ""},
+            {"id": None, "amount": 5},
+        ]
+
+    def fake_complete_shopping_item(self, item_id, amount=1.0):
+        called.append((item_id, amount))
+
+    monkeypatch.setattr(GrocyClient, "get_shopping_list", fake_get_shopping_list)
+    monkeypatch.setattr(
+        GrocyClient, "complete_shopping_item", fake_complete_shopping_item
+    )
+
+    client = GrocyClient(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+        )
+    )
+
+    completed_items = client.complete_shopping_list()
+
+    assert completed_items == 2
+    assert called == [(1, 2.0), (2, 1.0)]

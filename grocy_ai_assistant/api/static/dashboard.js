@@ -107,16 +107,23 @@ function renderShoppingList(items) {
   list.classList.remove('hidden');
 
   list.innerHTML = items.map((item) => `
-    <li>
-      <img src="${toImageSource(item.picture_url)}" alt="${item.product_name}" loading="lazy" />
-      <div>
-        <div><strong>${item.product_name}</strong></div>
-        <div class="muted">${item.note || 'Keine Notiz'}</div>
-      </div>
-      <span class="badge">Menge: ${item.amount}</span>
+    <li class="shopping-item" data-item-id="${item.id}">
+      <div class="shopping-item-swipe-hint shopping-item-swipe-left">← Löschen</div>
+      <div class="shopping-item-swipe-hint shopping-item-swipe-right">Einkaufen →</div>
+      <button type="button" class="shopping-item-main" data-action="open-details" data-item-id="${item.id}">
+        <img src="${toImageSource(item.picture_url)}" alt="${item.product_name}" loading="lazy" />
+        <div>
+          <div><strong>${item.product_name}</strong></div>
+          <div class="muted">${item.note || 'Keine Notiz'}</div>
+        </div>
+        <span class="badge">Menge: ${item.amount}</span>
+      </button>
     </li>
   `).join('');
+
+  attachShoppingSwipeHandlers();
 }
+
 
 async function loadShoppingList() {
   const key = ensureApiKey();
@@ -238,6 +245,164 @@ async function confirmVariant(productId, productName) {
   }
 }
 
+
+async function loadShoppingItemDetails(itemId) {
+  const key = ensureApiKey();
+  const status = document.getElementById('status');
+  if (!key) {
+    status.textContent = 'Kein API-Key angegeben.';
+    return;
+  }
+
+  try {
+    const res = await fetch(buildApiUrl(`/api/dashboard/shopping-list/item/${itemId}/details`), {
+      headers: { 'Authorization': `Bearer ${key}` },
+    });
+    const payload = await parseJsonSafe(res);
+
+    if (!res.ok) {
+      status.textContent = getErrorMessage(payload, 'Details konnten nicht geladen werden.');
+      return;
+    }
+
+    openShoppingItemDetails(payload);
+  } catch (_) {
+    status.textContent = 'Details konnten nicht geladen werden (Netzwerk-/Ingress-Fehler).';
+  }
+}
+
+function openShoppingItemDetails(details) {
+  const modal = document.getElementById('shopping-details-modal');
+  document.getElementById('shopping-details-title').textContent = details.product_name || 'Produktdetails';
+  document.getElementById('detail-stock-amount').textContent = details.stock_amount || '-';
+  document.getElementById('detail-min-stock-amount').textContent = details.min_stock_amount || '-';
+  document.getElementById('detail-best-before-date').textContent = details.best_before_date || '-';
+  document.getElementById('detail-location-name').textContent = details.location_name || '-';
+  document.getElementById('detail-shopping-note').textContent = details.shopping_note || '-';
+  document.getElementById('detail-calories').textContent = details.calories || '-';
+  document.getElementById('detail-carbohydrates').textContent = details.carbohydrates || '-';
+  document.getElementById('detail-fat').textContent = details.fat || '-';
+  document.getElementById('detail-protein').textContent = details.protein || '-';
+  modal.classList.remove('hidden');
+}
+
+function closeShoppingItemDetails() {
+  document.getElementById('shopping-details-modal').classList.add('hidden');
+}
+
+async function deleteShoppingItem(itemId) {
+  const key = ensureApiKey();
+  const status = document.getElementById('status');
+  if (!key) {
+    status.textContent = 'Kein API-Key angegeben.';
+    return;
+  }
+
+  try {
+    const res = await fetch(buildApiUrl(`/api/dashboard/shopping-list/item/${itemId}`), {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${key}` },
+    });
+    const payload = await parseJsonSafe(res);
+    status.textContent = payload.message || getErrorMessage(payload, 'Eintrag konnte nicht gelöscht werden.');
+    if (res.ok) {
+      await loadShoppingList();
+    }
+  } catch (_) {
+    status.textContent = 'Eintrag konnte nicht gelöscht werden (Netzwerk-/Ingress-Fehler).';
+  }
+}
+
+async function purchaseShoppingItem(itemId) {
+  const key = ensureApiKey();
+  const status = document.getElementById('status');
+  if (!key) {
+    status.textContent = 'Kein API-Key angegeben.';
+    return;
+  }
+
+  try {
+    const res = await fetch(buildApiUrl(`/api/dashboard/shopping-list/item/${itemId}/purchase`), {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${key}` },
+    });
+    const payload = await parseJsonSafe(res);
+    status.textContent = payload.message || getErrorMessage(payload, 'Eintrag konnte nicht als eingekauft markiert werden.');
+    if (res.ok) {
+      await loadShoppingList();
+    }
+  } catch (_) {
+    status.textContent = 'Eintrag konnte nicht markiert werden (Netzwerk-/Ingress-Fehler).';
+  }
+}
+
+async function completeShoppingList() {
+  const key = ensureApiKey();
+  const status = document.getElementById('status');
+  if (!key) {
+    status.textContent = 'Kein API-Key angegeben.';
+    return;
+  }
+
+  status.textContent = 'Schließe Einkauf ab...';
+  try {
+    const res = await fetch(buildApiUrl('/api/dashboard/shopping-list/complete'), {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${key}` },
+    });
+    const payload = await parseJsonSafe(res);
+
+    if (!res.ok) {
+      status.textContent = getErrorMessage(payload, 'Einkauf konnte nicht abgeschlossen werden.');
+      return;
+    }
+
+    status.textContent = payload.message || 'Einkauf abgeschlossen.';
+    await loadShoppingList();
+  } catch (_) {
+    status.textContent = 'Einkauf konnte nicht abgeschlossen werden (Netzwerk-/Ingress-Fehler).';
+  }
+}
+
+function attachShoppingSwipeHandlers() {
+  const threshold = 70;
+  document.querySelectorAll('.shopping-item').forEach((item) => {
+    let startX = 0;
+    let currentX = 0;
+    let touching = false;
+
+    item.addEventListener('touchstart', (event) => {
+      touching = true;
+      startX = event.touches[0].clientX;
+      item.classList.add('is-swiping');
+    }, { passive: true });
+
+    item.addEventListener('touchmove', (event) => {
+      if (!touching) return;
+      currentX = event.touches[0].clientX - startX;
+      item.style.transform = `translateX(${currentX}px)`;
+      item.classList.toggle('swipe-left', currentX < -25);
+      item.classList.toggle('swipe-right', currentX > 25);
+    }, { passive: true });
+
+    item.addEventListener('touchend', async () => {
+      touching = false;
+      item.classList.remove('is-swiping');
+      const itemId = Number(item.dataset.itemId);
+      item.style.transform = '';
+      item.classList.remove('swipe-left', 'swipe-right');
+
+      if (!Number.isFinite(itemId)) return;
+      if (currentX <= -threshold) {
+        await deleteShoppingItem(itemId);
+      } else if (currentX >= threshold) {
+        await purchaseShoppingItem(itemId);
+      }
+      currentX = 0;
+    });
+  });
+}
+
 async function clearShoppingList() {
   const key = ensureApiKey();
   const status = document.getElementById('status');
@@ -328,6 +493,15 @@ document.getElementById('variant-list').addEventListener('click', (event) => {
   }
 
   confirmVariant(productId, productName);
+});
+
+document.getElementById('shopping-list').addEventListener('click', (event) => {
+  const detailsButton = event.target.closest('[data-action="open-details"]');
+  if (!detailsButton) return;
+
+  const itemId = Number(detailsButton.dataset.itemId);
+  if (!Number.isFinite(itemId)) return;
+  loadShoppingItemDetails(itemId);
 });
 
 document.addEventListener('change', (event) => {
@@ -494,3 +668,15 @@ async function loadRecipeSuggestions() {
     status.textContent = 'Rezeptvorschläge konnten nicht geladen werden (Netzwerk-/Ingress-Fehler).';
   }
 }
+
+document.getElementById('shopping-details-modal').addEventListener('click', (event) => {
+  if (event.target.id === 'shopping-details-modal') {
+    closeShoppingItemDetails();
+  }
+});
+
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape') {
+    closeShoppingItemDetails();
+  }
+});

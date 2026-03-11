@@ -61,7 +61,9 @@ class GrocyClient:
         parsed = ""
         if created:
             try:
-                parsed = datetime.fromisoformat(created.replace("Z", "+00:00")).isoformat()
+                parsed = datetime.fromisoformat(
+                    created.replace("Z", "+00:00")
+                ).isoformat()
             except ValueError:
                 parsed = created
 
@@ -283,6 +285,36 @@ class GrocyClient:
         response.raise_for_status()
         return response.json()
 
+    def get_product(self, product_id: int) -> Dict[str, Any]:
+        response = requests.get(
+            f"{self.settings.grocy_base_url}/objects/products/{product_id}",
+            headers=self.headers,
+            timeout=30,
+        )
+        response.raise_for_status()
+        payload = response.json()
+        return payload if isinstance(payload, dict) else {}
+
+    def get_stock_entries_for_product(self, product_id: int) -> list[Dict[str, Any]]:
+        response = requests.get(
+            f"{self.settings.grocy_base_url}/stock/products/{product_id}",
+            headers=self.headers,
+            timeout=30,
+        )
+        response.raise_for_status()
+        payload = response.json()
+        entries = payload if isinstance(payload, list) else []
+        return [entry for entry in entries if isinstance(entry, dict)]
+
+    def complete_shopping_item(self, item_id: int, amount: float = 1.0) -> None:
+        response = requests.post(
+            f"{self.settings.grocy_base_url}/stock/shoppinglist/{item_id}/purchase",
+            headers=self.headers,
+            json={"amount": amount, "transaction_type": "purchase"},
+            timeout=30,
+        )
+        response.raise_for_status()
+
     def clear_shopping_list(self) -> int:
         items = self.get_shopping_list()
         removed_items = 0
@@ -301,3 +333,25 @@ class GrocyClient:
             removed_items += 1
 
         return removed_items
+
+    def complete_shopping_list(self) -> int:
+        items = self.get_shopping_list()
+        completed_items = 0
+
+        for item in items:
+            item_id = self._safe_int(item.get("id"))
+            if item_id is None:
+                continue
+
+            amount_raw = item.get("amount")
+            try:
+                amount = float(amount_raw)
+            except (TypeError, ValueError):
+                amount = 1.0
+            if amount <= 0:
+                amount = 1.0
+
+            self.complete_shopping_item(item_id, amount)
+            completed_items += 1
+
+        return completed_items

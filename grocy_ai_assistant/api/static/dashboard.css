@@ -193,6 +193,13 @@ img {
   border-color: #b81b29;
 }
 .danger-button:hover { background: #b81b29; }
+.success-button {
+  margin-top: 0.85rem;
+  width: 100%;
+  background: #1f9d45;
+  border-color: #1a8239;
+}
+.success-button:hover { background: #1a8239; }
 .variant-section {
   margin-top: 1rem;
   padding-top: 1rem;
@@ -250,4 +257,93 @@ img {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 0.8rem;
+}
+
+
+.shopping-item {
+  position: relative;
+  overflow: hidden;
+  touch-action: pan-y;
+}
+.shopping-item-main {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  background: transparent;
+  border: none;
+  color: inherit;
+  padding: 0;
+  text-align: left;
+}
+.shopping-item-swipe-hint {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 120px;
+  display: flex;
+  align-items: center;
+  font-weight: 700;
+  opacity: 0;
+  pointer-events: none;
+}
+.shopping-item-swipe-left {
+  left: 0;
+  justify-content: flex-start;
+  padding-left: 0.8rem;
+  color: #fff;
+  background: #cf202f;
+}
+.shopping-item-swipe-right {
+  right: 0;
+  justify-content: flex-end;
+  padding-right: 0.8rem;
+  color: #fff;
+  background: #1f9d45;
+}
+.shopping-item.swipe-left .shopping-item-swipe-left,
+.shopping-item.swipe-right .shopping-item-swipe-right {
+  opacity: 1;
+}
+.details-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 40;
+  padding: 1rem;
+}
+.details-modal-content {
+  position: relative;
+  width: min(880px, 100%);
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 14px;
+  padding: 1rem;
+}
+.details-close {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+}
+.details-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.8rem;
+}
+.details-pane {
+  background: var(--item-bg);
+  border: 1px solid var(--item-border);
+  border-radius: 10px;
+  padding: 0.75rem;
+}
+@media (max-width: 640px) {
+  .details-grid {
+    grid-template-columns: 1fr;
+  }
 }
