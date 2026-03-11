@@ -73,6 +73,24 @@ class GrocyClient:
         has_timestamp = 1 if parsed else 0
         return has_timestamp, parsed, safe_item_id
 
+    @staticmethod
+    def _safe_int(value: Any) -> int | None:
+        if value is None:
+            return None
+        if isinstance(value, bool):
+            return None
+        if isinstance(value, int):
+            return value
+
+        if isinstance(value, float):
+            return int(value) if value.is_integer() else None
+
+        text = str(value).strip()
+        if not text:
+            return None
+
+        return int(text) if text.isdigit() else None
+
     def _get_all_products(self) -> list[Dict[str, Any]]:
         response = requests.get(
             f"{self.settings.grocy_base_url}/objects/products",
@@ -225,23 +243,25 @@ class GrocyClient:
 
         result: list[Dict[str, Any]] = []
         for entry in stock_entries:
-            product_id = entry.get("product_id")
+            product_id = self._safe_int(entry.get("product_id"))
             if product_id is None:
                 continue
 
-            product = products.get(int(product_id), {})
-            location_id = product.get("location_id") or entry.get("location_id")
-            location_name = locations.get(int(location_id), "") if location_id else ""
-
-            normalized_location_id = (
-                int(location_id) if location_id is not None else None
+            product = products.get(product_id, {})
+            stock_location_id = self._safe_int(entry.get("location_id"))
+            product_location_id = self._safe_int(product.get("location_id"))
+            normalized_location_id = stock_location_id or product_location_id
+            location_name = (
+                locations.get(normalized_location_id, "")
+                if normalized_location_id is not None
+                else ""
             )
             if allowed_locations and normalized_location_id not in allowed_locations:
                 continue
 
             result.append(
                 {
-                    "id": int(product_id),
+                    "id": product_id,
                     "name": product.get("name")
                     or entry.get("product_name")
                     or "Unbekanntes Produkt",
