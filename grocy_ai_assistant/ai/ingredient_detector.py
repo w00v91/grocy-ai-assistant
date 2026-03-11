@@ -77,9 +77,9 @@ class IngredientDetector:
 
         Gib NUR ein JSON-Array zurück.
         Jeder Eintrag muss exakt diese Struktur haben:
-        {
+        {{
           "name": "Produktname"
-        }
+        }}
 
         WICHTIG:
         - Nur sinnvolle Lebensmittel oder Getränke
