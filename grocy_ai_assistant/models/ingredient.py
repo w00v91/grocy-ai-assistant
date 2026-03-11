@@ -80,6 +80,7 @@ class RecipeSuggestionItem(BaseModel):
     title: str
     source: str
     reason: str = ""
+    picture_url: str = ""
 
 
 class RecipeSuggestionResponse(BaseModel):

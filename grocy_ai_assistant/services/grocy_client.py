@@ -61,7 +61,9 @@ class GrocyClient:
         parsed = ""
         if created:
             try:
-                parsed = datetime.fromisoformat(created.replace("Z", "+00:00")).isoformat()
+                parsed = datetime.fromisoformat(
+                    created.replace("Z", "+00:00")
+                ).isoformat()
             except ValueError:
                 parsed = created
 
@@ -73,6 +75,12 @@ class GrocyClient:
         has_timestamp = 1 if parsed else 0
         return has_timestamp, parsed, safe_item_id
 
+
+    @staticmethod
+    def _safe_str(value: Any) -> str:
+        if value is None:
+            return ""
+        return str(value).strip()
 
     @staticmethod
     def _safe_str(value: Any) -> str:
@@ -97,6 +105,17 @@ class GrocyClient:
             return None
 
         return int(text) if text.isdigit() else None
+
+    def _build_grocy_file_url(self, folder: str, file_name: Any) -> str:
+        normalized_file_name = self._safe_str(file_name)
+        if not normalized_file_name:
+            return ""
+
+        if normalized_file_name.startswith(("http://", "https://", "/")):
+            return normalized_file_name
+
+        base_url = self.settings.grocy_base_url.rstrip("/")
+        return f"{base_url}/files/{folder}/{normalized_file_name}"
 
     def _get_all_products(self) -> list[Dict[str, Any]]:
         response = requests.get(
@@ -230,6 +249,9 @@ class GrocyClient:
                         or ""
                     ),
                     "default_amount": str(product.get("default_best_before_days") or ""),
+                    "default_amount": str(
+                        product.get("default_best_before_days") or ""
+                    ),
                     "calories": str(product.get("calories") or ""),
                     "carbs": str(product.get("carbohydrates") or ""),
                     "fat": str(product.get("fat") or ""),
@@ -339,7 +361,31 @@ class GrocyClient:
             timeout=30,
         )
         response.raise_for_status()
-        return response.json()
+        recipes = response.json()
+        if not isinstance(recipes, list):
+            return []
+
+        normalized_recipes: list[Dict[str, Any]] = []
+        for recipe in recipes:
+            if not isinstance(recipe, dict):
+                continue
+
+            picture_url = self._safe_str(
+                recipe.get("picture_url")
+            ) or self._build_grocy_file_url(
+                "recipepictures", recipe.get("picture_file_name")
+            )
+            normalized_recipes.append({**recipe, "picture_url": picture_url})
+
+        return normalized_recipes
+
+    def delete_shopping_list_item(self, shopping_list_id: int) -> None:
+        response = requests.delete(
+            f"{self.settings.grocy_base_url}/objects/shopping_list/{shopping_list_id}",
+            headers=self.headers,
+            timeout=30,
+        )
+        response.raise_for_status()
 
     def delete_shopping_list_item(self, shopping_list_id: int, amount: str = "1") -> None:
         response = requests.post(
