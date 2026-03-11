@@ -85,6 +85,25 @@ black --check .
 
 ## Ergebnis der aktuellen Projektprüfung
 
+### Testumfang (Kurzüberblick)
+
+- API-Tests für Status, Dashboard, HTTPS-Redirect und Produkt-Workflow
+- Unit-Tests für Engine, Grocy-Client, Add-on-Client und Panel-URL-Logik
+- Hilfsfunktions-Tests für Produktbild-URL-Aufbereitung
+- Architektur-Test für Layering-Regeln zwischen `api`, `core`, `ai`, `services` und `custom_components`
+
+## Architektur-Review (aktueller Stand)
+
+Positiv aufgefallen:
+- Klare Schichtentrennung zwischen API (`api/`), Orchestrierung (`core/`), KI (`ai/`) und Infrastruktur (`services/`).
+- Solide Testabdeckung mit API- und Unit-Tests für Kernflüsse und Hilfslogik.
+- Dashboard als Template/Static aufgeteilt, wodurch Frontend-Änderungen strukturiert bleiben.
+
+In diesem Update verbessert:
+- Settings laden Standard-Versionen nun automatisch aus `config.json` (Add-on) und `manifest.json` (Integration), wodurch Versionsdrift zwischen Code und Metadaten verhindert wird.
+- Ergänzender Unit-Test stellt sicher, dass diese Versionen dauerhaft synchron bleiben.
+- Kleine Dokumentations- und Versionspflege für konsistente Release-Stände zwischen Add-on und Integration.
+
 Im Rahmen dieser Prüfung wurden folgende strukturelle Verbesserungen umgesetzt:
 
 - Root-`requirements.txt` ergänzt (delegiert auf `grocy_ai_assistant/requirements.txt`), damit Standard-Installationskommando konsistent funktioniert.
