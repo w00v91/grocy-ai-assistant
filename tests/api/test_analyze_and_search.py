@@ -6,7 +6,7 @@ def test_analyze_product_returns_detector_payload(client, monkeypatch):
         def __init__(self, settings):
             self.settings = settings
 
-        def analyze_product_name(self, name):
+        def analyze_product_name(self, name, locations=None):
             assert name == "Haferflocken"
             return {
                 "name": "Haferflocken",
@@ -64,7 +64,7 @@ def test_dashboard_search_creates_new_product_when_missing(client, monkeypatch):
         def __init__(self, settings):
             self.settings = settings
 
-        def analyze_product_name(self, name):
+        def analyze_product_name(self, name, locations=None):
             return {
                 "name": name,
                 "description": "bio",
@@ -74,12 +74,18 @@ def test_dashboard_search_creates_new_product_when_missing(client, monkeypatch):
                 "calories": 100,
             }
 
+        def suggest_similar_products(self, name):
+            return []
+
     class FakeGrocyClient:
         def __init__(self, settings):
             self.settings = settings
 
         def find_product_by_name(self, name):
             return None
+
+        def search_products_by_partial_name(self, query):
+            return []
 
         def create_product(self, payload):
             calls["created"] = payload
@@ -167,3 +173,89 @@ def test_dashboard_add_existing_product_adds_to_shopping_list(client, monkeypatc
     assert response.status_code == 200
     assert response.json()["action"] == "existing_added"
     assert calls == [(11, 1)]
+
+
+def test_dashboard_search_returns_fallback_variants_for_incomplete_query(
+    client, monkeypatch
+):
+    class FakeDetector:
+        def __init__(self, settings):
+            self.settings = settings
+
+        def suggest_similar_products(self, name):
+            assert name == "apf"
+            return [{"name": "Apfel"}, {"name": "Apfelessig"}]
+
+        def analyze_product_name(self, name, locations=None):
+            raise AssertionError(
+                "analyze_product_name should not run when fallback variants exist"
+            )
+
+    class FakeGrocyClient:
+        def __init__(self, settings):
+            self.settings = settings
+
+        def find_product_by_name(self, name):
+            return None
+
+        def search_products_by_partial_name(self, query):
+            if query == "apf":
+                return [{"id": 1, "name": "Apfel", "picture_url": ""}]
+            if query == "Apfelessig":
+                return [{"id": 2, "name": "Apfelessig", "picture_url": ""}]
+            return []
+
+    monkeypatch.setattr(routes, "IngredientDetector", FakeDetector)
+    monkeypatch.setattr(routes, "GrocyClient", FakeGrocyClient)
+
+    response = client.post(
+        "/api/dashboard/search",
+        headers={"Authorization": "Bearer test-api-key"},
+        json={"name": "apf"},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["success"] is False
+    assert payload["action"] == "variant_selection_required"
+    assert [item["name"] for item in payload["variants"]] == ["Apfel", "Apfelessig"]
+
+
+def test_dashboard_search_keeps_ai_variant_without_grocy_match(client, monkeypatch):
+    class FakeDetector:
+        def __init__(self, settings):
+            self.settings = settings
+
+        def suggest_similar_products(self, name):
+            return [{"name": "Apfelschale"}]
+
+        def analyze_product_name(self, name, locations=None):
+            raise AssertionError(
+                "analyze_product_name should not run when AI variant exists"
+            )
+
+    class FakeGrocyClient:
+        def __init__(self, settings):
+            self.settings = settings
+
+        def find_product_by_name(self, name):
+            return None
+
+        def search_products_by_partial_name(self, query):
+            return []
+
+    monkeypatch.setattr(routes, "IngredientDetector", FakeDetector)
+    monkeypatch.setattr(routes, "GrocyClient", FakeGrocyClient)
+
+    response = client.post(
+        "/api/dashboard/search",
+        headers={"Authorization": "Bearer test-api-key"},
+        json={"name": "apf"},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["action"] == "variant_selection_required"
+    assert payload["variants"] == [
+        {"id": None, "name": "Apfelschale", "picture_url": "", "source": "ai"}
+    ]

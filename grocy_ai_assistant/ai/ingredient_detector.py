@@ -67,6 +67,60 @@ class IngredientDetector:
         raw_answer = response.json().get("response")
         return json.loads(raw_answer)
 
+    def suggest_similar_products(self, product_name: str) -> list[Dict[str, Any]]:
+        prompt = f"""
+        Der Nutzer hat nach '{product_name}' gesucht.
+        Das ist vermutlich kein vollständiger Produktname.
+
+        Schlage bis zu 8 realistische, ähnlich klingende Lebensmittel vor
+        (z. B. bei 'apf' => 'Apfel', 'Apfelessig', ...).
+
+        Gib NUR ein JSON-Array zurück.
+        Jeder Eintrag muss exakt diese Struktur haben:
+        {
+          "name": "Produktname"
+        }
+
+        WICHTIG:
+        - Nur sinnvolle Lebensmittel oder Getränke
+        - Keine Fantasiebegriffe
+        - Keine zusätzlichen Felder
+        - Kein Text außerhalb von JSON
+        """
+
+        ollama_payload = {
+            "model": self.settings.ollama_model,
+            "prompt": prompt,
+            "stream": False,
+            "format": "json",
+        }
+
+        response = requests.post(
+            self.settings.ollama_url, json=ollama_payload, timeout=60
+        )
+        response.raise_for_status()
+        raw_answer = response.json().get("response")
+        parsed = json.loads(raw_answer)
+
+        if not isinstance(parsed, list):
+            return []
+
+        suggestions: list[Dict[str, Any]] = []
+        seen_names: set[str] = set()
+        for item in parsed:
+            if not isinstance(item, dict):
+                continue
+            name = str(item.get("name") or "").strip()
+            normalized_name = name.casefold()
+            if not name or normalized_name in seen_names:
+                continue
+            suggestions.append({"name": name})
+            seen_names.add(normalized_name)
+            if len(suggestions) >= 8:
+                break
+
+        return suggestions
+
     def generate_recipe_suggestions(
         self,
         selected_products: list[str],
