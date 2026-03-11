@@ -4,27 +4,16 @@ import binascii
 import hashlib
 import logging
 import threading
-from base64 import b64decode, b64encode
+from base64 import b64decode
 from pathlib import Path
-from urllib.parse import ParseResult, urljoin, urlparse
+from urllib.parse import urlparse
 
 import requests
 
 from grocy_ai_assistant.config.settings import Settings
+from grocy_ai_assistant.core.picture_urls import build_product_picture_url
 
 logger = logging.getLogger(__name__)
-
-
-def _maybe_encode_product_picture_path(path: str) -> str:
-    if "/productpictures/" not in path:
-        return path
-
-    prefix, _, suffix = path.rpartition("/")
-    if not suffix or "." not in suffix:
-        return path
-
-    encoded_picture_name = b64encode(suffix.encode("utf-8")).decode("ascii")
-    return f"{prefix}/{encoded_picture_name}"
 
 
 class ProductImageCache:
@@ -146,37 +135,7 @@ class ProductImageCache:
         if not value or value.startswith("data:"):
             return ""
 
-        parsed_grocy_base = urlparse(self._settings.grocy_base_url.rstrip("/"))
-        grocy_base_url = parsed_grocy_base.geturl().rstrip("/")
-
-        if value.startswith(("http://", "https://")):
-            parsed_picture = urlparse(value)
-            if parsed_picture.hostname in {
-                "localhost",
-                "127.0.0.1",
-                "::1",
-                "homeassistant",
-            }:
-                return ParseResult(
-                    scheme=parsed_grocy_base.scheme or parsed_picture.scheme,
-                    netloc=parsed_grocy_base.netloc or parsed_picture.netloc,
-                    path=_maybe_encode_product_picture_path(parsed_picture.path),
-                    params=parsed_picture.params,
-                    query=parsed_picture.query,
-                    fragment=parsed_picture.fragment,
-                ).geturl()
-            return value
-
-        if "/" not in value:
-            encoded_picture_name = b64encode(value.encode("utf-8")).decode("ascii")
-            value = f"files/productpictures/{encoded_picture_name}"
-
-        value = _maybe_encode_product_picture_path(value)
-
-        if value.startswith("/"):
-            return urljoin(f"{grocy_base_url}/", value)
-
-        return f"{grocy_base_url}/{value.lstrip('/')}"
+        return build_product_picture_url(value, self._settings)
 
     def _download_to_cache(self, source_url: str) -> bool:
         parsed_source = urlparse(source_url)

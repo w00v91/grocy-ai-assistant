@@ -5,6 +5,7 @@ from homeassistant.core import HomeAssistant
 
 from .const import DEFAULT_ADDON_INGRESS_PATH
 
+
 def _normalize_panel_url(url: str) -> str:
     """Normalize panel URLs for Home Assistant iframe usage."""
     normalized = (url or "").strip()

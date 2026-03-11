@@ -148,8 +148,6 @@ def test_dashboard_has_clear_search_input_button(client):
     assert "updateClearButtonVisibility();" in static_response.text
 
 
-
-
 def test_dashboard_places_variant_section_below_search(client):
     response = client.get("/")
 
@@ -167,6 +165,7 @@ def test_dashboard_does_not_autoload_variants(client):
     assert static_response.status_code == 200
     assert "\nloadVariants();\nloadStockProducts();" not in static_response.text
     assert "list.innerHTML = '';" in static_response.text
+
 
 def test_dashboard_contains_clear_button(client):
     response = client.get("/")
@@ -427,7 +426,9 @@ def test_recipe_suggestions_prioritize_grocy_then_ai(client, monkeypatch):
     assert payload["ai_recipes"][0]["source"] == "ai"
 
 
-def test_recipe_suggestions_uses_stock_products_when_selection_is_empty(client, monkeypatch):
+def test_recipe_suggestions_uses_stock_products_when_selection_is_empty(
+    client, monkeypatch
+):
     def fake_get_stock_products(self):
         return [
             {"id": 1, "name": "Tomate", "location_name": "Kühlschrank", "amount": "2"},
@@ -441,11 +442,15 @@ def test_recipe_suggestions_uses_stock_products_when_selection_is_empty(client, 
         def __init__(self, settings):
             self.settings = settings
 
-        def generate_recipe_suggestions(self, selected_products, existing_recipe_titles):
+        def generate_recipe_suggestions(
+            self, selected_products, existing_recipe_titles
+        ):
             assert selected_products == ["Tomate", "Nudeln"]
             return [{"title": "Tomaten-Nudel-Pfanne", "reason": "Vorrat passt"}]
 
-    monkeypatch.setattr(routes.GrocyClient, "get_stock_products", fake_get_stock_products)
+    monkeypatch.setattr(
+        routes.GrocyClient, "get_stock_products", fake_get_stock_products
+    )
     monkeypatch.setattr(routes.GrocyClient, "get_recipes", fake_get_recipes)
     monkeypatch.setattr(routes, "IngredientDetector", FakeDetector)
 
