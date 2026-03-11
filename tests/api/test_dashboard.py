@@ -680,5 +680,5 @@ def test_dashboard_renders_location_dropdown_filters(client):
     static_response = client.get("/dashboard-static/dashboard.js")
 
     assert static_response.status_code == 200
-    assert '<details class="location-dropdown" open>' in static_response.text
+    assert '<details class="location-dropdown">' in static_response.text
     assert "Lagerstandorte auswählen" in static_response.text
