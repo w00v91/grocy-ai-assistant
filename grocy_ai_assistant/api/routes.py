@@ -681,7 +681,17 @@ def dashboard_delete_shopping_list_item(
 
     try:
         grocy_client = GrocyClient(settings)
-        grocy_client.delete_shopping_list_item(shopping_list_id)
+        shopping_items = grocy_client.get_shopping_list()
+        selected_item = next(
+            (item for item in shopping_items if item.get("id") == shopping_list_id), None
+        )
+        if selected_item is None:
+            raise HTTPException(status_code=404, detail="Einkaufslisten-Eintrag nicht gefunden")
+
+        grocy_client.delete_shopping_list_item(
+            shopping_list_id,
+            amount=str(selected_item.get("amount") or "1"),
+        )
         return {
             "success": True,
             "message": f"Eintrag {shopping_list_id} gelöscht.",
@@ -697,7 +707,7 @@ def dashboard_delete_shopping_list_item(
         raise HTTPException(status_code=500, detail=str(error)) from error
 
 
-@router.post("/api/dashboard/shopping-list/{shopping_list_id}/complete")
+@router.post("/api/dashboard/shopping-list/item/{shopping_list_id}/complete")
 def dashboard_complete_shopping_list_item(
     shopping_list_id: int,
     request: Request,
@@ -713,16 +723,18 @@ def dashboard_complete_shopping_list_item(
         grocy_client = GrocyClient(settings)
         shopping_items = grocy_client.get_shopping_list()
         selected_item = next(
-            (item for item in shopping_items if item.get("id") == shopping_list_id),
-            None,
+            (item for item in shopping_items if item.get("id") == shopping_list_id), None
         )
         if selected_item is None:
-            raise HTTPException(
-                status_code=404, detail="Einkaufslisten-Eintrag nicht gefunden"
-            )
+            raise HTTPException(status_code=404, detail="Einkaufslisten-Eintrag nicht gefunden")
+
+        product_id = selected_item.get("product_id")
+        if product_id is None:
+            raise HTTPException(status_code=400, detail="Produkt-ID für Eintrag fehlt")
 
         grocy_client.complete_shopping_list_item(
             shopping_list_id,
+            product_id=int(product_id),
             amount=str(selected_item.get("amount") or "1"),
         )
         return {

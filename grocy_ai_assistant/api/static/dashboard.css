@@ -334,35 +334,54 @@ img {
   cursor: pointer;
   touch-action: pan-y;
   user-select: none;
+  border-radius: 12px;
+}
+.shopping-item-content {
+  position: relative;
+  z-index: 2;
 }
 .shopping-item-content {
   display: flex;
   align-items: center;
   gap: 0.8rem;
   width: 100%;
+  background: var(--item-bg);
+  border-radius: 12px;
   transform: translateX(0);
-  transition: transform 0.2s ease;
+  transition: transform 0.18s ease;
 }
 .shopping-item.swiping-left .shopping-item-content {
-  transform: translateX(-76px);
+  transform: translateX(-64px);
 }
 .shopping-item.swiping-right .shopping-item-content {
-  transform: translateX(76px);
+  transform: translateX(64px);
 }
 .shopping-item-action {
   position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 76px;
+  top: 6px;
+  bottom: 6px;
+  width: 64px;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 0.2rem;
   color: #fff;
+  font-size: 0.78rem;
+  letter-spacing: 0.01em;
   font-weight: 700;
+  border-radius: 10px;
   pointer-events: none;
+  opacity: 0.92;
 }
-.shopping-item-action-left { left: 0; background: #16a34a; }
-.shopping-item-action-right { right: 0; background: #cf202f; }
+.shopping-item-action::before {
+  font-size: 1rem;
+  line-height: 1;
+}
+.shopping-item-action-left { left: 6px; background: linear-gradient(145deg, #1fb45a, #168a43); }
+.shopping-item-action-left::before { content: "🛒"; }
+.shopping-item-action-right { right: 6px; background: linear-gradient(145deg, #ea3344, #bb1f2d); }
+.shopping-item-action-right::before { content: "🗑️"; }
 
 .shopping-modal {
   position: fixed;
