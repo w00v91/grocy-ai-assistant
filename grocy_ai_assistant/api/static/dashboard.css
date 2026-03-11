@@ -183,6 +183,9 @@ img {
   }
 }
 .shopping-list-section button { width: 100%; }
+#shopping-list {
+  margin-top: 0.9rem;
+}
 .danger-button {
   margin-top: 0.85rem;
   width: 100%;

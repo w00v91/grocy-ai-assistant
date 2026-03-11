@@ -93,9 +93,12 @@ function clearSearchInput() {
 function renderShoppingList(items) {
   const list = document.getElementById('shopping-list');
   if (!items.length) {
-    list.innerHTML = '<li>Keine Einträge in der Einkaufsliste.</li>';
+    list.innerHTML = '';
+    list.classList.add('hidden');
     return;
   }
+
+  list.classList.remove('hidden');
 
   list.innerHTML = items.map((item) => `
     <li>
