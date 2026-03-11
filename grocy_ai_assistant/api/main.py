@@ -7,9 +7,13 @@ from pathlib import Path
 
 import uvicorn
 from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from grocy_ai_assistant.api.errors import build_error_response
 from grocy_ai_assistant.api.routes import router
 from grocy_ai_assistant.config.settings import get_settings
 from grocy_ai_assistant.services.location_cache import LocationCache
@@ -48,6 +52,48 @@ def create_app() -> FastAPI:
         name="dashboard_static",
     )
     app_instance.include_router(router)
+
+    @app_instance.exception_handler(StarletteHTTPException)
+    async def handle_http_exception(
+        request: Request, exc: StarletteHTTPException
+    ) -> JSONResponse:
+        return build_error_response(
+            request,
+            status_code=exc.status_code,
+            message=str(exc.detail),
+        )
+
+    @app_instance.exception_handler(RequestValidationError)
+    async def handle_validation_error(
+        request: Request, exc: RequestValidationError
+    ) -> JSONResponse:
+        validation_details = [
+            {
+                "field": ".".join(str(part) for part in error.get("loc", [])),
+                "message": error.get("msg", "Ungültige Eingabe"),
+            }
+            for error in exc.errors()
+        ]
+        return build_error_response(
+            request,
+            status_code=422,
+            message="Ungültige Anfrageparameter",
+            code="validation_error",
+            details=validation_details,
+        )
+
+    @app_instance.exception_handler(Exception)
+    async def handle_unexpected_exception(
+        request: Request, exc: Exception
+    ) -> JSONResponse:
+        logger.exception(
+            "Unerwarteter API-Fehler auf %s", request.url.path, exc_info=exc
+        )
+        return build_error_response(
+            request,
+            status_code=500,
+            message="Interner Serverfehler",
+        )
 
     @app_instance.middleware("http")
     async def enforce_https_for_external_requests(request: Request, call_next):
