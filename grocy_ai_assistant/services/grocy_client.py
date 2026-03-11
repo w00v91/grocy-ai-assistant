@@ -77,6 +77,13 @@ class GrocyClient:
         has_timestamp = 1 if parsed else 0
         return has_timestamp, parsed, safe_item_id
 
+
+    @staticmethod
+    def _safe_str(value: Any) -> str:
+        if value is None:
+            return ""
+        return str(value).strip()
+
     @staticmethod
     def _safe_str(value: Any) -> str:
         if value is None:
@@ -222,9 +229,7 @@ class GrocyClient:
         )
         response.raise_for_status()
 
-    def _enrich_shopping_items(
-        self, shopping_items: list[Dict[str, Any]]
-    ) -> list[Dict[str, Any]]:
+    def _enrich_shopping_items(self, shopping_items: list[Dict[str, Any]]) -> list[Dict[str, Any]]:
         products: Dict[str, Any] = {}
         stock_by_product_id: Dict[str, Any] = {}
         locations: Dict[str, Any] = {}
@@ -274,9 +279,7 @@ class GrocyClient:
             product_id = self._safe_str(item.get("product_id"))
             product = products.get(product_id, {})
             stock_entry = stock_by_product_id.get(product_id, {})
-            location_id = self._safe_str(
-                stock_entry.get("location_id") or product.get("location_id")
-            )
+            location_id = self._safe_str(stock_entry.get("location_id") or product.get("location_id"))
             merged_items.append(
                 {
                     **item,
@@ -295,6 +298,7 @@ class GrocyClient:
                         or stock_entry.get("best_before_date_calculated")
                         or ""
                     ),
+                    "default_amount": str(product.get("default_best_before_days") or ""),
                     "default_amount": str(
                         product.get("default_best_before_days") or ""
                     ),
@@ -431,39 +435,47 @@ class GrocyClient:
         )
         response.raise_for_status()
 
+    def delete_shopping_list_item(self, shopping_list_id: int, amount: str = "1") -> None:
+        response = requests.post(
+            f"{self.settings.grocy_base_url}/stock/shoppinglist/remove-product",
+            headers=self.headers,
+            json={
+                "shopping_list_id": shopping_list_id,
+                "amount": self._safe_str(amount) or "1",
+            },
+            timeout=30,
+        )
+        response.raise_for_status()
+
     def clear_shopping_list(self) -> int:
         items = self.get_shopping_list()
         removed_items = 0
 
         for item in items:
-            item_id = item.get("id")
-            if not item_id:
+            item_id = self._safe_int(item.get("id"))
+            if item_id is None:
                 continue
 
-            response = requests.delete(
-                f"{self.settings.grocy_base_url}/objects/shopping_list/{item_id}",
-                headers=self.headers,
-                timeout=30,
-            )
-            response.raise_for_status()
+            amount_value = self._safe_str(item.get("amount") or "1") or "1"
+            self.delete_shopping_list_item(item_id, amount=amount_value)
             removed_items += 1
 
         return removed_items
 
     def complete_shopping_list_item(
-        self, shopping_list_id: int, amount: str = "1"
+        self, shopping_list_id: int, product_id: int, amount: str = "1"
     ) -> None:
         payload: Dict[str, Any] = {
-            "shopping_list_id": shopping_list_id,
             "amount": self._safe_str(amount) or "1",
         }
         response = requests.post(
-            f"{self.settings.grocy_base_url}/stock/shoppinglist/remove-product",
+            f"{self.settings.grocy_base_url}/stock/products/{product_id}/add",
             headers=self.headers,
             json=payload,
             timeout=30,
         )
         response.raise_for_status()
+        self.delete_shopping_list_item(shopping_list_id, amount=payload["amount"])
 
     def complete_shopping_list(self) -> int:
         items = self.get_shopping_list()
@@ -474,8 +486,16 @@ class GrocyClient:
             if item_id is None:
                 continue
 
+            product_id = self._safe_int(item.get("product_id"))
+            if product_id is None:
+                continue
+
             amount_value = self._safe_str(item.get("amount") or "1") or "1"
-            self.complete_shopping_list_item(item_id, amount=amount_value)
+            self.complete_shopping_list_item(
+                item_id,
+                product_id=product_id,
+                amount=amount_value,
+            )
             completed_items += 1
 
         return completed_items
