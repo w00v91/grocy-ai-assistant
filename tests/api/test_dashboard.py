@@ -640,3 +640,23 @@ def test_shopping_list_can_be_completed(client, monkeypatch):
         "completed_items": 5,
         "message": "Einkauf abgeschlossen (5 Einträge als eingekauft markiert).",
     }
+
+
+def test_dashboard_shows_activity_spinner_in_header(client):
+    response = client.get("/")
+
+    assert response.status_code == 200
+    assert "id='activity-spinner'" in response.text
+
+    static_response = client.get("/dashboard-static/dashboard.js")
+
+    assert static_response.status_code == 200
+    assert "function withBusyState(callback)" in static_response.text
+
+
+def test_dashboard_renders_location_dropdown_filters(client):
+    static_response = client.get("/dashboard-static/dashboard.js")
+
+    assert static_response.status_code == 200
+    assert '<details class="location-dropdown" open>' in static_response.text
+    assert "Lagerstandorte auswählen" in static_response.text
