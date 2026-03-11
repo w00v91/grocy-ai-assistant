@@ -39,6 +39,12 @@ async function parseJsonSafe(response) {
   }
 }
 
+
+function getErrorMessage(payload, fallbackMessage) {
+  if (payload && payload.error && payload.error.message) return payload.error.message;
+  if (payload && payload.detail) return payload.detail;
+  return fallbackMessage;
+}
 function buildApiUrl(path) {
   const normalizedPath = '/' + String(path || '').replace(/^\/+/, '');
   if (apiBasePath) {
@@ -128,7 +134,7 @@ async function loadShoppingList() {
     const payload = await parseJsonSafe(res);
 
     if (!res.ok) {
-      status.textContent = payload.detail || 'Einkaufsliste konnte nicht geladen werden.';
+      status.textContent = getErrorMessage(payload, 'Einkaufsliste konnte nicht geladen werden.');
       return;
     }
 
@@ -187,7 +193,7 @@ async function loadVariants() {
     const payload = await parseJsonSafe(res);
 
     if (!res.ok) {
-      status.textContent = payload.detail || 'Varianten konnten nicht geladen werden.';
+      status.textContent = getErrorMessage(payload, 'Varianten konnten nicht geladen werden.');
       return;
     }
 
@@ -214,7 +220,7 @@ async function confirmVariant(productId, productName) {
       body: JSON.stringify({ product_id: productId, product_name: productName }),
     });
     const payload = await parseJsonSafe(res);
-    status.textContent = payload.message || payload.detail || 'Unbekannte Antwort';
+    status.textContent = payload.message || getErrorMessage(payload, 'Unbekannte Antwort');
 
     if (res.ok) {
       const variants = payload.variants || [];
@@ -249,7 +255,7 @@ async function clearShoppingList() {
     const payload = await parseJsonSafe(res);
 
     if (!res.ok) {
-      status.textContent = payload.detail || 'Einkaufsliste konnte nicht geleert werden.';
+      status.textContent = getErrorMessage(payload, 'Einkaufsliste konnte nicht geleert werden.');
       return;
     }
 
@@ -283,7 +289,7 @@ async function searchProduct() {
     });
 
     const payload = await parseJsonSafe(res);
-    status.textContent = payload.message || payload.detail || 'Unbekannte Antwort';
+    status.textContent = payload.message || getErrorMessage(payload, 'Unbekannte Antwort');
 
     if (res.ok) {
       const variants = payload.variants || [];
@@ -417,7 +423,7 @@ async function loadLocations() {
     const payload = await parseJsonSafe(res);
 
     if (!res.ok) {
-      document.getElementById('status').textContent = payload.detail || 'Standorte konnten nicht geladen werden.';
+      document.getElementById('status').textContent = getErrorMessage(payload, 'Standorte konnten nicht geladen werden.');
       return;
     }
 
@@ -441,7 +447,7 @@ async function loadStockProducts() {
     const payload = await parseJsonSafe(res);
 
     if (!res.ok) {
-      document.getElementById('status').textContent = payload.detail || 'Bestand konnte nicht geladen werden.';
+      document.getElementById('status').textContent = getErrorMessage(payload, 'Bestand konnte nicht geladen werden.');
       return;
     }
 
@@ -477,7 +483,7 @@ async function loadRecipeSuggestions() {
     const payload = await parseJsonSafe(res);
 
     if (!res.ok) {
-      status.textContent = payload.detail || 'Rezeptvorschläge konnten nicht geladen werden.';
+      status.textContent = getErrorMessage(payload, 'Rezeptvorschläge konnten nicht geladen werden.');
       return;
     }
 
