@@ -1,4 +1,5 @@
 from collections import Counter
+from datetime import datetime
 from math import sqrt
 from typing import Any, Dict, Optional
 
@@ -53,6 +54,24 @@ class GrocyClient:
             "GROCY-API-KEY": self.settings.grocy_api_key,
             "Content-Type": "application/json",
         }
+
+    @staticmethod
+    def _shopping_item_sort_key(item: Dict[str, Any]) -> tuple[int, str, int]:
+        created = str(item.get("row_created_timestamp") or item.get("created_at") or "")
+        parsed = ""
+        if created:
+            try:
+                parsed = datetime.fromisoformat(created.replace("Z", "+00:00")).isoformat()
+            except ValueError:
+                parsed = created
+
+        item_id = item.get("id")
+        if isinstance(item_id, (int, str)) and str(item_id).isdigit():
+            safe_item_id = int(item_id)
+        else:
+            safe_item_id = -1
+        has_timestamp = 1 if parsed else 0
+        return has_timestamp, parsed, safe_item_id
 
     def _get_all_products(self) -> list[Dict[str, Any]]:
         response = requests.get(
@@ -122,7 +141,8 @@ class GrocyClient:
 
         try:
             response.raise_for_status()
-            return response.json()
+            stock_items = response.json()
+            return sorted(stock_items, key=self._shopping_item_sort_key, reverse=True)
         except HTTPError:
             status_code = response.status_code
             if status_code != 405:
@@ -145,7 +165,7 @@ class GrocyClient:
             if product.get("id")
         }
 
-        return [
+        merged_items = [
             {
                 **item,
                 "product_name": products.get(str(item.get("product_id")), {}).get(
@@ -160,6 +180,8 @@ class GrocyClient:
             }
             for item in shopping_items
         ]
+
+        return sorted(merged_items, key=self._shopping_item_sort_key, reverse=True)
 
     def get_locations(self) -> list[Dict[str, Any]]:
         response = requests.get(

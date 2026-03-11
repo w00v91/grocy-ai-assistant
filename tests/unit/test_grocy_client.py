@@ -191,6 +191,76 @@ def test_get_shopping_list_uses_picture_file_name_if_picture_url_missing(monkeyp
     assert result[0]["picture_url"] == "tomaten.jpg"
 
 
+def test_get_shopping_list_sorts_stock_endpoint_by_newest_first(monkeypatch):
+    def fake_get(url, *args, **kwargs):
+        if url.endswith("/stock/shoppinglist"):
+            return FakeResponse(
+                [
+                    {"id": 3, "product_name": "Alt", "row_created_timestamp": "2024-01-01 10:00:00"},
+                    {"id": 5, "product_name": "Neu", "row_created_timestamp": "2024-01-01 11:00:00"},
+                    {"id": 4, "product_name": "Ohne Zeit"},
+                ]
+            )
+        raise AssertionError(f"Unexpected url: {url}")
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.services.grocy_client.requests.get", fake_get
+    )
+
+    client = GrocyClient(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+        )
+    )
+
+    result = client.get_shopping_list()
+
+    assert [item["id"] for item in result] == [5, 3, 4]
+
+
+def test_get_shopping_list_sorts_objects_fallback_by_newest_first(monkeypatch):
+    class FailingStockResponse(FakeResponse):
+        status_code = 405
+
+        def raise_for_status(self):
+            raise HTTPError("Method Not Allowed")
+
+    def fake_get(url, *args, **kwargs):
+        if url.endswith("/stock/shoppinglist"):
+            return FailingStockResponse([])
+        if url.endswith("/objects/shopping_list"):
+            return FakeResponse(
+                [
+                    {"id": 7, "product_id": 10, "row_created_timestamp": "2024-01-01 08:00:00"},
+                    {"id": 8, "product_id": 10, "row_created_timestamp": "2024-01-01 09:00:00"},
+                    {"id": 6, "product_id": 10},
+                ]
+            )
+        if url.endswith("/objects/products"):
+            return FakeResponse([{"id": 10, "name": "Hafermilch"}])
+        raise AssertionError(f"Unexpected url: {url}")
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.services.grocy_client.requests.get", fake_get
+    )
+
+    client = GrocyClient(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+        )
+    )
+
+    result = client.get_shopping_list()
+
+    assert [item["id"] for item in result] == [8, 7, 6]
+
+
 def test_get_shopping_list_raises_non_405_errors(monkeypatch):
     class UnauthorizedResponse(FakeResponse):
         status_code = 401
