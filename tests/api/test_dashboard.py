@@ -210,19 +210,19 @@ def test_dashboard_uses_forwarded_prefix_header_for_static_assets(client):
 
 
 def test_dashboard_uses_ingress_header_for_api_base_path(client):
-    ingress_path = "/DSjkRSg2MQhfRCPVJYCvOW2o9DXs2ZwTf_Lm8z3CytA"
+    ingress_path = "/api/hassio_ingress/71139b3d_grocy_ai_assistant"
     response = client.get("/", headers={"x-ingress-path": ingress_path})
 
     assert response.status_code == 200
     assert f'data-api-base-path="{ingress_path}"' in response.text
 
 
-def test_dashboard_fallback_uses_token_path_for_api_base_path(client):
+def test_dashboard_fallback_uses_empty_api_base_path_for_token_path(client):
     token_path = "/DSjkRSg2MQhfRCPVJYCvOW2o9DXs2ZwTf_Lm8z3CytA"
     response = client.get(token_path)
 
     assert response.status_code == 200
-    assert f'data-api-base-path="{token_path}"' in response.text
+    assert 'data-api-base-path=""' in response.text
 
 
 def test_dashboard_fallback_keeps_404_for_unknown_api_paths(client):

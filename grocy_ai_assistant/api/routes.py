@@ -616,11 +616,16 @@ def _render_dashboard(settings: Settings, request: Request):
     forwarded_prefix_header = request.headers.get("x-forwarded-prefix") or ""
     forwarded_prefix = _normalize_base_path(forwarded_prefix_header.split(",", 1)[0])
 
-    resolved_base_path = api_base_path or ingress_prefix
+    api_request_base_path = api_base_path or ingress_prefix
+
+    resolved_base_path = api_request_base_path
     if not resolved_base_path:
         resolved_base_path = header_prefix or forwarded_prefix
     if not resolved_base_path and token_prefix not in {"", "/api", "/dashboard-static"}:
         resolved_base_path = token_prefix
+
+    if api_request_base_path == "" and resolved_base_path.startswith("/api/hassio_ingress/"):
+        api_request_base_path = resolved_base_path
 
     static_base_path = (
         f"{resolved_base_path}/dashboard-static"
@@ -632,7 +637,7 @@ def _render_dashboard(settings: Settings, request: Request):
         "dashboard.html",
         {
             "configured_api_key": settings.api_key,
-            "api_base_path": resolved_base_path,
+            "api_base_path": api_request_base_path,
             "static_base_path": static_base_path,
         },
     )
