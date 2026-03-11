@@ -1,5 +1,6 @@
 import logging
 import re
+from datetime import date, timedelta
 from pathlib import Path
 from urllib.parse import quote, urlparse
 
@@ -772,7 +773,45 @@ def dashboard_recipe_suggestions(
             else grocy_client.get_stock_products()
         )
 
-        if not payload.location_ids and not selected_ids:
+        if payload.soon_expiring_only:
+            days = max(1, min(int(payload.expiring_within_days), 30))
+            today = date.today()
+            deadline = today + timedelta(days=days)
+
+            expiring_product_ids: set[int] = set()
+            for entry in grocy_client.get_stock_entries(payload.location_ids):
+                product_id = entry.get("product_id")
+                if not isinstance(product_id, int):
+                    continue
+
+                best_before_raw = str(
+                    entry.get("best_before_date")
+                    or entry.get("best_before_date_calculated")
+                    or ""
+                ).strip()
+                if not best_before_raw:
+                    continue
+
+                try:
+                    best_before = date.fromisoformat(best_before_raw)
+                except ValueError:
+                    continue
+
+                if today <= best_before <= deadline:
+                    expiring_product_ids.add(product_id)
+
+            stock_products = [
+                product
+                for product in stock_products
+                if product.get("id") in expiring_product_ids
+            ]
+            selected_ids = {
+                product_id
+                for product_id in selected_ids
+                if product_id in expiring_product_ids
+            }
+
+        if not payload.location_ids and not selected_ids and not payload.soon_expiring_only:
             cache = _get_recipe_suggestion_cache(request)
             stock_signature = _build_stock_signature(stock_products)
             if cache:
@@ -790,33 +829,7 @@ def dashboard_recipe_suggestions(
             settings=settings,
         )
 
-        grocy_recipes_raw = grocy_client.get_recipes()
-        scored = []
-        for recipe in grocy_recipes_raw:
-            score, reason = _score_recipe_match(recipe, selected_products)
-            scored.append((score, recipe, reason))
-
-        scored.sort(key=lambda row: (-row[0], str(row[1].get("name") or "").casefold()))
-        grocy_recipes = []
-        for _, recipe, reason in scored[:5]:
-            recipe_id = (
-                int(recipe.get("id")) if str(recipe.get("id") or "").isdigit() else None
-            )
-            missing_products = (
-                grocy_client.get_missing_recipe_products(recipe_id)
-                if recipe_id is not None
-                else []
-            )
-            grocy_recipes.append(
-                RecipeSuggestionItem(
-                    recipe_id=recipe_id,
-                    title=str(recipe.get("name") or "Unbenanntes Rezept"),
-                    source="grocy",
-                    reason=reason,
-                    preparation=str(recipe.get("description") or ""),
-                    picture_url=str(recipe.get("picture_url") or ""),
-                    missing_products=missing_products,
-        if not payload.location_ids and not selected_ids:
+        if not payload.location_ids and not selected_ids and not payload.soon_expiring_only:
             cache = _get_recipe_suggestion_cache(request)
             if cache is not None:
                 cache["location_ids"] = []

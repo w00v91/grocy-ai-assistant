@@ -71,7 +71,14 @@
           <div id='location-filters' class='location-filters'></div>
           <h3>Produkte in ausgewählten Standorten</h3>
           <div id='stock-products' class='stock-products'></div>
-          <button onclick='loadRecipeSuggestions()'>Rezeptvorschläge laden</button>
+          <div class='recipe-actions'>
+            <button onclick='loadRecipeSuggestions()'>Rezeptvorschläge laden</button>
+            <div class='expiring-search-controls'>
+              <label for='expiring-days'>Ablauf in Tagen</label>
+              <input id='expiring-days' type='number' min='1' max='30' value='3' />
+              <button type='button' onclick='loadExpiringRecipeSuggestions()'>Mit bald ablaufenden Produkten suchen</button>
+            </div>
+          </div>
           <p id='status-recipes'>Bereit.</p>
           <div class='recipe-columns'>
             <div>

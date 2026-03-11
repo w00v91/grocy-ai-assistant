@@ -749,7 +749,7 @@ async function loadStockProducts() {
   });
 }
 
-async function loadRecipeSuggestions() {
+async function loadRecipeSuggestions(options = {}) {
   return withBusyState(async () => {
   const key = ensureApiKey();
   const status = getRecipeStatusElement();
@@ -762,16 +762,27 @@ async function loadRecipeSuggestions() {
   recipeState.selectedProductIds = selectedIds;
   const selectedLocationIds = getSelectedLocationIds();
   recipeState.selectedLocationIds = selectedLocationIds;
+  const soonExpiringOnly = Boolean(options.soonExpiringOnly);
+  const expiringWithinDays = Number(options.expiringWithinDays || 3);
 
-  status.textContent = selectedIds.length
-    ? 'Lade Rezeptvorschläge für Auswahl...'
-    : 'Lade Rezeptvorschläge aus dem aktuellen Lagerbestand...';
+  if (soonExpiringOnly) {
+    status.textContent = `Lade Rezepte mit bald ablaufenden Produkten (<= ${expiringWithinDays} Tage)...`;
+  } else {
+    status.textContent = selectedIds.length
+      ? 'Lade Rezeptvorschläge für Auswahl...'
+      : 'Lade Rezeptvorschläge aus dem aktuellen Lagerbestand...';
+  }
 
   try {
     const res = await fetch(buildApiUrl('/api/dashboard/recipe-suggestions'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
-      body: JSON.stringify({ product_ids: selectedIds, location_ids: selectedLocationIds }),
+      body: JSON.stringify({
+        product_ids: selectedIds,
+        location_ids: selectedLocationIds,
+        soon_expiring_only: soonExpiringOnly,
+        expiring_within_days: expiringWithinDays,
+      }),
     });
     const payload = await parseJsonSafe(res);
 
@@ -788,6 +799,14 @@ async function loadRecipeSuggestions() {
   }
 
   });
+}
+
+function loadExpiringRecipeSuggestions() {
+  const daysInput = document.getElementById('expiring-days');
+  const parsedDays = Number(daysInput?.value || 3);
+  const expiringWithinDays = Math.min(30, Math.max(1, Number.isFinite(parsedDays) ? Math.round(parsedDays) : 3));
+  if (daysInput) daysInput.value = String(expiringWithinDays);
+  loadRecipeSuggestions({ soonExpiringOnly: true, expiringWithinDays });
 }
 
 
