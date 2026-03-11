@@ -8,9 +8,12 @@ const ingressPrefix = ingressPrefixMatch ? ingressPrefixMatch[0] : '';
 
 let pendingRequests = 0;
 let activeRecipeItem = null;
-let stockRefreshIntervalId = null;
-const stockRefreshIntervalMs = 60000;
 let activeTab = "shopping";
+const recipeState = {
+  initialized: false,
+  selectedLocationIds: [],
+  selectedProductIds: [],
+};
 
 function setBusyState(isBusy) {
   const spinner = document.getElementById('activity-spinner');
@@ -51,7 +54,7 @@ function switchTab(tabName) {
   shoppingButton.classList.toggle('active', activeTab === 'shopping');
   recipesButton.classList.toggle('active', activeTab === 'recipes');
 
-  if (activeTab === 'recipes') {
+  if (activeTab === 'recipes' && !recipeState.initialized) {
     loadLocations();
   }
 }
@@ -584,17 +587,6 @@ document.getElementById('name').addEventListener('input', () => {
 });
 
 
-function startStockAutoRefresh() {
-  if (stockRefreshIntervalId) {
-    clearInterval(stockRefreshIntervalId);
-  }
-
-  stockRefreshIntervalId = window.setInterval(() => {
-    if (activeTab !== 'recipes') return;
-    loadStockProducts();
-  }, stockRefreshIntervalMs);
-}
-
 const savedTheme = localStorage.getItem(themeStorageKey) || 'light';
 applyTheme(savedTheme);
 updateClearButtonVisibility();
@@ -602,7 +594,6 @@ const addMissingButton = document.getElementById('recipe-add-missing-button');
 if (addMissingButton) addMissingButton.addEventListener('click', addMissingRecipeProducts);
 switchTab('shopping');
 loadShoppingList();
-startStockAutoRefresh();
 
 
 async function searchSuggestedProduct(productName) {
@@ -617,9 +608,16 @@ function getSelectedLocationIds() {
     .map((checkbox) => Number(checkbox.value));
 }
 
+function getSelectedProductIds() {
+  return Array.from(document.querySelectorAll('#stock-products input[type="checkbox"]:checked'))
+    .map((checkbox) => Number(checkbox.value));
+}
+
 function renderLocations(items) {
   const container = document.getElementById('location-filters');
   if (!container) return;
+
+  const selectedLocationIds = new Set(recipeState.selectedLocationIds);
 
   if (!items.length) {
     container.innerHTML = '<div class="muted">Keine Lagerstandorte gefunden.</div>';
@@ -632,7 +630,7 @@ function renderLocations(items) {
       <div class="location-options">
         ${items.map((item) => `
           <label class="stock-item">
-            <input type="checkbox" value="${item.id}" checked />
+            <input type="checkbox" value="${item.id}" ${selectedLocationIds.size === 0 || selectedLocationIds.has(item.id) ? 'checked' : ''} />
             <span><strong>${item.name}</strong></span>
           </label>
         `).join('')}
@@ -643,6 +641,7 @@ function renderLocations(items) {
 
 function renderStockProducts(items) {
   const container = document.getElementById('stock-products');
+  const selectedProductIds = new Set(recipeState.selectedProductIds);
   if (!items.length) {
     container.innerHTML = '<div class="muted">Keine Produkte für die ausgewählten Lagerstandorte gefunden.</div>';
     return;
@@ -650,7 +649,7 @@ function renderStockProducts(items) {
 
   container.innerHTML = items.map((item) => `
     <label class="stock-item">
-      <input type="checkbox" value="${item.id}" />
+      <input type="checkbox" value="${item.id}" ${selectedProductIds.has(item.id) ? 'checked' : ''} />
       <span><strong>${item.name}</strong> <small class="muted">${item.location_name || 'Lager'} · ${item.amount || '-'} </small></span>
     </label>
   `).join('');
@@ -693,6 +692,7 @@ async function loadLocations() {
     }
 
     renderLocations(payload);
+    recipeState.initialized = true;
     await loadStockProducts();
   } catch (_) {
     getRecipeStatusElement().textContent = 'Standorte konnten nicht geladen werden (Netzwerk-/Ingress-Fehler).';
@@ -708,6 +708,7 @@ async function loadStockProducts() {
 
   try {
     const selectedLocationIds = getSelectedLocationIds();
+    recipeState.selectedLocationIds = selectedLocationIds;
     const query = selectedLocationIds.length ? `?location_ids=${selectedLocationIds.join(',')}` : '';
     const res = await fetch(buildApiUrl(`/api/dashboard/stock-products${query}`), {
       headers: { 'Authorization': `Bearer ${key}` },
@@ -719,7 +720,15 @@ async function loadStockProducts() {
       return;
     }
 
+    const availableProductIds = new Set(payload.map((item) => item.id));
+    recipeState.selectedProductIds = recipeState.selectedProductIds.filter((id) => availableProductIds.has(id));
+
     renderStockProducts(payload);
+
+    if (recipeState.selectedProductIds.length === 0) {
+      recipeState.selectedProductIds = getSelectedProductIds();
+    }
+
     await loadRecipeSuggestions();
   } catch (_) {
     getRecipeStatusElement().textContent = 'Bestand konnte nicht geladen werden (Netzwerk-/Ingress-Fehler).';
@@ -737,9 +746,10 @@ async function loadRecipeSuggestions() {
     return;
   }
 
-  const selectedIds = Array.from(document.querySelectorAll('#stock-products input[type="checkbox"]:checked'))
-    .map((checkbox) => Number(checkbox.value));
+  const selectedIds = getSelectedProductIds();
+  recipeState.selectedProductIds = selectedIds;
   const selectedLocationIds = getSelectedLocationIds();
+  recipeState.selectedLocationIds = selectedLocationIds;
 
   status.textContent = selectedIds.length
     ? 'Lade Rezeptvorschläge für Auswahl...'
