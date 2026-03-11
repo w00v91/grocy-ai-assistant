@@ -139,7 +139,8 @@ class IngredientDetector:
         Jeder Eintrag hat exakt diese Struktur:
         {{
           "title": "Rezeptname",
-          "reason": "Warum passt es zu den ausgewählten Zutaten"
+          "reason": "Warum passt es zu den ausgewählten Zutaten",
+          "preparation": "Kurze Zubereitungsbeschreibung in 2-4 Sätzen"
         }}
 
         Antworte NUR mit dem JSON-Array, kein Text davor oder danach.
@@ -159,7 +160,23 @@ class IngredientDetector:
         raw_answer = response.json().get("response")
         parsed = json.loads(raw_answer)
         if isinstance(parsed, list):
-            return parsed
+            normalized: list[Dict[str, Any]] = []
+            for item in parsed:
+                if not isinstance(item, dict):
+                    continue
+                normalized.append(
+                    {
+                        "title": str(item.get("title") or "").strip(),
+                        "reason": str(item.get("reason") or "").strip(),
+                        "preparation": str(
+                            item.get("preparation")
+                            or item.get("details")
+                            or item.get("description")
+                            or ""
+                        ).strip(),
+                    }
+                )
+            return normalized
         return []
 
     def generate_product_image(self, product_name: str):

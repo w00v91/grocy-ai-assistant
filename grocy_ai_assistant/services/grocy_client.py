@@ -517,13 +517,9 @@ class GrocyClient:
         return normalized_recipes
 
     def delete_shopping_list_item(self, shopping_list_id: int, amount: str = "1") -> None:
-        response = requests.post(
-            f"{self.settings.grocy_base_url}/stock/shoppinglist/remove-product",
+        response = requests.delete(
+            f"{self.settings.grocy_base_url}/objects/shopping_list/{shopping_list_id}",
             headers=self.headers,
-            json={
-                "shopping_list_id": shopping_list_id,
-                "amount": self._safe_str(amount) or "1",
-            },
             timeout=30,
         )
         response.raise_for_status()
