@@ -3,6 +3,7 @@ from grocy_ai_assistant.api.routes import (
     _build_product_picture_url,
 )
 from grocy_ai_assistant.config.settings import Settings
+from grocy_ai_assistant.core.picture_urls import build_product_picture_url
 
 
 SETTINGS = Settings(
@@ -49,3 +50,11 @@ def test_build_dashboard_picture_proxy_url_encodes_absolute_url():
 
     assert proxy_url.startswith("/api/dashboard/product-picture?src=")
     assert "files%2Fproductpictures%2FbWlsay5qcGc%3D" in proxy_url
+
+
+def test_shared_picture_helper_matches_route_behavior():
+    value = "files/productpictures/tomate.png"
+
+    assert build_product_picture_url(value, SETTINGS) == _build_product_picture_url(
+        value, SETTINGS
+    )

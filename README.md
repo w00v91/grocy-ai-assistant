@@ -73,6 +73,7 @@ Wichtige Felder:
 - **API-Schicht (`api/`)** bleibt rein für HTTP-Endpunkte, Dashboard-Rendering und Request-Validierung.
 - **Domain/Orchestrierung (`core/`)** enthält die Ablaufsteuerung für Analyse und Produktlogik.
 - **Service-Schicht (`services/`)** kapselt die Grocy-Kommunikation vollständig.
+- **Shared-Utilities (`core/picture_urls.py`)** bündeln die Normalisierung von Produktbild-URLs, damit API und Bild-Cache identisches Verhalten nutzen.
 - **Integration (`custom_components/`)** ruft das Add-on über den `AddonClient` auf und enthält keine direkte Grocy- oder Ollama-HTTP-Logik mehr.
 
 ### Ingress & Dashboard
@@ -115,6 +116,6 @@ In diesem Update verbessert:
 - Kleine Dokumentations- und Versionspflege für konsistente Release-Stände zwischen Add-on und Integration.
 
 Empfohlene nächste Schritte (optional):
-- Gemeinsame URL-Helfer für Produktbilder (aktuell ähnlich in `api/routes.py` und `services/product_image_cache.py`) in ein Shared-Modul extrahieren, um Duplikate zu reduzieren.
+- Integration-Manifest (`manifest.json`) und Add-on-Metadaten (`config.json`) weiterhin gemeinsam versionieren (bereits durch Test abgesichert).
 - Optional zentrale API-Fehlerstruktur (einheitliches Error-Schema) einführen, damit Frontend und Integration Fehlermeldungen konsistenter verarbeiten können.
 
