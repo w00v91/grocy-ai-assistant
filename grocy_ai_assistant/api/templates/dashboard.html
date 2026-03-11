@@ -9,6 +9,7 @@
   <body>
     <button id='theme-toggle' class='theme-toggle' onclick='toggleTheme()'>🌙 Darkmode</button>
     <main class='container'>
+      <section id='tab-shopping' class='tab-view'>
       <section class='card'>
         <div class='section-header'>
           <h1>Grocy AI Suche</h1>
@@ -36,26 +37,6 @@
         </section>
       </section>
 
-
-      <section class='card recipe-section'>
-        <h2>Rezeptvorschläge aus Lager/Kühlschrank</h2>
-        <h3>Lagerstandorte</h3>
-        <div id='location-filters' class='location-filters'></div>
-        <h3>Produkte in ausgewählten Standorten</h3>
-        <div id='stock-products' class='stock-products'></div>
-        <button onclick='loadRecipeSuggestions()'>Rezeptvorschläge laden</button>
-        <div class='recipe-columns'>
-          <div>
-            <h3>Gespeicherte Grocy-Rezepte</h3>
-            <ul id='grocy-recipe-list'></ul>
-          </div>
-          <div>
-            <h3>KI-Rezeptvorschläge</h3>
-            <ul id='ai-recipe-list'></ul>
-          </div>
-        </div>
-      </section>
-
       <section class='card shopping-list-section'>
         <h2>Einkaufsliste</h2>
         <button onclick='loadShoppingList()'>Einkaufsliste aktualisieren</button>
@@ -64,7 +45,34 @@
         <button class='success-button' onclick='completeShoppingList()'>Einkauf abschließen</button>
         <button class='danger-button' onclick='clearShoppingList()'>Einkaufsliste leeren</button>
       </section>
+      </section>
+
+      <section id='tab-recipes' class='tab-view hidden'>
+        <section class='card recipe-section'>
+          <h2>Rezeptvorschläge aus Lager/Kühlschrank</h2>
+          <h3>Lagerstandorte</h3>
+          <div id='location-filters' class='location-filters'></div>
+          <h3>Produkte in ausgewählten Standorten</h3>
+          <div id='stock-products' class='stock-products'></div>
+          <button onclick='loadRecipeSuggestions()'>Rezeptvorschläge laden</button>
+          <div class='recipe-columns'>
+            <div>
+              <h3>Gespeicherte Grocy-Rezepte</h3>
+              <ul id='grocy-recipe-list'></ul>
+            </div>
+            <div>
+              <h3>KI-Rezeptvorschläge</h3>
+              <ul id='ai-recipe-list'></ul>
+            </div>
+          </div>
+        </section>
+      </section>
     </main>
+
+    <nav class='bottom-tabbar' aria-label='Navigation'>
+      <button id='tab-button-shopping' class='tab-button active' type='button' onclick='switchTab("shopping")'>🛒 Einkauf</button>
+      <button id='tab-button-recipes' class='tab-button' type='button' onclick='switchTab("recipes")'>🍳 Rezepte</button>
+    </nav>
 
 
     <div id='shopping-item-modal' class='shopping-modal hidden'>

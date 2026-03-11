@@ -8,6 +8,9 @@ const ingressPrefix = ingressPrefixMatch ? ingressPrefixMatch[0] : '';
 
 let pendingRequests = 0;
 let activeRecipeItem = null;
+let stockRefreshIntervalId = null;
+const stockRefreshIntervalMs = 60000;
+let activeTab = "shopping";
 
 function setBusyState(isBusy) {
   const spinner = document.getElementById('activity-spinner');
@@ -31,6 +34,25 @@ async function withBusyState(callback) {
     return await callback();
   } finally {
     endRequest();
+  }
+}
+
+
+function switchTab(tabName) {
+  activeTab = tabName === 'recipes' ? 'recipes' : 'shopping';
+
+  const shoppingTab = document.getElementById('tab-shopping');
+  const recipesTab = document.getElementById('tab-recipes');
+  const shoppingButton = document.getElementById('tab-button-shopping');
+  const recipesButton = document.getElementById('tab-button-recipes');
+
+  shoppingTab.classList.toggle('hidden', activeTab !== 'shopping');
+  recipesTab.classList.toggle('hidden', activeTab !== 'recipes');
+  shoppingButton.classList.toggle('active', activeTab === 'shopping');
+  recipesButton.classList.toggle('active', activeTab === 'recipes');
+
+  if (activeTab === 'recipes') {
+    loadLocations();
   }
 }
 
@@ -552,13 +574,26 @@ document.getElementById('name').addEventListener('input', () => {
   }, 250);
 });
 
+
+function startStockAutoRefresh() {
+  if (stockRefreshIntervalId) {
+    clearInterval(stockRefreshIntervalId);
+  }
+
+  stockRefreshIntervalId = window.setInterval(() => {
+    if (activeTab !== 'recipes') return;
+    loadStockProducts();
+  }, stockRefreshIntervalMs);
+}
+
 const savedTheme = localStorage.getItem(themeStorageKey) || 'light';
 applyTheme(savedTheme);
 updateClearButtonVisibility();
 const addMissingButton = document.getElementById('recipe-add-missing-button');
 if (addMissingButton) addMissingButton.addEventListener('click', addMissingRecipeProducts);
+switchTab('shopping');
 loadShoppingList();
-loadLocations();
+startStockAutoRefresh();
 
 
 async function searchSuggestedProduct(productName) {
