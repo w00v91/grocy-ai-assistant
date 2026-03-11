@@ -37,9 +37,18 @@ class DashboardSearchResponse(BaseModel):
 class ShoppingListItemResponse(BaseModel):
     id: int
     amount: str
+    product_id: int | None = None
     product_name: str
     note: str = ""
     picture_url: str = ""
+    location_name: str = ""
+    in_stock: str = ""
+    best_before_date: str = ""
+    default_amount: str = ""
+    calories: str = ""
+    carbs: str = ""
+    fat: str = ""
+    protein: str = ""
 
 
 class ProductVariantResponse(BaseModel):

@@ -58,9 +58,20 @@
         <button onclick='loadShoppingList()'>Einkaufsliste aktualisieren</button>
         <ul id='shopping-list'></ul>
         <p id='status'>Bereit.</p>
+        <button class='success-button' onclick='completeShoppingList()'>Einkauf abschließen</button>
         <button class='danger-button' onclick='clearShoppingList()'>Einkaufsliste leeren</button>
       </section>
     </main>
+
+
+    <div id='shopping-item-modal' class='shopping-modal hidden'>
+      <div class='shopping-modal-backdrop' onclick='closeShoppingItemDetails()'></div>
+      <section class='shopping-modal-content card'>
+        <button class='shopping-modal-close' type='button' onclick='closeShoppingItemDetails()' aria-label='Details schließen'>×</button>
+        <h3 id='shopping-item-title'>Produktdetails</h3>
+        <div id='shopping-item-details' class='shopping-details-grid'></div>
+      </section>
+    </div>
 
     <script src="{{ static_base_path }}/dashboard.js"></script>
   </body>

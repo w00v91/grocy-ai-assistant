@@ -96,6 +96,11 @@ function clearSearchInput() {
   nameInput.focus();
 }
 
+function formatValue(value, fallback = 'Nicht verfügbar') {
+  const text = String(value || '').trim();
+  return text || fallback;
+}
+
 function renderShoppingList(items) {
   const list = document.getElementById('shopping-list');
   if (!items.length) {
@@ -107,15 +112,21 @@ function renderShoppingList(items) {
   list.classList.remove('hidden');
 
   list.innerHTML = items.map((item) => `
-    <li>
-      <img src="${toImageSource(item.picture_url)}" alt="${item.product_name}" loading="lazy" />
-      <div>
-        <div><strong>${item.product_name}</strong></div>
-        <div class="muted">${item.note || 'Keine Notiz'}</div>
+    <li class="shopping-item" data-shopping-item="${encodeURIComponent(JSON.stringify(item))}">
+      <div class="shopping-item-action shopping-item-action-left">Kaufen</div>
+      <div class="shopping-item-action shopping-item-action-right">Löschen</div>
+      <div class="shopping-item-content">
+        <img src="${toImageSource(item.picture_url)}" alt="${item.product_name}" loading="lazy" />
+        <div>
+          <div><strong>${item.product_name}</strong></div>
+          <div class="muted">${item.note || 'Keine Notiz'}</div>
+        </div>
+        <span class="badge">Menge: ${item.amount}</span>
       </div>
-      <span class="badge">Menge: ${item.amount}</span>
     </li>
   `).join('');
+
+  bindShoppingSwipeInteractions();
 }
 
 async function loadShoppingList() {
@@ -235,6 +246,153 @@ async function confirmVariant(productId, productName) {
     }
   } catch (_) {
     status.textContent = 'Produkt konnte nicht hinzugefügt werden (Netzwerk-/Ingress-Fehler).';
+  }
+}
+
+async function removeShoppingItem(shoppingListId) {
+  const key = ensureApiKey();
+  const status = document.getElementById('status');
+  if (!key) {
+    status.textContent = 'Kein API-Key angegeben.';
+    return;
+  }
+
+  const res = await fetch(buildApiUrl(`/api/dashboard/shopping-list/item/${shoppingListId}`), {
+    method: 'DELETE',
+    headers: { 'Authorization': `Bearer ${key}` },
+  });
+  const payload = await parseJsonSafe(res);
+  if (!res.ok) {
+    status.textContent = getErrorMessage(payload, 'Eintrag konnte nicht gelöscht werden.');
+    return;
+  }
+  status.textContent = `Eintrag ${shoppingListId} gelöscht.`;
+  await loadShoppingList();
+}
+
+async function purchaseShoppingItem(shoppingListId) {
+  const key = ensureApiKey();
+  const status = document.getElementById('status');
+  if (!key) {
+    status.textContent = 'Kein API-Key angegeben.';
+    return;
+  }
+
+  const res = await fetch(buildApiUrl(`/api/dashboard/shopping-list/item/${shoppingListId}/complete`), {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${key}` },
+  });
+  const payload = await parseJsonSafe(res);
+  if (!res.ok) {
+    status.textContent = getErrorMessage(payload, 'Eintrag konnte nicht als gekauft markiert werden.');
+    return;
+  }
+  status.textContent = payload.message || `Einkauf für Eintrag ${shoppingListId} abgeschlossen.`;
+  await loadShoppingList();
+}
+
+function showShoppingItemDetails(item) {
+  const modal = document.getElementById('shopping-item-modal');
+  const title = document.getElementById('shopping-item-title');
+  const details = document.getElementById('shopping-item-details');
+
+  title.textContent = item.product_name || 'Produktdetails';
+  details.innerHTML = `
+    <section class="shopping-detail-half">
+      <h4>Grocy Bestandsinfos</h4>
+      <ul>
+        <li><span>Produkt-ID</span><strong>${formatValue(item.product_id)}</strong></li>
+        <li><span>Lagerort</span><strong>${formatValue(item.location_name)}</strong></li>
+        <li><span>In Bestand</span><strong>${formatValue(item.in_stock)}</strong></li>
+        <li><span>Menge Einkauf</span><strong>${formatValue(item.amount)}</strong></li>
+        <li><span>Standardmenge</span><strong>${formatValue(item.default_amount)}</strong></li>
+        <li><span>MHD</span><strong>${formatValue(item.best_before_date)}</strong></li>
+      </ul>
+    </section>
+    <section class="shopping-detail-half">
+      <h4>Nährwertdetails</h4>
+      <ul>
+        <li><span>Kalorien</span><strong>${formatValue(item.calories)}</strong></li>
+        <li><span>Kohlenhydrate</span><strong>${formatValue(item.carbs)}</strong></li>
+        <li><span>Fett</span><strong>${formatValue(item.fat)}</strong></li>
+        <li><span>Protein</span><strong>${formatValue(item.protein)}</strong></li>
+        <li><span>Notiz</span><strong>${formatValue(item.note)}</strong></li>
+      </ul>
+    </section>
+  `;
+  modal.classList.remove('hidden');
+}
+
+function closeShoppingItemDetails() {
+  document.getElementById('shopping-item-modal').classList.add('hidden');
+}
+
+function bindShoppingSwipeInteractions() {
+  const items = document.querySelectorAll('#shopping-list .shopping-item');
+  items.forEach((item) => {
+    let startX = 0;
+    let moved = false;
+
+    item.addEventListener('pointerdown', (event) => {
+      startX = event.clientX;
+      moved = false;
+      item.classList.remove('swiping-left', 'swiping-right');
+    });
+
+    item.addEventListener('pointerup', async (event) => {
+      const deltaX = event.clientX - startX;
+      const payloadText = decodeURIComponent(item.dataset.shoppingItem || '');
+      const payload = payloadText ? JSON.parse(payloadText) : {};
+      const shoppingListId = payload.id;
+
+      if (Math.abs(deltaX) > 55) {
+        moved = true;
+      }
+
+      if (deltaX <= -55) {
+        item.classList.add('swiping-left');
+        await removeShoppingItem(shoppingListId);
+        return;
+      }
+
+      if (deltaX >= 55) {
+        item.classList.add('swiping-right');
+        await purchaseShoppingItem(shoppingListId);
+        return;
+      }
+
+      if (!moved) {
+        showShoppingItemDetails(payload);
+      }
+    });
+  });
+}
+
+async function completeShoppingList() {
+  const key = ensureApiKey();
+  const status = document.getElementById('status');
+  if (!key) {
+    status.textContent = 'Kein API-Key angegeben.';
+    return;
+  }
+
+  status.textContent = 'Markiere Einkaufsliste als eingekauft...';
+  try {
+    const res = await fetch(buildApiUrl('/api/dashboard/shopping-list/complete'), {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${key}` },
+    });
+    const payload = await parseJsonSafe(res);
+
+    if (!res.ok) {
+      status.textContent = getErrorMessage(payload, 'Einkauf konnte nicht abgeschlossen werden.');
+      return;
+    }
+
+    status.textContent = payload.message || 'Einkauf abgeschlossen.';
+    await loadShoppingList();
+  } catch (_) {
+    status.textContent = 'Einkauf konnte nicht abgeschlossen werden (Netzwerk-/Ingress-Fehler).';
   }
 }
 

@@ -465,12 +465,21 @@ def dashboard_shopping_list(
             ShoppingListItemResponse(
                 id=item.get("id"),
                 amount=str(item.get("amount") or "1"),
+                product_id=item.get("product_id"),
                 product_name=item.get("product_name") or "Unbekanntes Produkt",
                 note=item.get("note") or "",
                 picture_url=_build_dashboard_picture_proxy_url(
                     _extract_shopping_item_picture_value(item),
                     settings,
                 ),
+                location_name=str(item.get("location_name") or ""),
+                in_stock=str(item.get("in_stock") or ""),
+                best_before_date=str(item.get("best_before_date") or ""),
+                default_amount=str(item.get("default_amount") or ""),
+                calories=str(item.get("calories") or ""),
+                carbs=str(item.get("carbs") or ""),
+                fat=str(item.get("fat") or ""),
+                protein=str(item.get("protein") or ""),
             )
             for item in items
         ]
@@ -630,6 +639,123 @@ def dashboard_recipe_suggestions(
         )
     except HTTPException:
         raise
+    except Exception as error:
+        log_api_error(
+            logger,
+            request=request,
+            status_code=500,
+            message=str(error),
+            exc=error,
+        )
+        raise HTTPException(status_code=500, detail=str(error)) from error
+
+
+@router.delete("/api/dashboard/shopping-list/item/{shopping_list_id}")
+def dashboard_delete_shopping_list_item(
+    shopping_list_id: int,
+    request: Request,
+    _: None = Depends(require_auth),
+    settings: Settings = Depends(get_settings),
+):
+    if not settings.grocy_api_key:
+        raise HTTPException(
+            status_code=500, detail="grocy_api_key fehlt in Add-on Optionen"
+        )
+
+    try:
+        grocy_client = GrocyClient(settings)
+        shopping_items = grocy_client.get_shopping_list()
+        selected_item = next(
+            (item for item in shopping_items if item.get("id") == shopping_list_id), None
+        )
+        if selected_item is None:
+            raise HTTPException(status_code=404, detail="Einkaufslisten-Eintrag nicht gefunden")
+
+        grocy_client.delete_shopping_list_item(
+            shopping_list_id,
+            amount=str(selected_item.get("amount") or "1"),
+        )
+        return {
+            "success": True,
+            "message": f"Eintrag {shopping_list_id} gelöscht.",
+        }
+    except Exception as error:
+        log_api_error(
+            logger,
+            request=request,
+            status_code=500,
+            message=str(error),
+            exc=error,
+        )
+        raise HTTPException(status_code=500, detail=str(error)) from error
+
+
+@router.post("/api/dashboard/shopping-list/item/{shopping_list_id}/complete")
+def dashboard_complete_shopping_list_item(
+    shopping_list_id: int,
+    request: Request,
+    _: None = Depends(require_auth),
+    settings: Settings = Depends(get_settings),
+):
+    if not settings.grocy_api_key:
+        raise HTTPException(
+            status_code=500, detail="grocy_api_key fehlt in Add-on Optionen"
+        )
+
+    try:
+        grocy_client = GrocyClient(settings)
+        shopping_items = grocy_client.get_shopping_list()
+        selected_item = next(
+            (item for item in shopping_items if item.get("id") == shopping_list_id), None
+        )
+        if selected_item is None:
+            raise HTTPException(status_code=404, detail="Einkaufslisten-Eintrag nicht gefunden")
+
+        product_id = selected_item.get("product_id")
+        if product_id is None:
+            raise HTTPException(status_code=400, detail="Produkt-ID für Eintrag fehlt")
+
+        grocy_client.complete_shopping_list_item(
+            shopping_list_id,
+            product_id=int(product_id),
+            amount=str(selected_item.get("amount") or "1"),
+        )
+        return {
+            "success": True,
+            "message": f"Eintrag {shopping_list_id} als eingekauft markiert.",
+        }
+    except HTTPException:
+        raise
+    except Exception as error:
+        log_api_error(
+            logger,
+            request=request,
+            status_code=500,
+            message=str(error),
+            exc=error,
+        )
+        raise HTTPException(status_code=500, detail=str(error)) from error
+
+
+@router.post("/api/dashboard/shopping-list/complete")
+def dashboard_complete_shopping_list(
+    request: Request,
+    _: None = Depends(require_auth),
+    settings: Settings = Depends(get_settings),
+):
+    if not settings.grocy_api_key:
+        raise HTTPException(
+            status_code=500, detail="grocy_api_key fehlt in Add-on Optionen"
+        )
+
+    try:
+        grocy_client = GrocyClient(settings)
+        completed_items = grocy_client.complete_shopping_list()
+        return {
+            "success": True,
+            "completed_items": completed_items,
+            "message": f"Einkauf abgeschlossen ({completed_items} Einträge als eingekauft markiert).",
+        }
     except Exception as error:
         log_api_error(
             logger,

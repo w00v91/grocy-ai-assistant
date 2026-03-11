@@ -73,6 +73,13 @@ class GrocyClient:
         has_timestamp = 1 if parsed else 0
         return has_timestamp, parsed, safe_item_id
 
+
+    @staticmethod
+    def _safe_str(value: Any) -> str:
+        if value is None:
+            return ""
+        return str(value).strip()
+
     @staticmethod
     def _safe_int(value: Any) -> int | None:
         if value is None:
@@ -153,6 +160,85 @@ class GrocyClient:
         )
         response.raise_for_status()
 
+    def _enrich_shopping_items(self, shopping_items: list[Dict[str, Any]]) -> list[Dict[str, Any]]:
+        products: Dict[str, Any] = {}
+        stock_by_product_id: Dict[str, Any] = {}
+        locations: Dict[str, Any] = {}
+
+        try:
+            products_response = requests.get(
+                f"{self.settings.grocy_base_url}/objects/products",
+                headers=self.headers,
+                timeout=30,
+            )
+            products_response.raise_for_status()
+            products = {
+                str(product.get("id")): product
+                for product in products_response.json()
+                if product.get("id")
+            }
+        except Exception:
+            products = {}
+
+        try:
+            stock_response = requests.get(
+                f"{self.settings.grocy_base_url}/stock",
+                headers=self.headers,
+                timeout=30,
+            )
+            stock_response.raise_for_status()
+            stock_entries = stock_response.json()
+            for entry in stock_entries:
+                product_id = self._safe_str(entry.get("product_id"))
+                if not product_id:
+                    continue
+                stock_by_product_id[product_id] = entry
+        except Exception:
+            stock_by_product_id = {}
+
+        try:
+            locations = {
+                str(location.get("id")): location.get("name", "")
+                for location in self.get_locations()
+                if location.get("id") is not None
+            }
+        except Exception:
+            locations = {}
+
+        merged_items = []
+        for item in shopping_items:
+            product_id = self._safe_str(item.get("product_id"))
+            product = products.get(product_id, {})
+            stock_entry = stock_by_product_id.get(product_id, {})
+            location_id = self._safe_str(stock_entry.get("location_id") or product.get("location_id"))
+            merged_items.append(
+                {
+                    **item,
+                    "product_id": self._safe_int(product_id),
+                    "product_name": item.get("product_name")
+                    or product.get("name")
+                    or "Unbekanntes Produkt",
+                    "picture_url": item.get("picture_url")
+                    or product.get("picture_url")
+                    or product.get("picture_file_name")
+                    or "",
+                    "location_name": locations.get(location_id, ""),
+                    "in_stock": str(stock_entry.get("amount") or ""),
+                    "best_before_date": str(
+                        stock_entry.get("best_before_date")
+                        or stock_entry.get("best_before_date_calculated")
+                        or ""
+                    ),
+                    "default_amount": str(product.get("default_best_before_days") or ""),
+                    "calories": str(product.get("calories") or ""),
+                    "carbs": str(product.get("carbohydrates") or ""),
+                    "fat": str(product.get("fat") or ""),
+                    "protein": str(product.get("protein") or ""),
+                }
+            )
+
+        return sorted(merged_items, key=self._shopping_item_sort_key, reverse=True)
+
     def get_shopping_list(self) -> list[Dict[str, Any]]:
         stock_endpoint = f"{self.settings.grocy_base_url}/stock/shoppinglist"
         response = requests.get(stock_endpoint, headers=self.headers, timeout=30)
@@ -160,7 +246,7 @@ class GrocyClient:
         try:
             response.raise_for_status()
             stock_items = response.json()
-            return sorted(stock_items, key=self._shopping_item_sort_key, reverse=True)
+            return self._enrich_shopping_items(stock_items)
         except HTTPError:
             status_code = response.status_code
             if status_code != 405:
@@ -171,35 +257,7 @@ class GrocyClient:
         response.raise_for_status()
         shopping_items = response.json()
 
-        products_response = requests.get(
-            f"{self.settings.grocy_base_url}/objects/products",
-            headers=self.headers,
-            timeout=30,
-        )
-        products_response.raise_for_status()
-        products = {
-            str(product.get("id")): product
-            for product in products_response.json()
-            if product.get("id")
-        }
-
-        merged_items = [
-            {
-                **item,
-                "product_name": products.get(str(item.get("product_id")), {}).get(
-                    "name", "Unbekanntes Produkt"
-                ),
-                "picture_url": products.get(str(item.get("product_id")), {}).get(
-                    "picture_url",
-                    products.get(str(item.get("product_id")), {}).get(
-                        "picture_file_name", ""
-                    ),
-                ),
-            }
-            for item in shopping_items
-        ]
-
-        return sorted(merged_items, key=self._shopping_item_sort_key, reverse=True)
+        return self._enrich_shopping_items(shopping_items)
 
     def get_locations(self) -> list[Dict[str, Any]]:
         response = requests.get(
@@ -283,21 +341,67 @@ class GrocyClient:
         response.raise_for_status()
         return response.json()
 
+    def delete_shopping_list_item(self, shopping_list_id: int, amount: str = "1") -> None:
+        response = requests.post(
+            f"{self.settings.grocy_base_url}/stock/shoppinglist/remove-product",
+            headers=self.headers,
+            json={
+                "shopping_list_id": shopping_list_id,
+                "amount": self._safe_str(amount) or "1",
+            },
+            timeout=30,
+        )
+        response.raise_for_status()
+
     def clear_shopping_list(self) -> int:
         items = self.get_shopping_list()
         removed_items = 0
 
         for item in items:
-            item_id = item.get("id")
-            if not item_id:
+            item_id = self._safe_int(item.get("id"))
+            if item_id is None:
                 continue
 
-            response = requests.delete(
-                f"{self.settings.grocy_base_url}/objects/shopping_list/{item_id}",
-                headers=self.headers,
-                timeout=30,
-            )
-            response.raise_for_status()
+            amount_value = self._safe_str(item.get("amount") or "1") or "1"
+            self.delete_shopping_list_item(item_id, amount=amount_value)
             removed_items += 1
 
         return removed_items
+
+    def complete_shopping_list_item(
+        self, shopping_list_id: int, product_id: int, amount: str = "1"
+    ) -> None:
+        payload: Dict[str, Any] = {
+            "amount": self._safe_str(amount) or "1",
+        }
+        response = requests.post(
+            f"{self.settings.grocy_base_url}/stock/products/{product_id}/add",
+            headers=self.headers,
+            json=payload,
+            timeout=30,
+        )
+        response.raise_for_status()
+        self.delete_shopping_list_item(shopping_list_id, amount=payload["amount"])
+
+    def complete_shopping_list(self) -> int:
+        items = self.get_shopping_list()
+        completed_items = 0
+
+        for item in items:
+            item_id = self._safe_int(item.get("id"))
+            if item_id is None:
+                continue
+
+            product_id = self._safe_int(item.get("product_id"))
+            if product_id is None:
+                continue
+
+            amount_value = self._safe_str(item.get("amount") or "1") or "1"
+            self.complete_shopping_list_item(
+                item_id,
+                product_id=product_id,
+                amount=amount_value,
+            )
+            completed_items += 1
+
+        return completed_items
