@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 from http import HTTPStatus
+import logging
 
 from fastapi import Request
 from fastapi.responses import JSONResponse
@@ -39,7 +40,25 @@ def build_error_response(
     code: str | None = None,
     details: list[dict] | None = None,
 ) -> JSONResponse:
-    payload = ApiErrorResponse(
+    payload = build_error_payload(
+        request,
+        status_code=status_code,
+        message=message,
+        code=code,
+        details=details,
+    )
+    return JSONResponse(status_code=status_code, content=payload.model_dump())
+
+
+def build_error_payload(
+    request: Request,
+    *,
+    status_code: int,
+    message: str,
+    code: str | None = None,
+    details: list[dict] | None = None,
+) -> ApiErrorResponse:
+    return ApiErrorResponse(
         error=ApiError(
             code=code or _default_error_code(status_code),
             message=message,
@@ -48,4 +67,34 @@ def build_error_response(
             details=details or [],
         )
     )
-    return JSONResponse(status_code=status_code, content=payload.model_dump())
+
+
+def log_api_error(
+    logger: logging.Logger,
+    *,
+    request: Request,
+    status_code: int,
+    message: str,
+    code: str | None = None,
+    details: list[dict] | None = None,
+    exc: Exception | None = None,
+) -> None:
+    payload = build_error_payload(
+        request,
+        status_code=status_code,
+        message=message,
+        code=code,
+        details=details,
+    )
+    error = payload.error
+
+    logger.log(
+        logging.ERROR if status_code >= 500 else logging.WARNING,
+        "api_error code=%s status=%s path=%s message=%s details=%s",
+        error.code,
+        error.status,
+        error.path,
+        error.message,
+        error.details,
+        exc_info=exc,
+    )
