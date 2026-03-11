@@ -53,6 +53,7 @@ class Settings(BaseModel):
     )
     ollama_url: str = Field(default_factory=_default_ollama_url)
     ollama_model: str = "llama3"
+    debug_mode: bool = False
     grocy_base_url: str = "http://homeassistant.local:9192/api"
     grocy_api_key: str = ""
     stable_diffusion_url: str = "http://172.17.0.1:7860/sdapi/v1/txt2img"
