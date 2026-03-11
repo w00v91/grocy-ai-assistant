@@ -251,6 +251,25 @@ img {
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 0.8rem;
 }
+.recipe-item {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+.recipe-thumb {
+  width: 56px;
+  height: 56px;
+  border-radius: 10px;
+  object-fit: cover;
+  border: 1px solid var(--item-border);
+  flex-shrink: 0;
+}
+.recipe-thumb-fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--item-bg);
+}
 
 .success-button {
   margin-top: 0.6rem;

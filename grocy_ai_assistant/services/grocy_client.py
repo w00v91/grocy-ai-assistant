@@ -61,7 +61,9 @@ class GrocyClient:
         parsed = ""
         if created:
             try:
-                parsed = datetime.fromisoformat(created.replace("Z", "+00:00")).isoformat()
+                parsed = datetime.fromisoformat(
+                    created.replace("Z", "+00:00")
+                ).isoformat()
             except ValueError:
                 parsed = created
 
@@ -72,7 +74,6 @@ class GrocyClient:
             safe_item_id = -1
         has_timestamp = 1 if parsed else 0
         return has_timestamp, parsed, safe_item_id
-
 
     @staticmethod
     def _safe_str(value: Any) -> str:
@@ -97,6 +98,17 @@ class GrocyClient:
             return None
 
         return int(text) if text.isdigit() else None
+
+    def _build_grocy_file_url(self, folder: str, file_name: Any) -> str:
+        normalized_file_name = self._safe_str(file_name)
+        if not normalized_file_name:
+            return ""
+
+        if normalized_file_name.startswith(("http://", "https://", "/")):
+            return normalized_file_name
+
+        base_url = self.settings.grocy_base_url.rstrip("/")
+        return f"{base_url}/files/{folder}/{normalized_file_name}"
 
     def _get_all_products(self) -> list[Dict[str, Any]]:
         response = requests.get(
@@ -160,7 +172,9 @@ class GrocyClient:
         )
         response.raise_for_status()
 
-    def _enrich_shopping_items(self, shopping_items: list[Dict[str, Any]]) -> list[Dict[str, Any]]:
+    def _enrich_shopping_items(
+        self, shopping_items: list[Dict[str, Any]]
+    ) -> list[Dict[str, Any]]:
         products: Dict[str, Any] = {}
         stock_by_product_id: Dict[str, Any] = {}
         locations: Dict[str, Any] = {}
@@ -210,7 +224,9 @@ class GrocyClient:
             product_id = self._safe_str(item.get("product_id"))
             product = products.get(product_id, {})
             stock_entry = stock_by_product_id.get(product_id, {})
-            location_id = self._safe_str(stock_entry.get("location_id") or product.get("location_id"))
+            location_id = self._safe_str(
+                stock_entry.get("location_id") or product.get("location_id")
+            )
             merged_items.append(
                 {
                     **item,
@@ -229,7 +245,9 @@ class GrocyClient:
                         or stock_entry.get("best_before_date_calculated")
                         or ""
                     ),
-                    "default_amount": str(product.get("default_best_before_days") or ""),
+                    "default_amount": str(
+                        product.get("default_best_before_days") or ""
+                    ),
                     "calories": str(product.get("calories") or ""),
                     "carbs": str(product.get("carbohydrates") or ""),
                     "fat": str(product.get("fat") or ""),
@@ -339,8 +357,23 @@ class GrocyClient:
             timeout=30,
         )
         response.raise_for_status()
-        return response.json()
+        recipes = response.json()
+        if not isinstance(recipes, list):
+            return []
 
+        normalized_recipes: list[Dict[str, Any]] = []
+        for recipe in recipes:
+            if not isinstance(recipe, dict):
+                continue
+
+            picture_url = self._safe_str(
+                recipe.get("picture_url")
+            ) or self._build_grocy_file_url(
+                "recipepictures", recipe.get("picture_file_name")
+            )
+            normalized_recipes.append({**recipe, "picture_url": picture_url})
+
+        return normalized_recipes
 
     def delete_shopping_list_item(self, shopping_list_id: int) -> None:
         response = requests.delete(
@@ -369,7 +402,9 @@ class GrocyClient:
 
         return removed_items
 
-    def complete_shopping_list_item(self, shopping_list_id: int, amount: str = "1") -> None:
+    def complete_shopping_list_item(
+        self, shopping_list_id: int, amount: str = "1"
+    ) -> None:
         payload: Dict[str, Any] = {
             "shopping_list_id": shopping_list_id,
             "amount": self._safe_str(amount) or "1",

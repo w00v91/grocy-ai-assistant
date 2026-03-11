@@ -193,8 +193,16 @@ def test_get_shopping_list_sorts_stock_endpoint_by_newest_first(monkeypatch):
         if url.endswith("/stock/shoppinglist"):
             return FakeResponse(
                 [
-                    {"id": 3, "product_name": "Alt", "row_created_timestamp": "2024-01-01 10:00:00"},
-                    {"id": 5, "product_name": "Neu", "row_created_timestamp": "2024-01-01 11:00:00"},
+                    {
+                        "id": 3,
+                        "product_name": "Alt",
+                        "row_created_timestamp": "2024-01-01 10:00:00",
+                    },
+                    {
+                        "id": 5,
+                        "product_name": "Neu",
+                        "row_created_timestamp": "2024-01-01 11:00:00",
+                    },
                     {"id": 4, "product_name": "Ohne Zeit"},
                 ]
             )
@@ -231,8 +239,16 @@ def test_get_shopping_list_sorts_objects_fallback_by_newest_first(monkeypatch):
         if url.endswith("/objects/shopping_list"):
             return FakeResponse(
                 [
-                    {"id": 7, "product_id": 10, "row_created_timestamp": "2024-01-01 08:00:00"},
-                    {"id": 8, "product_id": 10, "row_created_timestamp": "2024-01-01 09:00:00"},
+                    {
+                        "id": 7,
+                        "product_id": 10,
+                        "row_created_timestamp": "2024-01-01 08:00:00",
+                    },
+                    {
+                        "id": 8,
+                        "product_id": 10,
+                        "row_created_timestamp": "2024-01-01 09:00:00",
+                    },
                     {"id": 6, "product_id": 10},
                 ]
             )
@@ -409,7 +425,12 @@ def test_get_stock_products_resolves_product_and_location_names(monkeypatch):
 def test_get_recipes_returns_grocy_recipes(monkeypatch):
     def fake_get(url, *args, **kwargs):
         assert url.endswith("/objects/recipes")
-        return FakeResponse([{"id": 1, "name": "Pasta"}])
+        return FakeResponse(
+            [
+                {"id": 1, "name": "Pasta", "picture_file_name": "pasta.jpg"},
+                {"id": 2, "name": "Suppe", "picture_url": "/img/suppe.jpg"},
+            ]
+        )
 
     monkeypatch.setattr(
         "grocy_ai_assistant.services.grocy_client.requests.get", fake_get
@@ -424,7 +445,19 @@ def test_get_recipes_returns_grocy_recipes(monkeypatch):
         )
     )
 
-    assert client.get_recipes() == [{"id": 1, "name": "Pasta"}]
+    assert client.get_recipes() == [
+        {
+            "id": 1,
+            "name": "Pasta",
+            "picture_file_name": "pasta.jpg",
+            "picture_url": "http://homeassistant.local:9192/api/files/recipepictures/pasta.jpg",
+        },
+        {
+            "id": 2,
+            "name": "Suppe",
+            "picture_url": "/img/suppe.jpg",
+        },
+    ]
 
 
 def test_get_stock_products_filters_by_locations(monkeypatch):
