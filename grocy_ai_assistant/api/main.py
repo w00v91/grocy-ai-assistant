@@ -13,7 +13,7 @@ from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from grocy_ai_assistant.api.errors import build_error_response
+from grocy_ai_assistant.api.errors import build_error_response, log_api_error
 from grocy_ai_assistant.api.routes import router
 from grocy_ai_assistant.config.settings import get_settings
 from grocy_ai_assistant.services.location_cache import LocationCache
@@ -86,8 +86,12 @@ def create_app() -> FastAPI:
     async def handle_unexpected_exception(
         request: Request, exc: Exception
     ) -> JSONResponse:
-        logger.exception(
-            "Unerwarteter API-Fehler auf %s", request.url.path, exc_info=exc
+        log_api_error(
+            logger,
+            request=request,
+            status_code=500,
+            message="Interner Serverfehler",
+            exc=exc,
         )
         return build_error_response(
             request,

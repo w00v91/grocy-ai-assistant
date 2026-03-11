@@ -10,6 +10,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from grocy_ai_assistant.ai.ingredient_detector import IngredientDetector
+from grocy_ai_assistant.api.errors import log_api_error
 from grocy_ai_assistant.config.settings import Settings, get_settings
 from grocy_ai_assistant.core.picture_urls import build_product_picture_url
 from grocy_ai_assistant.models.ingredient import (
@@ -208,7 +209,13 @@ def analyze_product(
             product_data = detector.analyze_product_name(payload.name)
         return AnalyzeProductResponse(product_data=product_data)
     except Exception as error:
-        logger.error("Analyse-Fehler: %s", error)
+        log_api_error(
+            logger,
+            request=request,
+            status_code=500,
+            message=str(error),
+            exc=error,
+        )
         raise HTTPException(status_code=500, detail=str(error)) from error
 
 
@@ -217,6 +224,7 @@ def analyze_product(
 )
 def dashboard_search_variants(
     q: str,
+    request: Request,
     _: None = Depends(require_auth),
     settings: Settings = Depends(get_settings),
 ):
@@ -238,7 +246,13 @@ def dashboard_search_variants(
             if product.get("id")
         ]
     except Exception as error:
-        logger.error("Produktsuche fehlgeschlagen: %s", error)
+        log_api_error(
+            logger,
+            request=request,
+            status_code=500,
+            message=str(error),
+            exc=error,
+        )
         raise HTTPException(status_code=500, detail=str(error)) from error
 
 
@@ -247,6 +261,7 @@ def dashboard_search_variants(
 )
 def dashboard_add_existing_product(
     payload: ExistingProductAddRequest,
+    request: Request,
     _: None = Depends(require_auth),
     settings: Settings = Depends(get_settings),
 ):
@@ -265,7 +280,13 @@ def dashboard_add_existing_product(
             product_id=payload.product_id,
         )
     except Exception as error:
-        logger.error("Produkt konnte nicht hinzugefügt werden: %s", error)
+        log_api_error(
+            logger,
+            request=request,
+            status_code=500,
+            message=str(error),
+            exc=error,
+        )
         raise HTTPException(status_code=500, detail=str(error)) from error
 
 
@@ -335,7 +356,13 @@ def dashboard_search(
             product_id=created_object_id,
         )
     except Exception as error:
-        logger.error("Dashboard-Workflow Fehler: %s", error)
+        log_api_error(
+            logger,
+            request=request,
+            status_code=500,
+            message=str(error),
+            exc=error,
+        )
         raise HTTPException(status_code=500, detail=str(error)) from error
 
 
@@ -375,7 +402,14 @@ def dashboard_product_picture(
             timeout=30,
         )
     except requests.RequestException as error:
-        logger.error("Netzwerkfehler beim Laden des Produktbilds %s: %s", src, error)
+        log_api_error(
+            logger,
+            request=request,
+            status_code=502,
+            message="Produktbild konnte nicht geladen werden",
+            details=[{"source": src}],
+            exc=error,
+        )
         raise HTTPException(
             status_code=502,
             detail="Produktbild konnte nicht geladen werden",
@@ -384,8 +418,13 @@ def dashboard_product_picture(
     try:
         response.raise_for_status()
     except requests.HTTPError as error:
-        logger.warning(
-            "Produktbild nicht gefunden oder nicht erreichbar (%s): %s", src, error
+        log_api_error(
+            logger,
+            request=request,
+            status_code=404,
+            message="Bild nicht gefunden",
+            details=[{"source": src}],
+            exc=error,
         )
         raise HTTPException(status_code=404, detail="Bild nicht gefunden") from error
 
@@ -410,6 +449,7 @@ def refresh_product_picture_cache(
     "/api/dashboard/shopping-list", response_model=list[ShoppingListItemResponse]
 )
 def dashboard_shopping_list(
+    request: Request,
     _: None = Depends(require_auth),
     settings: Settings = Depends(get_settings),
 ):
@@ -435,7 +475,13 @@ def dashboard_shopping_list(
             for item in items
         ]
     except Exception as error:
-        logger.error("Einkaufsliste konnte nicht geladen werden: %s", error)
+        log_api_error(
+            logger,
+            request=request,
+            status_code=500,
+            message=str(error),
+            exc=error,
+        )
         raise HTTPException(status_code=500, detail=str(error)) from error
 
 
@@ -459,12 +505,19 @@ def dashboard_locations(
 
         return [LocationResponse(**item) for item in locations]
     except Exception as error:
-        logger.error("Standorte konnten nicht geladen werden: %s", error)
+        log_api_error(
+            logger,
+            request=request,
+            status_code=500,
+            message=str(error),
+            exc=error,
+        )
         raise HTTPException(status_code=500, detail=str(error)) from error
 
 
 @router.get("/api/dashboard/stock-products", response_model=list[StockProductResponse])
 def dashboard_stock_products(
+    request: Request,
     location_ids: str = "",
     _: None = Depends(require_auth),
     settings: Settings = Depends(get_settings),
@@ -488,7 +541,13 @@ def dashboard_stock_products(
         )
         return [StockProductResponse(**item) for item in stock_products]
     except Exception as error:
-        logger.error("Lagerprodukte konnten nicht geladen werden: %s", error)
+        log_api_error(
+            logger,
+            request=request,
+            status_code=500,
+            message=str(error),
+            exc=error,
+        )
         raise HTTPException(status_code=500, detail=str(error)) from error
 
 
@@ -497,6 +556,7 @@ def dashboard_stock_products(
 )
 def dashboard_recipe_suggestions(
     payload: RecipeSuggestionRequest,
+    request: Request,
     _: None = Depends(require_auth),
     settings: Settings = Depends(get_settings),
 ):
@@ -570,12 +630,19 @@ def dashboard_recipe_suggestions(
     except HTTPException:
         raise
     except Exception as error:
-        logger.error("Rezeptvorschläge konnten nicht erzeugt werden: %s", error)
+        log_api_error(
+            logger,
+            request=request,
+            status_code=500,
+            message=str(error),
+            exc=error,
+        )
         raise HTTPException(status_code=500, detail=str(error)) from error
 
 
 @router.delete("/api/dashboard/shopping-list/clear")
 def dashboard_clear_shopping_list(
+    request: Request,
     _: None = Depends(require_auth),
     settings: Settings = Depends(get_settings),
 ):
@@ -593,7 +660,13 @@ def dashboard_clear_shopping_list(
             "message": f"Einkaufsliste geleert ({removed_items} Einträge entfernt).",
         }
     except Exception as error:
-        logger.error("Einkaufsliste konnte nicht geleert werden: %s", error)
+        log_api_error(
+            logger,
+            request=request,
+            status_code=500,
+            message=str(error),
+            exc=error,
+        )
         raise HTTPException(status_code=500, detail=str(error)) from error
 
 
