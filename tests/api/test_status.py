@@ -2,7 +2,10 @@ def test_status_requires_authorization(client):
     response = client.get("/api/status")
 
     assert response.status_code == 401
-    assert response.json() == {"detail": "Unauthorized"}
+    payload = response.json()
+    assert payload["success"] is False
+    assert payload["error"]["message"] == "Unauthorized"
+    assert payload["error"]["code"] == "unauthorized"
 
 
 def test_status_returns_ok_when_authorized(client):

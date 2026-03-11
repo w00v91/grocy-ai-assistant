@@ -118,7 +118,10 @@ def test_dashboard_search_rejects_blank_name(client):
     )
 
     assert response.status_code == 400
-    assert response.json() == {"detail": "Bitte Produktname eingeben"}
+    payload = response.json()
+    assert payload["success"] is False
+    assert payload["error"]["message"] == "Bitte Produktname eingeben"
+    assert payload["error"]["code"] == "bad_request"
 
 
 def test_dashboard_search_variants_returns_partial_matches(client, monkeypatch):
