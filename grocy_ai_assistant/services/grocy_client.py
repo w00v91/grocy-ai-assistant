@@ -345,6 +345,31 @@ class GrocyClient:
             if location.get("id") is not None
         ]
 
+    def get_stock_entries(
+        self, location_ids: list[int] | None = None
+    ) -> list[Dict[str, Any]]:
+        response = requests.get(
+            f"{self.settings.grocy_base_url}/stock",
+            headers=self.headers,
+            timeout=30,
+        )
+        response.raise_for_status()
+        stock_entries = response.json()
+        if not isinstance(stock_entries, list):
+            return []
+
+        allowed_locations = {int(location_id) for location_id in (location_ids or [])}
+        if not allowed_locations:
+            return stock_entries
+
+        filtered_entries: list[Dict[str, Any]] = []
+        for entry in stock_entries:
+            location_id = self._safe_int(entry.get("location_id"))
+            if location_id in allowed_locations:
+                filtered_entries.append(entry)
+
+        return filtered_entries
+
     def get_stock_products(
         self, location_ids: list[int] | None = None
     ) -> list[Dict[str, Any]]:

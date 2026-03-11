@@ -74,6 +74,8 @@ class LocationResponse(BaseModel):
 class RecipeSuggestionRequest(BaseModel):
     product_ids: list[int] = Field(default_factory=list)
     location_ids: list[int] = Field(default_factory=list)
+    soon_expiring_only: bool = False
+    expiring_within_days: int = Field(default=3, ge=1, le=30)
 
 
 class RecipeSuggestionItem(BaseModel):

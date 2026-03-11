@@ -278,6 +278,9 @@ img {
     margin: 0.75rem 0.75rem 0;
     width: calc(100% - 1.5rem);
   }
+  .expiring-search-controls {
+    grid-template-columns: 1fr;
+  }
   button {
     min-height: 44px;
   }
@@ -337,6 +340,23 @@ img {
   z-index: 2;
 }
 
+
+.recipe-actions {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.expiring-search-controls {
+  display: grid;
+  grid-template-columns: auto 90px 1fr;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.expiring-search-controls label {
+  font-size: 0.9rem;
+  color: var(--muted);
+}
 .stock-products {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
