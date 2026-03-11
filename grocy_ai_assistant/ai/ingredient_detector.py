@@ -1,11 +1,14 @@
 import base64
 import json
+import logging
 import os
 from typing import Any, Dict
 
 import requests
 
 from grocy_ai_assistant.config.settings import Settings
+
+logger = logging.getLogger(__name__)
 
 IMAGE_PROMPT_TEMPLATE = """
 Professionelles Produktfoto von '{product_name}' auf rein weißem Hintergrund.
@@ -65,6 +68,8 @@ class IngredientDetector:
         )
         response.raise_for_status()
         raw_answer = response.json().get("response")
+        if self.settings.debug_mode:
+            logger.info("KI-Antwort analyze_product_name: %s", raw_answer)
         return json.loads(raw_answer)
 
     def suggest_similar_products(self, product_name: str) -> list[Dict[str, Any]]:
@@ -100,6 +105,8 @@ class IngredientDetector:
         )
         response.raise_for_status()
         raw_answer = response.json().get("response")
+        if self.settings.debug_mode:
+            logger.info("KI-Antwort suggest_similar_products: %s", raw_answer)
         parsed = json.loads(raw_answer)
 
         if not isinstance(parsed, list):
@@ -158,6 +165,8 @@ class IngredientDetector:
         )
         response.raise_for_status()
         raw_answer = response.json().get("response")
+        if self.settings.debug_mode:
+            logger.info("KI-Antwort generate_recipe_suggestions: %s", raw_answer)
         parsed = json.loads(raw_answer)
         if isinstance(parsed, list):
             normalized: list[Dict[str, Any]] = []
