@@ -486,25 +486,25 @@ def dashboard_recipe_suggestions(
         )
 
     selected_ids = set(payload.product_ids)
-    if not selected_ids:
-        raise HTTPException(
-            status_code=400,
-            detail="Bitte mindestens ein Produkt aus dem Lager auswählen",
-        )
 
     try:
         grocy_client = GrocyClient(settings)
+        
         stock_products = (
             grocy_client.get_stock_products(payload.location_ids)
             if payload.location_ids
             else grocy_client.get_stock_products()
         )
-        selected_products = [
-            product.get("name", "")
-            for product in stock_products
-            if product.get("id") in selected_ids
-        ]
-
+        
+        if not selected_ids:
+            selected_products = [product.get("name", "") for product in stock_products]
+        else:
+            selected_products = [
+                product.get("name", "")
+                for product in stock_products
+                if product.get("id") in selected_ids
+            ]
+        
         if not selected_products:
             raise HTTPException(
                 status_code=400,

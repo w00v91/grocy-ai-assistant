@@ -408,6 +408,7 @@ async function loadStockProducts() {
     }
 
     renderStockProducts(payload);
+    await loadRecipeSuggestions();
   } catch (_) {
     document.getElementById('status').textContent = 'Bestand konnte nicht geladen werden (Netzwerk-/Ingress-Fehler).';
   }
@@ -425,12 +426,9 @@ async function loadRecipeSuggestions() {
     .map((checkbox) => Number(checkbox.value));
   const selectedLocationIds = getSelectedLocationIds();
 
-  if (!selectedIds.length) {
-    status.textContent = 'Keine Produkte in den ausgewählten Lagerstandorten vorhanden.';
-    return;
-  }
-
-  status.textContent = 'Lade Rezeptvorschläge...';
+  status.textContent = selectedIds.length
+    ? 'Lade Rezeptvorschläge für Auswahl...'
+    : 'Lade Rezeptvorschläge aus dem aktuellen Lagerbestand...';
 
   try {
     const res = await fetch(buildApiUrl('/api/dashboard/recipe-suggestions'), {
