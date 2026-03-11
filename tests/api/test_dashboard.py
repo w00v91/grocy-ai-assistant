@@ -274,7 +274,10 @@ def test_product_picture_proxy_rejects_foreign_hosts(client):
 
     assert response.status_code == 400
     payload = response.json()
-    assert payload.get("detail") == "Ungültige Bildquelle" or payload.get("error", {}).get("message") == "Ungültige Bildquelle"
+    assert (
+        payload.get("detail") == "Ungültige Bildquelle"
+        or payload.get("error", {}).get("message") == "Ungültige Bildquelle"
+    )
 
 
 def test_dashboard_handles_network_errors_in_ui(client):
@@ -421,13 +424,21 @@ def test_recipe_suggestions_prioritize_grocy_then_ai(client, monkeypatch):
         ):
             assert selected_products == ["Tomate"]
             assert "Tomaten Pasta" in existing_recipe_titles
-            return [{"title": "Tomaten-Suppe", "reason": "Tomate ist vorhanden", "preparation": "Tomaten schneiden und köcheln."}]
+            return [
+                {
+                    "title": "Tomaten-Suppe",
+                    "reason": "Tomate ist vorhanden",
+                    "preparation": "Tomaten schneiden und köcheln.",
+                }
+            ]
 
     monkeypatch.setattr(
         routes.GrocyClient, "get_stock_products", fake_get_stock_products
     )
     monkeypatch.setattr(routes.GrocyClient, "get_recipes", fake_get_recipes)
-    monkeypatch.setattr(routes.GrocyClient, "get_missing_recipe_products", lambda self, recipe_id: [])
+    monkeypatch.setattr(
+        routes.GrocyClient, "get_missing_recipe_products", lambda self, recipe_id: []
+    )
     monkeypatch.setattr(routes, "IngredientDetector", FakeDetector)
 
     response = client.post(
@@ -473,7 +484,9 @@ def test_recipe_suggestions_uses_stock_products_when_selection_is_empty(
         routes.GrocyClient, "get_stock_products", fake_get_stock_products
     )
     monkeypatch.setattr(routes.GrocyClient, "get_recipes", fake_get_recipes)
-    monkeypatch.setattr(routes.GrocyClient, "get_missing_recipe_products", lambda self, recipe_id: [])
+    monkeypatch.setattr(
+        routes.GrocyClient, "get_missing_recipe_products", lambda self, recipe_id: []
+    )
     monkeypatch.setattr(routes, "IngredientDetector", FakeDetector)
 
     response = client.post(
@@ -507,7 +520,9 @@ def test_recipe_suggestions_returns_empty_when_no_stock_products(client, monkeyp
         routes.GrocyClient, "get_stock_products", fake_get_stock_products
     )
     monkeypatch.setattr(routes.GrocyClient, "get_recipes", fake_get_recipes)
-    monkeypatch.setattr(routes.GrocyClient, "get_missing_recipe_products", lambda self, recipe_id: [])
+    monkeypatch.setattr(
+        routes.GrocyClient, "get_missing_recipe_products", lambda self, recipe_id: []
+    )
     monkeypatch.setattr(routes, "IngredientDetector", FakeDetector)
 
     response = client.post(
@@ -533,7 +548,14 @@ def test_recipe_suggestions_generates_fallback_when_ai_returns_nothing(
         ]
 
     def fake_get_recipes(self):
-        return [{"id": 10, "name": "Tomaten Pasta", "picture_url": "/img/tomaten-pasta.jpg", "description": "Pasta kochen"}]
+        return [
+            {
+                "id": 10,
+                "name": "Tomaten Pasta",
+                "picture_url": "/img/tomaten-pasta.jpg",
+                "description": "Pasta kochen",
+            }
+        ]
 
     class FakeDetector:
         def __init__(self, settings):
@@ -548,7 +570,9 @@ def test_recipe_suggestions_generates_fallback_when_ai_returns_nothing(
         routes.GrocyClient, "get_stock_products", fake_get_stock_products
     )
     monkeypatch.setattr(routes.GrocyClient, "get_recipes", fake_get_recipes)
-    monkeypatch.setattr(routes.GrocyClient, "get_missing_recipe_products", lambda self, recipe_id: [])
+    monkeypatch.setattr(
+        routes.GrocyClient, "get_missing_recipe_products", lambda self, recipe_id: []
+    )
     monkeypatch.setattr(routes, "IngredientDetector", FakeDetector)
 
     response = client.post(
@@ -564,8 +588,6 @@ def test_recipe_suggestions_generates_fallback_when_ai_returns_nothing(
     assert payload["ai_recipes"][0]["title"]
 
 
-
-
 def test_add_missing_recipe_products_adds_to_shopping_list(client, monkeypatch):
     captured = []
 
@@ -577,10 +599,14 @@ def test_add_missing_recipe_products_adds_to_shopping_list(client, monkeypatch):
         captured.append((product_id, amount))
 
     monkeypatch.setattr(
-        routes.GrocyClient, "get_missing_recipe_products", fake_get_missing_recipe_products
+        routes.GrocyClient,
+        "get_missing_recipe_products",
+        fake_get_missing_recipe_products,
     )
     monkeypatch.setattr(
-        routes.GrocyClient, "add_product_to_shopping_list", fake_add_product_to_shopping_list
+        routes.GrocyClient,
+        "add_product_to_shopping_list",
+        fake_add_product_to_shopping_list,
     )
 
     response = client.post(
@@ -591,6 +617,7 @@ def test_add_missing_recipe_products_adds_to_shopping_list(client, monkeypatch):
     assert response.status_code == 200
     assert response.json()["added_items"] == 2
     assert captured == [(1, 1), (2, 1)]
+
 
 def test_dashboard_contains_recipe_section(client):
     response = client.get("/")
@@ -603,7 +630,10 @@ def test_dashboard_contains_recipe_section(client):
     assert "loadRecipeSuggestions" in js_response.text
     assert "/api/dashboard/recipe-suggestions" in js_response.text
     assert "recipe-add-missing-button" in response.text
-    assert "/api/dashboard/recipe/${activeRecipeItem.recipe_id}/add-missing" in js_response.text
+    assert (
+        "/api/dashboard/recipe/${activeRecipeItem.recipe_id}/add-missing"
+        in js_response.text
+    )
 
 
 def test_dashboard_contains_complete_button(client):
@@ -613,12 +643,19 @@ def test_dashboard_contains_complete_button(client):
     assert "Einkauf abschließen" in response.text
     assert "class='success-button'" in response.text
 
+
 def test_dashboard_uses_matching_complete_item_endpoint(client):
     static_response = client.get("/dashboard-static/dashboard.js")
 
     assert static_response.status_code == 200
-    assert "/api/dashboard/shopping-list/item/${shoppingListId}/complete" in static_response.text
-    assert "/api/dashboard/shopping-list/${shoppingListId}/complete" not in static_response.text
+    assert (
+        "/api/dashboard/shopping-list/item/${shoppingListId}/complete"
+        in static_response.text
+    )
+    assert (
+        "/api/dashboard/shopping-list/${shoppingListId}/complete"
+        not in static_response.text
+    )
 
 
 def test_dashboard_swipe_actions_match_labels(client):
@@ -642,7 +679,9 @@ def test_shopping_list_item_can_be_deleted(client, monkeypatch):
         captured["amount"] = amount
 
     monkeypatch.setattr(routes.GrocyClient, "get_shopping_list", fake_get_shopping_list)
-    monkeypatch.setattr(routes.GrocyClient, "delete_shopping_list_item", fake_delete_shopping_list_item)
+    monkeypatch.setattr(
+        routes.GrocyClient, "delete_shopping_list_item", fake_delete_shopping_list_item
+    )
     response = client.delete(
         "/api/dashboard/shopping-list/item/42",
         headers={"Authorization": "Bearer test-api-key"},
@@ -683,7 +722,9 @@ def test_shopping_list_item_can_be_completed(client, monkeypatch):
     def fake_get_shopping_list(self):
         return [{"id": 9, "product_id": 11, "amount": "3"}]
 
-    def fake_complete_shopping_list_item(self, shopping_list_id, product_id, amount="1"):
+    def fake_complete_shopping_list_item(
+        self, shopping_list_id, product_id, amount="1"
+    ):
         captured["shopping_list_id"] = shopping_list_id
         captured["product_id"] = product_id
         captured["amount"] = amount
@@ -710,7 +751,9 @@ def test_shopping_list_item_can_be_completed_with_legacy_endpoint(client, monkey
     def fake_get_shopping_list(self):
         return [{"id": 9, "product_id": 11, "amount": "3"}]
 
-    def fake_complete_shopping_list_item(self, shopping_list_id, product_id, amount="1"):
+    def fake_complete_shopping_list_item(
+        self, shopping_list_id, product_id, amount="1"
+    ):
         captured["shopping_list_id"] = shopping_list_id
         captured["product_id"] = product_id
         captured["amount"] = amount
@@ -730,6 +773,7 @@ def test_shopping_list_item_can_be_completed_with_legacy_endpoint(client, monkey
     assert response.status_code == 200
     assert captured == {"shopping_list_id": 9, "product_id": 11, "amount": "3"}
 
+
 def test_dashboard_shows_activity_spinner_in_header(client):
     response = client.get("/")
 
@@ -748,3 +792,91 @@ def test_dashboard_renders_location_dropdown_filters(client):
     assert static_response.status_code == 200
     assert '<details class="location-dropdown">' in static_response.text
     assert "Lagerstandorte auswählen" in static_response.text
+
+
+def test_dashboard_contains_scanner_tab(client):
+    response = client.get("/")
+
+    assert response.status_code == 200
+    assert "id='tab-scanner'" in response.text
+    assert 'switchTab("scanner")' in response.text
+
+
+def test_dashboard_exposes_scanner_logic_in_js(client):
+    static_response = client.get("/dashboard-static/dashboard.js")
+
+    assert static_response.status_code == 200
+    assert "function startBarcodeScanner()" in static_response.text
+    assert "BarcodeDetector" in static_response.text
+    assert "function lookupBarcode(barcode)" in static_response.text
+
+
+def test_dashboard_barcode_lookup_returns_product_data(client, monkeypatch):
+    class FakeResponse:
+        status_code = 200
+
+        @staticmethod
+        def json():
+            return {
+                "status": 1,
+                "product": {
+                    "product_name": "Haferdrink",
+                    "brands": "Oatly",
+                    "quantity": "1 l",
+                    "ingredients_text_de": "Wasser, Hafer",
+                    "nutrition_grades": "b",
+                },
+            }
+
+    def fake_requests_get(url, timeout, headers):
+        assert "0123456789012" in url
+        assert timeout == 8
+        assert headers["User-Agent"] == "grocy-ai-assistant/scan-tab"
+        return FakeResponse()
+
+    monkeypatch.setattr(routes.requests, "get", fake_requests_get)
+
+    response = client.get(
+        "/api/dashboard/barcode/0123456789012",
+        headers={"Authorization": "Bearer test-api-key"},
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "barcode": "0123456789012",
+        "found": True,
+        "product_name": "Haferdrink",
+        "brand": "Oatly",
+        "quantity": "1 l",
+        "ingredients_text": "Wasser, Hafer",
+        "nutrition_grade": "B",
+        "source": "OpenFoodFacts",
+    }
+
+
+def test_dashboard_barcode_lookup_returns_not_found(client, monkeypatch):
+    class FakeResponse:
+        status_code = 200
+
+        @staticmethod
+        def json():
+            return {"status": 0}
+
+    monkeypatch.setattr(routes.requests, "get", lambda *args, **kwargs: FakeResponse())
+
+    response = client.get(
+        "/api/dashboard/barcode/4008400408400",
+        headers={"Authorization": "Bearer test-api-key"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["found"] is False
+
+
+def test_dashboard_barcode_lookup_rejects_invalid_barcode(client):
+    response = client.get(
+        "/api/dashboard/barcode/abc",
+        headers={"Authorization": "Bearer test-api-key"},
+    )
+
+    assert response.status_code == 400

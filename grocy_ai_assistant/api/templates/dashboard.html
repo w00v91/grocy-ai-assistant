@@ -47,6 +47,23 @@
       </section>
       </section>
 
+
+
+      <section id='tab-scanner' class='tab-view hidden'>
+        <section class='card'>
+          <h2>Barcode-Scanner</h2>
+          <p class='muted'>Mit der Handykamera scannen und Produktdaten abrufen.</p>
+          <video id='scanner-video' class='scanner-video hidden' playsinline></video>
+          <canvas id='scanner-canvas' class='hidden'></canvas>
+          <div class='scanner-actions'>
+            <button id='start-scan-button' type='button' onclick='startBarcodeScanner()'>📷 Kamera starten</button>
+            <button id='stop-scan-button' type='button' class='danger-button hidden' onclick='stopBarcodeScanner()'>⏹ Kamera stoppen</button>
+          </div>
+          <p id='status-scanner'>Bereit.</p>
+          <section id='scanner-result' class='scanner-result hidden'></section>
+        </section>
+      </section>
+
       <section id='tab-recipes' class='tab-view hidden'>
         <section class='card recipe-section'>
           <h2>Rezeptvorschläge</h2>
@@ -73,6 +90,7 @@
     <nav class='bottom-tabbar' aria-label='Navigation'>
       <button id='tab-button-shopping' class='tab-button active' type='button' onclick='switchTab("shopping")'>🛒 Einkauf</button>
       <button id='tab-button-recipes' class='tab-button' type='button' onclick='switchTab("recipes")'>🍳 Rezepte</button>
+      <button id='tab-button-scanner' class='tab-button' type='button' onclick='switchTab("scanner")'>📷 Scanner</button>
     </nav>
 
 

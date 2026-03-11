@@ -16,6 +16,7 @@ from grocy_ai_assistant.core.picture_urls import build_product_picture_url
 from grocy_ai_assistant.models.ingredient import (
     AnalyzeProductRequest,
     AnalyzeProductResponse,
+    BarcodeProductResponse,
     DashboardSearchResponse,
     ExistingProductAddRequest,
     LocationResponse,
@@ -366,6 +367,59 @@ def dashboard_search(
         raise HTTPException(status_code=500, detail=str(error)) from error
 
 
+@router.get("/api/dashboard/barcode/{barcode}", response_model=BarcodeProductResponse)
+def dashboard_barcode_lookup(
+    barcode: str,
+    request: Request,
+    _: None = Depends(require_auth),
+):
+    normalized_barcode = "".join(ch for ch in barcode if ch.isdigit())
+    if len(normalized_barcode) < 8:
+        raise HTTPException(status_code=400, detail="Ungültiger Barcode")
+
+    try:
+        response = requests.get(
+            f"https://world.openfoodfacts.org/api/v2/product/{normalized_barcode}.json",
+            timeout=8,
+            headers={"User-Agent": "grocy-ai-assistant/scan-tab"},
+        )
+        payload = response.json()
+        product = payload.get("product") if isinstance(payload, dict) else {}
+
+        if response.status_code != 200 or int(payload.get("status", 0)) != 1:
+            return BarcodeProductResponse(
+                barcode=normalized_barcode,
+                found=False,
+            )
+
+        return BarcodeProductResponse(
+            barcode=normalized_barcode,
+            found=True,
+            product_name=str(product.get("product_name") or ""),
+            brand=str(product.get("brands") or ""),
+            quantity=str(product.get("quantity") or ""),
+            ingredients_text=str(
+                product.get("ingredients_text_de")
+                or product.get("ingredients_text")
+                or ""
+            ),
+            nutrition_grade=str(product.get("nutrition_grades") or "").upper(),
+        )
+    except HTTPException:
+        raise
+    except Exception as error:
+        log_api_error(
+            logger,
+            request=request,
+            status_code=500,
+            message=str(error),
+            exc=error,
+        )
+        raise HTTPException(
+            status_code=500, detail="Barcode konnte nicht abgefragt werden"
+        ) from error
+
+
 @router.get("/api/dashboard/product-picture")
 def dashboard_product_picture(
     src: str,
@@ -610,7 +664,9 @@ def dashboard_recipe_suggestions(
         scored.sort(key=lambda row: (-row[0], str(row[1].get("name") or "").casefold()))
         grocy_recipes = []
         for _, recipe, reason in scored[:5]:
-            recipe_id = int(recipe.get("id")) if str(recipe.get("id") or "").isdigit() else None
+            recipe_id = (
+                int(recipe.get("id")) if str(recipe.get("id") or "").isdigit() else None
+            )
             missing_products = (
                 grocy_client.get_missing_recipe_products(recipe_id)
                 if recipe_id is not None
@@ -678,8 +734,6 @@ def dashboard_recipe_suggestions(
         raise HTTPException(status_code=500, detail=str(error)) from error
 
 
-
-
 @router.post("/api/dashboard/recipe/{recipe_id}/add-missing")
 def dashboard_add_missing_recipe_products(
     recipe_id: int,
@@ -719,6 +773,7 @@ def dashboard_add_missing_recipe_products(
         )
         raise HTTPException(status_code=500, detail=str(error)) from error
 
+
 @router.delete("/api/dashboard/shopping-list/item/{shopping_list_id}")
 def dashboard_delete_shopping_list_item(
     shopping_list_id: int,
@@ -735,10 +790,13 @@ def dashboard_delete_shopping_list_item(
         grocy_client = GrocyClient(settings)
         shopping_items = grocy_client.get_shopping_list()
         selected_item = next(
-            (item for item in shopping_items if item.get("id") == shopping_list_id), None
+            (item for item in shopping_items if item.get("id") == shopping_list_id),
+            None,
         )
         if selected_item is None:
-            raise HTTPException(status_code=404, detail="Einkaufslisten-Eintrag nicht gefunden")
+            raise HTTPException(
+                status_code=404, detail="Einkaufslisten-Eintrag nicht gefunden"
+            )
 
         grocy_client.delete_shopping_list_item(
             shopping_list_id,
@@ -777,10 +835,13 @@ def dashboard_complete_shopping_list_item(
         grocy_client = GrocyClient(settings)
         shopping_items = grocy_client.get_shopping_list()
         selected_item = next(
-            (item for item in shopping_items if item.get("id") == shopping_list_id), None
+            (item for item in shopping_items if item.get("id") == shopping_list_id),
+            None,
         )
         if selected_item is None:
-            raise HTTPException(status_code=404, detail="Einkaufslisten-Eintrag nicht gefunden")
+            raise HTTPException(
+                status_code=404, detail="Einkaufslisten-Eintrag nicht gefunden"
+            )
 
         product_id = selected_item.get("product_id")
         if product_id is None:
