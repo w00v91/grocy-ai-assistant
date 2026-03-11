@@ -89,6 +89,139 @@ def _get_location_cache(request: Request):
     return getattr(request.app.state, "location_cache", None)
 
 
+def _get_recipe_suggestion_cache(request: Request):
+    return getattr(request.app.state, "recipe_suggestion_cache", None)
+
+
+def _build_stock_signature(
+    stock_products: list[dict],
+) -> tuple[tuple[str, str, str, str, str], ...]:
+    signature_entries: list[tuple[str, str, str, str, str]] = []
+    for product in stock_products:
+        signature_entries.append(
+            (
+                str(product.get("id") or ""),
+                str(product.get("name") or ""),
+                str(product.get("amount") or ""),
+                str(product.get("location_id") or ""),
+                str(product.get("location_name") or ""),
+            )
+        )
+    return tuple(sorted(signature_entries))
+
+
+def _generate_recipe_suggestions(
+    stock_products: list[dict],
+    selected_ids: set[int],
+    grocy_client: GrocyClient,
+    settings: Settings,
+) -> RecipeSuggestionResponse:
+    if not selected_ids:
+        selected_products = [product.get("name", "") for product in stock_products]
+    else:
+        selected_products = [
+            product.get("name", "")
+            for product in stock_products
+            if product.get("id") in selected_ids
+        ]
+
+    if not selected_products:
+        return RecipeSuggestionResponse(
+            selected_products=[],
+            grocy_recipes=[],
+            ai_recipes=[],
+        )
+
+    grocy_recipes_raw = grocy_client.get_recipes()
+    scored = []
+    for recipe in grocy_recipes_raw:
+        score, reason = _score_recipe_match(recipe, selected_products)
+        scored.append((score, recipe, reason))
+
+    scored.sort(key=lambda row: (-row[0], str(row[1].get("name") or "").casefold()))
+    grocy_recipes = []
+    for _, recipe, reason in scored[:5]:
+        recipe_id = (
+            int(recipe.get("id")) if str(recipe.get("id") or "").isdigit() else None
+        )
+        missing_products = (
+            grocy_client.get_missing_recipe_products(recipe_id)
+            if recipe_id is not None
+            else []
+        )
+        grocy_recipes.append(
+            RecipeSuggestionItem(
+                recipe_id=recipe_id,
+                title=str(recipe.get("name") or "Unbenanntes Rezept"),
+                source="grocy",
+                reason=reason,
+                preparation=str(recipe.get("description") or ""),
+                picture_url=str(recipe.get("picture_url") or ""),
+                missing_products=missing_products,
+            )
+        )
+
+    detector = IngredientDetector(settings)
+    ai_raw = detector.generate_recipe_suggestions(
+        selected_products,
+        [item.title for item in grocy_recipes],
+    )
+    if not isinstance(ai_raw, list):
+        ai_raw = []
+
+    if not ai_raw:
+        ai_raw = [
+            {
+                "title": f"{', '.join(selected_products[:2])} Pfanne",
+                "reason": "Schnelle Resteverwertung aus deinem aktuellen Bestand.",
+            },
+            {
+                "title": f"{selected_products[0]} Salat",
+                "reason": "Leichtes Rezept, das mit den vorhandenen Zutaten startet.",
+            },
+        ]
+
+    ai_recipes = [
+        RecipeSuggestionItem(
+            title=str(item.get("title") or "KI-Rezept"),
+            source="ai",
+            reason=str(item.get("reason") or ""),
+            preparation=str(item.get("preparation") or ""),
+            picture_url="",
+        )
+        for item in ai_raw[:5]
+        if isinstance(item, dict)
+    ]
+
+    return RecipeSuggestionResponse(
+        selected_products=selected_products,
+        grocy_recipes=grocy_recipes,
+        ai_recipes=ai_recipes,
+    )
+
+
+def prefetch_initial_recipe_suggestions(settings: Settings) -> dict | None:
+    if not settings.grocy_api_key:
+        return None
+
+    grocy_client = GrocyClient(settings)
+    stock_products = grocy_client.get_stock_products()
+    response = _generate_recipe_suggestions(
+        stock_products=stock_products,
+        selected_ids=set(),
+        grocy_client=grocy_client,
+        settings=settings,
+    )
+    payload = (
+        response.model_dump() if hasattr(response, "model_dump") else response.dict()
+    )
+    return {
+        "location_ids": [],
+        "stock_signature": _build_stock_signature(stock_products),
+        "response": payload,
+    }
+
+
 def _variant_from_grocy_product(
     product: dict, settings: Settings
 ) -> ProductVariantResponse:
@@ -585,86 +718,36 @@ def dashboard_recipe_suggestions(
             else grocy_client.get_stock_products()
         )
 
-        if not selected_ids:
-            selected_products = [product.get("name", "") for product in stock_products]
-        else:
-            selected_products = [
-                product.get("name", "")
-                for product in stock_products
-                if product.get("id") in selected_ids
-            ]
+        if not payload.location_ids and not selected_ids:
+            cache = _get_recipe_suggestion_cache(request)
+            stock_signature = _build_stock_signature(stock_products)
+            if cache:
+                cached_payload = cache.get("response")
+                if cache.get("stock_signature") == stock_signature and cached_payload:
+                    logger.info(
+                        "Nutze initialen Rezeptvorschlags-Cache (Bestand unverändert)"
+                    )
+                    return RecipeSuggestionResponse(**cached_payload)
 
-        if not selected_products:
-            return RecipeSuggestionResponse(
-                selected_products=[],
-                grocy_recipes=[],
-                ai_recipes=[],
-            )
+        response = _generate_recipe_suggestions(
+            stock_products=stock_products,
+            selected_ids=selected_ids,
+            grocy_client=grocy_client,
+            settings=settings,
+        )
 
-        grocy_recipes_raw = grocy_client.get_recipes()
-        scored = []
-        for recipe in grocy_recipes_raw:
-            score, reason = _score_recipe_match(recipe, selected_products)
-            scored.append((score, recipe, reason))
-
-        scored.sort(key=lambda row: (-row[0], str(row[1].get("name") or "").casefold()))
-        grocy_recipes = []
-        for _, recipe, reason in scored[:5]:
-            recipe_id = int(recipe.get("id")) if str(recipe.get("id") or "").isdigit() else None
-            missing_products = (
-                grocy_client.get_missing_recipe_products(recipe_id)
-                if recipe_id is not None
-                else []
-            )
-            grocy_recipes.append(
-                RecipeSuggestionItem(
-                    recipe_id=recipe_id,
-                    title=str(recipe.get("name") or "Unbenanntes Rezept"),
-                    source="grocy",
-                    reason=reason,
-                    preparation=str(recipe.get("description") or ""),
-                    picture_url=str(recipe.get("picture_url") or ""),
-                    missing_products=missing_products,
+        if not payload.location_ids and not selected_ids:
+            cache = _get_recipe_suggestion_cache(request)
+            if cache is not None:
+                cache["location_ids"] = []
+                cache["stock_signature"] = _build_stock_signature(stock_products)
+                cache["response"] = (
+                    response.model_dump()
+                    if hasattr(response, "model_dump")
+                    else response.dict()
                 )
-            )
 
-        detector = IngredientDetector(settings)
-        ai_raw = detector.generate_recipe_suggestions(
-            selected_products,
-            [item.title for item in grocy_recipes],
-        )
-        if not isinstance(ai_raw, list):
-            ai_raw = []
-
-        if not ai_raw:
-            ai_raw = [
-                {
-                    "title": f"{', '.join(selected_products[:2])} Pfanne",
-                    "reason": "Schnelle Resteverwertung aus deinem aktuellen Bestand.",
-                },
-                {
-                    "title": f"{selected_products[0]} Salat",
-                    "reason": "Leichtes Rezept, das mit den vorhandenen Zutaten startet.",
-                },
-            ]
-
-        ai_recipes = [
-            RecipeSuggestionItem(
-                title=str(item.get("title") or "KI-Rezept"),
-                source="ai",
-                reason=str(item.get("reason") or ""),
-                preparation=str(item.get("preparation") or ""),
-                picture_url="",
-            )
-            for item in ai_raw[:5]
-            if isinstance(item, dict)
-        ]
-
-        return RecipeSuggestionResponse(
-            selected_products=selected_products,
-            grocy_recipes=grocy_recipes,
-            ai_recipes=ai_recipes,
-        )
+        return response
     except HTTPException:
         raise
     except Exception as error:
@@ -676,8 +759,6 @@ def dashboard_recipe_suggestions(
             exc=error,
         )
         raise HTTPException(status_code=500, detail=str(error)) from error
-
-
 
 
 @router.post("/api/dashboard/recipe/{recipe_id}/add-missing")
@@ -719,6 +800,7 @@ def dashboard_add_missing_recipe_products(
         )
         raise HTTPException(status_code=500, detail=str(error)) from error
 
+
 @router.delete("/api/dashboard/shopping-list/item/{shopping_list_id}")
 def dashboard_delete_shopping_list_item(
     shopping_list_id: int,
@@ -735,10 +817,13 @@ def dashboard_delete_shopping_list_item(
         grocy_client = GrocyClient(settings)
         shopping_items = grocy_client.get_shopping_list()
         selected_item = next(
-            (item for item in shopping_items if item.get("id") == shopping_list_id), None
+            (item for item in shopping_items if item.get("id") == shopping_list_id),
+            None,
         )
         if selected_item is None:
-            raise HTTPException(status_code=404, detail="Einkaufslisten-Eintrag nicht gefunden")
+            raise HTTPException(
+                status_code=404, detail="Einkaufslisten-Eintrag nicht gefunden"
+            )
 
         grocy_client.delete_shopping_list_item(
             shopping_list_id,
@@ -777,10 +862,13 @@ def dashboard_complete_shopping_list_item(
         grocy_client = GrocyClient(settings)
         shopping_items = grocy_client.get_shopping_list()
         selected_item = next(
-            (item for item in shopping_items if item.get("id") == shopping_list_id), None
+            (item for item in shopping_items if item.get("id") == shopping_list_id),
+            None,
         )
         if selected_item is None:
-            raise HTTPException(status_code=404, detail="Einkaufslisten-Eintrag nicht gefunden")
+            raise HTTPException(
+                status_code=404, detail="Einkaufslisten-Eintrag nicht gefunden"
+            )
 
         product_id = selected_item.get("product_id")
         if product_id is None:

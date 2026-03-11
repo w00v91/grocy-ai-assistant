@@ -14,7 +14,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from grocy_ai_assistant.api.errors import build_error_response, log_api_error
-from grocy_ai_assistant.api.routes import router
+from grocy_ai_assistant.api.routes import prefetch_initial_recipe_suggestions, router
 from grocy_ai_assistant.config.settings import get_settings
 from grocy_ai_assistant.services.location_cache import LocationCache
 from grocy_ai_assistant.services.product_image_cache import ProductImageCache
@@ -36,6 +36,17 @@ async def _lifespan(app: FastAPI):
     location_cache.start()
     app.state.product_image_cache = image_cache
     app.state.location_cache = location_cache
+    app.state.recipe_suggestion_cache = {}
+    try:
+        prefetched = prefetch_initial_recipe_suggestions(settings)
+        if prefetched:
+            app.state.recipe_suggestion_cache.update(prefetched)
+            logger.info("Initiale Rezeptvorschläge vorab geladen und gecacht")
+    except Exception as error:
+        logger.warning(
+            "Initiales Vorladen der Rezeptvorschläge fehlgeschlagen: %s", error
+        )
+
     try:
         yield
     finally:
