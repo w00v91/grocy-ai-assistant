@@ -172,19 +172,70 @@ class IngredientDetector:
                     .replace("\r", "\n")
                 )
 
+            def _parse_embedded_recipe_text(text: str) -> Dict[str, str]:
+                if "\n" not in text:
+                    return {}
+
+                lines = [line.strip() for line in text.split("\n")]
+                compact = [line for line in lines if line]
+                if not compact:
+                    return {}
+
+                lower_lines = [line.casefold() for line in lines]
+                if "zubereitung" not in lower_lines and "fehlende produkte" not in lower_lines:
+                    return {}
+
+                title = compact[0]
+                reason = ""
+                preparation = ""
+
+                if len(compact) > 1 and compact[1].casefold() not in {
+                    "zubereitung",
+                    "fehlende produkte",
+                }:
+                    reason = compact[1]
+
+                if "zubereitung" in lower_lines:
+                    start_index = lower_lines.index("zubereitung") + 1
+                    end_index = len(lines)
+                    if "fehlende produkte" in lower_lines[start_index:]:
+                        end_index = lower_lines.index("fehlende produkte", start_index)
+
+                    preparation_lines = [
+                        line for line in lines[start_index:end_index] if line
+                    ]
+                    preparation = "\n".join(preparation_lines)
+
+                return {
+                    "title": title,
+                    "reason": reason,
+                    "preparation": preparation,
+                }
+
             for item in parsed:
                 if not isinstance(item, dict):
                     continue
+
+                title = _normalize_text(item.get("title"))
+                reason = _normalize_text(item.get("reason"))
+                preparation = _normalize_text(
+                    item.get("preparation")
+                    or item.get("details")
+                    or item.get("description")
+                    or ""
+                )
+
+                parsed_title_blob = _parse_embedded_recipe_text(title)
+                if parsed_title_blob:
+                    title = parsed_title_blob.get("title") or title
+                    reason = reason or parsed_title_blob.get("reason") or ""
+                    preparation = preparation or parsed_title_blob.get("preparation") or ""
+
                 normalized.append(
                     {
-                        "title": _normalize_text(item.get("title")),
-                        "reason": _normalize_text(item.get("reason")),
-                        "preparation": _normalize_text(
-                            item.get("preparation")
-                            or item.get("details")
-                            or item.get("description")
-                            or ""
-                        ),
+                        "title": title,
+                        "reason": reason,
+                        "preparation": preparation,
                     }
                 )
             return normalized
