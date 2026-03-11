@@ -794,6 +794,92 @@ def test_dashboard_renders_location_dropdown_filters(client):
     assert "Lagerstandorte auswählen" in static_response.text
 
 
+def test_dashboard_contains_scanner_tab(client):
+    response = client.get("/")
+
+    assert response.status_code == 200
+    assert "id='tab-scanner'" in response.text
+    assert 'switchTab("scanner")' in response.text
+
+
+def test_dashboard_exposes_scanner_logic_in_js(client):
+    static_response = client.get("/dashboard-static/dashboard.js")
+
+    assert static_response.status_code == 200
+    assert "function startBarcodeScanner()" in static_response.text
+    assert "BarcodeDetector" in static_response.text
+    assert "function lookupBarcode(barcode)" in static_response.text
+
+
+def test_dashboard_barcode_lookup_returns_product_data(client, monkeypatch):
+    class FakeResponse:
+        status_code = 200
+
+        @staticmethod
+        def json():
+            return {
+                "status": 1,
+                "product": {
+                    "product_name": "Haferdrink",
+                    "brands": "Oatly",
+                    "quantity": "1 l",
+                    "ingredients_text_de": "Wasser, Hafer",
+                    "nutrition_grades": "b",
+                },
+            }
+
+    def fake_requests_get(url, timeout, headers):
+        assert "0123456789012" in url
+        assert timeout == 8
+        assert headers["User-Agent"] == "grocy-ai-assistant/scan-tab"
+        return FakeResponse()
+
+    monkeypatch.setattr(routes.requests, "get", fake_requests_get)
+
+    response = client.get(
+        "/api/dashboard/barcode/0123456789012",
+        headers={"Authorization": "Bearer test-api-key"},
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "barcode": "0123456789012",
+        "found": True,
+        "product_name": "Haferdrink",
+        "brand": "Oatly",
+        "quantity": "1 l",
+        "ingredients_text": "Wasser, Hafer",
+        "nutrition_grade": "B",
+        "source": "OpenFoodFacts",
+    }
+
+
+def test_dashboard_barcode_lookup_returns_not_found(client, monkeypatch):
+    class FakeResponse:
+        status_code = 200
+
+        @staticmethod
+        def json():
+            return {"status": 0}
+
+    monkeypatch.setattr(routes.requests, "get", lambda *args, **kwargs: FakeResponse())
+
+    response = client.get(
+        "/api/dashboard/barcode/4008400408400",
+        headers={"Authorization": "Bearer test-api-key"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["found"] is False
+
+
+def test_dashboard_barcode_lookup_rejects_invalid_barcode(client):
+    response = client.get(
+        "/api/dashboard/barcode/abc",
+        headers={"Authorization": "Bearer test-api-key"},
+    )
+
+    assert response.status_code == 400
 def test_recipe_suggestions_uses_prefetched_cache_when_stock_unchanged(
     client, monkeypatch
 ):

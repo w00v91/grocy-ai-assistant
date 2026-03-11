@@ -9,6 +9,10 @@ const ingressPrefix = ingressPrefixMatch ? ingressPrefixMatch[0] : '';
 let pendingRequests = 0;
 let activeRecipeItem = null;
 let activeTab = "shopping";
+let scannerStream = null;
+let scannerInterval = null;
+let scannerLastBarcode = "";
+let scannerDetector = null;
 const recipeState = {
   initialized: false,
   selectedLocationIds: [],
@@ -42,20 +46,28 @@ async function withBusyState(callback) {
 
 
 function switchTab(tabName) {
-  activeTab = tabName === 'recipes' ? 'recipes' : 'shopping';
+  const allowedTabs = ['shopping', 'recipes', 'scanner'];
+  activeTab = allowedTabs.includes(tabName) ? tabName : 'shopping';
 
   const shoppingTab = document.getElementById('tab-shopping');
   const recipesTab = document.getElementById('tab-recipes');
+  const scannerTab = document.getElementById('tab-scanner');
   const shoppingButton = document.getElementById('tab-button-shopping');
   const recipesButton = document.getElementById('tab-button-recipes');
+  const scannerButton = document.getElementById('tab-button-scanner');
 
   shoppingTab.classList.toggle('hidden', activeTab !== 'shopping');
   recipesTab.classList.toggle('hidden', activeTab !== 'recipes');
+  scannerTab.classList.toggle('hidden', activeTab !== 'scanner');
   shoppingButton.classList.toggle('active', activeTab === 'shopping');
   recipesButton.classList.toggle('active', activeTab === 'recipes');
+  scannerButton.classList.toggle('active', activeTab === 'scanner');
 
   if (activeTab === 'recipes' && !recipeState.initialized) {
     loadLocations();
+  }
+  if (activeTab !== 'scanner') {
+    stopBarcodeScanner();
   }
 }
 
@@ -847,4 +859,145 @@ async function addMissingRecipeProducts() {
   } catch (_) {
     status.textContent = 'Fehlende Produkte konnten nicht hinzugefügt werden (Netzwerk-/Ingress-Fehler).';
   }
+}
+
+
+function getScannerStatusElement() {
+  return document.getElementById('status-scanner');
+}
+
+function renderScannerResult(payload) {
+  const container = document.getElementById('scanner-result');
+  if (!container) return;
+
+  if (!payload || !payload.found) {
+    container.classList.add('hidden');
+    container.innerHTML = '';
+    return;
+  }
+
+  container.classList.remove('hidden');
+  container.innerHTML = `
+    <h3>${payload.product_name || 'Unbekanntes Produkt'}</h3>
+    <ul>
+      <li><strong>Barcode:</strong> ${payload.barcode || '-'}</li>
+      <li><strong>Marke:</strong> ${payload.brand || '-'}</li>
+      <li><strong>Menge:</strong> ${payload.quantity || '-'}</li>
+      <li><strong>Nährwert-Grad:</strong> ${payload.nutrition_grade || '-'}</li>
+      <li><strong>Zutaten:</strong> ${payload.ingredients_text || '-'}</li>
+    </ul>
+  `;
+}
+
+async function lookupBarcode(barcode) {
+  const key = ensureApiKey();
+  const status = getScannerStatusElement();
+  if (!key) {
+    status.textContent = 'Kein API-Key angegeben.';
+    return;
+  }
+
+  const normalized = String(barcode || '').replace(/\D/g, '');
+  if (normalized.length < 8) return;
+
+  scannerLastBarcode = normalized;
+  status.textContent = `Barcode erkannt: ${normalized}. Lade Produktdaten...`;
+
+  try {
+    const res = await fetch(buildApiUrl(`/api/dashboard/barcode/${normalized}`), {
+      headers: { 'Authorization': `Bearer ${key}` },
+    });
+    const payload = await parseJsonSafe(res);
+
+    if (!res.ok) {
+      status.textContent = getErrorMessage(payload, 'Barcode konnte nicht abgefragt werden.');
+      return;
+    }
+
+    if (!payload.found) {
+      status.textContent = `Kein Produkt für Barcode ${normalized} gefunden.`;
+      renderScannerResult(null);
+      return;
+    }
+
+    status.textContent = `Produkt geladen: ${payload.product_name || normalized}`;
+    renderScannerResult(payload);
+  } catch (_) {
+    status.textContent = 'Barcode konnte nicht abgefragt werden (Netzwerk-/Ingress-Fehler).';
+  }
+}
+
+async function startBarcodeScanner() {
+  const status = getScannerStatusElement();
+  const video = document.getElementById('scanner-video');
+  const startButton = document.getElementById('start-scan-button');
+  const stopButton = document.getElementById('stop-scan-button');
+
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    status.textContent = 'Kamera wird von diesem Browser nicht unterstützt.';
+    return;
+  }
+
+  try {
+    scannerStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: 'environment' } },
+      audio: false,
+    });
+    video.srcObject = scannerStream;
+    await video.play();
+    video.classList.remove('hidden');
+    startButton.classList.add('hidden');
+    stopButton.classList.remove('hidden');
+    status.textContent = 'Scanner aktiv. Barcode vor die Kamera halten...';
+
+    if ('BarcodeDetector' in window) {
+      scannerDetector = new window.BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e'] });
+    }
+
+    scannerInterval = setInterval(async () => {
+      if (activeTab !== 'scanner') return;
+      if (!video.videoWidth || !video.videoHeight) return;
+
+      if (scannerDetector) {
+        try {
+          const barcodes = await scannerDetector.detect(video);
+          if (barcodes.length) {
+            const value = String(barcodes[0].rawValue || '').trim();
+            if (value && value !== scannerLastBarcode) {
+              await lookupBarcode(value);
+            }
+          }
+        } catch (_) {
+          // Ignore detector errors and keep scanning
+        }
+      }
+    }, 900);
+  } catch (_) {
+    status.textContent = 'Kamera konnte nicht gestartet werden. Bitte Berechtigung prüfen.';
+  }
+}
+
+function stopBarcodeScanner() {
+  const video = document.getElementById('scanner-video');
+  const startButton = document.getElementById('start-scan-button');
+  const stopButton = document.getElementById('stop-scan-button');
+
+  if (scannerInterval) {
+    clearInterval(scannerInterval);
+    scannerInterval = null;
+  }
+
+  if (scannerStream) {
+    scannerStream.getTracks().forEach((track) => track.stop());
+    scannerStream = null;
+  }
+
+  if (video) {
+    video.pause();
+    video.srcObject = null;
+    video.classList.add('hidden');
+  }
+
+  if (startButton) startButton.classList.remove('hidden');
+  if (stopButton) stopButton.classList.add('hidden');
 }

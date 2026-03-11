@@ -90,3 +90,14 @@ class RecipeSuggestionResponse(BaseModel):
     selected_products: list[str] = Field(default_factory=list)
     grocy_recipes: list[RecipeSuggestionItem] = Field(default_factory=list)
     ai_recipes: list[RecipeSuggestionItem] = Field(default_factory=list)
+
+
+class BarcodeProductResponse(BaseModel):
+    barcode: str
+    found: bool
+    product_name: str = ""
+    brand: str = ""
+    quantity: str = ""
+    ingredients_text: str = ""
+    nutrition_grade: str = ""
+    source: str = "OpenFoodFacts"

@@ -16,6 +16,7 @@ from grocy_ai_assistant.core.picture_urls import build_product_picture_url
 from grocy_ai_assistant.models.ingredient import (
     AnalyzeProductRequest,
     AnalyzeProductResponse,
+    BarcodeProductResponse,
     DashboardSearchResponse,
     ExistingProductAddRequest,
     LocationResponse,
@@ -499,6 +500,59 @@ def dashboard_search(
         raise HTTPException(status_code=500, detail=str(error)) from error
 
 
+@router.get("/api/dashboard/barcode/{barcode}", response_model=BarcodeProductResponse)
+def dashboard_barcode_lookup(
+    barcode: str,
+    request: Request,
+    _: None = Depends(require_auth),
+):
+    normalized_barcode = "".join(ch for ch in barcode if ch.isdigit())
+    if len(normalized_barcode) < 8:
+        raise HTTPException(status_code=400, detail="Ungültiger Barcode")
+
+    try:
+        response = requests.get(
+            f"https://world.openfoodfacts.org/api/v2/product/{normalized_barcode}.json",
+            timeout=8,
+            headers={"User-Agent": "grocy-ai-assistant/scan-tab"},
+        )
+        payload = response.json()
+        product = payload.get("product") if isinstance(payload, dict) else {}
+
+        if response.status_code != 200 or int(payload.get("status", 0)) != 1:
+            return BarcodeProductResponse(
+                barcode=normalized_barcode,
+                found=False,
+            )
+
+        return BarcodeProductResponse(
+            barcode=normalized_barcode,
+            found=True,
+            product_name=str(product.get("product_name") or ""),
+            brand=str(product.get("brands") or ""),
+            quantity=str(product.get("quantity") or ""),
+            ingredients_text=str(
+                product.get("ingredients_text_de")
+                or product.get("ingredients_text")
+                or ""
+            ),
+            nutrition_grade=str(product.get("nutrition_grades") or "").upper(),
+        )
+    except HTTPException:
+        raise
+    except Exception as error:
+        log_api_error(
+            logger,
+            request=request,
+            status_code=500,
+            message=str(error),
+            exc=error,
+        )
+        raise HTTPException(
+            status_code=500, detail="Barcode konnte nicht abgefragt werden"
+        ) from error
+
+
 @router.get("/api/dashboard/product-picture")
 def dashboard_product_picture(
     src: str,
@@ -736,6 +790,32 @@ def dashboard_recipe_suggestions(
             settings=settings,
         )
 
+        grocy_recipes_raw = grocy_client.get_recipes()
+        scored = []
+        for recipe in grocy_recipes_raw:
+            score, reason = _score_recipe_match(recipe, selected_products)
+            scored.append((score, recipe, reason))
+
+        scored.sort(key=lambda row: (-row[0], str(row[1].get("name") or "").casefold()))
+        grocy_recipes = []
+        for _, recipe, reason in scored[:5]:
+            recipe_id = (
+                int(recipe.get("id")) if str(recipe.get("id") or "").isdigit() else None
+            )
+            missing_products = (
+                grocy_client.get_missing_recipe_products(recipe_id)
+                if recipe_id is not None
+                else []
+            )
+            grocy_recipes.append(
+                RecipeSuggestionItem(
+                    recipe_id=recipe_id,
+                    title=str(recipe.get("name") or "Unbenanntes Rezept"),
+                    source="grocy",
+                    reason=reason,
+                    preparation=str(recipe.get("description") or ""),
+                    picture_url=str(recipe.get("picture_url") or ""),
+                    missing_products=missing_products,
         if not payload.location_ids and not selected_ids:
             cache = _get_recipe_suggestion_cache(request)
             if cache is not None:
