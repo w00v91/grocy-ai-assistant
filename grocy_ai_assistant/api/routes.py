@@ -586,9 +586,10 @@ def dashboard_recipe_suggestions(
             ]
 
         if not selected_products:
-            raise HTTPException(
-                status_code=400,
-                detail="Auswahl enthält keine gültigen Lagerprodukte",
+            return RecipeSuggestionResponse(
+                selected_products=[],
+                grocy_recipes=[],
+                ai_recipes=[],
             )
 
         grocy_recipes_raw = grocy_client.get_recipes()
