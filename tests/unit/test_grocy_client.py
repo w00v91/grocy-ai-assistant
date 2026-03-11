@@ -450,13 +450,48 @@ def test_get_recipes_returns_grocy_recipes(monkeypatch):
             "id": 1,
             "name": "Pasta",
             "picture_file_name": "pasta.jpg",
-            "picture_url": "http://homeassistant.local:9192/api/files/recipepictures/pasta.jpg",
+            "picture_url": "http://homeassistant.local:9192/api/files/recipepictures/cGFzdGEuanBn?force_serve_as=picture",
         },
         {
             "id": 2,
             "name": "Suppe",
             "picture_url": "/img/suppe.jpg",
         },
+    ]
+
+
+def test_get_recipes_rewrites_existing_recipe_picture_url(monkeypatch):
+    def fake_get(url, *args, **kwargs):
+        assert url.endswith("/objects/recipes")
+        return FakeResponse(
+            [
+                {
+                    "id": 1,
+                    "name": "Salat",
+                    "picture_url": "http://homeassistant.local:9192/api/files/recipepictures/ri3lsto844wuvkqsry4oidsc_0817-500x500.jpg",
+                }
+            ]
+        )
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.services.grocy_client.requests.get", fake_get
+    )
+
+    client = GrocyClient(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+        )
+    )
+
+    assert client.get_recipes() == [
+        {
+            "id": 1,
+            "name": "Salat",
+            "picture_url": "http://homeassistant.local:9192/api/files/recipepictures/cmkzbHN0bzg0NHd1dmtxc3J5NG9pZHNjXzA4MTctNTAweDUwMC5qcGc=?force_serve_as=picture",
+        }
     ]
 
 

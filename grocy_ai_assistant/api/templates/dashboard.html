@@ -10,7 +10,10 @@
     <button id='theme-toggle' class='theme-toggle' onclick='toggleTheme()'>🌙 Darkmode</button>
     <main class='container'>
       <section class='card'>
-        <h1>Grocy AI Suche</h1>
+        <div class='section-header'>
+          <h1>Grocy AI Suche</h1>
+          <span id='activity-spinner' class='activity-spinner hidden' aria-label='Lädt' title='Lädt'></span>
+        </div>
         <div class='search-row'>
           <div class='search-input-wrapper'>
             <input id='name' placeholder='z.B. Hafermilch 1L' />
@@ -37,7 +40,7 @@
       <section class='card recipe-section'>
         <h2>Rezeptvorschläge aus Lager/Kühlschrank</h2>
         <h3>Lagerstandorte</h3>
-        <div id='location-filters' class='stock-products'></div>
+        <div id='location-filters' class='location-filters'></div>
         <h3>Produkte in ausgewählten Standorten</h3>
         <div id='stock-products' class='stock-products'></div>
         <button onclick='loadRecipeSuggestions()'>Rezeptvorschläge laden</button>
