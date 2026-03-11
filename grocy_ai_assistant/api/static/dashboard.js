@@ -140,8 +140,12 @@ function renderShoppingList(items) {
 
   list.innerHTML = items.map((item) => `
     <li class="shopping-item" data-shopping-item="${encodeURIComponent(JSON.stringify(item))}">
-      <div class="shopping-item-action shopping-item-action-left">Kaufen</div>
-      <div class="shopping-item-action shopping-item-action-right">Löschen</div>
+      <div class="shopping-item-action shopping-item-action-left" aria-hidden="true">
+        <span class="swipe-chip swipe-chip-buy">🛒 Kaufen</span>
+      </div>
+      <div class="shopping-item-action shopping-item-action-right" aria-hidden="true">
+        <span class="swipe-chip swipe-chip-delete">🗑 Löschen</span>
+      </div>
       <div class="shopping-item-content">
         <img src="${toImageSource(item.picture_url)}" alt="${item.product_name}" loading="lazy" />
         <div>
@@ -576,7 +580,7 @@ function renderLocations(items) {
   }
 
   container.innerHTML = `
-    <details class="location-dropdown" open>
+    <details class="location-dropdown">
       <summary>Lagerstandorte auswählen (${items.length})</summary>
       <div class="location-options">
         ${items.map((item) => `
