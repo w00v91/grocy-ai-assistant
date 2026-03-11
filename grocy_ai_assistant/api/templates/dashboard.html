@@ -58,35 +58,9 @@
         <button onclick='loadShoppingList()'>Einkaufsliste aktualisieren</button>
         <ul id='shopping-list'></ul>
         <p id='status'>Bereit.</p>
-        <button class='success-button' onclick='completeShoppingList()'>Einkauf abschließen</button>
         <button class='danger-button' onclick='clearShoppingList()'>Einkaufsliste leeren</button>
       </section>
     </main>
-
-
-    <div id='shopping-details-modal' class='details-modal hidden' role='dialog' aria-modal='true' aria-labelledby='shopping-details-title'>
-      <div class='details-modal-content'>
-        <button class='details-close' type='button' onclick='closeShoppingItemDetails()' aria-label='Details schließen'>×</button>
-        <h3 id='shopping-details-title'>Produktdetails</h3>
-        <div class='details-grid'>
-          <div class='details-pane'>
-            <h4>Grocy Bestandsinfos</h4>
-            <p><strong>Bestand:</strong> <span id='detail-stock-amount'>-</span></p>
-            <p><strong>Mindestbestand:</strong> <span id='detail-min-stock-amount'>-</span></p>
-            <p><strong>MHD:</strong> <span id='detail-best-before-date'>-</span></p>
-            <p><strong>Lagerort:</strong> <span id='detail-location-name'>-</span></p>
-            <p><strong>Notiz:</strong> <span id='detail-shopping-note'>-</span></p>
-          </div>
-          <div class='details-pane'>
-            <h4>Nährwertdetails</h4>
-            <p><strong>Kalorien:</strong> <span id='detail-calories'>-</span></p>
-            <p><strong>Kohlenhydrate:</strong> <span id='detail-carbohydrates'>-</span></p>
-            <p><strong>Fett:</strong> <span id='detail-fat'>-</span></p>
-            <p><strong>Protein:</strong> <span id='detail-protein'>-</span></p>
-          </div>
-        </div>
-      </div>
-    </div>
 
     <script src="{{ static_base_path }}/dashboard.js"></script>
   </body>

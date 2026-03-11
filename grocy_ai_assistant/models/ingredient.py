@@ -36,24 +36,10 @@ class DashboardSearchResponse(BaseModel):
 
 class ShoppingListItemResponse(BaseModel):
     id: int
-    product_id: int | None = None
     amount: str
     product_name: str
     note: str = ""
     picture_url: str = ""
-
-
-class ShoppingItemDetailsResponse(BaseModel):
-    product_name: str
-    stock_amount: str = ""
-    min_stock_amount: str = ""
-    best_before_date: str = ""
-    location_name: str = ""
-    shopping_note: str = ""
-    calories: str = ""
-    carbohydrates: str = ""
-    fat: str = ""
-    protein: str = ""
 
 
 class ProductVariantResponse(BaseModel):
