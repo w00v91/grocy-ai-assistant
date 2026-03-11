@@ -18,14 +18,27 @@ class IngredientDetector:
         self.settings = settings
 
     @staticmethod
-    def _grocy_context() -> Dict[str, str]:
+    def _grocy_context(locations: list[Dict[str, Any]] | None = None) -> Dict[str, str]:
+        location_labels = [
+            f"{int(item.get('id'))}: {str(item.get('name') or '').strip()}"
+            for item in (locations or [])
+            if item.get("id") is not None
+        ]
         return {
-            "locations": "1: Kuehlschrank, 2: Vorratsschrank, 3: Tiefkuehler",
+            "locations": (
+                ", ".join(location_labels)
+                if location_labels
+                else "1: Kuehlschrank, 2: Vorratsschrank, 3: Tiefkuehler"
+            ),
             "units": "1: Stueck, 2: Packung, 3: Gramm, 4: Kilogramm",
         }
 
-    def analyze_product_name(self, product_name: str) -> Dict[str, Any]:
-        context = self._grocy_context()
+    def analyze_product_name(
+        self,
+        product_name: str,
+        locations: list[Dict[str, Any]] | None = None,
+    ) -> Dict[str, Any]:
+        context = self._grocy_context(locations)
         prompt = f"""
         Analysiere das Produkt '{product_name}'.
         Gib NUR ein JSON-Objekt zurueck, das exakt diese Struktur hat:

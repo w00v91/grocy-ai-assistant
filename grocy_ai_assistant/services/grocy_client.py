@@ -161,7 +161,24 @@ class GrocyClient:
             for item in shopping_items
         ]
 
-    def get_stock_products(self) -> list[Dict[str, Any]]:
+    def get_locations(self) -> list[Dict[str, Any]]:
+        response = requests.get(
+            f"{self.settings.grocy_base_url}/objects/locations",
+            headers=self.headers,
+            timeout=30,
+        )
+        response.raise_for_status()
+        payload = response.json()
+        locations = payload if isinstance(payload, list) else []
+        return [
+            {"id": int(location.get("id")), "name": str(location.get("name") or "")}
+            for location in locations
+            if location.get("id") is not None
+        ]
+
+    def get_stock_products(
+        self, location_ids: list[int] | None = None
+    ) -> list[Dict[str, Any]]:
         response = requests.get(
             f"{self.settings.grocy_base_url}/stock",
             headers=self.headers,
@@ -176,17 +193,13 @@ class GrocyClient:
             if product.get("id") is not None
         }
 
-        locations_response = requests.get(
-            f"{self.settings.grocy_base_url}/objects/locations",
-            headers=self.headers,
-            timeout=30,
-        )
-        locations_response.raise_for_status()
         locations = {
             int(location.get("id")): location.get("name", "")
-            for location in locations_response.json()
+            for location in self.get_locations()
             if location.get("id") is not None
         }
+
+        allowed_locations = {int(location_id) for location_id in (location_ids or [])}
 
         result: list[Dict[str, Any]] = []
         for entry in stock_entries:
@@ -198,12 +211,19 @@ class GrocyClient:
             location_id = product.get("location_id") or entry.get("location_id")
             location_name = locations.get(int(location_id), "") if location_id else ""
 
+            normalized_location_id = (
+                int(location_id) if location_id is not None else None
+            )
+            if allowed_locations and normalized_location_id not in allowed_locations:
+                continue
+
             result.append(
                 {
                     "id": int(product_id),
                     "name": product.get("name")
                     or entry.get("product_name")
                     or "Unbekanntes Produkt",
+                    "location_id": normalized_location_id,
                     "location_name": location_name,
                     "amount": str(entry.get("amount") or ""),
                 }
