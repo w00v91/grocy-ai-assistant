@@ -95,6 +95,15 @@ function getErrorMessage(payload, fallbackMessage) {
   if (payload && payload.detail) return payload.detail;
   return fallbackMessage;
 }
+
+function getShoppingStatusElement() {
+  return document.getElementById('status-shopping');
+}
+
+function getRecipeStatusElement() {
+  return document.getElementById('status-recipes');
+}
+
 function buildApiUrl(path) {
   const normalizedPath = '/' + String(path || '').replace(/^\/+/, '');
   if (apiBasePath) {
@@ -186,7 +195,7 @@ function renderShoppingList(items) {
 async function loadShoppingList() {
   return withBusyState(async () => {
   const key = ensureApiKey();
-  const status = document.getElementById('status');
+  const status = getShoppingStatusElement();
   if (!key) {
     status.textContent = 'Kein API-Key angegeben.';
     return;
@@ -243,7 +252,7 @@ function renderVariants(items) {
 async function loadVariants() {
   return withBusyState(async () => {
   const key = ensureApiKey();
-  const status = document.getElementById('status');
+  const status = getShoppingStatusElement();
   const name = document.getElementById('name').value || '';
 
   if (!key) return;
@@ -277,7 +286,7 @@ async function loadVariants() {
 async function confirmVariant(productId, productName) {
   return withBusyState(async () => {
   const key = ensureApiKey();
-  const status = document.getElementById('status');
+  const status = getShoppingStatusElement();
 
   if (!key) {
     status.textContent = 'Kein API-Key angegeben.';
@@ -314,7 +323,7 @@ async function confirmVariant(productId, productName) {
 
 async function removeShoppingItem(shoppingListId) {
   const key = ensureApiKey();
-  const status = document.getElementById('status');
+  const status = getShoppingStatusElement();
   if (!key) {
     status.textContent = 'Kein API-Key angegeben.';
     return;
@@ -335,7 +344,7 @@ async function removeShoppingItem(shoppingListId) {
 
 async function purchaseShoppingItem(shoppingListId) {
   const key = ensureApiKey();
-  const status = document.getElementById('status');
+  const status = getShoppingStatusElement();
   if (!key) {
     status.textContent = 'Kein API-Key angegeben.';
     return;
@@ -434,7 +443,7 @@ function bindShoppingSwipeInteractions() {
 async function completeShoppingList() {
   return withBusyState(async () => {
   const key = ensureApiKey();
-  const status = document.getElementById('status');
+  const status = getShoppingStatusElement();
   if (!key) {
     status.textContent = 'Kein API-Key angegeben.';
     return;
@@ -465,7 +474,7 @@ async function completeShoppingList() {
 async function clearShoppingList() {
   return withBusyState(async () => {
   const key = ensureApiKey();
-  const status = document.getElementById('status');
+  const status = getShoppingStatusElement();
   if (!key) {
     status.textContent = 'Kein API-Key angegeben.';
     return;
@@ -496,7 +505,7 @@ async function clearShoppingList() {
 async function searchProduct() {
   return withBusyState(async () => {
   const name = document.getElementById('name').value;
-  const status = document.getElementById('status');
+  const status = getShoppingStatusElement();
   const key = ensureApiKey();
 
   if (!key) {
@@ -679,14 +688,14 @@ async function loadLocations() {
     const payload = await parseJsonSafe(res);
 
     if (!res.ok) {
-      document.getElementById('status').textContent = getErrorMessage(payload, 'Standorte konnten nicht geladen werden.');
+      getRecipeStatusElement().textContent = getErrorMessage(payload, 'Standorte konnten nicht geladen werden.');
       return;
     }
 
     renderLocations(payload);
     await loadStockProducts();
   } catch (_) {
-    document.getElementById('status').textContent = 'Standorte konnten nicht geladen werden (Netzwerk-/Ingress-Fehler).';
+    getRecipeStatusElement().textContent = 'Standorte konnten nicht geladen werden (Netzwerk-/Ingress-Fehler).';
   }
 
   });
@@ -706,14 +715,14 @@ async function loadStockProducts() {
     const payload = await parseJsonSafe(res);
 
     if (!res.ok) {
-      document.getElementById('status').textContent = getErrorMessage(payload, 'Bestand konnte nicht geladen werden.');
+      getRecipeStatusElement().textContent = getErrorMessage(payload, 'Bestand konnte nicht geladen werden.');
       return;
     }
 
     renderStockProducts(payload);
     await loadRecipeSuggestions();
   } catch (_) {
-    document.getElementById('status').textContent = 'Bestand konnte nicht geladen werden (Netzwerk-/Ingress-Fehler).';
+    getRecipeStatusElement().textContent = 'Bestand konnte nicht geladen werden (Netzwerk-/Ingress-Fehler).';
   }
 
   });
@@ -722,7 +731,7 @@ async function loadStockProducts() {
 async function loadRecipeSuggestions() {
   return withBusyState(async () => {
   const key = ensureApiKey();
-  const status = document.getElementById('status');
+  const status = getRecipeStatusElement();
   if (!key) {
     status.textContent = 'Kein API-Key angegeben.';
     return;
@@ -808,7 +817,7 @@ function bindRecipeItemInteractions() {
 
 async function addMissingRecipeProducts() {
   const key = ensureApiKey();
-  const status = document.getElementById('status');
+  const status = getRecipeStatusElement();
   if (!key || !activeRecipeItem || !Number.isInteger(activeRecipeItem.recipe_id)) return;
 
   try {

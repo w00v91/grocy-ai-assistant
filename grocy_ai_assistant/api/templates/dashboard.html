@@ -41,7 +41,7 @@
         <h2>Einkaufsliste</h2>
         <button onclick='loadShoppingList()'>Einkaufsliste aktualisieren</button>
         <ul id='shopping-list'></ul>
-        <p id='status'>Bereit.</p>
+        <p id='status-shopping'>Bereit.</p>
         <button class='success-button' onclick='completeShoppingList()'>Einkauf abschließen</button>
         <button class='danger-button' onclick='clearShoppingList()'>Einkaufsliste leeren</button>
       </section>
@@ -49,12 +49,13 @@
 
       <section id='tab-recipes' class='tab-view hidden'>
         <section class='card recipe-section'>
-          <h2>Rezeptvorschläge aus Lager/Kühlschrank</h2>
+          <h2>Rezeptvorschläge</h2>
           <h3>Lagerstandorte</h3>
           <div id='location-filters' class='location-filters'></div>
           <h3>Produkte in ausgewählten Standorten</h3>
           <div id='stock-products' class='stock-products'></div>
           <button onclick='loadRecipeSuggestions()'>Rezeptvorschläge laden</button>
+          <p id='status-recipes'>Bereit.</p>
           <div class='recipe-columns'>
             <div>
               <h3>Gespeicherte Grocy-Rezepte</h3>
