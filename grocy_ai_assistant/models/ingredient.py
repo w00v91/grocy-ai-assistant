@@ -77,10 +77,13 @@ class RecipeSuggestionRequest(BaseModel):
 
 
 class RecipeSuggestionItem(BaseModel):
+    recipe_id: int | None = None
     title: str
     source: str
     reason: str = ""
+    preparation: str = ""
     picture_url: str = ""
+    missing_products: list[ProductVariantResponse] = Field(default_factory=list)
 
 
 class RecipeSuggestionResponse(BaseModel):

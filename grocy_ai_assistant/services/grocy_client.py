@@ -403,6 +403,96 @@ class GrocyClient:
         result.sort(key=lambda item: item["name"].casefold())
         return result
 
+
+    def get_recipe_positions(self, recipe_id: int) -> list[Dict[str, Any]]:
+        response = requests.get(
+            f"{self.settings.grocy_base_url}/objects/recipes_pos",
+            headers=self.headers,
+            params={"query[]": f"recipe_id={int(recipe_id)}"},
+            timeout=30,
+        )
+        response.raise_for_status()
+        positions = response.json()
+        return positions if isinstance(positions, list) else []
+
+    def get_stock_amounts(self) -> Dict[int, float]:
+        response = requests.get(
+            f"{self.settings.grocy_base_url}/stock",
+            headers=self.headers,
+            timeout=30,
+        )
+        response.raise_for_status()
+        stock_entries = response.json()
+        if not isinstance(stock_entries, list):
+            return {}
+
+        amounts: Dict[int, float] = {}
+        for entry in stock_entries:
+            if not isinstance(entry, dict):
+                continue
+            product_id = self._safe_int(entry.get("product_id"))
+            if product_id is None:
+                continue
+            amount_raw = entry.get("amount")
+            try:
+                amount_value = float(str(amount_raw).replace(",", "."))
+            except (TypeError, ValueError):
+                amount_value = 0.0
+            amounts[product_id] = amount_value
+        return amounts
+
+    def get_missing_recipe_products(self, recipe_id: int) -> list[Dict[str, Any]]:
+        positions = self.get_recipe_positions(recipe_id)
+        if not positions:
+            return []
+
+        all_products = {
+            int(product.get("id")): product
+            for product in self._get_all_products()
+            if self._safe_int(product.get("id")) is not None
+        }
+        stock_amounts = self.get_stock_amounts()
+
+        missing: list[Dict[str, Any]] = []
+        for position in positions:
+            if not isinstance(position, dict):
+                continue
+            product_id = self._safe_int(position.get("product_id"))
+            if product_id is None:
+                continue
+            needed_raw = position.get("amount")
+            try:
+                needed_amount = float(str(needed_raw).replace(",", "."))
+            except (TypeError, ValueError):
+                needed_amount = 1.0
+            available_amount = float(stock_amounts.get(product_id, 0.0))
+            if available_amount >= needed_amount:
+                continue
+
+            product = all_products.get(product_id, {})
+            missing.append(
+                {
+                    "id": product_id,
+                    "name": product.get("name")
+                    or position.get("product")
+                    or "Unbekanntes Produkt",
+                    "picture_url": self._build_grocy_file_url(
+                        "productpictures", product.get("picture_file_name")
+                    ),
+                    "source": "grocy",
+                }
+            )
+
+        unique_missing: list[Dict[str, Any]] = []
+        seen_ids: set[int] = set()
+        for item in missing:
+            item_id = self._safe_int(item.get("id"))
+            if item_id is None or item_id in seen_ids:
+                continue
+            seen_ids.add(item_id)
+            unique_missing.append(item)
+
+        return unique_missing
     def get_recipes(self) -> list[Dict[str, Any]]:
         response = requests.get(
             f"{self.settings.grocy_base_url}/objects/recipes",
@@ -427,9 +517,13 @@ class GrocyClient:
         return normalized_recipes
 
     def delete_shopping_list_item(self, shopping_list_id: int, amount: str = "1") -> None:
-        response = requests.delete(
-            f"{self.settings.grocy_base_url}/objects/shopping_list/{shopping_list_id}",
+        response = requests.post(
+            f"{self.settings.grocy_base_url}/stock/shoppinglist/remove-product",
             headers=self.headers,
+            json={
+                "shopping_list_id": shopping_list_id,
+                "amount": self._safe_str(amount) or "1",
+            },
             timeout=30,
         )
         response.raise_for_status()

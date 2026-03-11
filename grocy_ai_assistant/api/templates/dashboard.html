@@ -76,6 +76,22 @@
       </section>
     </div>
 
+
+
+    <div id='recipe-modal' class='shopping-modal hidden'>
+      <div class='shopping-modal-backdrop' onclick='closeRecipeDetails()'></div>
+      <section class='shopping-modal-content card'>
+        <button class='shopping-modal-close' type='button' onclick='closeRecipeDetails()' aria-label='Rezept schließen'>×</button>
+        <h3 id='recipe-modal-title'>Rezeptdetails</h3>
+        <div id='recipe-modal-reason' class='muted'></div>
+        <h4>Zubereitung</h4>
+        <p id='recipe-modal-preparation'></p>
+        <h4>Fehlende Produkte</h4>
+        <ul id='recipe-modal-missing-products'></ul>
+        <button id='recipe-add-missing-button' class='success-button' type='button'>Alles hinzufügen</button>
+      </section>
+    </div>
+
     <script src="{{ static_base_path }}/dashboard.js"></script>
   </body>
 </html>
