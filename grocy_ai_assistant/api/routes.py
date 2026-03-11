@@ -790,32 +790,6 @@ def dashboard_recipe_suggestions(
             settings=settings,
         )
 
-        grocy_recipes_raw = grocy_client.get_recipes()
-        scored = []
-        for recipe in grocy_recipes_raw:
-            score, reason = _score_recipe_match(recipe, selected_products)
-            scored.append((score, recipe, reason))
-
-        scored.sort(key=lambda row: (-row[0], str(row[1].get("name") or "").casefold()))
-        grocy_recipes = []
-        for _, recipe, reason in scored[:5]:
-            recipe_id = (
-                int(recipe.get("id")) if str(recipe.get("id") or "").isdigit() else None
-            )
-            missing_products = (
-                grocy_client.get_missing_recipe_products(recipe_id)
-                if recipe_id is not None
-                else []
-            )
-            grocy_recipes.append(
-                RecipeSuggestionItem(
-                    recipe_id=recipe_id,
-                    title=str(recipe.get("name") or "Unbenanntes Rezept"),
-                    source="grocy",
-                    reason=reason,
-                    preparation=str(recipe.get("description") or ""),
-                    picture_url=str(recipe.get("picture_url") or ""),
-                    missing_products=missing_products,
         if not payload.location_ids and not selected_ids:
             cache = _get_recipe_suggestion_cache(request)
             if cache is not None:
