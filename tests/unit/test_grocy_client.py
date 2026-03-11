@@ -479,3 +479,54 @@ def test_get_stock_products_filters_by_locations(monkeypatch):
             "amount": "3",
         },
     ]
+
+
+def test_get_stock_products_uses_stock_location_for_filter_and_display(monkeypatch):
+    def fake_get(url, *args, **kwargs):
+        if url.endswith("/stock"):
+            return FakeResponse(
+                [
+                    {"product_id": "2", "location_id": "4", "amount": 1},
+                    {"product_id": "3", "location_id": "1", "amount": 2},
+                ]
+            )
+        if url.endswith("/objects/products"):
+            return FakeResponse(
+                [
+                    {"id": 2, "name": "Milch", "location_id": 1},
+                    {"id": 3, "name": "Saft", "location_id": 4},
+                ]
+            )
+        if url.endswith("/objects/locations"):
+            return FakeResponse(
+                [
+                    {"id": 1, "name": "Kühlschrank"},
+                    {"id": 4, "name": "Vorrat"},
+                ]
+            )
+        raise AssertionError(f"Unexpected url: {url}")
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.services.grocy_client.requests.get", fake_get
+    )
+
+    client = GrocyClient(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+        )
+    )
+
+    result = client.get_stock_products([4])
+
+    assert result == [
+        {
+            "id": 2,
+            "name": "Milch",
+            "location_id": 4,
+            "location_name": "Vorrat",
+            "amount": "1",
+        }
+    ]
