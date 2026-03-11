@@ -741,7 +741,7 @@ async function loadStockProducts() {
       recipeState.selectedProductIds = getSelectedProductIds();
     }
 
-    await loadRecipeSuggestions();
+    getRecipeStatusElement().textContent = 'Bestand aktualisiert. Lade Rezeptvorschläge bei Bedarf manuell.';
   } catch (_) {
     getRecipeStatusElement().textContent = 'Bestand konnte nicht geladen werden (Netzwerk-/Ingress-Fehler).';
   }
