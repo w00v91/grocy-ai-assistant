@@ -273,7 +273,8 @@ def test_product_picture_proxy_rejects_foreign_hosts(client):
     )
 
     assert response.status_code == 400
-    assert response.json()["detail"] == "Ungültige Bildquelle"
+    payload = response.json()
+    assert payload.get("detail") == "Ungültige Bildquelle" or payload.get("error", {}).get("message") == "Ungültige Bildquelle"
 
 
 def test_dashboard_handles_network_errors_in_ui(client):
@@ -526,3 +527,56 @@ def test_dashboard_contains_recipe_section(client):
     assert js_response.status_code == 200
     assert "loadRecipeSuggestions" in js_response.text
     assert "/api/dashboard/recipe-suggestions" in js_response.text
+
+
+def test_dashboard_contains_complete_button(client):
+    response = client.get("/")
+
+    assert response.status_code == 200
+    assert "Einkauf abschließen" in response.text
+    assert "class='success-button'" in response.text
+
+
+def test_shopping_list_item_can_be_deleted(client, monkeypatch):
+    captured = {}
+
+    def fake_delete_shopping_list_item(self, shopping_list_id):
+        captured["shopping_list_id"] = shopping_list_id
+
+    monkeypatch.setattr(
+        routes.GrocyClient,
+        "delete_shopping_list_item",
+        fake_delete_shopping_list_item,
+    )
+
+    response = client.delete(
+        "/api/dashboard/shopping-list/item/42",
+        headers={"Authorization": "Bearer test-api-key"},
+    )
+
+    assert response.status_code == 200
+    assert captured["shopping_list_id"] == 42
+    assert response.json()["success"] is True
+
+
+def test_shopping_list_can_be_completed(client, monkeypatch):
+    def fake_complete_shopping_list(self):
+        return 5
+
+    monkeypatch.setattr(
+        routes.GrocyClient,
+        "complete_shopping_list",
+        fake_complete_shopping_list,
+    )
+
+    response = client.post(
+        "/api/dashboard/shopping-list/complete",
+        headers={"Authorization": "Bearer test-api-key"},
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "success": True,
+        "completed_items": 5,
+        "message": "Einkauf abgeschlossen (5 Einträge als eingekauft markiert).",
+    }

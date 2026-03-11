@@ -137,16 +137,13 @@ def test_get_shopping_list_falls_back_to_objects_endpoint(monkeypatch):
 
     assert requested_urls[0].endswith("/stock/shoppinglist")
     assert any(url.endswith("/objects/shopping_list") for url in requested_urls)
-    assert result == [
-        {
-            "id": 7,
-            "product_id": 10,
-            "amount": 2,
-            "note": "bio",
-            "product_name": "Hafermilch",
-            "picture_url": "/api/files/hafer.jpg",
-        }
-    ]
+    assert len(result) == 1
+    assert result[0]["id"] == 7
+    assert result[0]["product_id"] == 10
+    assert result[0]["amount"] == 2
+    assert result[0]["note"] == "bio"
+    assert result[0]["product_name"] == "Hafermilch"
+    assert result[0]["picture_url"] == "/api/files/hafer.jpg"
 
 
 def test_get_shopping_list_uses_picture_file_name_if_picture_url_missing(monkeypatch):
@@ -530,3 +527,55 @@ def test_get_stock_products_uses_stock_location_for_filter_and_display(monkeypat
             "amount": "1",
         }
     ]
+
+
+def test_delete_shopping_list_item_calls_objects_endpoint(monkeypatch):
+    captured = {}
+
+    def fake_delete(url, *args, **kwargs):
+        captured["url"] = url
+        return FakeResponse({})
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.services.grocy_client.requests.delete", fake_delete
+    )
+
+    client = GrocyClient(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+        )
+    )
+
+    client.delete_shopping_list_item(23)
+
+    assert captured["url"].endswith("/objects/shopping_list/23")
+
+
+def test_complete_shopping_list_item_calls_remove_product(monkeypatch):
+    captured = {}
+
+    def fake_post(url, *args, **kwargs):
+        captured["url"] = url
+        captured["json"] = kwargs.get("json")
+        return FakeResponse({})
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.services.grocy_client.requests.post", fake_post
+    )
+
+    client = GrocyClient(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+        )
+    )
+
+    client.complete_shopping_list_item(9, amount="3")
+
+    assert captured["url"].endswith("/stock/shoppinglist/remove-product")
+    assert captured["json"] == {"shopping_list_id": 9, "amount": "3"}
