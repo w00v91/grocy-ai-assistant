@@ -17,7 +17,22 @@ const recipeState = {
   initialized: false,
   selectedLocationIds: [],
   selectedProductIds: [],
+  stockSignature: null,
 };
+
+function buildStockSignature(items) {
+  return JSON.stringify(
+    (Array.isArray(items) ? items : [])
+      .map((item) => [
+        String(item.id ?? ''),
+        String(item.name ?? ''),
+        String(item.amount ?? ''),
+        String(item.location_id ?? ''),
+        String(item.location_name ?? ''),
+      ])
+      .sort((left, right) => left.join('|').localeCompare(right.join('|')))
+  );
+}
 
 function setBusyState(isBusy) {
   const spinner = document.getElementById('activity-spinner');
@@ -735,13 +750,21 @@ async function loadStockProducts() {
     const availableProductIds = new Set(payload.map((item) => item.id));
     recipeState.selectedProductIds = recipeState.selectedProductIds.filter((id) => availableProductIds.has(id));
 
+    const nextStockSignature = buildStockSignature(payload);
+    const hasStockChanged = recipeState.stockSignature !== null
+      && recipeState.stockSignature !== nextStockSignature;
+
+    recipeState.stockSignature = nextStockSignature;
+
     renderStockProducts(payload);
 
     if (recipeState.selectedProductIds.length === 0) {
       recipeState.selectedProductIds = getSelectedProductIds();
     }
 
-    getRecipeStatusElement().textContent = 'Bestand aktualisiert. Lade Rezeptvorschläge bei Bedarf manuell.';
+    getRecipeStatusElement().textContent = hasStockChanged
+      ? 'Bestand aktualisiert. Lade Rezeptvorschläge bei Bedarf manuell.'
+      : 'Bestand geladen. Lade Rezeptvorschläge bei Bedarf manuell.';
   } catch (_) {
     getRecipeStatusElement().textContent = 'Bestand konnte nicht geladen werden (Netzwerk-/Ingress-Fehler).';
   }
