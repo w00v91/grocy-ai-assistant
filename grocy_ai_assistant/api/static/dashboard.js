@@ -6,6 +6,33 @@ let apiKey = configuredApiKey || '';
 const ingressPrefixMatch = window.location.pathname.match(/^\/api\/hassio_ingress\/[^\/]+/);
 const ingressPrefix = ingressPrefixMatch ? ingressPrefixMatch[0] : '';
 
+let pendingRequests = 0;
+
+function setBusyState(isBusy) {
+  const spinner = document.getElementById('activity-spinner');
+  if (!spinner) return;
+  spinner.classList.toggle('hidden', !isBusy);
+}
+
+function beginRequest() {
+  pendingRequests += 1;
+  setBusyState(true);
+}
+
+function endRequest() {
+  pendingRequests = Math.max(0, pendingRequests - 1);
+  setBusyState(pendingRequests > 0);
+}
+
+async function withBusyState(callback) {
+  beginRequest();
+  try {
+    return await callback();
+  } finally {
+    endRequest();
+  }
+}
+
 function applyTheme(theme) {
   const root = document.documentElement;
   const toggle = document.getElementById('theme-toggle');
@@ -130,6 +157,7 @@ function renderShoppingList(items) {
 }
 
 async function loadShoppingList() {
+  return withBusyState(async () => {
   const key = ensureApiKey();
   const status = document.getElementById('status');
   if (!key) {
@@ -154,6 +182,8 @@ async function loadShoppingList() {
   } catch (_) {
     status.textContent = 'Einkaufsliste konnte nicht geladen werden (Netzwerk-/Ingress-Fehler).';
   }
+
+  });
 }
 
 function renderVariants(items) {
@@ -184,6 +214,7 @@ function renderVariants(items) {
 }
 
 async function loadVariants() {
+  return withBusyState(async () => {
   const key = ensureApiKey();
   const status = document.getElementById('status');
   const name = document.getElementById('name').value || '';
@@ -212,9 +243,12 @@ async function loadVariants() {
   } catch (_) {
     status.textContent = 'Varianten konnten nicht geladen werden (Netzwerk-/Ingress-Fehler).';
   }
+
+  });
 }
 
 async function confirmVariant(productId, productName) {
+  return withBusyState(async () => {
   const key = ensureApiKey();
   const status = document.getElementById('status');
 
@@ -247,6 +281,8 @@ async function confirmVariant(productId, productName) {
   } catch (_) {
     status.textContent = 'Produkt konnte nicht hinzugefügt werden (Netzwerk-/Ingress-Fehler).';
   }
+
+  });
 }
 
 async function removeShoppingItem(shoppingListId) {
@@ -369,6 +405,7 @@ function bindShoppingSwipeInteractions() {
 }
 
 async function completeShoppingList() {
+  return withBusyState(async () => {
   const key = ensureApiKey();
   const status = document.getElementById('status');
   if (!key) {
@@ -394,9 +431,12 @@ async function completeShoppingList() {
   } catch (_) {
     status.textContent = 'Einkauf konnte nicht abgeschlossen werden (Netzwerk-/Ingress-Fehler).';
   }
+
+  });
 }
 
 async function clearShoppingList() {
+  return withBusyState(async () => {
   const key = ensureApiKey();
   const status = document.getElementById('status');
   if (!key) {
@@ -422,9 +462,12 @@ async function clearShoppingList() {
   } catch (_) {
     status.textContent = 'Einkaufsliste konnte nicht geleert werden (Netzwerk-/Ingress-Fehler).';
   }
+
+  });
 }
 
 async function searchProduct() {
+  return withBusyState(async () => {
   const name = document.getElementById('name').value;
   const status = document.getElementById('status');
   const key = ensureApiKey();
@@ -463,6 +506,8 @@ async function searchProduct() {
   } catch (_) {
     status.textContent = 'Produkt konnte nicht geprüft werden (Netzwerk-/Ingress-Fehler).';
   }
+
+  });
 }
 
 let variantsDebounce;
@@ -530,12 +575,19 @@ function renderLocations(items) {
     return;
   }
 
-  container.innerHTML = items.map((item) => `
-    <label class="stock-item">
-      <input type="checkbox" value="${item.id}" checked />
-      <span><strong>${item.name}</strong></span>
-    </label>
-  `).join('');
+  container.innerHTML = `
+    <details class="location-dropdown" open>
+      <summary>Lagerstandorte auswählen (${items.length})</summary>
+      <div class="location-options">
+        ${items.map((item) => `
+          <label class="stock-item">
+            <input type="checkbox" value="${item.id}" checked />
+            <span><strong>${item.name}</strong></span>
+          </label>
+        `).join('')}
+      </div>
+    </details>
+  `;
 }
 
 function renderStockProducts(items) {
@@ -572,6 +624,7 @@ function renderRecipeList(elementId, items, emptyText) {
 }
 
 async function loadLocations() {
+  return withBusyState(async () => {
   const key = ensureApiKey();
   if (!key) return;
 
@@ -591,9 +644,12 @@ async function loadLocations() {
   } catch (_) {
     document.getElementById('status').textContent = 'Standorte konnten nicht geladen werden (Netzwerk-/Ingress-Fehler).';
   }
+
+  });
 }
 
 async function loadStockProducts() {
+  return withBusyState(async () => {
   const key = ensureApiKey();
   if (!key) return;
 
@@ -615,9 +671,12 @@ async function loadStockProducts() {
   } catch (_) {
     document.getElementById('status').textContent = 'Bestand konnte nicht geladen werden (Netzwerk-/Ingress-Fehler).';
   }
+
+  });
 }
 
 async function loadRecipeSuggestions() {
+  return withBusyState(async () => {
   const key = ensureApiKey();
   const status = document.getElementById('status');
   if (!key) {
@@ -652,4 +711,6 @@ async function loadRecipeSuggestions() {
   } catch (_) {
     status.textContent = 'Rezeptvorschläge konnten nicht geladen werden (Netzwerk-/Ingress-Fehler).';
   }
+
+  });
 }
