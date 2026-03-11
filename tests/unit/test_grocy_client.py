@@ -322,8 +322,20 @@ def test_get_stock_products_resolves_product_and_location_names(monkeypatch):
     result = client.get_stock_products()
 
     assert result == [
-        {"id": 1, "name": "Apfel", "location_name": "Obstkorb", "amount": "1"},
-        {"id": 2, "name": "Milch", "location_name": "Kühlschrank", "amount": "3"},
+        {
+            "id": 1,
+            "name": "Apfel",
+            "location_id": 4,
+            "location_name": "Obstkorb",
+            "amount": "1",
+        },
+        {
+            "id": 2,
+            "name": "Milch",
+            "location_id": 1,
+            "location_name": "Kühlschrank",
+            "amount": "3",
+        },
     ]
 
 
@@ -346,3 +358,54 @@ def test_get_recipes_returns_grocy_recipes(monkeypatch):
     )
 
     assert client.get_recipes() == [{"id": 1, "name": "Pasta"}]
+
+
+def test_get_stock_products_filters_by_locations(monkeypatch):
+    def fake_get(url, *args, **kwargs):
+        if url.endswith("/stock"):
+            return FakeResponse(
+                [
+                    {"product_id": 2, "amount": 3},
+                    {"product_id": 1, "amount": 1},
+                ]
+            )
+        if url.endswith("/objects/products"):
+            return FakeResponse(
+                [
+                    {"id": 1, "name": "Apfel", "location_id": 4},
+                    {"id": 2, "name": "Milch", "location_id": 1},
+                ]
+            )
+        if url.endswith("/objects/locations"):
+            return FakeResponse(
+                [
+                    {"id": 1, "name": "Kühlschrank"},
+                    {"id": 4, "name": "Obstkorb"},
+                ]
+            )
+        raise AssertionError(f"Unexpected url: {url}")
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.services.grocy_client.requests.get", fake_get
+    )
+
+    client = GrocyClient(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+        )
+    )
+
+    result = client.get_stock_products([1])
+
+    assert result == [
+        {
+            "id": 2,
+            "name": "Milch",
+            "location_id": 1,
+            "location_name": "Kühlschrank",
+            "amount": "3",
+        },
+    ]
