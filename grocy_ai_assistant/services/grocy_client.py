@@ -2,6 +2,8 @@ from collections import Counter
 from datetime import datetime
 from math import sqrt
 from typing import Any, Dict, Optional
+from urllib.parse import ParseResult, parse_qsl, urlencode, urlparse
+from base64 import b64encode
 
 import requests
 from requests import HTTPError
@@ -109,6 +111,54 @@ class GrocyClient:
 
         base_url = self.settings.grocy_base_url.rstrip("/")
         return f"{base_url}/files/{folder}/{normalized_file_name}"
+
+    @staticmethod
+    def _encode_recipe_picture_path(path: str) -> str:
+        if "/recipepictures/" not in path:
+            return path
+
+        prefix, _, suffix = path.rpartition("/")
+        if not suffix or "." not in suffix:
+            return path
+
+        encoded_picture_name = b64encode(suffix.encode("utf-8")).decode("ascii")
+        return f"{prefix}/{encoded_picture_name}"
+
+    @staticmethod
+    def _ensure_recipe_query(query: str) -> str:
+        params = dict(parse_qsl(query, keep_blank_values=True))
+        params.setdefault("force_serve_as", "picture")
+        return urlencode(params)
+
+    def _build_recipe_picture_url(self, picture_url: Any, picture_file_name: Any) -> str:
+        raw_picture_url = self._safe_str(picture_url)
+
+        if raw_picture_url:
+            parsed_picture = urlparse(raw_picture_url)
+            rewritten_path = self._encode_recipe_picture_path(parsed_picture.path)
+            rewritten_query = parsed_picture.query
+            if "/recipepictures/" in rewritten_path:
+                rewritten_query = self._ensure_recipe_query(parsed_picture.query)
+
+            return ParseResult(
+                scheme=parsed_picture.scheme,
+                netloc=parsed_picture.netloc,
+                path=rewritten_path,
+                params=parsed_picture.params,
+                query=rewritten_query,
+                fragment=parsed_picture.fragment,
+            ).geturl()
+
+        raw_picture_name = self._safe_str(picture_file_name)
+        if not raw_picture_name:
+            return ""
+
+        encoded_picture_name = b64encode(raw_picture_name.encode("utf-8")).decode(
+            "ascii"
+        )
+        base_recipe_url = self._build_grocy_file_url("recipepictures", encoded_picture_name)
+        separator = "&" if "?" in base_recipe_url else "?"
+        return f"{base_recipe_url}{separator}force_serve_as=picture"
 
     def _get_all_products(self) -> list[Dict[str, Any]]:
         response = requests.get(
@@ -366,10 +416,8 @@ class GrocyClient:
             if not isinstance(recipe, dict):
                 continue
 
-            picture_url = self._safe_str(
-                recipe.get("picture_url")
-            ) or self._build_grocy_file_url(
-                "recipepictures", recipe.get("picture_file_name")
+            picture_url = self._build_recipe_picture_url(
+                recipe.get("picture_url"), recipe.get("picture_file_name")
             )
             normalized_recipes.append({**recipe, "picture_url": picture_url})
 
