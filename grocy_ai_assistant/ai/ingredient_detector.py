@@ -168,6 +168,9 @@ class IngredientDetector:
         if self.settings.debug_mode:
             logger.info("KI-Antwort generate_recipe_suggestions: %s", raw_answer)
         parsed = json.loads(raw_answer)
+        if isinstance(parsed, dict):
+            parsed = [parsed]
+
         if isinstance(parsed, list):
             normalized: list[Dict[str, Any]] = []
 
