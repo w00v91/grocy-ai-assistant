@@ -23,6 +23,7 @@ from grocy_ai_assistant.models.ingredient import (
     RecipeSuggestionItem,
     RecipeSuggestionRequest,
     RecipeSuggestionResponse,
+    ShoppingItemDetailsResponse,
     ShoppingListItemResponse,
     StockProductResponse,
 )
@@ -63,6 +64,22 @@ def _extract_shopping_item_picture_value(item: dict) -> str:
         or product.get("picture_file_name")
         or ""
     )
+
+
+def _format_amount(value: object) -> str:
+    if value is None:
+        return ""
+    text = str(value).strip()
+    return text
+
+
+def _safe_shopping_item_id(value: object) -> int | None:
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value
+    text = str(value or "").strip()
+    return int(text) if text.isdigit() else None
 
 
 def _score_recipe_match(recipe: dict, selected_products: list[str]) -> tuple[int, str]:
@@ -464,6 +481,7 @@ def dashboard_shopping_list(
         return [
             ShoppingListItemResponse(
                 id=item.get("id"),
+                product_id=_safe_shopping_item_id(item.get("product_id")),
                 amount=str(item.get("amount") or "1"),
                 product_name=item.get("product_name") or "Unbekanntes Produkt",
                 note=item.get("note") or "",
@@ -641,6 +659,164 @@ def dashboard_recipe_suggestions(
         raise HTTPException(status_code=500, detail=str(error)) from error
 
 
+@router.get(
+    "/api/dashboard/shopping-list/item/{item_id}/details",
+    response_model=ShoppingItemDetailsResponse,
+)
+def dashboard_shopping_item_details(
+    item_id: int,
+    request: Request,
+    _: None = Depends(require_auth),
+    settings: Settings = Depends(get_settings),
+):
+    if not settings.grocy_api_key:
+        raise HTTPException(
+            status_code=500, detail="grocy_api_key fehlt in Add-on Optionen"
+        )
+
+    try:
+        grocy_client = GrocyClient(settings)
+        items = grocy_client.get_shopping_list()
+        selected_item = next(
+            (item for item in items if item.get("id") == item_id), None
+        )
+        if not selected_item:
+            raise HTTPException(status_code=404, detail="Eintrag nicht gefunden")
+
+        product_id = _safe_shopping_item_id(selected_item.get("product_id"))
+        if product_id is None:
+            raise HTTPException(status_code=404, detail="Produkt nicht gefunden")
+
+        product = grocy_client.get_product(product_id)
+        stock_entries = grocy_client.get_stock_entries_for_product(product_id)
+        locations = {item["id"]: item["name"] for item in grocy_client.get_locations()}
+
+        stock_entry = stock_entries[0] if stock_entries else {}
+        location_id = stock_entry.get("location_id") or product.get("location_id")
+        try:
+            normalized_location_id = (
+                int(location_id) if location_id is not None else None
+            )
+        except (TypeError, ValueError):
+            normalized_location_id = None
+
+        return ShoppingItemDetailsResponse(
+            product_name=selected_item.get("product_name")
+            or product.get("name")
+            or "Unbekanntes Produkt",
+            stock_amount=_format_amount(
+                stock_entry.get("amount") or stock_entry.get("amount_aggregated")
+            ),
+            min_stock_amount=_format_amount(product.get("min_stock_amount")),
+            best_before_date=str(stock_entry.get("best_before_date") or ""),
+            location_name=locations.get(normalized_location_id, ""),
+            shopping_note=str(selected_item.get("note") or ""),
+            calories=_format_amount(product.get("calories")),
+            carbohydrates=_format_amount(product.get("carbohydrates")),
+            fat=_format_amount(product.get("fat")),
+            protein=_format_amount(product.get("protein")),
+        )
+    except HTTPException:
+        raise
+    except Exception as error:
+        log_api_error(
+            logger,
+            request=request,
+            status_code=500,
+            message=str(error),
+            exc=error,
+        )
+        raise HTTPException(status_code=500, detail=str(error)) from error
+
+
+@router.post("/api/dashboard/shopping-list/item/{item_id}/purchase")
+def dashboard_purchase_shopping_item(
+    item_id: int,
+    request: Request,
+    _: None = Depends(require_auth),
+    settings: Settings = Depends(get_settings),
+):
+    if not settings.grocy_api_key:
+        raise HTTPException(
+            status_code=500, detail="grocy_api_key fehlt in Add-on Optionen"
+        )
+
+    try:
+        grocy_client = GrocyClient(settings)
+        grocy_client.complete_shopping_item(item_id)
+        return {"success": True, "message": "Produkt als eingekauft markiert."}
+    except Exception as error:
+        log_api_error(
+            logger,
+            request=request,
+            status_code=500,
+            message=str(error),
+            exc=error,
+        )
+        raise HTTPException(status_code=500, detail=str(error)) from error
+
+
+@router.delete("/api/dashboard/shopping-list/item/{item_id}")
+def dashboard_delete_shopping_item(
+    item_id: int,
+    request: Request,
+    _: None = Depends(require_auth),
+    settings: Settings = Depends(get_settings),
+):
+    if not settings.grocy_api_key:
+        raise HTTPException(
+            status_code=500, detail="grocy_api_key fehlt in Add-on Optionen"
+        )
+
+    try:
+        response = requests.delete(
+            f"{settings.grocy_base_url}/objects/shopping_list/{item_id}",
+            headers={"GROCY-API-KEY": settings.grocy_api_key},
+            timeout=30,
+        )
+        response.raise_for_status()
+        return {"success": True, "message": "Produkt aus Einkaufsliste gelöscht."}
+    except Exception as error:
+        log_api_error(
+            logger,
+            request=request,
+            status_code=500,
+            message=str(error),
+            exc=error,
+        )
+        raise HTTPException(status_code=500, detail=str(error)) from error
+
+
+@router.post("/api/dashboard/shopping-list/complete")
+def dashboard_complete_shopping_list(
+    request: Request,
+    _: None = Depends(require_auth),
+    settings: Settings = Depends(get_settings),
+):
+    if not settings.grocy_api_key:
+        raise HTTPException(
+            status_code=500, detail="grocy_api_key fehlt in Add-on Optionen"
+        )
+
+    try:
+        grocy_client = GrocyClient(settings)
+        completed_items = grocy_client.complete_shopping_list()
+        return {
+            "success": True,
+            "completed_items": completed_items,
+            "message": f"Einkauf abgeschlossen ({completed_items} Einträge als eingekauft markiert).",
+        }
+    except Exception as error:
+        log_api_error(
+            logger,
+            request=request,
+            status_code=500,
+            message=str(error),
+            exc=error,
+        )
+        raise HTTPException(status_code=500, detail=str(error)) from error
+
+
 @router.delete("/api/dashboard/shopping-list/clear")
 def dashboard_clear_shopping_list(
     request: Request,
@@ -698,7 +874,9 @@ def _render_dashboard(settings: Settings, request: Request):
     if not resolved_base_path and token_prefix not in {"", "/api", "/dashboard-static"}:
         resolved_base_path = token_prefix
 
-    if api_request_base_path == "" and resolved_base_path.startswith("/api/hassio_ingress/"):
+    if api_request_base_path == "" and resolved_base_path.startswith(
+        "/api/hassio_ingress/"
+    ):
         api_request_base_path = resolved_base_path
 
     static_base_path = (
