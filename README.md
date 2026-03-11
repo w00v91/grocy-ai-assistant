@@ -101,7 +101,7 @@ black .
 - API-Tests für Status, Dashboard, HTTPS-Redirect und Produkt-Workflow
 - Unit-Tests für Engine, Grocy-Client, Add-on-Client und Panel-URL-Logik
 - Hilfsfunktions-Tests für Produktbild-URL-Aufbereitung
-
+- Architektur-Test für Layering-Regeln zwischen `api`, `core`, `ai`, `services` und `custom_components`
 
 ## Architektur-Review (aktueller Stand)
 
