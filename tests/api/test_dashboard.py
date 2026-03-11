@@ -579,6 +579,23 @@ def test_dashboard_contains_complete_button(client):
     assert "Einkauf abschließen" in response.text
     assert "class='success-button'" in response.text
 
+def test_dashboard_uses_matching_complete_item_endpoint(client):
+    static_response = client.get("/dashboard-static/dashboard.js")
+
+    assert static_response.status_code == 200
+    assert "/api/dashboard/shopping-list/${shoppingListId}/complete" in static_response.text
+    assert "/api/dashboard/shopping-list/item/${shoppingListId}/complete" not in static_response.text
+
+
+def test_dashboard_swipe_actions_match_labels(client):
+    static_response = client.get("/dashboard-static/dashboard.js")
+
+    assert static_response.status_code == 200
+    assert "if (deltaX <= -55)" in static_response.text
+    assert "await purchaseShoppingItem(shoppingListId);" in static_response.text
+    assert "if (deltaX >= 55)" in static_response.text
+    assert "await removeShoppingItem(shoppingListId);" in static_response.text
+
 
 def test_shopping_list_item_can_be_deleted(client, monkeypatch):
     captured = {}
