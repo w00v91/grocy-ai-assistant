@@ -4,7 +4,7 @@ import os
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -37,6 +37,13 @@ def _default_required_integration_version() -> str:
     return _load_version_from_json(INTEGRATION_MANIFEST_PATH) or "dev"
 
 
+def _default_ollama_url() -> str:
+    configured_ollama_url = os.getenv("GROCY_AI_OLLAMA_URL") or os.getenv("OLLAMA_URL")
+    if configured_ollama_url:
+        return configured_ollama_url
+    return "http://host.docker.internal:11434/api/generate"
+
+
 class Settings(BaseModel):
     api_key: str = "standard_passwort"
     addon_version: str = os.getenv("GROCY_AI_ADDON_VERSION", _default_addon_version())
@@ -44,7 +51,7 @@ class Settings(BaseModel):
         "GROCY_AI_REQUIRED_INTEGRATION_VERSION",
         _default_required_integration_version(),
     )
-    ollama_url: str = "http://10.0.0.2:11434/api/generate"
+    ollama_url: str = Field(default_factory=_default_ollama_url)
     ollama_model: str = "llama3"
     grocy_base_url: str = "http://homeassistant.local:9192/api"
     grocy_api_key: str = ""
