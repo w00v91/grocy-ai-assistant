@@ -1,121 +1,93 @@
 # Grocy AI Assistant
 
-KI-gestütztes Add-on für Home Assistant, das Produkte erkennt, bei Bedarf in Grocy anlegt und direkt zur Einkaufsliste hinzufügt.
+KI-gestütztes Home-Assistant-Add-on mit FastAPI-Backend und zugehöriger Custom Integration für Grocy.
 
-## Überblick
+## Ziel des Projekts
 
-Das Projekt besteht aus zwei eng gekoppelten Teilen:
-- **Home Assistant Add-on (FastAPI-Service)** für Analyse- und Dashboard-Endpunkte.
-- **Home Assistant Custom Integration** für Statussensor und Kommunikation mit dem Add-on.
+Das Projekt erkennt Produkte/Zutaten über ein KI-Modell (Ollama), sucht oder erstellt passende Produkte in Grocy und kann sie direkt auf die Einkaufsliste setzen.
 
-Damit beide Teile kompatibel bleiben, werden Add-on- und Integrationsversion gemeinsam gepflegt.
+## Komponenten
 
-## Features
+- **Add-on Backend (FastAPI):** API, Dashboard und Orchestrierung
+- **KI-Layer:** Prompting und Ergebnis-Normalisierung
+- **Service-Layer:** Gekapselte Grocy-HTTP-Kommunikation
+- **Custom Integration:** Home-Assistant-Entities + Add-on-Anbindung
 
-- FastAPI API für Produktanalyse und Dashboard-Workflows
-- KI-Produktklassifizierung über Ollama
-- Automatische Grocy-Produktanlage inkl. Einkaufsliste-Workflow
-- Home-Assistant-Sensor mit Versions-/Restart-Hinweis
-- Leichtgewichtiges Dashboard unter `/`
-
-## Projektstruktur
+## Verzeichnisstruktur
 
 ```text
 grocy_ai_assistant/
-├── api/                                # FastAPI App + Routen
-├── ai/                                 # KI-Logik (IngredientDetector)
-├── config/                             # Laufzeit-Settings
-├── core/                               # Orchestrierung / Engine
+├── api/                                   # FastAPI App, Routen, Dashboard
+├── ai/                                    # KI-Erkennung (Ollama)
+├── config/                                # Laufzeit-Settings
+├── core/                                  # Workflow-Orchestrierung
 ├── custom_components/grocy_ai_assistant/  # Home Assistant Integration
-├── db/                                 # Persistente Daten (z. B. Mappings)
-├── models/                             # Pydantic Modelle
-└── services/                           # Grocy API Client
+├── db/                                    # Persistente JSON-Daten
+├── models/                                # Pydantic-Modelle
+└── services/                              # Grocy Adapter + Caches
 ```
+
+Zusätzliche Layer-Dokumentation liegt jeweils in:
+
+- `grocy_ai_assistant/api/README.md`
+- `grocy_ai_assistant/ai/README.md`
+- `grocy_ai_assistant/core/README.md`
+- `grocy_ai_assistant/services/README.md`
+- `grocy_ai_assistant/custom_components/grocy_ai_assistant/README.md`
 
 ## Voraussetzungen
 
-- Python 3.11+
-- Laufender Grocy-Server
-- Optional: Ollama-Server (für KI-gestützte Produktdaten)
+- Python **3.11+**
+- Erreichbarer Grocy-Server
+- Optional Ollama-Server
 
-## Lokale Entwicklung
+## Installation & Start
 
 ```bash
-pip install -r grocy_ai_assistant/requirements.txt
+pip install -r requirements.txt
 python -m grocy_ai_assistant.api.main
 ```
 
-API läuft anschließend standardmäßig auf `http://localhost:8000`.
+Standardmäßig läuft die API dann unter `http://localhost:8000`.
 
 ## Wichtige Endpunkte
 
-- `GET /api/status` – Verbindung, Versionen, Restart-Hinweis
-- `POST /api/analyze_product` – analysiert Produktnamen
-- `POST /api/dashboard/search` – findet/erstellt Produkt und fügt zur Einkaufsliste hinzu
-- `GET /api/dashboard/shopping-list` – holt aktuelle Einkaufsliste
-- `GET /` – integriertes Dashboard
+- `GET /api/status` – Health, Versionen, Restart-Hinweise
+- `POST /api/analyze_product` – KI-Analyse eines Produktnamens
+- `POST /api/dashboard/search` – Such-/Anlage-Workflow inkl. Einkaufsliste
+- `GET /api/dashboard/shopping-list` – aktuelle Grocy-Einkaufsliste
+- `GET /` – Dashboard
 
-## Konfiguration
+## Architekturprinzipien
 
-Primär über Add-on Optionen (`/data/options.json`) bzw. Umgebungsvariablen.
+- **API bleibt dünn:** Validierung, Response-Mapping, keine Business-Logik.
+- **Orchestrierung in `core/`:** End-to-End-Workflows für Analyse und Grocy-Aktionen.
+- **Externe Kommunikation in `services/`:** Grocy-spezifische HTTP-Details zentralisiert.
+- **KI strikt in `ai/`:** Prompting/Parsing, keine API-Routen.
+- **Integration entkoppelt:** Home Assistant spricht ausschließlich mit dem Add-on, nicht direkt mit Grocy.
 
-Wichtige Felder:
-- `api_key`
-- `grocy_api_key`
-- `grocy_base_url`
-- `ollama_url`
-- `ollama_model`
-- `required_integration_version`
+## Versionierung
 
-
-## Architektur-Notizen
-
-- **API-Schicht (`api/`)** bleibt rein für HTTP-Endpunkte, Dashboard-Rendering und Request-Validierung.
-- **Domain/Orchestrierung (`core/`)** enthält die Ablaufsteuerung für Analyse und Produktlogik.
-- **Service-Schicht (`services/`)** kapselt die Grocy-Kommunikation vollständig.
-- **Shared-Utilities (`core/picture_urls.py`)** bündeln die Normalisierung von Produktbild-URLs, damit API und Bild-Cache identisches Verhalten nutzen.
-- **Integration (`custom_components/`)** ruft das Add-on über den `AddonClient` auf und enthält keine direkte Grocy- oder Ollama-HTTP-Logik mehr.
-
-### Ingress & Dashboard
-
-- Das Dashboard baut API-URLs robust für Standardbetrieb und Home-Assistant-Ingress (`/api/hassio_ingress/...`).
-- Panel-URLs werden normalisiert: absolute Ingress-URLs werden auf den relativen Ingress-Pfad reduziert, Loopback-Ziele (`localhost`, `127.0.0.1`, `::1`) automatisch auf den Standard-Ingress-Fallback gesetzt.
-- Produktbilder werden über einen Proxy-Endpunkt bereitgestellt, damit Authentifizierung und gemischte HTTP/HTTPS-Szenarien stabil bleiben.
-
-## Versionen
+Add-on und Custom Integration werden **immer gemeinsam** versioniert.
 
 Aktueller Stand:
-- **Add-on:** `6.0.10`
-- **Integration:** `2.0.10`
+
+- **Add-on:** `7.0.5`
+- **Integration:** `7.0.5`
 
 ## Qualitätssicherung
 
 ```bash
 pytest
 ruff check .
-black .
+black --check .
 ```
 
-### Testumfang (Kurzüberblick)
+## Ergebnis der aktuellen Projektprüfung
 
-- API-Tests für Status, Dashboard, HTTPS-Redirect und Produkt-Workflow
-- Unit-Tests für Engine, Grocy-Client, Add-on-Client und Panel-URL-Logik
-- Hilfsfunktions-Tests für Produktbild-URL-Aufbereitung
+Im Rahmen dieser Prüfung wurden folgende strukturelle Verbesserungen umgesetzt:
 
-
-## Architektur-Review (aktueller Stand)
-
-Positiv aufgefallen:
-- Klare Schichtentrennung zwischen API (`api/`), Orchestrierung (`core/`), KI (`ai/`) und Infrastruktur (`services/`).
-- Solide Testabdeckung mit API- und Unit-Tests für Kernflüsse und Hilfslogik.
-- Dashboard als Template/Static aufgeteilt, wodurch Frontend-Änderungen strukturiert bleiben.
-
-In diesem Update verbessert:
-- Settings laden Standard-Versionen nun automatisch aus `config.json` (Add-on) und `manifest.json` (Integration), wodurch Versionsdrift zwischen Code und Metadaten verhindert wird.
-- Ergänzender Unit-Test stellt sicher, dass diese Versionen dauerhaft synchron bleiben.
-- Kleine Dokumentations- und Versionspflege für konsistente Release-Stände zwischen Add-on und Integration.
-
-Empfohlene nächste Schritte (optional):
-- Integration-Manifest (`manifest.json`) und Add-on-Metadaten (`config.json`) weiterhin gemeinsam versionieren (bereits durch Test abgesichert).
-- Optional zentrale API-Fehlerstruktur (einheitliches Error-Schema) einführen, damit Frontend und Integration Fehlermeldungen konsistenter verarbeiten können.
-
+- Root-`requirements.txt` ergänzt (delegiert auf `grocy_ai_assistant/requirements.txt`), damit Standard-Installationskommando konsistent funktioniert.
+- Architekturbeschreibung gestrafft und Layer-Verantwortung pro Verzeichnis dokumentiert.
+- Teilbereichs-READMEs für API, AI, Core, Services und HA-Integration ergänzt.
+- Versionsstände synchron auf `7.0.5` aktualisiert.
