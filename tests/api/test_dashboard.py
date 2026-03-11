@@ -880,3 +880,94 @@ def test_dashboard_barcode_lookup_rejects_invalid_barcode(client):
     )
 
     assert response.status_code == 400
+def test_recipe_suggestions_uses_prefetched_cache_when_stock_unchanged(
+    client, monkeypatch
+):
+    def fake_get_stock_products(self, location_ids=None):
+        return [
+            {"id": 1, "name": "Tomate", "location_name": "Kühlschrank", "amount": "2"}
+        ]
+
+    class FailDetector:
+        def __init__(self, settings):
+            self.settings = settings
+
+        def generate_recipe_suggestions(
+            self, selected_products, existing_recipe_titles
+        ):
+            raise AssertionError("KI darf bei Cache-Hit nicht aufgerufen werden")
+
+    monkeypatch.setattr(
+        routes.GrocyClient, "get_stock_products", fake_get_stock_products
+    )
+    monkeypatch.setattr(routes, "IngredientDetector", FailDetector)
+
+    client.app.state.recipe_suggestion_cache = {
+        "location_ids": [],
+        "stock_signature": routes._build_stock_signature(fake_get_stock_products(None)),
+        "response": {
+            "selected_products": ["Tomate"],
+            "grocy_recipes": [
+                {
+                    "recipe_id": 10,
+                    "title": "Tomaten Pasta",
+                    "source": "grocy",
+                    "reason": "Passt",
+                    "preparation": "Kochen",
+                    "picture_url": "",
+                    "missing_products": [],
+                }
+            ],
+            "ai_recipes": [],
+        },
+    }
+
+    response = client.post(
+        "/api/dashboard/recipe-suggestions",
+        headers={"Authorization": "Bearer test-api-key"},
+        json={"product_ids": [], "location_ids": []},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["selected_products"] == ["Tomate"]
+    assert payload["grocy_recipes"][0]["title"] == "Tomaten Pasta"
+
+
+def test_prefetch_initial_recipe_suggestions_returns_cache_payload(
+    monkeypatch, test_settings
+):
+    def fake_get_stock_products(self, location_ids=None):
+        return [
+            {"id": 1, "name": "Tomate", "location_name": "Kühlschrank", "amount": "2"}
+        ]
+
+    def fake_get_recipes(self):
+        return [{"id": 10, "name": "Tomaten Pasta", "description": "Pasta kochen"}]
+
+    class FakeDetector:
+        def __init__(self, settings):
+            self.settings = settings
+
+        def generate_recipe_suggestions(
+            self, selected_products, existing_recipe_titles
+        ):
+            return [{"title": "Tomatensalat", "reason": "Tomate vorhanden"}]
+
+    monkeypatch.setattr(
+        routes.GrocyClient, "get_stock_products", fake_get_stock_products
+    )
+    monkeypatch.setattr(routes.GrocyClient, "get_recipes", fake_get_recipes)
+    monkeypatch.setattr(
+        routes.GrocyClient, "get_missing_recipe_products", lambda self, recipe_id: []
+    )
+    monkeypatch.setattr(routes, "IngredientDetector", FakeDetector)
+
+    prefetched = routes.prefetch_initial_recipe_suggestions(test_settings)
+
+    assert prefetched is not None
+    assert prefetched["stock_signature"] == routes._build_stock_signature(
+        fake_get_stock_products(None)
+    )
+    assert prefetched["response"]["selected_products"] == ["Tomate"]
+    assert prefetched["response"]["grocy_recipes"][0]["title"] == "Tomaten Pasta"
