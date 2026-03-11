@@ -298,7 +298,9 @@ class GrocyClient:
                         or stock_entry.get("best_before_date_calculated")
                         or ""
                     ),
-                    "default_amount": str(product.get("default_best_before_days") or ""),
+                    "default_amount": str(
+                        product.get("default_best_before_days") or ""
+                    ),
                     "calories": str(product.get("calories") or ""),
                     "carbs": str(product.get("carbohydrates") or ""),
                     "fat": str(product.get("fat") or ""),

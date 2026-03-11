@@ -309,13 +309,13 @@ def test_clear_shopping_list_deletes_all_items(monkeypatch):
     def fake_get_shopping_list(self):
         return [{"id": 3}, {"id": 4}, {"id": None}]
 
-    def fake_post(url, *args, **kwargs):
+    def fake_delete(url, *args, **kwargs):
         deleted_urls.append(url)
         return FakeResponse({})
 
     monkeypatch.setattr(GrocyClient, "get_shopping_list", fake_get_shopping_list)
     monkeypatch.setattr(
-        "grocy_ai_assistant.services.grocy_client.requests.post", fake_post
+        "grocy_ai_assistant.services.grocy_client.requests.delete", fake_delete
     )
 
     client = GrocyClient(
@@ -331,8 +331,8 @@ def test_clear_shopping_list_deletes_all_items(monkeypatch):
 
     assert removed_items == 2
     assert deleted_urls == [
-        "http://homeassistant.local:9192/api/stock/shoppinglist/remove-product",
-        "http://homeassistant.local:9192/api/stock/shoppinglist/remove-product",
+        "http://homeassistant.local:9192/api/objects/shopping_list/3",
+        "http://homeassistant.local:9192/api/objects/shopping_list/4",
     ]
 
 
@@ -597,16 +597,15 @@ def test_get_stock_products_uses_stock_location_for_filter_and_display(monkeypat
     ]
 
 
-def test_delete_shopping_list_item_calls_remove_endpoint(monkeypatch):
+def test_delete_shopping_list_item_calls_delete_object_endpoint(monkeypatch):
     captured = {}
 
-    def fake_post(url, *args, **kwargs):
+    def fake_delete(url, *args, **kwargs):
         captured["url"] = url
-        captured["json"] = kwargs.get("json")
         return FakeResponse({})
 
     monkeypatch.setattr(
-        "grocy_ai_assistant.services.grocy_client.requests.post", fake_post
+        "grocy_ai_assistant.services.grocy_client.requests.delete", fake_delete
     )
 
     client = GrocyClient(
@@ -620,19 +619,26 @@ def test_delete_shopping_list_item_calls_remove_endpoint(monkeypatch):
 
     client.delete_shopping_list_item(23, amount="2")
 
-    assert captured["url"].endswith("/stock/shoppinglist/remove-product")
-    assert captured["json"] == {"shopping_list_id": 23, "amount": "2"}
+    assert captured["url"].endswith("/objects/shopping_list/23")
 
 
 def test_complete_shopping_list_item_adds_to_stock_and_removes_list_entry(monkeypatch):
-    calls = []
+    post_calls = []
+    delete_calls = []
 
     def fake_post(url, *args, **kwargs):
-        calls.append((url, kwargs.get("json")))
+        post_calls.append((url, kwargs.get("json")))
+        return FakeResponse({})
+
+    def fake_delete(url, *args, **kwargs):
+        delete_calls.append(url)
         return FakeResponse({})
 
     monkeypatch.setattr(
         "grocy_ai_assistant.services.grocy_client.requests.post", fake_post
+    )
+    monkeypatch.setattr(
+        "grocy_ai_assistant.services.grocy_client.requests.delete", fake_delete
     )
 
     client = GrocyClient(
@@ -646,7 +652,6 @@ def test_complete_shopping_list_item_adds_to_stock_and_removes_list_entry(monkey
 
     client.complete_shopping_list_item(9, product_id=5, amount="3")
 
-    assert calls[0][0].endswith("/stock/products/5/add")
-    assert calls[0][1] == {"amount": "3"}
-    assert calls[1][0].endswith("/stock/shoppinglist/remove-product")
-    assert calls[1][1] == {"shopping_list_id": 9, "amount": "3"}
+    assert post_calls[0][0].endswith("/stock/products/5/add")
+    assert post_calls[0][1] == {"amount": "3"}
+    assert delete_calls[0].endswith("/objects/shopping_list/9")
