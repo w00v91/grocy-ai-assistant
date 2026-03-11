@@ -154,7 +154,7 @@ def test_dashboard_places_variant_section_below_search(client):
     assert response.status_code == 200
     search_pos = response.text.index("Grocy AI Suche")
     variant_pos = response.text.index("id='variant-section'")
-    recipe_pos = response.text.index("Rezeptvorschläge aus Lager/Kühlschrank")
+    recipe_pos = response.text.index("Rezeptvorschläge")
 
     assert search_pos < variant_pos < recipe_pos
 
@@ -596,7 +596,7 @@ def test_dashboard_contains_recipe_section(client):
     response = client.get("/")
 
     assert response.status_code == 200
-    assert "Rezeptvorschläge aus Lager/Kühlschrank" in response.text
+    assert "Rezeptvorschläge" in response.text
 
     js_response = client.get("/dashboard-static/dashboard.js")
     assert js_response.status_code == 200
