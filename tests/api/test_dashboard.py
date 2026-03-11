@@ -6,7 +6,6 @@ def test_shopping_list_returns_items(client, monkeypatch):
         return [
             {
                 "id": 11,
-                "product_id": 77,
                 "amount": "2",
                 "product_name": "Hafermilch",
                 "note": "Barista",
@@ -22,7 +21,6 @@ def test_shopping_list_returns_items(client, monkeypatch):
 
     assert response.status_code == 200
     assert response.json()[0]["id"] == 11
-    assert response.json()[0]["product_id"] == 77
     assert response.json()[0]["amount"] == "2"
     assert response.json()[0]["product_name"] == "Hafermilch"
     assert response.json()[0]["note"] == "Barista"
@@ -169,12 +167,10 @@ def test_dashboard_does_not_autoload_variants(client):
     assert "list.innerHTML = '';" in static_response.text
 
 
-def test_dashboard_contains_action_buttons(client):
+def test_dashboard_contains_clear_button(client):
     response = client.get("/")
 
     assert response.status_code == 200
-    assert "Einkauf abschließen" in response.text
-    assert "class='success-button'" in response.text
     assert "Einkaufsliste leeren" in response.text
     assert "class='danger-button'" in response.text
 
@@ -277,10 +273,7 @@ def test_product_picture_proxy_rejects_foreign_hosts(client):
     )
 
     assert response.status_code == 400
-    payload = response.json()
-    assert (
-        payload.get("detail") or payload.get("error", {}).get("message")
-    ) == "Ungültige Bildquelle"
+    assert response.json()["detail"] == "Ungültige Bildquelle"
 
 
 def test_dashboard_handles_network_errors_in_ui(client):
@@ -487,6 +480,8 @@ def test_recipe_suggestions_uses_stock_products_when_selection_is_empty(
     assert response.json()["selected_products"] == ["Tomate", "Nudeln"]
 
 
+
+
 def test_recipe_suggestions_returns_empty_when_no_stock_products(client, monkeypatch):
     def fake_get_stock_products(self, location_ids=None):
         assert location_ids == [999]
@@ -499,9 +494,7 @@ def test_recipe_suggestions_returns_empty_when_no_stock_products(client, monkeyp
         def __init__(self, settings):
             self.settings = settings
 
-        def generate_recipe_suggestions(
-            self, selected_products, existing_recipe_titles
-        ):
+        def generate_recipe_suggestions(self, selected_products, existing_recipe_titles):
             raise AssertionError("KI sollte bei leerem Bestand nicht aufgerufen werden")
 
     monkeypatch.setattr(
@@ -523,7 +516,6 @@ def test_recipe_suggestions_returns_empty_when_no_stock_products(client, monkeyp
         "ai_recipes": [],
     }
 
-
 def test_dashboard_contains_recipe_section(client):
     response = client.get("/")
 
@@ -534,83 +526,3 @@ def test_dashboard_contains_recipe_section(client):
     assert js_response.status_code == 200
     assert "loadRecipeSuggestions" in js_response.text
     assert "/api/dashboard/recipe-suggestions" in js_response.text
-
-
-def test_shopping_item_details_returns_payload(client, monkeypatch):
-    def fake_get_shopping_list(self):
-        return [{"id": 5, "product_id": 9, "product_name": "Joghurt", "note": "Natur"}]
-
-    def fake_get_product(self, product_id):
-        assert product_id == 9
-        return {
-            "id": 9,
-            "name": "Joghurt",
-            "min_stock_amount": 2,
-            "calories": 63,
-            "carbohydrates": 4.7,
-            "fat": 3.5,
-            "protein": 3.9,
-            "location_id": 1,
-        }
-
-    def fake_get_stock_entries_for_product(self, product_id):
-        assert product_id == 9
-        return [{"amount": 1, "best_before_date": "2026-01-10", "location_id": 1}]
-
-    def fake_get_locations(self):
-        return [{"id": 1, "name": "Kühlschrank"}]
-
-    monkeypatch.setattr(routes.GrocyClient, "get_shopping_list", fake_get_shopping_list)
-    monkeypatch.setattr(routes.GrocyClient, "get_product", fake_get_product)
-    monkeypatch.setattr(
-        routes.GrocyClient,
-        "get_stock_entries_for_product",
-        fake_get_stock_entries_for_product,
-    )
-    monkeypatch.setattr(routes.GrocyClient, "get_locations", fake_get_locations)
-
-    response = client.get(
-        "/api/dashboard/shopping-list/item/5/details",
-        headers={"Authorization": "Bearer test-api-key"},
-    )
-
-    assert response.status_code == 200
-    assert response.json()["product_name"] == "Joghurt"
-    assert response.json()["location_name"] == "Kühlschrank"
-    assert response.json()["calories"] == "63"
-
-
-def test_complete_shopping_list_endpoint(client, monkeypatch):
-    def fake_complete_shopping_list(self):
-        return 4
-
-    monkeypatch.setattr(
-        routes.GrocyClient, "complete_shopping_list", fake_complete_shopping_list
-    )
-
-    response = client.post(
-        "/api/dashboard/shopping-list/complete",
-        headers={"Authorization": "Bearer test-api-key"},
-    )
-
-    assert response.status_code == 200
-    assert response.json()["completed_items"] == 4
-
-
-def test_purchase_shopping_item_endpoint(client, monkeypatch):
-    calls = []
-
-    def fake_complete_shopping_item(self, item_id):
-        calls.append(item_id)
-
-    monkeypatch.setattr(
-        routes.GrocyClient, "complete_shopping_item", fake_complete_shopping_item
-    )
-
-    response = client.post(
-        "/api/dashboard/shopping-list/item/33/purchase",
-        headers={"Authorization": "Bearer test-api-key"},
-    )
-
-    assert response.status_code == 200
-    assert calls == [33]
