@@ -161,19 +161,30 @@ class IngredientDetector:
         parsed = json.loads(raw_answer)
         if isinstance(parsed, list):
             normalized: list[Dict[str, Any]] = []
+
+            def _normalize_text(value: Any) -> str:
+                text = str(value or "").strip()
+                return (
+                    text.replace("\\r\\n", "\n")
+                    .replace("\\n", "\n")
+                    .replace("\\r", "\n")
+                    .replace("\r\n", "\n")
+                    .replace("\r", "\n")
+                )
+
             for item in parsed:
                 if not isinstance(item, dict):
                     continue
                 normalized.append(
                     {
-                        "title": str(item.get("title") or "").strip(),
-                        "reason": str(item.get("reason") or "").strip(),
-                        "preparation": str(
+                        "title": _normalize_text(item.get("title")),
+                        "reason": _normalize_text(item.get("reason")),
+                        "preparation": _normalize_text(
                             item.get("preparation")
                             or item.get("details")
                             or item.get("description")
                             or ""
-                        ).strip(),
+                        ),
                     }
                 )
             return normalized
