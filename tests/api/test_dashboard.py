@@ -167,6 +167,17 @@ def test_dashboard_does_not_autoload_variants(client):
     assert "list.innerHTML = '';" in static_response.text
 
 
+
+
+def test_dashboard_does_not_autoload_recipe_suggestions_on_recipe_tab_open(client):
+    response = client.get("/")
+    static_response = client.get("/dashboard-static/dashboard.js")
+
+    assert response.status_code == 200
+    assert static_response.status_code == 200
+    assert "onclick='loadRecipeSuggestions()'" in response.text
+    assert "Bestand aktualisiert. Lade Rezeptvorschläge bei Bedarf manuell." in static_response.text
+
 def test_dashboard_contains_clear_button(client):
     response = client.get("/")
 
