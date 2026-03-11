@@ -318,7 +318,7 @@ async function purchaseShoppingItem(shoppingListId) {
     return;
   }
 
-  const res = await fetch(buildApiUrl(`/api/dashboard/shopping-list/${shoppingListId}/complete`), {
+  const res = await fetch(buildApiUrl(`/api/dashboard/shopping-list/item/${shoppingListId}/complete`), {
     method: 'POST',
     headers: { 'Authorization': `Bearer ${key}` },
   });

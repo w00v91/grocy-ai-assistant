@@ -580,8 +580,8 @@ def test_dashboard_uses_matching_complete_item_endpoint(client):
     static_response = client.get("/dashboard-static/dashboard.js")
 
     assert static_response.status_code == 200
-    assert "/api/dashboard/shopping-list/${shoppingListId}/complete" in static_response.text
-    assert "/api/dashboard/shopping-list/item/${shoppingListId}/complete" not in static_response.text
+    assert "/api/dashboard/shopping-list/item/${shoppingListId}/complete" in static_response.text
+    assert "/api/dashboard/shopping-list/${shoppingListId}/complete" not in static_response.text
 
 
 def test_dashboard_swipe_actions_match_labels(client):
@@ -605,6 +605,11 @@ def test_shopping_list_item_can_be_deleted(client, monkeypatch):
         captured["amount"] = amount
 
     monkeypatch.setattr(routes.GrocyClient, "get_shopping_list", fake_get_shopping_list)
+    monkeypatch.setattr(
+        routes.GrocyClient,
+        "delete_shopping_list_item",
+        fake_delete_shopping_list_item,
+    )
     response = client.delete(
         "/api/dashboard/shopping-list/item/42",
         headers={"Authorization": "Bearer test-api-key"},
