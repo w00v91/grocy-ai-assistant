@@ -613,6 +613,7 @@ def dashboard_recipe_suggestions(
                 title=str(recipe.get("name") or "Unbenanntes Rezept"),
                 source="grocy",
                 reason=reason,
+                picture_url=str(recipe.get("picture_url") or ""),
             )
             for _, recipe, reason in scored[:5]
         ]
@@ -622,11 +623,27 @@ def dashboard_recipe_suggestions(
             selected_products,
             [item.title for item in grocy_recipes],
         )
+        if not isinstance(ai_raw, list):
+            ai_raw = []
+
+        if not ai_raw:
+            ai_raw = [
+                {
+                    "title": f"{', '.join(selected_products[:2])} Pfanne",
+                    "reason": "Schnelle Resteverwertung aus deinem aktuellen Bestand.",
+                },
+                {
+                    "title": f"{selected_products[0]} Salat",
+                    "reason": "Leichtes Rezept, das mit den vorhandenen Zutaten startet.",
+                },
+            ]
+
         ai_recipes = [
             RecipeSuggestionItem(
                 title=str(item.get("title") or "KI-Rezept"),
                 source="ai",
                 reason=str(item.get("reason") or ""),
+                picture_url="",
             )
             for item in ai_raw[:5]
             if isinstance(item, dict)
@@ -696,10 +713,13 @@ def dashboard_complete_shopping_list_item(
         grocy_client = GrocyClient(settings)
         shopping_items = grocy_client.get_shopping_list()
         selected_item = next(
-            (item for item in shopping_items if item.get("id") == shopping_list_id), None
+            (item for item in shopping_items if item.get("id") == shopping_list_id),
+            None,
         )
         if selected_item is None:
-            raise HTTPException(status_code=404, detail="Einkaufslisten-Eintrag nicht gefunden")
+            raise HTTPException(
+                status_code=404, detail="Einkaufslisten-Eintrag nicht gefunden"
+            )
 
         grocy_client.complete_shopping_list_item(
             shopping_list_id,
@@ -809,7 +829,9 @@ def _render_dashboard(settings: Settings, request: Request):
     if not resolved_base_path and token_prefix not in {"", "/api", "/dashboard-static"}:
         resolved_base_path = token_prefix
 
-    if api_request_base_path == "" and resolved_base_path.startswith("/api/hassio_ingress/"):
+    if api_request_base_path == "" and resolved_base_path.startswith(
+        "/api/hassio_ingress/"
+    ):
         api_request_base_path = resolved_base_path
 
     static_base_path = (

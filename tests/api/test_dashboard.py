@@ -274,7 +274,10 @@ def test_product_picture_proxy_rejects_foreign_hosts(client):
 
     assert response.status_code == 400
     payload = response.json()
-    assert payload.get("detail") == "Ungültige Bildquelle" or payload.get("error", {}).get("message") == "Ungültige Bildquelle"
+    assert (
+        payload.get("detail") == "Ungültige Bildquelle"
+        or payload.get("error", {}).get("message") == "Ungültige Bildquelle"
+    )
 
 
 def test_dashboard_handles_network_errors_in_ui(client):
@@ -481,8 +484,6 @@ def test_recipe_suggestions_uses_stock_products_when_selection_is_empty(
     assert response.json()["selected_products"] == ["Tomate", "Nudeln"]
 
 
-
-
 def test_recipe_suggestions_returns_empty_when_no_stock_products(client, monkeypatch):
     def fake_get_stock_products(self, location_ids=None):
         assert location_ids == [999]
@@ -495,7 +496,9 @@ def test_recipe_suggestions_returns_empty_when_no_stock_products(client, monkeyp
         def __init__(self, settings):
             self.settings = settings
 
-        def generate_recipe_suggestions(self, selected_products, existing_recipe_titles):
+        def generate_recipe_suggestions(
+            self, selected_products, existing_recipe_titles
+        ):
             raise AssertionError("KI sollte bei leerem Bestand nicht aufgerufen werden")
 
     monkeypatch.setattr(
@@ -516,6 +519,46 @@ def test_recipe_suggestions_returns_empty_when_no_stock_products(client, monkeyp
         "grocy_recipes": [],
         "ai_recipes": [],
     }
+
+
+def test_recipe_suggestions_generates_fallback_when_ai_returns_nothing(
+    client, monkeypatch
+):
+    def fake_get_stock_products(self, location_ids=None):
+        return [
+            {"id": 1, "name": "Tomate", "location_name": "Kühlschrank", "amount": "2"}
+        ]
+
+    def fake_get_recipes(self):
+        return [{"name": "Tomaten Pasta", "picture_url": "/img/tomaten-pasta.jpg"}]
+
+    class FakeDetector:
+        def __init__(self, settings):
+            self.settings = settings
+
+        def generate_recipe_suggestions(
+            self, selected_products, existing_recipe_titles
+        ):
+            return []
+
+    monkeypatch.setattr(
+        routes.GrocyClient, "get_stock_products", fake_get_stock_products
+    )
+    monkeypatch.setattr(routes.GrocyClient, "get_recipes", fake_get_recipes)
+    monkeypatch.setattr(routes, "IngredientDetector", FakeDetector)
+
+    response = client.post(
+        "/api/dashboard/recipe-suggestions",
+        headers={"Authorization": "Bearer test-api-key"},
+        json={"product_ids": [1]},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["grocy_recipes"][0]["picture_url"] == "/img/tomaten-pasta.jpg"
+    assert payload["ai_recipes"]
+    assert payload["ai_recipes"][0]["title"]
+
 
 def test_dashboard_contains_recipe_section(client):
     response = client.get("/")
