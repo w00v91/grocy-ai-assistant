@@ -5,11 +5,15 @@ from pydantic import BaseModel, Field
 
 class AnalyzeProductRequest(BaseModel):
     name: str = Field(..., min_length=1)
+    amount: float = Field(default=1, gt=0)
+    best_before_date: str = ""
 
 
 class ExistingProductAddRequest(BaseModel):
     product_id: int
     product_name: str = Field(..., min_length=1)
+    amount: float = Field(default=1, gt=0)
+    best_before_date: str = ""
 
 
 class ProductData(BaseModel):

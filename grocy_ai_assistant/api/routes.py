@@ -407,7 +407,11 @@ def dashboard_add_existing_product(
 
     try:
         grocy_client = GrocyClient(settings)
-        grocy_client.add_product_to_shopping_list(payload.product_id, amount=1)
+        grocy_client.add_product_to_shopping_list(
+            payload.product_id,
+            amount=payload.amount,
+            best_before_date=payload.best_before_date,
+        )
         return DashboardSearchResponse(
             success=True,
             action="existing_added",
@@ -448,7 +452,9 @@ def dashboard_search(
         existing_product = grocy_client.find_product_by_name(product_name)
         if existing_product:
             grocy_client.add_product_to_shopping_list(
-                existing_product.get("id"), amount=1
+                existing_product.get("id"),
+                amount=payload.amount,
+                best_before_date=payload.best_before_date,
             )
             return DashboardSearchResponse(
                 success=True,
@@ -482,7 +488,11 @@ def dashboard_search(
         else:
             product_data = detector.analyze_product_name(product_name)
         created_object_id = grocy_client.create_product(product_data)
-        grocy_client.add_product_to_shopping_list(created_object_id, amount=1)
+        grocy_client.add_product_to_shopping_list(
+            created_object_id,
+            amount=payload.amount,
+            best_before_date=payload.best_before_date,
+        )
 
         return DashboardSearchResponse(
             success=True,
@@ -811,7 +821,11 @@ def dashboard_recipe_suggestions(
                 if product_id in expiring_product_ids
             }
 
-        if not payload.location_ids and not selected_ids and not payload.soon_expiring_only:
+        if (
+            not payload.location_ids
+            and not selected_ids
+            and not payload.soon_expiring_only
+        ):
             cache = _get_recipe_suggestion_cache(request)
             stock_signature = _build_stock_signature(stock_products)
             if cache:
@@ -829,7 +843,11 @@ def dashboard_recipe_suggestions(
             settings=settings,
         )
 
-        if not payload.location_ids and not selected_ids and not payload.soon_expiring_only:
+        if (
+            not payload.location_ids
+            and not selected_ids
+            and not payload.soon_expiring_only
+        ):
             cache = _get_recipe_suggestion_cache(request)
             if cache is not None:
                 cache["location_ids"] = []

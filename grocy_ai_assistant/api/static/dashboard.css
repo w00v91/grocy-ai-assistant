@@ -341,6 +341,25 @@ img {
 }
 
 
+
+.shopping-product-fields {
+  margin-top: 0.6rem;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.35rem;
+}
+
+.shopping-product-fields label {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.shopping-item-badges {
+  display: grid;
+  gap: 0.35rem;
+  justify-items: end;
+}
+
 .recipe-actions {
   display: grid;
   gap: 0.6rem;

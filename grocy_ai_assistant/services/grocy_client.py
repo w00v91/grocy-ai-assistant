@@ -77,7 +77,6 @@ class GrocyClient:
         has_timestamp = 1 if parsed else 0
         return has_timestamp, parsed, safe_item_id
 
-
     @staticmethod
     def _safe_str(value: Any) -> str:
         if value is None:
@@ -137,7 +136,9 @@ class GrocyClient:
         params.setdefault("force_serve_as", "picture")
         return urlencode(params)
 
-    def _build_recipe_picture_url(self, picture_url: Any, picture_file_name: Any) -> str:
+    def _build_recipe_picture_url(
+        self, picture_url: Any, picture_file_name: Any
+    ) -> str:
         raw_picture_url = self._safe_str(picture_url)
 
         if raw_picture_url:
@@ -163,7 +164,9 @@ class GrocyClient:
         encoded_picture_name = b64encode(raw_picture_name.encode("utf-8")).decode(
             "ascii"
         )
-        base_recipe_url = self._build_grocy_file_url("recipepictures", encoded_picture_name)
+        base_recipe_url = self._build_grocy_file_url(
+            "recipepictures", encoded_picture_name
+        )
         separator = "&" if "?" in base_recipe_url else "?"
         return f"{base_recipe_url}{separator}force_serve_as=picture"
 
@@ -220,16 +223,28 @@ class GrocyClient:
         response.raise_for_status()
         return response.json().get("created_object_id")
 
-    def add_product_to_shopping_list(self, product_id: int, amount: int = 1) -> None:
+    def add_product_to_shopping_list(
+        self,
+        product_id: int,
+        amount: float = 1,
+        best_before_date: str = "",
+    ) -> None:
+        payload: Dict[str, Any] = {"product_id": product_id, "amount": amount}
+        normalized_best_before_date = best_before_date.strip()
+        if normalized_best_before_date:
+            payload["best_before_date"] = normalized_best_before_date
+
         response = requests.post(
             f"{self.settings.grocy_base_url}/stock/shoppinglist/add-product",
             headers=self.headers,
-            json={"product_id": product_id, "amount": amount},
+            json=payload,
             timeout=30,
         )
         response.raise_for_status()
 
-    def _enrich_shopping_items(self, shopping_items: list[Dict[str, Any]]) -> list[Dict[str, Any]]:
+    def _enrich_shopping_items(
+        self, shopping_items: list[Dict[str, Any]]
+    ) -> list[Dict[str, Any]]:
         products: Dict[str, Any] = {}
         stock_by_product_id: Dict[str, Any] = {}
         locations: Dict[str, Any] = {}
@@ -279,7 +294,9 @@ class GrocyClient:
             product_id = self._safe_str(item.get("product_id"))
             product = products.get(product_id, {})
             stock_entry = stock_by_product_id.get(product_id, {})
-            location_id = self._safe_str(stock_entry.get("location_id") or product.get("location_id"))
+            location_id = self._safe_str(
+                stock_entry.get("location_id") or product.get("location_id")
+            )
             merged_items.append(
                 {
                     **item,
@@ -428,7 +445,6 @@ class GrocyClient:
         result.sort(key=lambda item: item["name"].casefold())
         return result
 
-
     def get_recipe_positions(self, recipe_id: int) -> list[Dict[str, Any]]:
         response = requests.get(
             f"{self.settings.grocy_base_url}/objects/recipes_pos",
@@ -518,6 +534,7 @@ class GrocyClient:
             unique_missing.append(item)
 
         return unique_missing
+
     def get_recipes(self) -> list[Dict[str, Any]]:
         response = requests.get(
             f"{self.settings.grocy_base_url}/objects/recipes",
@@ -541,7 +558,9 @@ class GrocyClient:
 
         return normalized_recipes
 
-    def delete_shopping_list_item(self, shopping_list_id: int, amount: str = "1") -> None:
+    def delete_shopping_list_item(
+        self, shopping_list_id: int, amount: str = "1"
+    ) -> None:
         response = requests.delete(
             f"{self.settings.grocy_base_url}/objects/shopping_list/{shopping_list_id}",
             headers=self.headers,
