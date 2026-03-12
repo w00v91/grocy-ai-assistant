@@ -682,3 +682,69 @@ def test_complete_shopping_list_item_adds_to_stock_and_removes_list_entry(monkey
     assert post_calls[0][0].endswith("/stock/products/5/add")
     assert post_calls[0][1] == {"amount": "3"}
     assert delete_calls[0].endswith("/objects/shopping_list/9")
+
+
+def test_find_product_by_barcode_uses_primary_endpoint(monkeypatch):
+    class PrimaryHitResponse(FakeResponse):
+        status_code = 200
+
+    def fake_get(url, *args, **kwargs):
+        if url.endswith("/stock/products/by-barcode/4008400408400"):
+            return PrimaryHitResponse(
+                {"product": {"id": 3, "name": "Nudeln"}}
+            )
+        raise AssertionError(f"Unexpected url: {url}")
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.services.grocy_client.requests.get", fake_get
+    )
+
+    client = GrocyClient(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+        )
+    )
+
+    assert client.find_product_by_barcode("4008400408400") == {
+        "id": 3,
+        "name": "Nudeln",
+    }
+
+
+def test_find_product_by_barcode_falls_back_to_product_barcodes(monkeypatch):
+    class NotFoundResponse(FakeResponse):
+        status_code = 404
+
+    def fake_get(url, *args, **kwargs):
+        if url.endswith("/stock/products/by-barcode/4008400408400"):
+            return NotFoundResponse({})
+        if url.endswith("/objects/product_barcodes"):
+            assert kwargs.get("params") == {"query[]": "barcode=4008400408400"}
+            return FakeResponse([{"product_id": 12, "barcode": "4008400408400"}])
+        if url.endswith("/objects/products"):
+            return FakeResponse([
+                {"id": 11, "name": "Butter"},
+                {"id": 12, "name": "Vollkornbrot"},
+            ])
+        raise AssertionError(f"Unexpected url: {url}")
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.services.grocy_client.requests.get", fake_get
+    )
+
+    client = GrocyClient(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+        )
+    )
+
+    assert client.find_product_by_barcode("4008400408400") == {
+        "id": 12,
+        "name": "Vollkornbrot",
+    }

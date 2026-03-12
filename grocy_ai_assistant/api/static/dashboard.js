@@ -8,13 +8,42 @@ const ingressPrefix = ingressPrefixMatch ? ingressPrefixMatch[0] : '';
 
 let pendingRequests = 0;
 let activeRecipeItem = null;
+
+
+let modalScrollLockY = 0;
+
+function lockBodyScroll() {
+  if (document.body.classList.contains('modal-open')) return;
+  modalScrollLockY = window.scrollY || window.pageYOffset || 0;
+  document.body.classList.add('modal-open');
+  document.body.style.top = `-${modalScrollLockY}px`;
+}
+
+function unlockBodyScroll() {
+  if (!document.body.classList.contains('modal-open')) return;
+  document.body.classList.remove('modal-open');
+  document.body.style.top = '';
+  window.scrollTo(0, modalScrollLockY);
+}
+
+function syncModalScrollLock() {
+  const hasVisibleModal = Boolean(document.querySelector('.shopping-modal:not(.hidden)'));
+  if (hasVisibleModal) {
+    lockBodyScroll();
+    return;
+  }
+  unlockBodyScroll();
+}
+
 let activeTab = "shopping";
 let scannerStream = null;
 let scannerInterval = null;
 let scannerLastBarcode = "";
 let scannerDetector = null;
+const scannerDigitalZoomFactor = 1.35;
 const recipeState = {
   initialized: false,
+  hasLoadedInitialSuggestions: false,
   selectedLocationIds: [],
   selectedProductIds: [],
   stockSignature: null,
@@ -190,6 +219,20 @@ function formatValue(value, fallback = 'Nicht verfügbar') {
   return text || fallback;
 }
 
+function getShoppingAmount() {
+  const amountInput = document.getElementById('amount');
+  const amount = Number(amountInput?.value || 1);
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return 1;
+  }
+  return amount;
+}
+
+function getShoppingBestBeforeDate() {
+  const dateInput = document.getElementById('best-before-date');
+  return String(dateInput?.value || '').trim();
+}
+
 function renderShoppingList(items) {
   const list = document.getElementById('shopping-list');
   if (!items.length) {
@@ -327,11 +370,19 @@ async function confirmVariant(productId, productName) {
   }
 
   status.textContent = `Füge ${productName} zur Einkaufsliste hinzu...`;
+  const amount = getShoppingAmount();
+  const bestBeforeDate = getShoppingBestBeforeDate();
+
   try {
     const res = await fetch(buildApiUrl('/api/dashboard/add-existing-product'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
-      body: JSON.stringify({ product_id: productId, product_name: productName }),
+      body: JSON.stringify({
+        product_id: productId,
+        product_name: productName,
+        amount,
+        best_before_date: bestBeforeDate,
+      }),
     });
     const payload = await parseJsonSafe(res);
     status.textContent = payload.message || getErrorMessage(payload, 'Unbekannte Antwort');
@@ -426,6 +477,7 @@ function showShoppingItemDetails(item) {
     </section>
   `;
   modal.classList.remove('hidden');
+  syncModalScrollLock();
 }
 
 
@@ -490,6 +542,7 @@ async function saveMhdPickerDate() {
 
 function closeShoppingItemDetails() {
   document.getElementById('shopping-item-modal').classList.add('hidden');
+  syncModalScrollLock();
 }
 
 function bindShoppingSwipeInteractions() {
@@ -603,6 +656,8 @@ async function searchProduct() {
   const name = document.getElementById('name').value;
   const status = getShoppingStatusElement();
   const key = ensureApiKey();
+  const amount = getShoppingAmount();
+  const bestBeforeDate = getShoppingBestBeforeDate();
 
   if (!key) {
     status.textContent = 'Kein API-Key angegeben.';
@@ -618,7 +673,11 @@ async function searchProduct() {
     const res = await fetch(buildApiUrl('/api/dashboard/search'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
-      body: JSON.stringify({ name })
+      body: JSON.stringify({
+        name,
+        amount,
+        best_before_date: bestBeforeDate,
+      })
     });
 
     const payload = await parseJsonSafe(res);
@@ -749,17 +808,20 @@ function renderLocations(items) {
 function renderStockProducts(items) {
   const container = document.getElementById('stock-products');
   const selectedProductIds = new Set(recipeState.selectedProductIds);
-  if (!items.length) {
-    container.innerHTML = '<div class="muted">Keine Produkte für die ausgewählten Lagerstandorte gefunden.</div>';
-    return;
-  }
 
-  container.innerHTML = items.map((item) => `
-    <label class="stock-item">
-      <input type="checkbox" value="${item.id}" ${selectedProductIds.has(item.id) ? 'checked' : ''} />
-      <span><strong>${item.name}</strong> <small class="muted">${item.location_name || 'Lager'} · ${item.amount || '-'} </small></span>
-    </label>
-  `).join('');
+  container.innerHTML = `
+    <details class="location-dropdown">
+      <summary>Produkte auswählen (${items.length})</summary>
+      <div class="stock-options">
+        ${items.length ? items.map((item) => `
+          <label class="stock-item">
+            <input type="checkbox" value="${item.id}" ${selectedProductIds.size === 0 || selectedProductIds.has(item.id) ? 'checked' : ''} />
+            <span><strong>${item.name}</strong> <small class="muted">${item.location_name || 'Lager'} · ${item.amount || '-'}</small></span>
+          </label>
+        `).join('') : '<div class="muted">Keine Produkte für die ausgewählten Lagerstandorte gefunden.</div>'}
+      </div>
+    </details>
+  `;
 }
 
 function renderRecipeList(elementId, items, emptyText) {
@@ -845,6 +907,11 @@ async function loadStockProducts() {
     getRecipeStatusElement().textContent = hasStockChanged
       ? 'Bestand aktualisiert. Lade Rezeptvorschläge bei Bedarf manuell.'
       : 'Bestand geladen. Lade Rezeptvorschläge bei Bedarf manuell.';
+
+    if (!hasStockChanged && !recipeState.hasLoadedInitialSuggestions) {
+      recipeState.hasLoadedInitialSuggestions = true;
+      await loadRecipeSuggestions({ usePrefetchedCache: true });
+    }
   } catch (_) {
     getRecipeStatusElement().textContent = 'Bestand konnte nicht geladen werden (Netzwerk-/Ingress-Fehler).';
   }
@@ -861,9 +928,10 @@ async function loadRecipeSuggestions(options = {}) {
     return;
   }
 
-  const selectedIds = getSelectedProductIds();
+  const usePrefetchedCache = Boolean(options.usePrefetchedCache);
+  const selectedIds = usePrefetchedCache ? [] : getSelectedProductIds();
   recipeState.selectedProductIds = selectedIds;
-  const selectedLocationIds = getSelectedLocationIds();
+  const selectedLocationIds = usePrefetchedCache ? [] : getSelectedLocationIds();
   recipeState.selectedLocationIds = selectedLocationIds;
   const soonExpiringOnly = Boolean(options.soonExpiringOnly);
   const expiringWithinDays = Number(options.expiringWithinDays || 3);
@@ -871,9 +939,11 @@ async function loadRecipeSuggestions(options = {}) {
   if (soonExpiringOnly) {
     status.textContent = `Lade Rezepte mit bald ablaufenden Produkten (<= ${expiringWithinDays} Tage)...`;
   } else {
-    status.textContent = selectedIds.length
-      ? 'Lade Rezeptvorschläge für Auswahl...'
-      : 'Lade Rezeptvorschläge aus dem aktuellen Lagerbestand...';
+    status.textContent = usePrefetchedCache
+      ? 'Lade initiale Rezeptvorschläge aus dem Cache...'
+      : selectedIds.length
+        ? 'Lade Rezeptvorschläge für Auswahl...'
+        : 'Lade Rezeptvorschläge aus dem aktuellen Lagerbestand...';
   }
 
   try {
@@ -918,6 +988,7 @@ function openRecipeDetails(item) {
   const title = document.getElementById('recipe-modal-title');
   const reason = document.getElementById('recipe-modal-reason');
   const preparation = document.getElementById('recipe-modal-preparation');
+  const ingredients = document.getElementById('recipe-modal-ingredients');
   const missingProducts = document.getElementById('recipe-modal-missing-products');
   const addButton = document.getElementById('recipe-add-missing-button');
 
@@ -925,6 +996,13 @@ function openRecipeDetails(item) {
   title.textContent = item.title || 'Rezeptdetails';
   reason.textContent = item.reason || '';
   preparation.textContent = item.preparation || 'Keine Zubereitungsdetails vorhanden.';
+
+  const ingredientItems = Array.isArray(item.ingredients) ? item.ingredients : [];
+  if (!ingredientItems.length) {
+    ingredients.innerHTML = '<li class="muted">Keine Zutatenliste vorhanden.</li>';
+  } else {
+    ingredients.innerHTML = ingredientItems.map((ingredient) => `<li>${ingredient}</li>`).join('');
+  }
 
   const missingItems = Array.isArray(item.missing_products) ? item.missing_products : [];
   if (!missingItems.length) {
@@ -935,12 +1013,14 @@ function openRecipeDetails(item) {
 
   addButton.disabled = !(item.source === 'grocy' && Number.isInteger(item.recipe_id));
   modal.classList.remove('hidden');
+  syncModalScrollLock();
 }
 
 function closeRecipeDetails() {
   const modal = document.getElementById('recipe-modal');
   modal.classList.add('hidden');
   activeRecipeItem = null;
+  syncModalScrollLock();
 }
 
 function bindRecipeItemInteractions() {
@@ -1052,6 +1132,7 @@ async function lookupBarcode(barcode) {
 async function startBarcodeScanner() {
   const status = getScannerStatusElement();
   const video = document.getElementById('scanner-video');
+  const canvas = document.getElementById('scanner-canvas');
   const startButton = document.getElementById('start-scan-button');
   const stopButton = document.getElementById('stop-scan-button');
 
@@ -1061,16 +1142,27 @@ async function startBarcodeScanner() {
   }
 
   try {
+    stopBarcodeScanner();
+
     scannerStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { ideal: 'environment' } },
+      video: {
+        facingMode: { ideal: 'environment' },
+        width: { ideal: 1920 },
+        height: { ideal: 1080 },
+      },
       audio: false,
     });
+
+    await optimizeScannerTrack(scannerStream, status);
+
     video.srcObject = scannerStream;
     await video.play();
     video.classList.remove('hidden');
     startButton.classList.add('hidden');
     stopButton.classList.remove('hidden');
-    status.textContent = 'Scanner aktiv. Barcode vor die Kamera halten...';
+    if (!String(status.textContent || '').startsWith('Scanner aktiv')) {
+      status.textContent = 'Scanner aktiv. Barcode vor die Kamera halten...';
+    }
 
     if ('BarcodeDetector' in window) {
       scannerDetector = new window.BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e'] });
@@ -1082,7 +1174,8 @@ async function startBarcodeScanner() {
 
       if (scannerDetector) {
         try {
-          const barcodes = await scannerDetector.detect(video);
+          const detectionSource = getScannerDetectionSource(video, canvas, scannerDigitalZoomFactor);
+          const barcodes = await scannerDetector.detect(detectionSource);
           if (barcodes.length) {
             const value = String(barcodes[0].rawValue || '').trim();
             if (value && value !== scannerLastBarcode) {
@@ -1097,6 +1190,65 @@ async function startBarcodeScanner() {
   } catch (_) {
     status.textContent = 'Kamera konnte nicht gestartet werden. Bitte Berechtigung prüfen.';
   }
+}
+
+async function optimizeScannerTrack(stream, status) {
+  const videoTrack = stream?.getVideoTracks?.()[0];
+  if (!videoTrack) return;
+
+  const capabilities = videoTrack.getCapabilities ? videoTrack.getCapabilities() : null;
+  const constraints = {};
+
+  if (capabilities?.focusMode?.includes('continuous')) {
+    constraints.focusMode = 'continuous';
+  }
+
+  if (capabilities?.zoom) {
+    const minZoom = Number(capabilities.zoom.min || 1);
+    const maxZoom = Number(capabilities.zoom.max || minZoom);
+    const preferredZoom = Math.max(minZoom, Math.min(maxZoom, 1.8));
+    constraints.zoom = preferredZoom;
+    status.textContent = `Scanner aktiv (Kamera-Zoom ${preferredZoom.toFixed(1)}x). Barcode vor die Kamera halten...`;
+  }
+
+  if (!Object.keys(constraints).length) return;
+
+  try {
+    await videoTrack.applyConstraints({ advanced: [constraints] });
+  } catch (_) {
+    // Ignore optimization failures and keep default stream settings.
+  }
+}
+
+function getScannerDetectionSource(video, canvas, zoomFactor) {
+  if (!canvas || !video || !video.videoWidth || !video.videoHeight || zoomFactor <= 1) {
+    return video;
+  }
+
+  const context = canvas.getContext('2d', { willReadFrequently: true });
+  if (!context) return video;
+
+  const sourceWidth = Math.round(video.videoWidth / zoomFactor);
+  const sourceHeight = Math.round(video.videoHeight / zoomFactor);
+  const sourceX = Math.max(0, Math.round((video.videoWidth - sourceWidth) / 2));
+  const sourceY = Math.max(0, Math.round((video.videoHeight - sourceHeight) / 2));
+
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+
+  context.drawImage(
+    video,
+    sourceX,
+    sourceY,
+    sourceWidth,
+    sourceHeight,
+    0,
+    0,
+    canvas.width,
+    canvas.height
+  );
+
+  return canvas;
 }
 
 function stopBarcodeScanner() {
