@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import sys
 import time
@@ -37,19 +38,28 @@ async def _lifespan(app: FastAPI):
     app.state.product_image_cache = image_cache
     app.state.location_cache = location_cache
     app.state.recipe_suggestion_cache = {}
-    try:
-        prefetched = prefetch_initial_recipe_suggestions(settings)
-        if prefetched:
-            app.state.recipe_suggestion_cache.update(prefetched)
-            logger.info("Initiale Rezeptvorschläge vorab geladen und gecacht")
-    except Exception as error:
-        logger.warning(
-            "Initiales Vorladen der Rezeptvorschläge fehlgeschlagen: %s", error
-        )
+
+    async def _delayed_prefetch_recipe_suggestions() -> None:
+        await asyncio.sleep(5)
+        try:
+            prefetched = await asyncio.to_thread(
+                prefetch_initial_recipe_suggestions, settings
+            )
+            if prefetched:
+                app.state.recipe_suggestion_cache.update(prefetched)
+                logger.info("Initiale Rezeptvorschläge zeitverzögert vorab geladen und gecacht")
+        except Exception as error:
+            logger.warning(
+                "Zeitverzögertes Vorladen der Rezeptvorschläge fehlgeschlagen: %s",
+                error,
+            )
+
+    prefetch_task = asyncio.create_task(_delayed_prefetch_recipe_suggestions())
 
     try:
         yield
     finally:
+        prefetch_task.cancel()
         image_cache.stop()
         location_cache.stop()
 
