@@ -750,13 +750,14 @@ def test_shopping_list_item_best_before_date_can_be_updated(client, monkeypatch)
     captured = {}
 
     def fake_get_shopping_list(self):
-        return [{"id": 42, "amount": "2"}]
+        return [{"id": 42, "amount": "2", "note": "dringend"}]
 
     def fake_update_shopping_list_item_best_before_date(
-        self, shopping_list_id, best_before_date
+        self, shopping_list_id, best_before_date, current_note=""
     ):
         captured["shopping_list_id"] = shopping_list_id
         captured["best_before_date"] = best_before_date
+        captured["current_note"] = current_note
 
     monkeypatch.setattr(routes.GrocyClient, "get_shopping_list", fake_get_shopping_list)
     monkeypatch.setattr(
@@ -772,7 +773,11 @@ def test_shopping_list_item_best_before_date_can_be_updated(client, monkeypatch)
     )
 
     assert response.status_code == 200
-    assert captured == {"shopping_list_id": 42, "best_before_date": "2026-12-31"}
+    assert captured == {
+        "shopping_list_id": 42,
+        "best_before_date": "2026-12-31",
+        "current_note": "dringend",
+    }
     assert response.json()["success"] is True
 
 
@@ -820,14 +825,17 @@ def test_shopping_list_item_can_be_completed(client, monkeypatch):
     captured = {}
 
     def fake_get_shopping_list(self):
-        return [{"id": 9, "product_id": 11, "amount": "3"}]
+        return [
+            {"id": 9, "product_id": 11, "amount": "3", "best_before_date": "2026-12-31"}
+        ]
 
     def fake_complete_shopping_list_item(
-        self, shopping_list_id, product_id, amount="1"
+        self, shopping_list_id, product_id, amount="1", best_before_date=""
     ):
         captured["shopping_list_id"] = shopping_list_id
         captured["product_id"] = product_id
         captured["amount"] = amount
+        captured["best_before_date"] = best_before_date
 
     monkeypatch.setattr(routes.GrocyClient, "get_shopping_list", fake_get_shopping_list)
     monkeypatch.setattr(
@@ -842,21 +850,29 @@ def test_shopping_list_item_can_be_completed(client, monkeypatch):
     )
 
     assert response.status_code == 200
-    assert captured == {"shopping_list_id": 9, "product_id": 11, "amount": "3"}
+    assert captured == {
+        "shopping_list_id": 9,
+        "product_id": 11,
+        "amount": "3",
+        "best_before_date": "2026-12-31",
+    }
 
 
 def test_shopping_list_item_can_be_completed_with_legacy_endpoint(client, monkeypatch):
     captured = {}
 
     def fake_get_shopping_list(self):
-        return [{"id": 9, "product_id": 11, "amount": "3"}]
+        return [
+            {"id": 9, "product_id": 11, "amount": "3", "best_before_date": "2026-12-31"}
+        ]
 
     def fake_complete_shopping_list_item(
-        self, shopping_list_id, product_id, amount="1"
+        self, shopping_list_id, product_id, amount="1", best_before_date=""
     ):
         captured["shopping_list_id"] = shopping_list_id
         captured["product_id"] = product_id
         captured["amount"] = amount
+        captured["best_before_date"] = best_before_date
 
     monkeypatch.setattr(routes.GrocyClient, "get_shopping_list", fake_get_shopping_list)
     monkeypatch.setattr(
@@ -871,7 +887,12 @@ def test_shopping_list_item_can_be_completed_with_legacy_endpoint(client, monkey
     )
 
     assert response.status_code == 200
-    assert captured == {"shopping_list_id": 9, "product_id": 11, "amount": "3"}
+    assert captured == {
+        "shopping_list_id": 9,
+        "product_id": 11,
+        "amount": "3",
+        "best_before_date": "2026-12-31",
+    }
 
 
 def test_dashboard_shows_activity_spinner_in_header(client):
