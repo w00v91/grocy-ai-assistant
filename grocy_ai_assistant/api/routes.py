@@ -14,6 +14,7 @@ from grocy_ai_assistant.ai.ingredient_detector import IngredientDetector
 from grocy_ai_assistant.api.errors import log_api_error
 from grocy_ai_assistant.config.settings import Settings, get_settings
 from grocy_ai_assistant.core.picture_urls import build_product_picture_url
+from grocy_ai_assistant.core.text_utils import html_to_plain_text
 from grocy_ai_assistant.models.ingredient import (
     AnalyzeProductRequest,
     AnalyzeProductResponse,
@@ -157,10 +158,10 @@ def _generate_recipe_suggestions(
         grocy_recipes.append(
             RecipeSuggestionItem(
                 recipe_id=recipe_id,
-                title=str(recipe.get("name") or "Unbenanntes Rezept"),
+                title=html_to_plain_text(recipe.get("name") or "Unbenanntes Rezept"),
                 source="grocy",
                 reason=reason,
-                preparation=str(recipe.get("description") or ""),
+                preparation=html_to_plain_text(recipe.get("description") or ""),
                 picture_url=str(recipe.get("picture_url") or ""),
                 missing_products=missing_products,
             )
@@ -210,12 +211,18 @@ def _generate_recipe_suggestions(
                 f"1 Portion {product}" for product in selected_products[:4]
             ]
 
+        normalized_ingredients = [
+            html_to_plain_text(ingredient)
+            for ingredient in normalized_ingredients
+            if html_to_plain_text(ingredient)
+        ]
+
         ai_recipes.append(
             RecipeSuggestionItem(
-                title=str(item.get("title") or "KI-Rezept"),
+                title=html_to_plain_text(item.get("title") or "KI-Rezept"),
                 source="ai",
-                reason=str(item.get("reason") or ""),
-                preparation=str(item.get("preparation") or ""),
+                reason=html_to_plain_text(item.get("reason") or ""),
+                preparation=html_to_plain_text(item.get("preparation") or ""),
                 ingredients=normalized_ingredients,
                 picture_url="",
             )
