@@ -506,10 +506,13 @@ def dashboard_barcode_lookup(
     barcode: str,
     request: Request,
     _: None = Depends(require_auth),
+    settings: Settings = Depends(get_settings),
 ):
     normalized_barcode = "".join(ch for ch in barcode if ch.isdigit())
     if len(normalized_barcode) < 8:
         raise HTTPException(status_code=400, detail="Ungültiger Barcode")
+
+    grocy_client = GrocyClient(settings)
 
     try:
         response = requests.get(
@@ -521,6 +524,15 @@ def dashboard_barcode_lookup(
         product = payload.get("product") if isinstance(payload, dict) else {}
 
         if response.status_code != 200 or int(payload.get("status", 0)) != 1:
+            grocy_product = grocy_client.find_product_by_barcode(normalized_barcode)
+            if grocy_product:
+                return BarcodeProductResponse(
+                    barcode=normalized_barcode,
+                    found=True,
+                    product_name=str(grocy_product.get("name") or ""),
+                    source="Grocy",
+                )
+
             return BarcodeProductResponse(
                 barcode=normalized_barcode,
                 found=False,
@@ -539,6 +551,16 @@ def dashboard_barcode_lookup(
             ),
             nutrition_grade=str(product.get("nutrition_grades") or "").upper(),
         )
+    except requests.RequestException:
+        grocy_product = grocy_client.find_product_by_barcode(normalized_barcode)
+        if grocy_product:
+            return BarcodeProductResponse(
+                barcode=normalized_barcode,
+                found=True,
+                product_name=str(grocy_product.get("name") or ""),
+                source="Grocy",
+            )
+        raise
     except HTTPException:
         raise
     except Exception as error:

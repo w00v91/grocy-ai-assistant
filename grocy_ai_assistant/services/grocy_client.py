@@ -210,6 +210,49 @@ class GrocyClient:
 
         return None
 
+    def find_product_by_barcode(self, barcode: str) -> Optional[Dict[str, Any]]:
+        normalized_barcode = "".join(ch for ch in str(barcode or "") if ch.isdigit())
+        if len(normalized_barcode) < 8:
+            return None
+
+        primary_response = requests.get(
+            f"{self.settings.grocy_base_url}/stock/products/by-barcode/{normalized_barcode}",
+            headers=self.headers,
+            timeout=30,
+        )
+        if primary_response.status_code == 200:
+            payload = primary_response.json()
+            if isinstance(payload, dict):
+                product = payload.get("product") if isinstance(payload.get("product"), dict) else payload
+                if product.get("id") is not None:
+                    return product
+
+        if primary_response.status_code not in (200, 404):
+            primary_response.raise_for_status()
+
+        response = requests.get(
+            f"{self.settings.grocy_base_url}/objects/product_barcodes",
+            headers=self.headers,
+            params={"query[]": f"barcode={normalized_barcode}"},
+            timeout=30,
+        )
+        response.raise_for_status()
+
+        payload = response.json()
+        matches = payload if isinstance(payload, list) else []
+        if not matches:
+            return None
+
+        product_id = self._safe_int(matches[0].get("product_id"))
+        if product_id is None:
+            return None
+
+        for product in self._get_all_products():
+            if self._safe_int(product.get("id")) == product_id:
+                return product
+
+        return None
+
     def create_product(self, product_payload: Dict[str, Any]) -> int:
         response = requests.post(
             f"{self.settings.grocy_base_url}/objects/products",

@@ -874,7 +874,16 @@ def test_dashboard_barcode_lookup_returns_not_found(client, monkeypatch):
         def json():
             return {"status": 0}
 
+    class FakeGrocyClient:
+        def __init__(self, settings):
+            self.settings = settings
+
+        def find_product_by_barcode(self, barcode):
+            assert barcode == "4008400408400"
+            return None
+
     monkeypatch.setattr(routes.requests, "get", lambda *args, **kwargs: FakeResponse())
+    monkeypatch.setattr(routes, "GrocyClient", FakeGrocyClient)
 
     response = client.get(
         "/api/dashboard/barcode/4008400408400",
@@ -883,6 +892,43 @@ def test_dashboard_barcode_lookup_returns_not_found(client, monkeypatch):
 
     assert response.status_code == 200
     assert response.json()["found"] is False
+
+
+def test_dashboard_barcode_lookup_falls_back_to_grocy(client, monkeypatch):
+    class FakeOffResponse:
+        status_code = 200
+
+        @staticmethod
+        def json():
+            return {"status": 0}
+
+    class FakeGrocyClient:
+        def __init__(self, settings):
+            self.settings = settings
+
+        def find_product_by_barcode(self, barcode):
+            assert barcode == "4008400408400"
+            return {"id": 5, "name": "Hausmarke Pasta"}
+
+    monkeypatch.setattr(routes.requests, "get", lambda *args, **kwargs: FakeOffResponse())
+    monkeypatch.setattr(routes, "GrocyClient", FakeGrocyClient)
+
+    response = client.get(
+        "/api/dashboard/barcode/4008400408400",
+        headers={"Authorization": "Bearer test-api-key"},
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "barcode": "4008400408400",
+        "found": True,
+        "product_name": "Hausmarke Pasta",
+        "brand": "",
+        "quantity": "",
+        "ingredients_text": "",
+        "nutrition_grade": "",
+        "source": "Grocy",
+    }
 
 
 def test_dashboard_barcode_lookup_rejects_invalid_barcode(client):
