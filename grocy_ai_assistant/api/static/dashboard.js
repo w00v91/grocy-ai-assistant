@@ -8,6 +8,33 @@ const ingressPrefix = ingressPrefixMatch ? ingressPrefixMatch[0] : '';
 
 let pendingRequests = 0;
 let activeRecipeItem = null;
+
+
+let modalScrollLockY = 0;
+
+function lockBodyScroll() {
+  if (document.body.classList.contains('modal-open')) return;
+  modalScrollLockY = window.scrollY || window.pageYOffset || 0;
+  document.body.classList.add('modal-open');
+  document.body.style.top = `-${modalScrollLockY}px`;
+}
+
+function unlockBodyScroll() {
+  if (!document.body.classList.contains('modal-open')) return;
+  document.body.classList.remove('modal-open');
+  document.body.style.top = '';
+  window.scrollTo(0, modalScrollLockY);
+}
+
+function syncModalScrollLock() {
+  const hasVisibleModal = Boolean(document.querySelector('.shopping-modal:not(.hidden)'));
+  if (hasVisibleModal) {
+    lockBodyScroll();
+    return;
+  }
+  unlockBodyScroll();
+}
+
 let activeTab = "shopping";
 let scannerStream = null;
 let scannerInterval = null;
@@ -423,10 +450,12 @@ function showShoppingItemDetails(item) {
     </section>
   `;
   modal.classList.remove('hidden');
+  syncModalScrollLock();
 }
 
 function closeShoppingItemDetails() {
   document.getElementById('shopping-item-modal').classList.add('hidden');
+  syncModalScrollLock();
 }
 
 function bindShoppingSwipeInteractions() {
@@ -855,12 +884,14 @@ function openRecipeDetails(item) {
 
   addButton.disabled = !(item.source === 'grocy' && Number.isInteger(item.recipe_id));
   modal.classList.remove('hidden');
+  syncModalScrollLock();
 }
 
 function closeRecipeDetails() {
   const modal = document.getElementById('recipe-modal');
   modal.classList.add('hidden');
   activeRecipeItem = null;
+  syncModalScrollLock();
 }
 
 function bindRecipeItemInteractions() {

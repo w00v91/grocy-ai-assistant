@@ -16,7 +16,9 @@
   --badge-bg: #edf2ff;
   --badge-text: #3555ad;
   --image-bg: #eef2f9;
+  --modal-backdrop-bg: rgba(15, 23, 42, 0.72);
 }
+
 
 :root[data-theme='dark'] {
   color-scheme: dark;
@@ -31,7 +33,9 @@
   --badge-bg: #273a63;
   --badge-text: #dbe7ff;
   --image-bg: #1f2b44;
+  --modal-backdrop-bg: rgba(2, 8, 23, 0.8);
 }
+
 
 body {
   font-family: Inter, Arial, sans-serif;
@@ -39,6 +43,13 @@ body {
   background: var(--bg-gradient);
   color: var(--text);
   padding-bottom: 5.5rem;
+}
+
+body.modal-open {
+  overflow: hidden;
+  overscroll-behavior: none;
+  width: 100%;
+  position: fixed;
 }
 .theme-toggle {
   position: fixed;
@@ -489,16 +500,25 @@ img {
   position: fixed;
   inset: 0;
   z-index: 60;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 .shopping-modal-backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(15, 23, 42, 0.55);
+  background: var(--modal-backdrop-bg);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
 }
 .shopping-modal-content {
   position: relative;
   margin: min(8vh, 4rem) auto;
   width: min(980px, calc(100% - 1.5rem));
+  max-height: calc(100dvh - min(16vh, 8rem));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   z-index: 1;
 }
 .shopping-modal-close {
@@ -532,6 +552,10 @@ img {
 }
 @media (max-width: 640px) {
   .shopping-details-grid { grid-template-columns: 1fr; }
+  .shopping-modal-content {
+    margin: 0.75rem auto;
+    max-height: calc(100dvh - 1.5rem);
+  }
 }
 
 #recipe-modal-preparation { white-space: pre-wrap; }
