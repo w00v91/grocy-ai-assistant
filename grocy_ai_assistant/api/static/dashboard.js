@@ -15,6 +15,7 @@ let scannerLastBarcode = "";
 let scannerDetector = null;
 const recipeState = {
   initialized: false,
+  hasLoadedInitialSuggestions: false,
   selectedLocationIds: [],
   selectedProductIds: [],
   stockSignature: null,
@@ -765,6 +766,11 @@ async function loadStockProducts() {
     getRecipeStatusElement().textContent = hasStockChanged
       ? 'Bestand aktualisiert. Lade Rezeptvorschläge bei Bedarf manuell.'
       : 'Bestand geladen. Lade Rezeptvorschläge bei Bedarf manuell.';
+
+    if (!hasStockChanged && !recipeState.hasLoadedInitialSuggestions) {
+      recipeState.hasLoadedInitialSuggestions = true;
+      await loadRecipeSuggestions();
+    }
   } catch (_) {
     getRecipeStatusElement().textContent = 'Bestand konnte nicht geladen werden (Netzwerk-/Ingress-Fehler).';
   }
