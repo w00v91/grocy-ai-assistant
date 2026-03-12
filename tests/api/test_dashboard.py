@@ -493,7 +493,7 @@ def test_recipe_suggestions_prioritize_grocy_then_ai(client, monkeypatch):
     assert payload["grocy_recipes"][0]["preparation"] == "Pasta kochen"
     assert payload["ai_recipes"][0]["source"] == "ai"
     assert payload["ai_recipes"][0]["preparation"] == "Tomaten schneiden und köcheln."
-    assert payload["ai_recipes"][0]["ingredients"] == []
+    assert payload["ai_recipes"][0]["ingredients"] == ["1 Portion Tomate"]
 
 
 def test_recipe_suggestions_uses_stock_products_when_selection_is_empty(

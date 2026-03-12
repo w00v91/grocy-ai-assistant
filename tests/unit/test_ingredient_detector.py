@@ -190,6 +190,43 @@ def test_generate_recipe_suggestions_normalizes_ingredients_list(monkeypatch):
     ]
 
 
+def test_generate_recipe_suggestions_extracts_embedded_ingredients_sections(
+    monkeypatch,
+):
+    def fake_post(*args, **kwargs):
+        return FakeResponse(
+            {
+                "response": (
+                    '[{"title":"Gemüsepfanne\\nSchnell gemacht\\nZutaten\\n- 2 Karotten\\n- 1 Zucchini\\nZubereitung\\nAlles anbraten.","reason":"","preparation":""}]'
+                )
+            }
+        )
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.ai.ingredient_detector.requests.post", fake_post
+    )
+
+    detector = IngredientDetector(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+        )
+    )
+
+    result = detector.generate_recipe_suggestions(["Karotte", "Zucchini"], [])
+
+    assert result == [
+        {
+            "title": "Gemüsepfanne",
+            "reason": "Schnell gemacht",
+            "preparation": "Alles anbraten.",
+            "ingredients": ["2 Karotten", "1 Zucchini"],
+        }
+    ]
+
+
 def test_generate_recipe_suggestions_logs_raw_ai_response_in_debug_mode(
     monkeypatch, caplog
 ):

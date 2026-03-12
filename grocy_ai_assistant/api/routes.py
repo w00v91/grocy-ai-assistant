@@ -192,22 +192,31 @@ def _generate_recipe_suggestions(
             },
         ]
 
-    ai_recipes = [
-        RecipeSuggestionItem(
-            title=str(item.get("title") or "KI-Rezept"),
-            source="ai",
-            reason=str(item.get("reason") or ""),
-            preparation=str(item.get("preparation") or ""),
-            ingredients=[
-                str(ingredient).strip()
-                for ingredient in (item.get("ingredients") or [])
-                if str(ingredient).strip()
-            ],
-            picture_url="",
+    ai_recipes: list[RecipeSuggestionItem] = []
+    for item in ai_raw[:5]:
+        if not isinstance(item, dict):
+            continue
+
+        normalized_ingredients = [
+            str(ingredient).strip()
+            for ingredient in (item.get("ingredients") or [])
+            if str(ingredient).strip()
+        ]
+        if not normalized_ingredients:
+            normalized_ingredients = [
+                f"1 Portion {product}" for product in selected_products[:4]
+            ]
+
+        ai_recipes.append(
+            RecipeSuggestionItem(
+                title=str(item.get("title") or "KI-Rezept"),
+                source="ai",
+                reason=str(item.get("reason") or ""),
+                preparation=str(item.get("preparation") or ""),
+                ingredients=normalized_ingredients,
+                picture_url="",
+            )
         )
-        for item in ai_raw[:5]
-        if isinstance(item, dict)
-    ]
 
     return RecipeSuggestionResponse(
         selected_products=selected_products,
