@@ -184,6 +184,27 @@ def test_dashboard_does_not_autoload_recipe_suggestions_on_recipe_tab_open(clien
     )
 
 
+def test_dashboard_places_recipe_lists_directly_below_recipe_heading(client):
+    response = client.get("/")
+
+    assert response.status_code == 200
+    heading_pos = response.text.index("<h2>Rezeptvorschläge</h2>")
+    columns_pos = response.text.index("<div class='recipe-columns'>")
+    filter_pos = response.text.index("<div class='stock-filters-layout'>")
+
+    assert heading_pos < columns_pos < filter_pos
+
+
+def test_dashboard_limits_displayed_recipe_amount_per_source(client):
+    static_response = client.get("/dashboard-static/dashboard.js")
+
+    assert static_response.status_code == 200
+    assert "const GROCY_RECIPE_DISPLAY_LIMIT = 3;" in static_response.text
+    assert "const AI_RECIPE_DISPLAY_LIMIT = 2;" in static_response.text
+    assert ".slice(0, GROCY_RECIPE_DISPLAY_LIMIT)" in static_response.text
+    assert ".slice(0, AI_RECIPE_DISPLAY_LIMIT)" in static_response.text
+
+
 def test_dashboard_preloads_recipe_suggestions_on_startup(client):
     static_response = client.get("/dashboard-static/dashboard.js")
 
