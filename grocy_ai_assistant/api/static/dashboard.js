@@ -222,6 +222,11 @@ function formatValue(value, fallback = 'Nicht verfügbar') {
   return text || fallback;
 }
 
+function formatBadgeValue(value, fallback) {
+  const text = String(value || '').trim();
+  return text || fallback;
+}
+
 function getShoppingAmount() {
   const amountInput = document.getElementById('amount');
   const amount = Number(amountInput?.value || 1);
@@ -261,7 +266,7 @@ function renderShoppingList(items) {
           <div class="muted">${item.note || 'Keine Notiz'}</div>
         </div>
         <div class="shopping-item-badges">
-          <span class="badge">Menge: ${item.amount}</span>
+          <span class="badge">Menge: ${formatBadgeValue(item.amount, '-')}</span>
           <button type="button" class="badge mhd-picker-button" data-mhd-shopping-list-id="${item.id}" data-mhd-product-name="${encodeURIComponent(item.product_name || '')}" data-mhd-current-date="${item.best_before_date || ''}">${item.best_before_date ? `MHD: ${item.best_before_date}` : 'MHD wählen'}</button>
         </div>
       </div>
@@ -820,7 +825,11 @@ function renderStockProducts(items) {
         ${items.length ? items.map((item) => `
           <label class="stock-item">
             <input type="checkbox" value="${item.id}" ${selectedProductIds.size === 0 || selectedProductIds.has(item.id) ? 'checked' : ''} />
-            <span><strong>${item.name}</strong> <small class="muted">${item.location_name || 'Lager'} · ${item.amount || '-'}</small></span>
+            <span class="stock-item-name"><strong>${item.name}</strong></span>
+            <span class="stock-item-attributes">
+              <span class="badge">Menge: ${formatBadgeValue(item.amount, '-')}</span>
+              <span class="badge">MHD: ${formatBadgeValue(item.best_before_date, '-')}</span>
+            </span>
           </label>
         `).join('') : '<div class="muted">Keine Produkte für die ausgewählten Lagerstandorte gefunden.</div>'}
       </div>

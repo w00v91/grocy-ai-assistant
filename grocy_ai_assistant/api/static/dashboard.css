@@ -402,12 +402,28 @@ img {
 }
 .stock-item {
   display: flex;
-  gap: 0.45rem;
-  align-items: flex-start;
+  gap: 0.55rem;
+  align-items: center;
   background: var(--item-bg);
   border: 1px solid var(--item-border);
   border-radius: 10px;
   padding: 0.5rem 0.6rem;
+}
+
+.stock-item-name {
+  min-width: 0;
+}
+
+.stock-item-attributes {
+  margin-left: auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  justify-content: flex-end;
+}
+
+.stock-item-attributes .badge {
+  margin-left: 0;
 }
 .recipe-columns {
   margin-top: 0.8rem;

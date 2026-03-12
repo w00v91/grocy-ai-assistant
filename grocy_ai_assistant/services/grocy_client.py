@@ -1,6 +1,7 @@
 from collections import Counter
 from datetime import datetime
 from math import sqrt
+import re
 from typing import Any, Dict, Optional
 from urllib.parse import ParseResult, parse_qsl, urlencode, urlparse
 from base64 import b64encode
@@ -13,6 +14,8 @@ from grocy_ai_assistant.config.settings import Settings
 
 class GrocyClient:
     MIN_VECTOR_SIMILARITY = 0.55
+    SHOPPING_LIST_MHD_NOTE_PREFIX = "[grocy_ai_mhd:"
+    SHOPPING_LIST_MHD_NOTE_PATTERN = re.compile(r"\[grocy_ai_mhd:(\d{4}-\d{2}-\d{2})\]")
 
     def __init__(self, settings: Settings):
         self.settings = settings
@@ -226,7 +229,11 @@ class GrocyClient:
         if primary_response.status_code == 200:
             payload = primary_response.json()
             if isinstance(payload, dict):
-                product = payload.get("product") if isinstance(payload.get("product"), dict) else payload
+                product = (
+                    payload.get("product")
+                    if isinstance(payload.get("product"), dict)
+                    else payload
+                )
                 if product.get("id") is not None:
                     return product
 
@@ -286,15 +293,46 @@ class GrocyClient:
         response.raise_for_status()
 
     def update_shopping_list_item_best_before_date(
-        self, shopping_list_id: int, best_before_date: str
+        self,
+        shopping_list_id: int,
+        best_before_date: str,
+        current_note: str = "",
     ) -> None:
+        note_with_best_before_date = self._embed_best_before_date_in_note(
+            current_note,
+            best_before_date,
+        )
         response = requests.put(
             f"{self.settings.grocy_base_url}/objects/shopping_list/{shopping_list_id}",
             headers=self.headers,
-            json={"best_before_date": self._safe_str(best_before_date)},
+            json={"note": note_with_best_before_date},
             timeout=30,
         )
         response.raise_for_status()
+
+    @classmethod
+    def _extract_best_before_date_from_note(cls, note: str) -> tuple[str, str]:
+        safe_note = cls._safe_str(note)
+        match = cls.SHOPPING_LIST_MHD_NOTE_PATTERN.search(safe_note)
+        if not match:
+            return safe_note, ""
+
+        clean_note = cls.SHOPPING_LIST_MHD_NOTE_PATTERN.sub("", safe_note).strip()
+        return clean_note, match.group(1)
+
+    @classmethod
+    def _embed_best_before_date_in_note(cls, note: str, best_before_date: str) -> str:
+        clean_note, _ = cls._extract_best_before_date_from_note(note)
+        normalized_best_before_date = cls._safe_str(best_before_date)
+        if not normalized_best_before_date:
+            return clean_note
+
+        if clean_note:
+            return (
+                f"{clean_note} {cls.SHOPPING_LIST_MHD_NOTE_PREFIX}"
+                f"{normalized_best_before_date}]"
+            )
+        return f"{cls.SHOPPING_LIST_MHD_NOTE_PREFIX}{normalized_best_before_date}]"
 
     def _enrich_shopping_items(
         self, shopping_items: list[Dict[str, Any]]
@@ -348,6 +386,9 @@ class GrocyClient:
             product_id = self._safe_str(item.get("product_id"))
             product = products.get(product_id, {})
             stock_entry = stock_by_product_id.get(product_id, {})
+            clean_note, best_before_date_from_note = (
+                self._extract_best_before_date_from_note(item.get("note"))
+            )
             location_id = self._safe_str(
                 stock_entry.get("location_id") or product.get("location_id")
             )
@@ -364,7 +405,9 @@ class GrocyClient:
                     or "",
                     "location_name": locations.get(location_id, ""),
                     "in_stock": str(stock_entry.get("amount") or ""),
-                    "best_before_date": str(
+                    "note": clean_note,
+                    "best_before_date": best_before_date_from_note
+                    or str(
                         stock_entry.get("best_before_date")
                         or stock_entry.get("best_before_date_calculated")
                         or ""
@@ -493,6 +536,11 @@ class GrocyClient:
                     "location_id": normalized_location_id,
                     "location_name": location_name,
                     "amount": str(entry.get("amount") or ""),
+                    "best_before_date": str(
+                        entry.get("best_before_date")
+                        or entry.get("best_before_date_calculated")
+                        or ""
+                    ),
                 }
             )
 
@@ -638,11 +686,18 @@ class GrocyClient:
         return removed_items
 
     def complete_shopping_list_item(
-        self, shopping_list_id: int, product_id: int, amount: str = "1"
+        self,
+        shopping_list_id: int,
+        product_id: int,
+        amount: str = "1",
+        best_before_date: str = "",
     ) -> None:
         payload: Dict[str, Any] = {
             "amount": self._safe_str(amount) or "1",
         }
+        normalized_best_before_date = self._safe_str(best_before_date)
+        if normalized_best_before_date:
+            payload["best_before_date"] = normalized_best_before_date
         response = requests.post(
             f"{self.settings.grocy_base_url}/stock/products/{product_id}/add",
             headers=self.headers,
@@ -670,6 +725,7 @@ class GrocyClient:
                 item_id,
                 product_id=product_id,
                 amount=amount_value,
+                best_before_date=self._safe_str(item.get("best_before_date")),
             )
             completed_items += 1
 

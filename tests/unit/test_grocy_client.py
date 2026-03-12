@@ -369,8 +369,12 @@ def test_get_stock_products_resolves_product_and_location_names(monkeypatch):
         if url.endswith("/stock"):
             return FakeResponse(
                 [
-                    {"product_id": 2, "amount": 3},
-                    {"product_id": 1, "amount": 1},
+                    {
+                        "product_id": 2,
+                        "amount": 3,
+                        "best_before_date_calculated": "2026-01-03",
+                    },
+                    {"product_id": 1, "amount": 1, "best_before_date": "2026-01-02"},
                 ]
             )
         if url.endswith("/objects/products"):
@@ -411,6 +415,7 @@ def test_get_stock_products_resolves_product_and_location_names(monkeypatch):
             "location_id": 4,
             "location_name": "Obstkorb",
             "amount": "1",
+            "best_before_date": "2026-01-02",
         },
         {
             "id": 2,
@@ -418,6 +423,7 @@ def test_get_stock_products_resolves_product_and_location_names(monkeypatch):
             "location_id": 1,
             "location_name": "Kühlschrank",
             "amount": "3",
+            "best_before_date": "2026-01-03",
         },
     ]
 
@@ -500,8 +506,12 @@ def test_get_stock_products_filters_by_locations(monkeypatch):
         if url.endswith("/stock"):
             return FakeResponse(
                 [
-                    {"product_id": 2, "amount": 3},
-                    {"product_id": 1, "amount": 1},
+                    {
+                        "product_id": 2,
+                        "amount": 3,
+                        "best_before_date_calculated": "2026-01-03",
+                    },
+                    {"product_id": 1, "amount": 1, "best_before_date": "2026-01-02"},
                 ]
             )
         if url.endswith("/objects/products"):
@@ -542,6 +552,7 @@ def test_get_stock_products_filters_by_locations(monkeypatch):
             "location_id": 1,
             "location_name": "Kühlschrank",
             "amount": "3",
+            "best_before_date": "2026-01-03",
         },
     ]
 
@@ -551,7 +562,12 @@ def test_get_stock_products_uses_stock_location_for_filter_and_display(monkeypat
         if url.endswith("/stock"):
             return FakeResponse(
                 [
-                    {"product_id": "2", "location_id": "4", "amount": 1},
+                    {
+                        "product_id": "2",
+                        "location_id": "4",
+                        "amount": 1,
+                        "best_before_date": "2026-01-10",
+                    },
                     {"product_id": "3", "location_id": "1", "amount": 2},
                 ]
             )
@@ -593,6 +609,7 @@ def test_get_stock_products_uses_stock_location_for_filter_and_display(monkeypat
             "location_id": 4,
             "location_name": "Vorrat",
             "amount": "1",
+            "best_before_date": "2026-01-10",
         }
     ]
 
@@ -643,10 +660,52 @@ def test_update_shopping_list_item_best_before_date_calls_put_endpoint(monkeypat
         )
     )
 
-    client.update_shopping_list_item_best_before_date(23, "2026-12-31")
+    client.update_shopping_list_item_best_before_date(
+        23,
+        "2026-12-31",
+        current_note="dringend",
+    )
 
     assert captured["url"].endswith("/objects/shopping_list/23")
-    assert captured["json"] == {"best_before_date": "2026-12-31"}
+    assert captured["json"] == {"note": "dringend [grocy_ai_mhd:2026-12-31]"}
+
+
+def test_best_before_date_is_extracted_from_shopping_list_note(monkeypatch):
+    def fake_get(url, *args, **kwargs):
+        if url.endswith("/objects/products"):
+            return FakeResponse([{"id": 5, "name": "Milch"}])
+        if url.endswith("/stock"):
+            return FakeResponse([])
+        raise AssertionError(f"Unexpected URL: {url}")
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.services.grocy_client.requests.get", fake_get
+    )
+
+    client = GrocyClient(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+        )
+    )
+
+    result = client._enrich_shopping_items(
+        [{"id": 1, "product_id": 5, "note": "Bio [grocy_ai_mhd:2027-01-01]"}]
+    )
+
+    assert result[0]["best_before_date"] == "2027-01-01"
+    assert result[0]["note"] == "Bio"
+
+
+def test_embed_best_before_date_in_note_replaces_existing_marker():
+    result = GrocyClient._embed_best_before_date_in_note(
+        "Alt [grocy_ai_mhd:2020-01-01]",
+        "2030-12-31",
+    )
+
+    assert result == "Alt [grocy_ai_mhd:2030-12-31]"
 
 
 def test_complete_shopping_list_item_adds_to_stock_and_removes_list_entry(monkeypatch):
@@ -677,10 +736,15 @@ def test_complete_shopping_list_item_adds_to_stock_and_removes_list_entry(monkey
         )
     )
 
-    client.complete_shopping_list_item(9, product_id=5, amount="3")
+    client.complete_shopping_list_item(
+        9,
+        product_id=5,
+        amount="3",
+        best_before_date="2026-12-31",
+    )
 
     assert post_calls[0][0].endswith("/stock/products/5/add")
-    assert post_calls[0][1] == {"amount": "3"}
+    assert post_calls[0][1] == {"amount": "3", "best_before_date": "2026-12-31"}
     assert delete_calls[0].endswith("/objects/shopping_list/9")
 
 
@@ -690,9 +754,7 @@ def test_find_product_by_barcode_uses_primary_endpoint(monkeypatch):
 
     def fake_get(url, *args, **kwargs):
         if url.endswith("/stock/products/by-barcode/4008400408400"):
-            return PrimaryHitResponse(
-                {"product": {"id": 3, "name": "Nudeln"}}
-            )
+            return PrimaryHitResponse({"product": {"id": 3, "name": "Nudeln"}})
         raise AssertionError(f"Unexpected url: {url}")
 
     monkeypatch.setattr(
@@ -725,10 +787,12 @@ def test_find_product_by_barcode_falls_back_to_product_barcodes(monkeypatch):
             assert kwargs.get("params") == {"query[]": "barcode=4008400408400"}
             return FakeResponse([{"product_id": 12, "barcode": "4008400408400"}])
         if url.endswith("/objects/products"):
-            return FakeResponse([
-                {"id": 11, "name": "Butter"},
-                {"id": 12, "name": "Vollkornbrot"},
-            ])
+            return FakeResponse(
+                [
+                    {"id": 11, "name": "Butter"},
+                    {"id": 12, "name": "Vollkornbrot"},
+                ]
+            )
         raise AssertionError(f"Unexpected url: {url}")
 
     monkeypatch.setattr(

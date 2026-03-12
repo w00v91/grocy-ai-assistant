@@ -72,6 +72,7 @@ class StockProductResponse(BaseModel):
     location_id: int | None = None
     location_name: str = ""
     amount: str = ""
+    best_before_date: str = ""
 
 
 class LocationResponse(BaseModel):
