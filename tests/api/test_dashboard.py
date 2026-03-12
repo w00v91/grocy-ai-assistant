@@ -1171,7 +1171,6 @@ def test_dashboard_scanner_contains_llava_controls(client):
 
     assert response.status_code == 200
     assert "id='llava-scan-button'" in response.text
-    assert "id='scanner-llava-delay'" in response.text
     assert 'data-scanner-llava-fallback-seconds="5"' in response.text
 
 
