@@ -77,7 +77,6 @@ class GrocyClient:
         has_timestamp = 1 if parsed else 0
         return has_timestamp, parsed, safe_item_id
 
-
     @staticmethod
     def _safe_str(value: Any) -> str:
         if value is None:
@@ -137,7 +136,9 @@ class GrocyClient:
         params.setdefault("force_serve_as", "picture")
         return urlencode(params)
 
-    def _build_recipe_picture_url(self, picture_url: Any, picture_file_name: Any) -> str:
+    def _build_recipe_picture_url(
+        self, picture_url: Any, picture_file_name: Any
+    ) -> str:
         raw_picture_url = self._safe_str(picture_url)
 
         if raw_picture_url:
@@ -163,7 +164,9 @@ class GrocyClient:
         encoded_picture_name = b64encode(raw_picture_name.encode("utf-8")).decode(
             "ascii"
         )
-        base_recipe_url = self._build_grocy_file_url("recipepictures", encoded_picture_name)
+        base_recipe_url = self._build_grocy_file_url(
+            "recipepictures", encoded_picture_name
+        )
         separator = "&" if "?" in base_recipe_url else "?"
         return f"{base_recipe_url}{separator}force_serve_as=picture"
 
@@ -210,6 +213,49 @@ class GrocyClient:
 
         return None
 
+    def find_product_by_barcode(self, barcode: str) -> Optional[Dict[str, Any]]:
+        normalized_barcode = "".join(ch for ch in str(barcode or "") if ch.isdigit())
+        if len(normalized_barcode) < 8:
+            return None
+
+        primary_response = requests.get(
+            f"{self.settings.grocy_base_url}/stock/products/by-barcode/{normalized_barcode}",
+            headers=self.headers,
+            timeout=30,
+        )
+        if primary_response.status_code == 200:
+            payload = primary_response.json()
+            if isinstance(payload, dict):
+                product = payload.get("product") if isinstance(payload.get("product"), dict) else payload
+                if product.get("id") is not None:
+                    return product
+
+        if primary_response.status_code not in (200, 404):
+            primary_response.raise_for_status()
+
+        response = requests.get(
+            f"{self.settings.grocy_base_url}/objects/product_barcodes",
+            headers=self.headers,
+            params={"query[]": f"barcode={normalized_barcode}"},
+            timeout=30,
+        )
+        response.raise_for_status()
+
+        payload = response.json()
+        matches = payload if isinstance(payload, list) else []
+        if not matches:
+            return None
+
+        product_id = self._safe_int(matches[0].get("product_id"))
+        if product_id is None:
+            return None
+
+        for product in self._get_all_products():
+            if self._safe_int(product.get("id")) == product_id:
+                return product
+
+        return None
+
     def create_product(self, product_payload: Dict[str, Any]) -> int:
         response = requests.post(
             f"{self.settings.grocy_base_url}/objects/products",
@@ -220,16 +266,28 @@ class GrocyClient:
         response.raise_for_status()
         return response.json().get("created_object_id")
 
-    def add_product_to_shopping_list(self, product_id: int, amount: int = 1) -> None:
+    def add_product_to_shopping_list(
+        self,
+        product_id: int,
+        amount: float = 1,
+        best_before_date: str = "",
+    ) -> None:
+        payload: Dict[str, Any] = {"product_id": product_id, "amount": amount}
+        normalized_best_before_date = best_before_date.strip()
+        if normalized_best_before_date:
+            payload["best_before_date"] = normalized_best_before_date
+
         response = requests.post(
             f"{self.settings.grocy_base_url}/stock/shoppinglist/add-product",
             headers=self.headers,
-            json={"product_id": product_id, "amount": amount},
+            json=payload,
             timeout=30,
         )
         response.raise_for_status()
 
-    def _enrich_shopping_items(self, shopping_items: list[Dict[str, Any]]) -> list[Dict[str, Any]]:
+    def _enrich_shopping_items(
+        self, shopping_items: list[Dict[str, Any]]
+    ) -> list[Dict[str, Any]]:
         products: Dict[str, Any] = {}
         stock_by_product_id: Dict[str, Any] = {}
         locations: Dict[str, Any] = {}
@@ -279,7 +337,9 @@ class GrocyClient:
             product_id = self._safe_str(item.get("product_id"))
             product = products.get(product_id, {})
             stock_entry = stock_by_product_id.get(product_id, {})
-            location_id = self._safe_str(stock_entry.get("location_id") or product.get("location_id"))
+            location_id = self._safe_str(
+                stock_entry.get("location_id") or product.get("location_id")
+            )
             merged_items.append(
                 {
                     **item,
@@ -428,7 +488,6 @@ class GrocyClient:
         result.sort(key=lambda item: item["name"].casefold())
         return result
 
-
     def get_recipe_positions(self, recipe_id: int) -> list[Dict[str, Any]]:
         response = requests.get(
             f"{self.settings.grocy_base_url}/objects/recipes_pos",
@@ -518,6 +577,7 @@ class GrocyClient:
             unique_missing.append(item)
 
         return unique_missing
+
     def get_recipes(self) -> list[Dict[str, Any]]:
         response = requests.get(
             f"{self.settings.grocy_base_url}/objects/recipes",
@@ -541,7 +601,9 @@ class GrocyClient:
 
         return normalized_recipes
 
-    def delete_shopping_list_item(self, shopping_list_id: int, amount: str = "1") -> None:
+    def delete_shopping_list_item(
+        self, shopping_list_id: int, amount: str = "1"
+    ) -> None:
         response = requests.delete(
             f"{self.settings.grocy_base_url}/objects/shopping_list/{shopping_list_id}",
             headers=self.headers,
