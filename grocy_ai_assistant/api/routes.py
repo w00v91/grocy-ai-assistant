@@ -35,7 +35,8 @@ from grocy_ai_assistant.models.ingredient import (
 from grocy_ai_assistant.services.grocy_client import GrocyClient
 
 logger = logging.getLogger(__name__)
-RECIPE_SUGGESTION_LIMIT = 2
+GROCY_RECIPE_SUGGESTION_LIMIT = 3
+AI_RECIPE_SUGGESTION_LIMIT = 2
 router = APIRouter()
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
 bearer_auth = HTTPBearer(auto_error=False)
@@ -147,7 +148,7 @@ def _generate_recipe_suggestions(
 
     scored.sort(key=lambda row: (-row[0], str(row[1].get("name") or "").casefold()))
     grocy_recipes = []
-    for _, recipe, reason in scored[:RECIPE_SUGGESTION_LIMIT]:
+    for _, recipe, reason in scored[:GROCY_RECIPE_SUGGESTION_LIMIT]:
         recipe_id = (
             int(recipe.get("id")) if str(recipe.get("id") or "").isdigit() else None
         )
@@ -177,28 +178,30 @@ def _generate_recipe_suggestions(
         ai_raw = []
 
     if not ai_raw:
-        ai_raw = [
-            {
-                "title": f"{', '.join(selected_products[:2])} Pfanne",
-                "reason": "Schnelle Resteverwertung aus deinem aktuellen Bestand.",
-                "ingredients": [
-                    f"1 Portion {selected_products[0]}",
-                    (
-                        f"1 Portion {selected_products[1]}"
-                        if len(selected_products) > 1
-                        else "1 Portion Vorrat nach Wahl"
-                    ),
-                ],
-            },
-            {
-                "title": f"{selected_products[0]} Salat",
-                "reason": "Leichtes Rezept, das mit den vorhandenen Zutaten startet.",
-                "ingredients": [f"2 Portionen {selected_products[0]}", "1 EL Öl"],
-            },
-        ]
+        ai_raw = []
+
+    ai_fallback_candidates = [
+        {
+            "title": f"{', '.join(selected_products[:2])} Pfanne",
+            "reason": "Schnelle Resteverwertung aus deinem aktuellen Bestand.",
+            "ingredients": [
+                f"1 Portion {selected_products[0]}",
+                (
+                    f"1 Portion {selected_products[1]}"
+                    if len(selected_products) > 1
+                    else "1 Portion Vorrat nach Wahl"
+                ),
+            ],
+        },
+        {
+            "title": f"{selected_products[0]} Salat",
+            "reason": "Leichtes Rezept, das mit den vorhandenen Zutaten startet.",
+            "ingredients": [f"2 Portionen {selected_products[0]}", "1 EL Öl"],
+        },
+    ]
 
     ai_recipes: list[RecipeSuggestionItem] = []
-    for item in ai_raw[:RECIPE_SUGGESTION_LIMIT]:
+    for item in ai_raw[:AI_RECIPE_SUGGESTION_LIMIT]:
         if not isinstance(item, dict):
             continue
 
@@ -228,6 +231,33 @@ def _generate_recipe_suggestions(
                 picture_url="",
             )
         )
+
+    used_ai_titles = {item.title.casefold() for item in ai_recipes if item.title}
+    for fallback_item in ai_fallback_candidates:
+        if len(ai_recipes) >= AI_RECIPE_SUGGESTION_LIMIT:
+            break
+
+        fallback_title = html_to_plain_text(fallback_item.get("title") or "KI-Rezept")
+        if not fallback_title or fallback_title.casefold() in used_ai_titles:
+            continue
+
+        fallback_ingredients = [
+            html_to_plain_text(str(ingredient).strip())
+            for ingredient in (fallback_item.get("ingredients") or [])
+            if str(ingredient).strip()
+        ]
+
+        ai_recipes.append(
+            RecipeSuggestionItem(
+                title=fallback_title,
+                source="ai",
+                reason=html_to_plain_text(fallback_item.get("reason") or ""),
+                preparation=html_to_plain_text(fallback_item.get("preparation") or ""),
+                ingredients=[ingredient for ingredient in fallback_ingredients if ingredient],
+                picture_url="",
+            )
+        )
+        used_ai_titles.add(fallback_title.casefold())
 
     return RecipeSuggestionResponse(
         selected_products=selected_products,

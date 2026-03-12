@@ -656,10 +656,64 @@ def test_recipe_suggestions_generates_fallback_when_ai_returns_nothing(
     assert response.status_code == 200
     payload = response.json()
     assert payload["grocy_recipes"][0]["picture_url"] == "/img/tomaten-pasta.jpg"
-    assert payload["ai_recipes"]
+    assert len(payload["ai_recipes"]) == 2
     assert payload["ai_recipes"][0]["title"]
     assert payload["ai_recipes"][0]["ingredients"]
 
+
+
+
+def test_recipe_suggestions_fills_up_to_two_ai_recipes_when_ai_returns_only_one(
+    client, monkeypatch
+):
+    def fake_get_stock_products(self, location_ids=None):
+        return [
+            {"id": 1, "name": "Tomate", "location_name": "Kühlschrank", "amount": "2"}
+        ]
+
+    def fake_get_recipes(self):
+        return [
+            {"id": 10, "name": "Tomaten Pasta", "picture_url": "/img/tomaten-pasta.jpg"},
+            {"id": 11, "name": "Tomaten Suppe", "picture_url": "/img/tomaten-suppe.jpg"},
+            {"id": 12, "name": "Tomaten Reis", "picture_url": "/img/tomaten-reis.jpg"},
+            {"id": 13, "name": "Tomaten Auflauf", "picture_url": "/img/tomaten-auflauf.jpg"},
+        ]
+
+    class FakeDetector:
+        def __init__(self, settings):
+            self.settings = settings
+
+        def generate_recipe_suggestions(
+            self, selected_products, existing_recipe_titles
+        ):
+            return [
+                {
+                    "title": "Tomaten-Curry",
+                    "reason": "Passt zu Tomate",
+                    "ingredients": ["2 Tomaten"],
+                }
+            ]
+
+    monkeypatch.setattr(
+        routes.GrocyClient, "get_stock_products", fake_get_stock_products
+    )
+    monkeypatch.setattr(routes.GrocyClient, "get_recipes", fake_get_recipes)
+    monkeypatch.setattr(
+        routes.GrocyClient, "get_missing_recipe_products", lambda self, recipe_id: []
+    )
+    monkeypatch.setattr(routes, "IngredientDetector", FakeDetector)
+
+    response = client.post(
+        "/api/dashboard/recipe-suggestions",
+        headers={"Authorization": "Bearer test-api-key"},
+        json={"product_ids": [1]},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert len(payload["grocy_recipes"]) == 3
+    assert len(payload["ai_recipes"]) == 2
+    assert payload["ai_recipes"][0]["title"] == "Tomaten-Curry"
 
 def test_add_missing_recipe_products_adds_to_shopping_list(client, monkeypatch):
     captured = []
