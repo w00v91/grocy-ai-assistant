@@ -36,7 +36,7 @@ from grocy_ai_assistant.services.grocy_client import GrocyClient
 
 logger = logging.getLogger(__name__)
 GROCY_RECIPE_SUGGESTION_LIMIT = 3
-AI_RECIPE_SUGGESTION_LIMIT = 2
+AI_RECIPE_SUGGESTION_LIMIT = 3
 router = APIRouter()
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
 bearer_auth = HTTPBearer(auto_error=False)
@@ -157,6 +157,11 @@ def _generate_recipe_suggestions(
             if recipe_id is not None
             else []
         )
+        recipe_ingredients = (
+            grocy_client.get_recipe_ingredients(recipe_id)
+            if recipe_id is not None
+            else []
+        )
         grocy_recipes.append(
             RecipeSuggestionItem(
                 recipe_id=recipe_id,
@@ -164,6 +169,7 @@ def _generate_recipe_suggestions(
                 source="grocy",
                 reason=reason,
                 preparation=html_to_plain_text(recipe.get("description") or ""),
+                ingredients=recipe_ingredients,
                 picture_url=str(recipe.get("picture_url") or ""),
                 missing_products=missing_products,
             )
@@ -197,6 +203,15 @@ def _generate_recipe_suggestions(
             "title": f"{selected_products[0]} Salat",
             "reason": "Leichtes Rezept, das mit den vorhandenen Zutaten startet.",
             "ingredients": [f"2 Portionen {selected_products[0]}", "1 EL Öl"],
+        },
+        {
+            "title": "Bunte Vorrats-Bowl",
+            "reason": "Flexibel mit deinen verfügbaren Zutaten kombinierbar.",
+            "ingredients": [
+                "1 Handvoll gemischtes Gemüse",
+                "1 EL Öl",
+                "Gewürze nach Wahl",
+            ],
         },
     ]
 
