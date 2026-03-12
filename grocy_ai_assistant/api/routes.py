@@ -35,6 +35,7 @@ from grocy_ai_assistant.models.ingredient import (
 from grocy_ai_assistant.services.grocy_client import GrocyClient
 
 logger = logging.getLogger(__name__)
+RECIPE_SUGGESTION_LIMIT = 2
 router = APIRouter()
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
 bearer_auth = HTTPBearer(auto_error=False)
@@ -146,7 +147,7 @@ def _generate_recipe_suggestions(
 
     scored.sort(key=lambda row: (-row[0], str(row[1].get("name") or "").casefold()))
     grocy_recipes = []
-    for _, recipe, reason in scored[:5]:
+    for _, recipe, reason in scored[:RECIPE_SUGGESTION_LIMIT]:
         recipe_id = (
             int(recipe.get("id")) if str(recipe.get("id") or "").isdigit() else None
         )
@@ -197,7 +198,7 @@ def _generate_recipe_suggestions(
         ]
 
     ai_recipes: list[RecipeSuggestionItem] = []
-    for item in ai_raw[:5]:
+    for item in ai_raw[:RECIPE_SUGGESTION_LIMIT]:
         if not isinstance(item, dict):
             continue
 
