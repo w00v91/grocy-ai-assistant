@@ -836,7 +836,7 @@ async function loadStockProducts() {
 
     if (!hasStockChanged && !recipeState.hasLoadedInitialSuggestions) {
       recipeState.hasLoadedInitialSuggestions = true;
-      await loadRecipeSuggestions();
+      await loadRecipeSuggestions({ usePrefetchedCache: true });
     }
   } catch (_) {
     getRecipeStatusElement().textContent = 'Bestand konnte nicht geladen werden (Netzwerk-/Ingress-Fehler).';
@@ -854,9 +854,10 @@ async function loadRecipeSuggestions(options = {}) {
     return;
   }
 
-  const selectedIds = getSelectedProductIds();
+  const usePrefetchedCache = Boolean(options.usePrefetchedCache);
+  const selectedIds = usePrefetchedCache ? [] : getSelectedProductIds();
   recipeState.selectedProductIds = selectedIds;
-  const selectedLocationIds = getSelectedLocationIds();
+  const selectedLocationIds = usePrefetchedCache ? [] : getSelectedLocationIds();
   recipeState.selectedLocationIds = selectedLocationIds;
   const soonExpiringOnly = Boolean(options.soonExpiringOnly);
   const expiringWithinDays = Number(options.expiringWithinDays || 3);
@@ -864,9 +865,11 @@ async function loadRecipeSuggestions(options = {}) {
   if (soonExpiringOnly) {
     status.textContent = `Lade Rezepte mit bald ablaufenden Produkten (<= ${expiringWithinDays} Tage)...`;
   } else {
-    status.textContent = selectedIds.length
-      ? 'Lade Rezeptvorschläge für Auswahl...'
-      : 'Lade Rezeptvorschläge aus dem aktuellen Lagerbestand...';
+    status.textContent = usePrefetchedCache
+      ? 'Lade initiale Rezeptvorschläge aus dem Cache...'
+      : selectedIds.length
+        ? 'Lade Rezeptvorschläge für Auswahl...'
+        : 'Lade Rezeptvorschläge aus dem aktuellen Lagerbestand...';
   }
 
   try {
