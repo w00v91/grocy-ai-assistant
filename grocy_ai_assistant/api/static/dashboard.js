@@ -669,17 +669,20 @@ function renderLocations(items) {
 function renderStockProducts(items) {
   const container = document.getElementById('stock-products');
   const selectedProductIds = new Set(recipeState.selectedProductIds);
-  if (!items.length) {
-    container.innerHTML = '<div class="muted">Keine Produkte für die ausgewählten Lagerstandorte gefunden.</div>';
-    return;
-  }
 
-  container.innerHTML = items.map((item) => `
-    <label class="stock-item">
-      <input type="checkbox" value="${item.id}" ${selectedProductIds.has(item.id) ? 'checked' : ''} />
-      <span><strong>${item.name}</strong> <small class="muted">${item.location_name || 'Lager'} · ${item.amount || '-'} </small></span>
-    </label>
-  `).join('');
+  container.innerHTML = `
+    <details class="location-dropdown">
+      <summary>Produkte auswählen (${items.length})</summary>
+      <div class="stock-options">
+        ${items.length ? items.map((item) => `
+          <label class="stock-item">
+            <input type="checkbox" value="${item.id}" ${selectedProductIds.size === 0 || selectedProductIds.has(item.id) ? 'checked' : ''} />
+            <span><strong>${item.name}</strong> <small class="muted">${item.location_name || 'Lager'} · ${item.amount || '-'}</small></span>
+          </label>
+        `).join('') : '<div class="muted">Keine Produkte für die ausgewählten Lagerstandorte gefunden.</div>'}
+      </div>
+    </details>
+  `;
 }
 
 function renderRecipeList(elementId, items, emptyText) {
