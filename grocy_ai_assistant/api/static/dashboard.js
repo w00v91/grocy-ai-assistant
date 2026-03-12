@@ -674,12 +674,19 @@ function renderStockProducts(items) {
     return;
   }
 
-  container.innerHTML = items.map((item) => `
-    <label class="stock-item">
-      <input type="checkbox" value="${item.id}" ${selectedProductIds.has(item.id) ? 'checked' : ''} />
-      <span><strong>${item.name}</strong> <small class="muted">${item.location_name || 'Lager'} · ${item.amount || '-'} </small></span>
-    </label>
-  `).join('');
+  container.innerHTML = `
+    <details class="location-dropdown">
+      <summary>Produkte auswählen (${items.length})</summary>
+      <div class="stock-options">
+        ${items.map((item) => `
+          <label class="stock-item">
+            <input type="checkbox" value="${item.id}" ${selectedProductIds.has(item.id) ? 'checked' : ''} />
+            <span><strong>${item.name}</strong> <small class="muted">${item.location_name || 'Lager'} · ${item.amount || '-'}</small></span>
+          </label>
+        `).join('')}
+      </div>
+    </details>
+  `;
 }
 
 function renderRecipeList(elementId, items, emptyText) {

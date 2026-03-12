@@ -67,10 +67,16 @@
       <section id='tab-recipes' class='tab-view hidden'>
         <section class='card recipe-section'>
           <h2>Rezeptvorschläge</h2>
-          <h3>Lagerstandorte</h3>
-          <div id='location-filters' class='location-filters'></div>
-          <h3>Produkte in ausgewählten Standorten</h3>
-          <div id='stock-products' class='stock-products'></div>
+          <div class='stock-filters-layout'>
+            <section>
+              <h3>Lagerstandorte</h3>
+              <div id='location-filters' class='location-filters'></div>
+            </section>
+            <section>
+              <h3>Produkte in ausgewählten Standorten</h3>
+              <div id='stock-products' class='stock-products'></div>
+            </section>
+          </div>
           <div class='recipe-actions'>
             <button onclick='loadRecipeSuggestions()'>Rezeptvorschläge laden</button>
             <div class='expiring-search-controls'>
