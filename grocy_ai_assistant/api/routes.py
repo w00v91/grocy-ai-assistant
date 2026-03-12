@@ -986,6 +986,7 @@ def dashboard_update_shopping_list_item_best_before_date(
         grocy_client.update_shopping_list_item_best_before_date(
             shopping_list_id=shopping_list_id,
             best_before_date=payload.best_before_date,
+            current_note=str(selected_item.get("note") or ""),
         )
         return {
             "success": True,
@@ -1081,6 +1082,7 @@ def dashboard_complete_shopping_list_item(
             shopping_list_id,
             product_id=int(product_id),
             amount=str(selected_item.get("amount") or "1"),
+            best_before_date=str(selected_item.get("best_before_date") or ""),
         )
         return {
             "success": True,
