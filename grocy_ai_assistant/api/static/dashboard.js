@@ -986,7 +986,7 @@ async function loadRecipeSuggestions(options = {}) {
 
     renderRecipeList('grocy-recipe-list', (payload.grocy_recipes || []).slice(0, GROCY_RECIPE_DISPLAY_LIMIT), 'Keine gespeicherten Grocy-Rezepte gefunden.');
     renderRecipeList('ai-recipe-list', (payload.ai_recipes || []).slice(0, AI_RECIPE_DISPLAY_LIMIT), 'Keine KI-Rezepte erzeugt.');
-    status.textContent = `Rezeptvorschläge geladen für: ${(payload.selected_products || []).join(', ')}`;
+    status.textContent = 'Rezeptvorschläge geladen für: Alles';
   } catch (_) {
     status.textContent = 'Rezeptvorschläge konnten nicht geladen werden (Netzwerk-/Ingress-Fehler).';
   }
