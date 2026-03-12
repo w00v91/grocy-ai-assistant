@@ -167,8 +167,6 @@ def test_dashboard_does_not_autoload_variants(client):
     assert "list.innerHTML = '';" in static_response.text
 
 
-
-
 def test_dashboard_does_not_autoload_recipe_suggestions_on_recipe_tab_open(client):
     response = client.get("/")
     static_response = client.get("/dashboard-static/dashboard.js")
@@ -176,8 +174,35 @@ def test_dashboard_does_not_autoload_recipe_suggestions_on_recipe_tab_open(clien
     assert response.status_code == 200
     assert static_response.status_code == 200
     assert "onclick='loadRecipeSuggestions()'" in response.text
-    assert "Bestand geladen. Lade Rezeptvorschläge bei Bedarf manuell." in static_response.text
-    assert "Bestand aktualisiert. Lade Rezeptvorschläge bei Bedarf manuell." in static_response.text
+    assert (
+        "Bestand geladen. Lade Rezeptvorschläge bei Bedarf manuell."
+        in static_response.text
+    )
+    assert (
+        "Bestand aktualisiert. Lade Rezeptvorschläge bei Bedarf manuell."
+        in static_response.text
+    )
+
+
+
+def test_dashboard_loads_initial_recipe_suggestions_once_after_stock_load(client):
+    static_response = client.get("/dashboard-static/dashboard.js")
+
+    assert static_response.status_code == 200
+    assert "hasLoadedInitialSuggestions" in static_response.text
+    assert "if (!hasStockChanged && !recipeState.hasLoadedInitialSuggestions)" in static_response.text
+    assert "await loadRecipeSuggestions();" in static_response.text
+
+
+def test_dashboard_loads_initial_recipe_suggestions_once_after_stock_load(client):
+    static_response = client.get("/dashboard-static/dashboard.js")
+
+    assert static_response.status_code == 200
+    assert "hasLoadedInitialSuggestions" in static_response.text
+    assert "if (!hasStockChanged && !recipeState.hasLoadedInitialSuggestions)" in static_response.text
+    assert "await loadRecipeSuggestions({ usePrefetchedCache: true });" in static_response.text
+    assert "const usePrefetchedCache = Boolean(options.usePrefetchedCache);" in static_response.text
+    assert "const selectedIds = usePrefetchedCache ? [] : getSelectedProductIds();" in static_response.text
 
 def test_dashboard_contains_clear_button(client):
     response = client.get("/")
@@ -468,6 +493,7 @@ def test_recipe_suggestions_prioritize_grocy_then_ai(client, monkeypatch):
     assert payload["grocy_recipes"][0]["preparation"] == "Pasta kochen"
     assert payload["ai_recipes"][0]["source"] == "ai"
     assert payload["ai_recipes"][0]["preparation"] == "Tomaten schneiden und köcheln."
+    assert payload["ai_recipes"][0]["ingredients"] == ["1 Portion Tomate"]
 
 
 def test_recipe_suggestions_uses_stock_products_when_selection_is_empty(
@@ -598,6 +624,7 @@ def test_recipe_suggestions_generates_fallback_when_ai_returns_nothing(
     assert payload["grocy_recipes"][0]["picture_url"] == "/img/tomaten-pasta.jpg"
     assert payload["ai_recipes"]
     assert payload["ai_recipes"][0]["title"]
+    assert payload["ai_recipes"][0]["ingredients"]
 
 
 def test_add_missing_recipe_products_adds_to_shopping_list(client, monkeypatch):
@@ -636,6 +663,7 @@ def test_dashboard_contains_recipe_section(client):
 
     assert response.status_code == 200
     assert "Rezeptvorschläge" in response.text
+    assert "recipe-modal-ingredients" in response.text
 
     js_response = client.get("/dashboard-static/dashboard.js")
     assert js_response.status_code == 200
@@ -874,7 +902,16 @@ def test_dashboard_barcode_lookup_returns_not_found(client, monkeypatch):
         def json():
             return {"status": 0}
 
+    class FakeGrocyClient:
+        def __init__(self, settings):
+            self.settings = settings
+
+        def find_product_by_barcode(self, barcode):
+            assert barcode == "4008400408400"
+            return None
+
     monkeypatch.setattr(routes.requests, "get", lambda *args, **kwargs: FakeResponse())
+    monkeypatch.setattr(routes, "GrocyClient", FakeGrocyClient)
 
     response = client.get(
         "/api/dashboard/barcode/4008400408400",
@@ -885,6 +922,43 @@ def test_dashboard_barcode_lookup_returns_not_found(client, monkeypatch):
     assert response.json()["found"] is False
 
 
+def test_dashboard_barcode_lookup_falls_back_to_grocy(client, monkeypatch):
+    class FakeOffResponse:
+        status_code = 200
+
+        @staticmethod
+        def json():
+            return {"status": 0}
+
+    class FakeGrocyClient:
+        def __init__(self, settings):
+            self.settings = settings
+
+        def find_product_by_barcode(self, barcode):
+            assert barcode == "4008400408400"
+            return {"id": 5, "name": "Hausmarke Pasta"}
+
+    monkeypatch.setattr(routes.requests, "get", lambda *args, **kwargs: FakeOffResponse())
+    monkeypatch.setattr(routes, "GrocyClient", FakeGrocyClient)
+
+    response = client.get(
+        "/api/dashboard/barcode/4008400408400",
+        headers={"Authorization": "Bearer test-api-key"},
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "barcode": "4008400408400",
+        "found": True,
+        "product_name": "Hausmarke Pasta",
+        "brand": "",
+        "quantity": "",
+        "ingredients_text": "",
+        "nutrition_grade": "",
+        "source": "Grocy",
+    }
+
+
 def test_dashboard_barcode_lookup_rejects_invalid_barcode(client):
     response = client.get(
         "/api/dashboard/barcode/abc",
@@ -892,6 +966,8 @@ def test_dashboard_barcode_lookup_rejects_invalid_barcode(client):
     )
 
     assert response.status_code == 400
+
+
 def test_recipe_suggestions_uses_prefetched_cache_when_stock_unchanged(
     client, monkeypatch
 ):
@@ -926,6 +1002,7 @@ def test_recipe_suggestions_uses_prefetched_cache_when_stock_unchanged(
                     "source": "grocy",
                     "reason": "Passt",
                     "preparation": "Kochen",
+                    "ingredients": [],
                     "picture_url": "",
                     "missing_products": [],
                 }

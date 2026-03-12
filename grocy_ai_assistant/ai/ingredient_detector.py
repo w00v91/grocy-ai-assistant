@@ -147,7 +147,8 @@ class IngredientDetector:
         {{
           "title": "Rezeptname",
           "reason": "Warum passt es zu den ausgewählten Zutaten",
-          "preparation": "Kurze Zubereitungsbeschreibung in 2-4 Sätzen"
+          "preparation": "Kurze Zubereitungsbeschreibung in 2-4 Sätzen",
+          "ingredients": ["Zutat mit Menge, z.B. 2 Tomaten", "..."]
         }}
 
         Antworte NUR mit dem JSON-Array, kein Text davor oder danach.
@@ -184,7 +185,7 @@ class IngredientDetector:
                     .replace("\r", "\n")
                 )
 
-            def _parse_embedded_recipe_text(text: str) -> Dict[str, str]:
+            def _parse_embedded_recipe_text(text: str) -> Dict[str, Any]:
                 if "\n" not in text:
                     return {}
 
@@ -194,18 +195,34 @@ class IngredientDetector:
                     return {}
 
                 lower_lines = [line.casefold() for line in lines]
-                if "zubereitung" not in lower_lines and "fehlende produkte" not in lower_lines:
+                if "zubereitung" not in lower_lines and "zutaten" not in lower_lines:
                     return {}
 
                 title = compact[0]
                 reason = ""
                 preparation = ""
+                ingredients: list[str] = []
 
                 if len(compact) > 1 and compact[1].casefold() not in {
                     "zubereitung",
                     "fehlende produkte",
                 }:
                     reason = compact[1]
+
+                if "zutaten" in lower_lines:
+                    start_index = lower_lines.index("zutaten") + 1
+                    end_index = len(lines)
+                    if "zubereitung" in lower_lines[start_index:]:
+                        end_index = lower_lines.index("zubereitung", start_index)
+
+                    ingredient_lines = [
+                        line for line in lines[start_index:end_index] if line
+                    ]
+                    ingredients = [
+                        line.lstrip("-•* ").strip()
+                        for line in ingredient_lines
+                        if line.lstrip("-•* ").strip()
+                    ]
 
                 if "zubereitung" in lower_lines:
                     start_index = lower_lines.index("zubereitung") + 1
@@ -222,6 +239,7 @@ class IngredientDetector:
                     "title": title,
                     "reason": reason,
                     "preparation": preparation,
+                    "ingredients": ingredients,
                 }
 
             for item in parsed:
@@ -236,18 +254,38 @@ class IngredientDetector:
                     or item.get("description")
                     or ""
                 )
+                raw_ingredients = item.get("ingredients")
+                ingredients_list: list[str] = []
+                if isinstance(raw_ingredients, list):
+                    ingredients_list = [
+                        _normalize_text(entry)
+                        for entry in raw_ingredients
+                        if _normalize_text(entry)
+                    ]
+                elif isinstance(raw_ingredients, str):
+                    ingredients_list = [
+                        entry.lstrip("-•* ").strip()
+                        for entry in _normalize_text(raw_ingredients).split("\n")
+                        if entry.lstrip("-•* ").strip()
+                    ]
 
                 parsed_title_blob = _parse_embedded_recipe_text(title)
                 if parsed_title_blob:
                     title = parsed_title_blob.get("title") or title
                     reason = reason or parsed_title_blob.get("reason") or ""
-                    preparation = preparation or parsed_title_blob.get("preparation") or ""
+                    preparation = (
+                        preparation or parsed_title_blob.get("preparation") or ""
+                    )
+                    ingredients_list = (
+                        ingredients_list or parsed_title_blob.get("ingredients") or []
+                    )
 
                 normalized.append(
                     {
                         "title": title,
                         "reason": reason,
                         "preparation": preparation,
+                        "ingredients": ingredients_list,
                     }
                 )
             return normalized

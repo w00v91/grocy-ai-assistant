@@ -176,24 +176,47 @@ def _generate_recipe_suggestions(
             {
                 "title": f"{', '.join(selected_products[:2])} Pfanne",
                 "reason": "Schnelle Resteverwertung aus deinem aktuellen Bestand.",
+                "ingredients": [
+                    f"1 Portion {selected_products[0]}",
+                    (
+                        f"1 Portion {selected_products[1]}"
+                        if len(selected_products) > 1
+                        else "1 Portion Vorrat nach Wahl"
+                    ),
+                ],
             },
             {
                 "title": f"{selected_products[0]} Salat",
                 "reason": "Leichtes Rezept, das mit den vorhandenen Zutaten startet.",
+                "ingredients": [f"2 Portionen {selected_products[0]}", "1 EL Öl"],
             },
         ]
 
-    ai_recipes = [
-        RecipeSuggestionItem(
-            title=str(item.get("title") or "KI-Rezept"),
-            source="ai",
-            reason=str(item.get("reason") or ""),
-            preparation=str(item.get("preparation") or ""),
-            picture_url="",
+    ai_recipes: list[RecipeSuggestionItem] = []
+    for item in ai_raw[:5]:
+        if not isinstance(item, dict):
+            continue
+
+        normalized_ingredients = [
+            str(ingredient).strip()
+            for ingredient in (item.get("ingredients") or [])
+            if str(ingredient).strip()
+        ]
+        if not normalized_ingredients:
+            normalized_ingredients = [
+                f"1 Portion {product}" for product in selected_products[:4]
+            ]
+
+        ai_recipes.append(
+            RecipeSuggestionItem(
+                title=str(item.get("title") or "KI-Rezept"),
+                source="ai",
+                reason=str(item.get("reason") or ""),
+                preparation=str(item.get("preparation") or ""),
+                ingredients=normalized_ingredients,
+                picture_url="",
+            )
         )
-        for item in ai_raw[:5]
-        if isinstance(item, dict)
-    ]
 
     return RecipeSuggestionResponse(
         selected_products=selected_products,
@@ -407,7 +430,11 @@ def dashboard_add_existing_product(
 
     try:
         grocy_client = GrocyClient(settings)
-        grocy_client.add_product_to_shopping_list(payload.product_id, amount=1)
+        grocy_client.add_product_to_shopping_list(
+            payload.product_id,
+            amount=payload.amount,
+            best_before_date=payload.best_before_date,
+        )
         return DashboardSearchResponse(
             success=True,
             action="existing_added",
@@ -448,7 +475,9 @@ def dashboard_search(
         existing_product = grocy_client.find_product_by_name(product_name)
         if existing_product:
             grocy_client.add_product_to_shopping_list(
-                existing_product.get("id"), amount=1
+                existing_product.get("id"),
+                amount=payload.amount,
+                best_before_date=payload.best_before_date,
             )
             return DashboardSearchResponse(
                 success=True,
@@ -482,7 +511,11 @@ def dashboard_search(
         else:
             product_data = detector.analyze_product_name(product_name)
         created_object_id = grocy_client.create_product(product_data)
-        grocy_client.add_product_to_shopping_list(created_object_id, amount=1)
+        grocy_client.add_product_to_shopping_list(
+            created_object_id,
+            amount=payload.amount,
+            best_before_date=payload.best_before_date,
+        )
 
         return DashboardSearchResponse(
             success=True,
@@ -506,10 +539,13 @@ def dashboard_barcode_lookup(
     barcode: str,
     request: Request,
     _: None = Depends(require_auth),
+    settings: Settings = Depends(get_settings),
 ):
     normalized_barcode = "".join(ch for ch in barcode if ch.isdigit())
     if len(normalized_barcode) < 8:
         raise HTTPException(status_code=400, detail="Ungültiger Barcode")
+
+    grocy_client = GrocyClient(settings)
 
     try:
         response = requests.get(
@@ -521,6 +557,15 @@ def dashboard_barcode_lookup(
         product = payload.get("product") if isinstance(payload, dict) else {}
 
         if response.status_code != 200 or int(payload.get("status", 0)) != 1:
+            grocy_product = grocy_client.find_product_by_barcode(normalized_barcode)
+            if grocy_product:
+                return BarcodeProductResponse(
+                    barcode=normalized_barcode,
+                    found=True,
+                    product_name=str(grocy_product.get("name") or ""),
+                    source="Grocy",
+                )
+
             return BarcodeProductResponse(
                 barcode=normalized_barcode,
                 found=False,
@@ -539,6 +584,16 @@ def dashboard_barcode_lookup(
             ),
             nutrition_grade=str(product.get("nutrition_grades") or "").upper(),
         )
+    except requests.RequestException:
+        grocy_product = grocy_client.find_product_by_barcode(normalized_barcode)
+        if grocy_product:
+            return BarcodeProductResponse(
+                barcode=normalized_barcode,
+                found=True,
+                product_name=str(grocy_product.get("name") or ""),
+                source="Grocy",
+            )
+        raise
     except HTTPException:
         raise
     except Exception as error:
@@ -811,7 +866,11 @@ def dashboard_recipe_suggestions(
                 if product_id in expiring_product_ids
             }
 
-        if not payload.location_ids and not selected_ids and not payload.soon_expiring_only:
+        if (
+            not payload.location_ids
+            and not selected_ids
+            and not payload.soon_expiring_only
+        ):
             cache = _get_recipe_suggestion_cache(request)
             stock_signature = _build_stock_signature(stock_products)
             if cache:
@@ -829,7 +888,11 @@ def dashboard_recipe_suggestions(
             settings=settings,
         )
 
-        if not payload.location_ids and not selected_ids and not payload.soon_expiring_only:
+        if (
+            not payload.location_ids
+            and not selected_ids
+            and not payload.soon_expiring_only
+        ):
             cache = _get_recipe_suggestion_cache(request)
             if cache is not None:
                 cache["location_ids"] = []

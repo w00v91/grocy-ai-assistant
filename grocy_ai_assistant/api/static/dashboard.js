@@ -8,6 +8,33 @@ const ingressPrefix = ingressPrefixMatch ? ingressPrefixMatch[0] : '';
 
 let pendingRequests = 0;
 let activeRecipeItem = null;
+
+
+let modalScrollLockY = 0;
+
+function lockBodyScroll() {
+  if (document.body.classList.contains('modal-open')) return;
+  modalScrollLockY = window.scrollY || window.pageYOffset || 0;
+  document.body.classList.add('modal-open');
+  document.body.style.top = `-${modalScrollLockY}px`;
+}
+
+function unlockBodyScroll() {
+  if (!document.body.classList.contains('modal-open')) return;
+  document.body.classList.remove('modal-open');
+  document.body.style.top = '';
+  window.scrollTo(0, modalScrollLockY);
+}
+
+function syncModalScrollLock() {
+  const hasVisibleModal = Boolean(document.querySelector('.shopping-modal:not(.hidden)'));
+  if (hasVisibleModal) {
+    lockBodyScroll();
+    return;
+  }
+  unlockBodyScroll();
+}
+
 let activeTab = "shopping";
 let scannerStream = null;
 let scannerInterval = null;
@@ -15,6 +42,7 @@ let scannerLastBarcode = "";
 let scannerDetector = null;
 const recipeState = {
   initialized: false,
+  hasLoadedInitialSuggestions: false,
   selectedLocationIds: [],
   selectedProductIds: [],
   stockSignature: null,
@@ -190,6 +218,20 @@ function formatValue(value, fallback = 'Nicht verfügbar') {
   return text || fallback;
 }
 
+function getShoppingAmount() {
+  const amountInput = document.getElementById('amount');
+  const amount = Number(amountInput?.value || 1);
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return 1;
+  }
+  return amount;
+}
+
+function getShoppingBestBeforeDate() {
+  const dateInput = document.getElementById('best-before-date');
+  return String(dateInput?.value || '').trim();
+}
+
 function renderShoppingList(items) {
   const list = document.getElementById('shopping-list');
   if (!items.length) {
@@ -214,7 +256,10 @@ function renderShoppingList(items) {
           <div><strong>${item.product_name}</strong></div>
           <div class="muted">${item.note || 'Keine Notiz'}</div>
         </div>
-        <span class="badge">Menge: ${item.amount}</span>
+        <div class="shopping-item-badges">
+          <span class="badge">Menge: ${item.amount}</span>
+          <span class="badge">MHD: ${item.best_before_date || "-"}</span>
+        </div>
       </div>
     </li>
   `).join('');
@@ -324,11 +369,19 @@ async function confirmVariant(productId, productName) {
   }
 
   status.textContent = `Füge ${productName} zur Einkaufsliste hinzu...`;
+  const amount = getShoppingAmount();
+  const bestBeforeDate = getShoppingBestBeforeDate();
+
   try {
     const res = await fetch(buildApiUrl('/api/dashboard/add-existing-product'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
-      body: JSON.stringify({ product_id: productId, product_name: productName }),
+      body: JSON.stringify({
+        product_id: productId,
+        product_name: productName,
+        amount,
+        best_before_date: bestBeforeDate,
+      }),
     });
     const payload = await parseJsonSafe(res);
     status.textContent = payload.message || getErrorMessage(payload, 'Unbekannte Antwort');
@@ -423,10 +476,12 @@ function showShoppingItemDetails(item) {
     </section>
   `;
   modal.classList.remove('hidden');
+  syncModalScrollLock();
 }
 
 function closeShoppingItemDetails() {
   document.getElementById('shopping-item-modal').classList.add('hidden');
+  syncModalScrollLock();
 }
 
 function bindShoppingSwipeInteractions() {
@@ -537,6 +592,8 @@ async function searchProduct() {
   const name = document.getElementById('name').value;
   const status = getShoppingStatusElement();
   const key = ensureApiKey();
+  const amount = getShoppingAmount();
+  const bestBeforeDate = getShoppingBestBeforeDate();
 
   if (!key) {
     status.textContent = 'Kein API-Key angegeben.';
@@ -552,7 +609,11 @@ async function searchProduct() {
     const res = await fetch(buildApiUrl('/api/dashboard/search'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
-      body: JSON.stringify({ name })
+      body: JSON.stringify({
+        name,
+        amount,
+        best_before_date: bestBeforeDate,
+      })
     });
 
     const payload = await parseJsonSafe(res);
@@ -768,6 +829,11 @@ async function loadStockProducts() {
     getRecipeStatusElement().textContent = hasStockChanged
       ? 'Bestand aktualisiert. Lade Rezeptvorschläge bei Bedarf manuell.'
       : 'Bestand geladen. Lade Rezeptvorschläge bei Bedarf manuell.';
+
+    if (!hasStockChanged && !recipeState.hasLoadedInitialSuggestions) {
+      recipeState.hasLoadedInitialSuggestions = true;
+      await loadRecipeSuggestions({ usePrefetchedCache: true });
+    }
   } catch (_) {
     getRecipeStatusElement().textContent = 'Bestand konnte nicht geladen werden (Netzwerk-/Ingress-Fehler).';
   }
@@ -784,9 +850,10 @@ async function loadRecipeSuggestions(options = {}) {
     return;
   }
 
-  const selectedIds = getSelectedProductIds();
+  const usePrefetchedCache = Boolean(options.usePrefetchedCache);
+  const selectedIds = usePrefetchedCache ? [] : getSelectedProductIds();
   recipeState.selectedProductIds = selectedIds;
-  const selectedLocationIds = getSelectedLocationIds();
+  const selectedLocationIds = usePrefetchedCache ? [] : getSelectedLocationIds();
   recipeState.selectedLocationIds = selectedLocationIds;
   const soonExpiringOnly = Boolean(options.soonExpiringOnly);
   const expiringWithinDays = Number(options.expiringWithinDays || 3);
@@ -794,9 +861,11 @@ async function loadRecipeSuggestions(options = {}) {
   if (soonExpiringOnly) {
     status.textContent = `Lade Rezepte mit bald ablaufenden Produkten (<= ${expiringWithinDays} Tage)...`;
   } else {
-    status.textContent = selectedIds.length
-      ? 'Lade Rezeptvorschläge für Auswahl...'
-      : 'Lade Rezeptvorschläge aus dem aktuellen Lagerbestand...';
+    status.textContent = usePrefetchedCache
+      ? 'Lade initiale Rezeptvorschläge aus dem Cache...'
+      : selectedIds.length
+        ? 'Lade Rezeptvorschläge für Auswahl...'
+        : 'Lade Rezeptvorschläge aus dem aktuellen Lagerbestand...';
   }
 
   try {
@@ -841,6 +910,7 @@ function openRecipeDetails(item) {
   const title = document.getElementById('recipe-modal-title');
   const reason = document.getElementById('recipe-modal-reason');
   const preparation = document.getElementById('recipe-modal-preparation');
+  const ingredients = document.getElementById('recipe-modal-ingredients');
   const missingProducts = document.getElementById('recipe-modal-missing-products');
   const addButton = document.getElementById('recipe-add-missing-button');
 
@@ -848,6 +918,13 @@ function openRecipeDetails(item) {
   title.textContent = item.title || 'Rezeptdetails';
   reason.textContent = item.reason || '';
   preparation.textContent = item.preparation || 'Keine Zubereitungsdetails vorhanden.';
+
+  const ingredientItems = Array.isArray(item.ingredients) ? item.ingredients : [];
+  if (!ingredientItems.length) {
+    ingredients.innerHTML = '<li class="muted">Keine Zutatenliste vorhanden.</li>';
+  } else {
+    ingredients.innerHTML = ingredientItems.map((ingredient) => `<li>${ingredient}</li>`).join('');
+  }
 
   const missingItems = Array.isArray(item.missing_products) ? item.missing_products : [];
   if (!missingItems.length) {
@@ -858,12 +935,14 @@ function openRecipeDetails(item) {
 
   addButton.disabled = !(item.source === 'grocy' && Number.isInteger(item.recipe_id));
   modal.classList.remove('hidden');
+  syncModalScrollLock();
 }
 
 function closeRecipeDetails() {
   const modal = document.getElementById('recipe-modal');
   modal.classList.add('hidden');
   activeRecipeItem = null;
+  syncModalScrollLock();
 }
 
 function bindRecipeItemInteractions() {

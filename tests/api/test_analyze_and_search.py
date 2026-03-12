@@ -41,8 +41,8 @@ def test_dashboard_search_reuses_existing_product(client, monkeypatch):
             assert name == "Milch"
             return {"id": 7}
 
-        def add_product_to_shopping_list(self, product_id, amount):
-            calls.append((product_id, amount))
+        def add_product_to_shopping_list(self, product_id, amount, best_before_date=""):
+            calls.append((product_id, amount, best_before_date))
 
     monkeypatch.setattr(routes, "GrocyClient", FakeGrocyClient)
 
@@ -54,7 +54,7 @@ def test_dashboard_search_reuses_existing_product(client, monkeypatch):
 
     assert response.status_code == 200
     assert response.json()["action"] == "existing_added"
-    assert calls == [(7, 1)]
+    assert calls == [(7, 1, "")]
 
 
 def test_dashboard_search_creates_new_product_when_missing(client, monkeypatch):
@@ -91,8 +91,8 @@ def test_dashboard_search_creates_new_product_when_missing(client, monkeypatch):
             calls["created"] = payload
             return 42
 
-        def add_product_to_shopping_list(self, product_id, amount):
-            calls["added"] = (product_id, amount)
+        def add_product_to_shopping_list(self, product_id, amount, best_before_date=""):
+            calls["added"] = (product_id, amount, best_before_date)
 
     monkeypatch.setattr(routes, "IngredientDetector", FakeDetector)
     monkeypatch.setattr(routes, "GrocyClient", FakeGrocyClient)
@@ -107,7 +107,7 @@ def test_dashboard_search_creates_new_product_when_missing(client, monkeypatch):
     assert response.json()["action"] == "created_and_added"
     assert response.json()["product_id"] == 42
     assert calls["created"]["name"] == "Reis"
-    assert calls["added"] == (42, 1)
+    assert calls["added"] == (42, 1, "")
 
 
 def test_dashboard_search_rejects_blank_name(client):
@@ -162,20 +162,25 @@ def test_dashboard_add_existing_product_adds_to_shopping_list(client, monkeypatc
         def __init__(self, settings):
             self.settings = settings
 
-        def add_product_to_shopping_list(self, product_id, amount):
-            calls.append((product_id, amount))
+        def add_product_to_shopping_list(self, product_id, amount, best_before_date=""):
+            calls.append((product_id, amount, best_before_date))
 
     monkeypatch.setattr(routes, "GrocyClient", FakeGrocyClient)
 
     response = client.post(
         "/api/dashboard/add-existing-product",
         headers={"Authorization": "Bearer test-api-key"},
-        json={"product_id": 11, "product_name": "Apfel"},
+        json={
+            "product_id": 11,
+            "product_name": "Apfel",
+            "amount": 2.5,
+            "best_before_date": "2026-12-31",
+        },
     )
 
     assert response.status_code == 200
     assert response.json()["action"] == "existing_added"
-    assert calls == [(11, 1)]
+    assert calls == [(11, 2.5, "2026-12-31")]
 
 
 def test_dashboard_search_returns_fallback_variants_for_incomplete_query(

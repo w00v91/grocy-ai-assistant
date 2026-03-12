@@ -5,11 +5,15 @@ from pydantic import BaseModel, Field
 
 class AnalyzeProductRequest(BaseModel):
     name: str = Field(..., min_length=1)
+    amount: float = Field(default=1, gt=0)
+    best_before_date: str = ""
 
 
 class ExistingProductAddRequest(BaseModel):
     product_id: int
     product_name: str = Field(..., min_length=1)
+    amount: float = Field(default=1, gt=0)
+    best_before_date: str = ""
 
 
 class ProductData(BaseModel):
@@ -84,6 +88,7 @@ class RecipeSuggestionItem(BaseModel):
     source: str
     reason: str = ""
     preparation: str = ""
+    ingredients: list[str] = Field(default_factory=list)
     picture_url: str = ""
     missing_products: list[ProductVariantResponse] = Field(default_factory=list)
 

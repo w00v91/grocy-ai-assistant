@@ -30,6 +30,12 @@
           </div>
           <button onclick='searchProduct()'>Suchen & hinzufügen</button>
         </div>
+        <div class='shopping-product-fields'>
+          <label for='amount'>Menge</label>
+          <input id='amount' type='number' min='0.01' step='0.01' value='1' />
+          <label for='best-before-date'>MHD</label>
+          <input id='best-before-date' type='date' />
+        </div>
 
         <section id='variant-section' class='variant-section hidden'>
           <h2>Gefundene Produktvarianten</h2>
@@ -124,6 +130,8 @@
         <button class='shopping-modal-close' type='button' onclick='closeRecipeDetails()' aria-label='Rezept schließen'>×</button>
         <h3 id='recipe-modal-title'>Rezeptdetails</h3>
         <div id='recipe-modal-reason' class='muted'></div>
+        <h4>Zutaten (mit Mengen)</h4>
+        <ul id='recipe-modal-ingredients'></ul>
         <h4>Zubereitung</h4>
         <p id='recipe-modal-preparation'></p>
         <h4>Fehlende Produkte</h4>
