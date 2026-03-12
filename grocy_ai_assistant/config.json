@@ -32,7 +32,10 @@
     "ollama_url": "http://76e18fb5_ollama:11434/api/generate",
     "ollama_model": "llama3",
     "debug_mode": false,
-    "grocy_base_url": "http://homeassistant.local:9192/api"
+    "grocy_base_url": "http://homeassistant.local:9192/api",
+    "ollama_llava_model": "llava",
+    "scanner_barcode_fallback_seconds": 5,
+    "scanner_llava_prompt": "Erkenne das Hauptprodukt auf dem Bild. Antworte NUR als JSON mit den Feldern product_name, brand und hint."
   },
   "schema": {
     "api_key": "str",
@@ -40,6 +43,9 @@
     "ollama_url": "str",
     "ollama_model": "str",
     "debug_mode": "bool",
-    "grocy_base_url": "str"
+    "grocy_base_url": "str",
+    "ollama_llava_model": "str",
+    "scanner_barcode_fallback_seconds": "int(1,30)",
+    "scanner_llava_prompt": "str"
   }
 }

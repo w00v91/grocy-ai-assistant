@@ -113,3 +113,15 @@ class BarcodeProductResponse(BaseModel):
     ingredients_text: str = ""
     nutrition_grade: str = ""
     source: str = "OpenFoodFacts"
+
+
+class ScannerLlavaRequest(BaseModel):
+    image_base64: str = Field(..., min_length=1)
+
+
+class ScannerLlavaResponse(BaseModel):
+    success: bool
+    product_name: str = ""
+    brand: str = ""
+    hint: str = ""
+    source: str = "ollama_llava"
