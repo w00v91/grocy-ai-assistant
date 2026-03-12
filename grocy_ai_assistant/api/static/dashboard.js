@@ -1114,10 +1114,8 @@ function renderScannerResult(payload) {
 
 function getScannerLlavaDelaySeconds() {
   const configuredFallback = Number(rootElement.dataset.scannerLlavaFallbackSeconds || 5);
-  const input = document.getElementById('scanner-llava-delay');
-  const fromInput = Number(input?.value || configuredFallback || 5);
-  if (!Number.isFinite(fromInput)) return 5;
-  return Math.max(1, Math.min(30, Math.round(fromInput)));
+  if (!Number.isFinite(configuredFallback)) return 5;
+  return Math.max(1, Math.min(30, Math.round(configuredFallback)));
 }
 
 function captureScannerFrameBase64() {
@@ -1261,11 +1259,6 @@ async function startBarcodeScanner() {
   const canvas = document.getElementById('scanner-canvas');
   const startButton = document.getElementById('start-scan-button');
   const stopButton = document.getElementById('stop-scan-button');
-  const scannerDelayInput = document.getElementById('scanner-llava-delay');
-  if (scannerDelayInput && !String(scannerDelayInput.value || '').trim()) {
-    scannerDelayInput.value = String(getScannerLlavaDelaySeconds());
-  }
-
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
     status.textContent = 'Kamera wird von diesem Browser nicht unterstützt.';
     return;

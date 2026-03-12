@@ -59,10 +59,6 @@
             <button id='stop-scan-button' type='button' class='danger-button hidden' onclick='stopBarcodeScanner()'>⏹ Kamera stoppen</button>
             <button id='llava-scan-button' type='button' onclick='triggerLlavaScan()'>🤖 LLaVA jetzt befragen</button>
           </div>
-          <div class='scanner-options'>
-            <label for='scanner-llava-delay'>KI-Fallback nach (Sekunden)</label>
-            <input id='scanner-llava-delay' type='number' min='1' max='30' value='5' />
-          </div>
           <p id='status-scanner'>Bereit.</p>
           <section id='scanner-result' class='scanner-result hidden'></section>
         </section>
