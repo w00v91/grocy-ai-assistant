@@ -850,3 +850,44 @@ def test_find_product_by_barcode_falls_back_on_primary_bad_request(monkeypatch):
         "id": 12,
         "name": "Vollkornbrot",
     }
+
+
+def test_get_recipe_ingredients_includes_unit_attribution(monkeypatch):
+    def fake_get(url, *args, **kwargs):
+        if url.endswith('/objects/recipes_pos'):
+            return FakeResponse(
+                [
+                    {'recipe_id': 10, 'product_id': 1, 'amount': '2', 'qu_id': 5},
+                    {'recipe_id': 10, 'product_id': 2, 'amount': '150'},
+                ]
+            )
+        if url.endswith('/objects/products'):
+            return FakeResponse(
+                [
+                    {'id': 1, 'name': 'Ei', 'qu_id_stock': 5},
+                    {'id': 2, 'name': 'Mehl', 'qu_id_stock': 6},
+                ]
+            )
+        if url.endswith('/objects/quantity_units'):
+            return FakeResponse(
+                [
+                    {'id': 5, 'name': 'Stk.'},
+                    {'id': 6, 'name': 'Gramm'},
+                ]
+            )
+        raise AssertionError(f'Unexpected url: {url}')
+
+    monkeypatch.setattr(
+        'grocy_ai_assistant.services.grocy_client.requests.get', fake_get
+    )
+
+    client = GrocyClient(
+        Settings(
+            api_key='x',
+            addon_version='a',
+            required_integration_version='1',
+            grocy_api_key='g',
+        )
+    )
+
+    assert client.get_recipe_ingredients(10) == ['2 Stk. Ei', '150 Gramm Mehl']

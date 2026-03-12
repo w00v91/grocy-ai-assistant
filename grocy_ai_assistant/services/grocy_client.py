@@ -637,6 +637,35 @@ class GrocyClient:
 
         return unique_missing
 
+    def _get_quantity_unit_map(self) -> Dict[int, str]:
+        response = requests.get(
+            f"{self.settings.grocy_base_url}/objects/quantity_units",
+            headers=self.headers,
+            timeout=30,
+        )
+        response.raise_for_status()
+        units = response.json()
+        if not isinstance(units, list):
+            return {}
+
+        mapped_units: Dict[int, str] = {}
+        for item in units:
+            if not isinstance(item, dict):
+                continue
+
+            unit_id = self._safe_int(item.get("id"))
+            if unit_id is None:
+                continue
+
+            unit_name = (
+                self._safe_str(item.get("name"))
+                or self._safe_str(item.get("name_plural"))
+            )
+            if unit_name:
+                mapped_units[unit_id] = unit_name
+
+        return mapped_units
+
     def get_recipe_ingredients(self, recipe_id: int) -> list[str]:
         positions = self.get_recipe_positions(recipe_id)
         if not positions:
@@ -647,6 +676,7 @@ class GrocyClient:
             for product in self._get_all_products()
             if self._safe_int(product.get("id")) is not None
         }
+        quantity_units = self._get_quantity_unit_map()
 
         ingredients: list[str] = []
         for position in positions:
@@ -661,12 +691,26 @@ class GrocyClient:
                 or "Unbekannte Zutat"
             )
 
-            amount_raw = self._safe_str(position.get("amount"))
-            amount = amount_raw.strip()
-            ingredient_line = f"{amount} {product_name}".strip() if amount else str(
-                product_name
+            amount = self._safe_str(position.get("amount"))
+            position_unit_id = self._safe_int(position.get("qu_id"))
+            product_unit_id = self._safe_int(product.get("qu_id_stock"))
+            unit_name = (
+                quantity_units.get(position_unit_id or -1)
+                or quantity_units.get(product_unit_id or -1)
+                or self._safe_str(position.get("quantity_unit_name"))
+                or self._safe_str(position.get("qu_name"))
             )
-            ingredients.append(ingredient_line)
+
+            if amount and unit_name:
+                ingredient_line = f"{amount} {unit_name} {product_name}"
+            elif amount:
+                ingredient_line = f"{amount} {product_name}"
+            elif unit_name:
+                ingredient_line = f"{unit_name} {product_name}"
+            else:
+                ingredient_line = str(product_name)
+
+            ingredients.append(ingredient_line.strip())
 
         return ingredients
 
