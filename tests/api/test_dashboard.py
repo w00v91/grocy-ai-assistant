@@ -1204,3 +1204,59 @@ def test_dashboard_scanner_llava_endpoint(client, monkeypatch):
         "hint": "1L Karton",
         "source": "ollama_llava",
     }
+
+
+def test_recipe_suggestions_strip_html_from_grocy_and_ai_fields(client, monkeypatch):
+    def fake_get_stock_products(self):
+        return [
+            {"id": 1, "name": "Tomate", "location_name": "Kühlschrank", "amount": "2"}
+        ]
+
+    def fake_get_recipes(self):
+        return [
+            {
+                "id": 10,
+                "name": "<b>Tomaten Pasta</b>",
+                "description": "<p>Pasta<br>kochen</p>",
+            }
+        ]
+
+    class FakeDetector:
+        def __init__(self, settings):
+            self.settings = settings
+
+        def generate_recipe_suggestions(
+            self, selected_products, existing_recipe_titles
+        ):
+            return [
+                {
+                    "title": "<h2>Tomaten-Suppe</h2>",
+                    "reason": "<p>Tomate<br>ist vorhanden</p>",
+                    "preparation": "<div>Tomaten schneiden</div>",
+                    "ingredients": ["<li>2 Tomaten</li>"],
+                }
+            ]
+
+    monkeypatch.setattr(
+        routes.GrocyClient, "get_stock_products", fake_get_stock_products
+    )
+    monkeypatch.setattr(routes.GrocyClient, "get_recipes", fake_get_recipes)
+    monkeypatch.setattr(
+        routes.GrocyClient, "get_missing_recipe_products", lambda self, recipe_id: []
+    )
+    monkeypatch.setattr(routes, "IngredientDetector", FakeDetector)
+
+    response = client.post(
+        "/api/dashboard/recipe-suggestions",
+        headers={"Authorization": "Bearer test-api-key"},
+        json={"product_ids": [1]},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["grocy_recipes"][0]["title"] == "Tomaten Pasta"
+    assert payload["grocy_recipes"][0]["preparation"] == "Pasta\nkochen"
+    assert payload["ai_recipes"][0]["title"] == "Tomaten-Suppe"
+    assert payload["ai_recipes"][0]["reason"] == "Tomate\nist vorhanden"
+    assert payload["ai_recipes"][0]["preparation"] == "Tomaten schneiden"
+    assert payload["ai_recipes"][0]["ingredients"] == ["2 Tomaten"]

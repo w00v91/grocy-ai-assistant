@@ -7,6 +7,7 @@ from typing import Any, Dict
 import requests
 
 from grocy_ai_assistant.config.settings import Settings
+from grocy_ai_assistant.core.text_utils import html_to_plain_text
 
 logger = logging.getLogger(__name__)
 
@@ -177,13 +178,14 @@ class IngredientDetector:
 
             def _normalize_text(value: Any) -> str:
                 text = str(value or "").strip()
-                return (
+                text = (
                     text.replace("\\r\\n", "\n")
                     .replace("\\n", "\n")
                     .replace("\\r", "\n")
                     .replace("\r\n", "\n")
                     .replace("\r", "\n")
                 )
+                return html_to_plain_text(text)
 
             def _parse_embedded_recipe_text(text: str) -> Dict[str, Any]:
                 if "\n" not in text:
