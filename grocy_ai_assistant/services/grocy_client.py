@@ -237,7 +237,7 @@ class GrocyClient:
                 if product.get("id") is not None:
                     return product
 
-        if primary_response.status_code not in (200, 404):
+        if primary_response.status_code not in (200, 400, 404):
             primary_response.raise_for_status()
 
         response = requests.get(
