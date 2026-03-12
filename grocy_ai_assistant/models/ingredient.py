@@ -16,6 +16,10 @@ class ExistingProductAddRequest(BaseModel):
     best_before_date: str = ""
 
 
+class ShoppingListBestBeforeDateUpdateRequest(BaseModel):
+    best_before_date: str = Field(..., min_length=1)
+
+
 class ProductData(BaseModel):
     name: str
     description: str

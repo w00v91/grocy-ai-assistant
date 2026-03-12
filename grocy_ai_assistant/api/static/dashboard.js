@@ -259,7 +259,7 @@ function renderShoppingList(items) {
         </div>
         <div class="shopping-item-badges">
           <span class="badge">Menge: ${item.amount}</span>
-          <span class="badge">MHD: ${item.best_before_date || "-"}</span>
+          <button type="button" class="badge mhd-picker-button" data-mhd-shopping-list-id="${item.id}" data-mhd-product-name="${encodeURIComponent(item.product_name || '')}" data-mhd-current-date="${item.best_before_date || ''}">${item.best_before_date ? `MHD: ${item.best_before_date}` : 'MHD wählen'}</button>
         </div>
       </div>
     </li>
@@ -480,6 +480,66 @@ function showShoppingItemDetails(item) {
   syncModalScrollLock();
 }
 
+
+let activeMhdShoppingListId = null;
+
+function openMhdPicker(shoppingListId, productName, currentDate = '') {
+  const modal = document.getElementById('mhd-modal');
+  const title = document.getElementById('mhd-modal-title');
+  const input = document.getElementById('mhd-date-input');
+
+  activeMhdShoppingListId = shoppingListId;
+  title.textContent = `MHD auswählen: ${productName || 'Produkt'}`;
+  input.value = currentDate || '';
+  modal.classList.remove('hidden');
+}
+
+function closeMhdPicker() {
+  activeMhdShoppingListId = null;
+  document.getElementById('mhd-modal').classList.add('hidden');
+}
+
+async function saveMhdPickerDate() {
+  const key = ensureApiKey();
+  const status = getShoppingStatusElement();
+  const input = document.getElementById('mhd-date-input');
+  const bestBeforeDate = String(input?.value || '').trim();
+
+  if (!key) {
+    status.textContent = 'Kein API-Key angegeben.';
+    return;
+  }
+  if (!activeMhdShoppingListId) {
+    status.textContent = 'Einkaufslisten-Eintrag fehlt.';
+    return;
+  }
+  if (!bestBeforeDate) {
+    status.textContent = 'Bitte ein MHD auswählen.';
+    return;
+  }
+
+  status.textContent = 'Speichere MHD...';
+  try {
+    const res = await fetch(buildApiUrl(`/api/dashboard/shopping-list/item/${activeMhdShoppingListId}/best-before`), {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
+      body: JSON.stringify({ best_before_date: bestBeforeDate }),
+    });
+    const payload = await parseJsonSafe(res);
+
+    if (!res.ok) {
+      status.textContent = getErrorMessage(payload, 'MHD konnte nicht gespeichert werden.');
+      return;
+    }
+
+    status.textContent = payload.message || 'MHD gespeichert.';
+    closeMhdPicker();
+    await loadShoppingList();
+  } catch (_) {
+    status.textContent = 'MHD konnte nicht gespeichert werden (Netzwerk-/Ingress-Fehler).';
+  }
+}
+
 function closeShoppingItemDetails() {
   document.getElementById('shopping-item-modal').classList.add('hidden');
   syncModalScrollLock();
@@ -498,6 +558,9 @@ function bindShoppingSwipeInteractions() {
     });
 
     item.addEventListener('pointerup', async (event) => {
+      if (event.target.closest('.mhd-picker-button')) {
+        return;
+      }
       const deltaX = event.clientX - startX;
       const payloadText = decodeURIComponent(item.dataset.shoppingItem || '');
       const payload = payloadText ? JSON.parse(payloadText) : {};
@@ -659,6 +722,20 @@ document.getElementById('variant-list').addEventListener('click', (event) => {
   }
 
   confirmVariant(productId, productName);
+});
+
+
+document.getElementById('shopping-list').addEventListener('click', (event) => {
+  const target = event.target.closest('.mhd-picker-button');
+  if (!target) return;
+
+  event.stopPropagation();
+  const shoppingListId = Number(target.dataset.mhdShoppingListId || '');
+  if (!Number.isFinite(shoppingListId) || shoppingListId <= 0) return;
+
+  const productName = decodeURIComponent(target.dataset.mhdProductName || '');
+  const currentDate = target.dataset.mhdCurrentDate || '';
+  openMhdPicker(shoppingListId, productName, currentDate);
 });
 
 document.addEventListener('change', (event) => {
