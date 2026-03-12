@@ -285,6 +285,17 @@ class GrocyClient:
         )
         response.raise_for_status()
 
+    def update_shopping_list_item_best_before_date(
+        self, shopping_list_id: int, best_before_date: str
+    ) -> None:
+        response = requests.put(
+            f"{self.settings.grocy_base_url}/objects/shopping_list/{shopping_list_id}",
+            headers=self.headers,
+            json={"best_before_date": self._safe_str(best_before_date)},
+            timeout=30,
+        )
+        response.raise_for_status()
+
     def _enrich_shopping_items(
         self, shopping_items: list[Dict[str, Any]]
     ) -> list[Dict[str, Any]]:

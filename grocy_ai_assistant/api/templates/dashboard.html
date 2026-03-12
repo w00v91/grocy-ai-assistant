@@ -30,13 +30,6 @@
           </div>
           <button onclick='searchProduct()'>Suchen & hinzufügen</button>
         </div>
-        <div class='shopping-product-fields'>
-          <label for='amount'>Menge</label>
-          <input id='amount' type='number' min='0.01' step='0.01' value='1' />
-          <label for='best-before-date'>MHD</label>
-          <input id='best-before-date' type='date' />
-        </div>
-
         <section id='variant-section' class='variant-section hidden'>
           <h2>Gefundene Produktvarianten</h2>
           <div id='variant-list' class='variant-grid'></div>
@@ -122,6 +115,18 @@
       </section>
     </div>
 
+
+
+    <div id='mhd-modal' class='shopping-modal hidden'>
+      <div class='shopping-modal-backdrop' onclick='closeMhdPicker()'></div>
+      <section class='shopping-modal-content card'>
+        <button class='shopping-modal-close' type='button' onclick='closeMhdPicker()' aria-label='MHD-Auswahl schließen'>×</button>
+        <h3 id='mhd-modal-title'>MHD auswählen</h3>
+        <label for='mhd-date-input'>Haltbarkeitsdatum</label>
+        <input id='mhd-date-input' type='date' />
+        <button class='success-button' type='button' onclick='saveMhdPickerDate()'>Speichern</button>
+      </section>
+    </div>
 
 
     <div id='recipe-modal' class='shopping-modal hidden'>
