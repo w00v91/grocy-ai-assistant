@@ -33,11 +33,6 @@ format:
 - Keep AI code inside /ai
 - Grocy communication only in /services
 - Home Assistant integration must stay in /custom_components
-- Bump always both versions on changes
+- Create a Changelog when performing changes
 
-## Tasks Codex may perform
 
-- implement new API endpoints
-- add AI detection models
-- improve Grocy integration
-- add tests
