@@ -30,7 +30,6 @@
           </div>
           <button onclick='searchProduct()'>Suchen & hinzufügen</button>
         </div>
-
         <section id='variant-section' class='variant-section hidden'>
           <h2>Gefundene Produktvarianten</h2>
           <div id='variant-list' class='variant-grid'></div>
@@ -110,6 +109,18 @@
       </section>
     </div>
 
+
+
+    <div id='mhd-modal' class='shopping-modal hidden'>
+      <div class='shopping-modal-backdrop' onclick='closeMhdPicker()'></div>
+      <section class='shopping-modal-content card'>
+        <button class='shopping-modal-close' type='button' onclick='closeMhdPicker()' aria-label='MHD-Auswahl schließen'>×</button>
+        <h3 id='mhd-modal-title'>MHD auswählen</h3>
+        <label for='mhd-date-input'>Haltbarkeitsdatum</label>
+        <input id='mhd-date-input' type='date' />
+        <button class='success-button' type='button' onclick='saveMhdPickerDate()'>Speichern</button>
+      </section>
+    </div>
 
 
     <div id='recipe-modal' class='shopping-modal hidden'>

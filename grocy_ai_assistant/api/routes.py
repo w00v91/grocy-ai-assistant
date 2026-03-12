@@ -25,6 +25,7 @@ from grocy_ai_assistant.models.ingredient import (
     RecipeSuggestionItem,
     RecipeSuggestionRequest,
     RecipeSuggestionResponse,
+    ShoppingListBestBeforeDateUpdateRequest,
     ShoppingListItemResponse,
     StockProductResponse,
 )
@@ -811,7 +812,11 @@ def dashboard_recipe_suggestions(
                 if product_id in expiring_product_ids
             }
 
-        if not payload.location_ids and not selected_ids and not payload.soon_expiring_only:
+        if (
+            not payload.location_ids
+            and not selected_ids
+            and not payload.soon_expiring_only
+        ):
             cache = _get_recipe_suggestion_cache(request)
             stock_signature = _build_stock_signature(stock_products)
             if cache:
@@ -829,7 +834,11 @@ def dashboard_recipe_suggestions(
             settings=settings,
         )
 
-        if not payload.location_ids and not selected_ids and not payload.soon_expiring_only:
+        if (
+            not payload.location_ids
+            and not selected_ids
+            and not payload.soon_expiring_only
+        ):
             cache = _get_recipe_suggestion_cache(request)
             if cache is not None:
                 cache["location_ids"] = []
@@ -880,6 +889,52 @@ def dashboard_add_missing_recipe_products(
             "success": True,
             "added_items": added_count,
             "message": f"{added_count} fehlende Produkte wurden zur Einkaufsliste hinzugefügt.",
+        }
+    except HTTPException:
+        raise
+    except Exception as error:
+        log_api_error(
+            logger,
+            request=request,
+            status_code=500,
+            message=str(error),
+            exc=error,
+        )
+        raise HTTPException(status_code=500, detail=str(error)) from error
+
+
+@router.put("/api/dashboard/shopping-list/item/{shopping_list_id}/best-before")
+def dashboard_update_shopping_list_item_best_before_date(
+    shopping_list_id: int,
+    payload: ShoppingListBestBeforeDateUpdateRequest,
+    request: Request,
+    _: None = Depends(require_auth),
+    settings: Settings = Depends(get_settings),
+):
+    if not settings.grocy_api_key:
+        raise HTTPException(
+            status_code=500, detail="grocy_api_key fehlt in Add-on Optionen"
+        )
+
+    try:
+        grocy_client = GrocyClient(settings)
+        shopping_items = grocy_client.get_shopping_list()
+        selected_item = next(
+            (item for item in shopping_items if item.get("id") == shopping_list_id),
+            None,
+        )
+        if selected_item is None:
+            raise HTTPException(
+                status_code=404, detail="Einkaufslisten-Eintrag nicht gefunden"
+            )
+
+        grocy_client.update_shopping_list_item_best_before_date(
+            shopping_list_id=shopping_list_id,
+            best_before_date=payload.best_before_date,
+        )
+        return {
+            "success": True,
+            "message": f"MHD für Eintrag {shopping_list_id} aktualisiert.",
         }
     except HTTPException:
         raise

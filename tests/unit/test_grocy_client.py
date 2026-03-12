@@ -622,6 +622,33 @@ def test_delete_shopping_list_item_calls_delete_object_endpoint(monkeypatch):
     assert captured["url"].endswith("/objects/shopping_list/23")
 
 
+def test_update_shopping_list_item_best_before_date_calls_put_endpoint(monkeypatch):
+    captured = {}
+
+    def fake_put(url, *args, **kwargs):
+        captured["url"] = url
+        captured["json"] = kwargs.get("json")
+        return FakeResponse({})
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.services.grocy_client.requests.put", fake_put
+    )
+
+    client = GrocyClient(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+        )
+    )
+
+    client.update_shopping_list_item_best_before_date(23, "2026-12-31")
+
+    assert captured["url"].endswith("/objects/shopping_list/23")
+    assert captured["json"] == {"best_before_date": "2026-12-31"}
+
+
 def test_complete_shopping_list_item_adds_to_stock_and_removes_list_entry(monkeypatch):
     post_calls = []
     delete_calls = []
