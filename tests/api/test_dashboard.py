@@ -199,8 +199,8 @@ def test_dashboard_limits_displayed_recipe_amount_per_source(client):
     static_response = client.get("/dashboard-static/dashboard.js")
 
     assert static_response.status_code == 200
-    assert "const GROCY_RECIPE_DISPLAY_LIMIT = 2;" in static_response.text
-    assert "const AI_RECIPE_DISPLAY_LIMIT = 2;" in static_response.text
+    assert "const GROCY_RECIPE_DISPLAY_LIMIT = 3;" in static_response.text
+    assert "const AI_RECIPE_DISPLAY_LIMIT = 3;" in static_response.text
     assert ".slice(0, GROCY_RECIPE_DISPLAY_LIMIT)" in static_response.text
     assert ".slice(0, AI_RECIPE_DISPLAY_LIMIT)" in static_response.text
 
@@ -510,6 +510,11 @@ def test_recipe_suggestions_prioritize_grocy_then_ai(client, monkeypatch):
     monkeypatch.setattr(
         routes.GrocyClient, "get_missing_recipe_products", lambda self, recipe_id: []
     )
+    monkeypatch.setattr(
+        routes.GrocyClient,
+        "get_recipe_ingredients",
+        lambda self, recipe_id: ["200 g Tomate"],
+    )
     monkeypatch.setattr(routes, "IngredientDetector", FakeDetector)
 
     response = client.post(
@@ -525,6 +530,7 @@ def test_recipe_suggestions_prioritize_grocy_then_ai(client, monkeypatch):
     assert payload["grocy_recipes"][0]["title"] == "Tomaten Pasta"
     assert payload["grocy_recipes"][0]["recipe_id"] == 10
     assert payload["grocy_recipes"][0]["preparation"] == "Pasta kochen"
+    assert payload["grocy_recipes"][0]["ingredients"] == ["200 g Tomate"]
     assert payload["ai_recipes"][0]["source"] == "ai"
     assert payload["ai_recipes"][0]["preparation"] == "Tomaten schneiden und köcheln."
     assert payload["ai_recipes"][0]["ingredients"] == ["1 Portion Tomate"]
@@ -558,6 +564,11 @@ def test_recipe_suggestions_uses_stock_products_when_selection_is_empty(
     monkeypatch.setattr(routes.GrocyClient, "get_recipes", fake_get_recipes)
     monkeypatch.setattr(
         routes.GrocyClient, "get_missing_recipe_products", lambda self, recipe_id: []
+    )
+    monkeypatch.setattr(
+        routes.GrocyClient,
+        "get_recipe_ingredients",
+        lambda self, recipe_id: ["100 g Tomate"],
     )
     monkeypatch.setattr(routes, "IngredientDetector", FakeDetector)
 
@@ -594,6 +605,9 @@ def test_recipe_suggestions_returns_empty_when_no_stock_products(client, monkeyp
     monkeypatch.setattr(routes.GrocyClient, "get_recipes", fake_get_recipes)
     monkeypatch.setattr(
         routes.GrocyClient, "get_missing_recipe_products", lambda self, recipe_id: []
+    )
+    monkeypatch.setattr(
+        routes.GrocyClient, "get_recipe_ingredients", lambda self, recipe_id: []
     )
     monkeypatch.setattr(routes, "IngredientDetector", FakeDetector)
 
@@ -645,6 +659,11 @@ def test_recipe_suggestions_generates_fallback_when_ai_returns_nothing(
     monkeypatch.setattr(
         routes.GrocyClient, "get_missing_recipe_products", lambda self, recipe_id: []
     )
+    monkeypatch.setattr(
+        routes.GrocyClient,
+        "get_recipe_ingredients",
+        lambda self, recipe_id: ["250 g Tomate"],
+    )
     monkeypatch.setattr(routes, "IngredientDetector", FakeDetector)
 
     response = client.post(
@@ -656,14 +675,14 @@ def test_recipe_suggestions_generates_fallback_when_ai_returns_nothing(
     assert response.status_code == 200
     payload = response.json()
     assert payload["grocy_recipes"][0]["picture_url"] == "/img/tomaten-pasta.jpg"
-    assert len(payload["ai_recipes"]) == 2
+    assert len(payload["ai_recipes"]) == 3
     assert payload["ai_recipes"][0]["title"]
     assert payload["ai_recipes"][0]["ingredients"]
 
 
 
 
-def test_recipe_suggestions_fills_up_to_two_ai_recipes_when_ai_returns_only_one(
+def test_recipe_suggestions_fills_up_to_three_ai_recipes_when_ai_returns_only_one(
     client, monkeypatch
 ):
     def fake_get_stock_products(self, location_ids=None):
@@ -701,6 +720,11 @@ def test_recipe_suggestions_fills_up_to_two_ai_recipes_when_ai_returns_only_one(
     monkeypatch.setattr(
         routes.GrocyClient, "get_missing_recipe_products", lambda self, recipe_id: []
     )
+    monkeypatch.setattr(
+        routes.GrocyClient,
+        "get_recipe_ingredients",
+        lambda self, recipe_id: ["300 g Tomate"],
+    )
     monkeypatch.setattr(routes, "IngredientDetector", FakeDetector)
 
     response = client.post(
@@ -712,7 +736,7 @@ def test_recipe_suggestions_fills_up_to_two_ai_recipes_when_ai_returns_only_one(
     assert response.status_code == 200
     payload = response.json()
     assert len(payload["grocy_recipes"]) == 3
-    assert len(payload["ai_recipes"]) == 2
+    assert len(payload["ai_recipes"]) == 3
     assert payload["ai_recipes"][0]["title"] == "Tomaten-Curry"
 
 def test_add_missing_recipe_products_adds_to_shopping_list(client, monkeypatch):
@@ -1208,6 +1232,11 @@ def test_prefetch_initial_recipe_suggestions_returns_cache_payload(
     monkeypatch.setattr(
         routes.GrocyClient, "get_missing_recipe_products", lambda self, recipe_id: []
     )
+    monkeypatch.setattr(
+        routes.GrocyClient,
+        "get_recipe_ingredients",
+        lambda self, recipe_id: ["120 g Tomate"],
+    )
     monkeypatch.setattr(routes, "IngredientDetector", FakeDetector)
 
     prefetched = routes.prefetch_initial_recipe_suggestions(test_settings)
@@ -1296,6 +1325,11 @@ def test_recipe_suggestions_strip_html_from_grocy_and_ai_fields(client, monkeypa
     monkeypatch.setattr(routes.GrocyClient, "get_recipes", fake_get_recipes)
     monkeypatch.setattr(
         routes.GrocyClient, "get_missing_recipe_products", lambda self, recipe_id: []
+    )
+    monkeypatch.setattr(
+        routes.GrocyClient,
+        "get_recipe_ingredients",
+        lambda self, recipe_id: ["180 g Tomate"],
     )
     monkeypatch.setattr(routes, "IngredientDetector", FakeDetector)
 
