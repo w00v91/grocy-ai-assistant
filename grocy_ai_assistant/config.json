@@ -35,7 +35,7 @@
     "grocy_base_url": "http://homeassistant.local:9192/api",
     "ollama_llava_model": "llava",
     "scanner_barcode_fallback_seconds": 5,
-    "scanner_llava_prompt": "Erkenne das Hauptprodukt auf dem Bild. Antworte NUR als JSON mit den Feldern product_name, brand und hint."
+    "scanner_llava_min_confidence": 75
   },
   "schema": {
     "api_key": "str",
@@ -46,6 +46,6 @@
     "grocy_base_url": "str",
     "ollama_llava_model": "str",
     "scanner_barcode_fallback_seconds": "int(1,30)",
-    "scanner_llava_prompt": "str"
+    "scanner_llava_min_confidence": "int(1,100)"
   }
 }
