@@ -637,6 +637,39 @@ class GrocyClient:
 
         return unique_missing
 
+    def get_recipe_ingredients(self, recipe_id: int) -> list[str]:
+        positions = self.get_recipe_positions(recipe_id)
+        if not positions:
+            return []
+
+        all_products = {
+            int(product.get("id")): product
+            for product in self._get_all_products()
+            if self._safe_int(product.get("id")) is not None
+        }
+
+        ingredients: list[str] = []
+        for position in positions:
+            if not isinstance(position, dict):
+                continue
+
+            product_id = self._safe_int(position.get("product_id"))
+            product = all_products.get(product_id or -1, {})
+            product_name = (
+                product.get("name")
+                or position.get("product")
+                or "Unbekannte Zutat"
+            )
+
+            amount_raw = self._safe_str(position.get("amount"))
+            amount = amount_raw.strip()
+            ingredient_line = f"{amount} {product_name}".strip() if amount else str(
+                product_name
+            )
+            ingredients.append(ingredient_line)
+
+        return ingredients
+
     def get_recipes(self) -> list[Dict[str, Any]]:
         response = requests.get(
             f"{self.settings.grocy_base_url}/objects/recipes",
