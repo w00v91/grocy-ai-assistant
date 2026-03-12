@@ -185,6 +185,14 @@ def test_dashboard_does_not_autoload_recipe_suggestions_on_recipe_tab_open(clien
 
 
 
+def test_dashboard_preloads_recipe_suggestions_on_startup(client):
+    static_response = client.get("/dashboard-static/dashboard.js")
+
+    assert static_response.status_code == 200
+    assert "function preloadRecipeSuggestionsOnStartup()" in static_response.text
+    assert "preloadRecipeSuggestionsOnStartup();" in static_response.text
+
+
 def test_dashboard_loads_initial_recipe_suggestions_once_after_stock_load(client):
     static_response = client.get("/dashboard-static/dashboard.js")
 
@@ -722,6 +730,53 @@ def test_shopping_list_item_can_be_deleted(client, monkeypatch):
     assert captured["shopping_list_id"] == 42
     assert response.json()["success"] is True
     assert captured["amount"] == "2"
+
+
+def test_shopping_list_item_best_before_date_can_be_updated(client, monkeypatch):
+    captured = {}
+
+    def fake_get_shopping_list(self):
+        return [{"id": 42, "amount": "2"}]
+
+    def fake_update_shopping_list_item_best_before_date(
+        self, shopping_list_id, best_before_date
+    ):
+        captured["shopping_list_id"] = shopping_list_id
+        captured["best_before_date"] = best_before_date
+
+    monkeypatch.setattr(routes.GrocyClient, "get_shopping_list", fake_get_shopping_list)
+    monkeypatch.setattr(
+        routes.GrocyClient,
+        "update_shopping_list_item_best_before_date",
+        fake_update_shopping_list_item_best_before_date,
+    )
+
+    response = client.put(
+        "/api/dashboard/shopping-list/item/42/best-before",
+        headers={"Authorization": "Bearer test-api-key"},
+        json={"best_before_date": "2026-12-31"},
+    )
+
+    assert response.status_code == 200
+    assert captured == {"shopping_list_id": 42, "best_before_date": "2026-12-31"}
+    assert response.json()["success"] is True
+
+
+def test_shopping_list_item_best_before_date_update_rejects_missing_entry(
+    client, monkeypatch
+):
+    def fake_get_shopping_list(self):
+        return []
+
+    monkeypatch.setattr(routes.GrocyClient, "get_shopping_list", fake_get_shopping_list)
+
+    response = client.put(
+        "/api/dashboard/shopping-list/item/42/best-before",
+        headers={"Authorization": "Bearer test-api-key"},
+        json={"best_before_date": "2026-12-31"},
+    )
+
+    assert response.status_code == 404
 
 
 def test_shopping_list_can_be_completed(client, monkeypatch):

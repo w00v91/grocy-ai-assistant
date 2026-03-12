@@ -40,6 +40,7 @@ let scannerStream = null;
 let scannerInterval = null;
 let scannerLastBarcode = "";
 let scannerDetector = null;
+const scannerDigitalZoomFactor = 1.35;
 const recipeState = {
   initialized: false,
   hasLoadedInitialSuggestions: false,
@@ -258,7 +259,7 @@ function renderShoppingList(items) {
         </div>
         <div class="shopping-item-badges">
           <span class="badge">Menge: ${item.amount}</span>
-          <span class="badge">MHD: ${item.best_before_date || "-"}</span>
+          <button type="button" class="badge mhd-picker-button" data-mhd-shopping-list-id="${item.id}" data-mhd-product-name="${encodeURIComponent(item.product_name || '')}" data-mhd-current-date="${item.best_before_date || ''}">${item.best_before_date ? `MHD: ${item.best_before_date}` : 'MHD wählen'}</button>
         </div>
       </div>
     </li>
@@ -479,6 +480,66 @@ function showShoppingItemDetails(item) {
   syncModalScrollLock();
 }
 
+
+let activeMhdShoppingListId = null;
+
+function openMhdPicker(shoppingListId, productName, currentDate = '') {
+  const modal = document.getElementById('mhd-modal');
+  const title = document.getElementById('mhd-modal-title');
+  const input = document.getElementById('mhd-date-input');
+
+  activeMhdShoppingListId = shoppingListId;
+  title.textContent = `MHD auswählen: ${productName || 'Produkt'}`;
+  input.value = currentDate || '';
+  modal.classList.remove('hidden');
+}
+
+function closeMhdPicker() {
+  activeMhdShoppingListId = null;
+  document.getElementById('mhd-modal').classList.add('hidden');
+}
+
+async function saveMhdPickerDate() {
+  const key = ensureApiKey();
+  const status = getShoppingStatusElement();
+  const input = document.getElementById('mhd-date-input');
+  const bestBeforeDate = String(input?.value || '').trim();
+
+  if (!key) {
+    status.textContent = 'Kein API-Key angegeben.';
+    return;
+  }
+  if (!activeMhdShoppingListId) {
+    status.textContent = 'Einkaufslisten-Eintrag fehlt.';
+    return;
+  }
+  if (!bestBeforeDate) {
+    status.textContent = 'Bitte ein MHD auswählen.';
+    return;
+  }
+
+  status.textContent = 'Speichere MHD...';
+  try {
+    const res = await fetch(buildApiUrl(`/api/dashboard/shopping-list/item/${activeMhdShoppingListId}/best-before`), {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
+      body: JSON.stringify({ best_before_date: bestBeforeDate }),
+    });
+    const payload = await parseJsonSafe(res);
+
+    if (!res.ok) {
+      status.textContent = getErrorMessage(payload, 'MHD konnte nicht gespeichert werden.');
+      return;
+    }
+
+    status.textContent = payload.message || 'MHD gespeichert.';
+    closeMhdPicker();
+    await loadShoppingList();
+  } catch (_) {
+    status.textContent = 'MHD konnte nicht gespeichert werden (Netzwerk-/Ingress-Fehler).';
+  }
+}
+
 function closeShoppingItemDetails() {
   document.getElementById('shopping-item-modal').classList.add('hidden');
   syncModalScrollLock();
@@ -497,6 +558,9 @@ function bindShoppingSwipeInteractions() {
     });
 
     item.addEventListener('pointerup', async (event) => {
+      if (event.target.closest('.mhd-picker-button')) {
+        return;
+      }
       const deltaX = event.clientX - startX;
       const payloadText = decodeURIComponent(item.dataset.shoppingItem || '');
       const payload = payloadText ? JSON.parse(payloadText) : {};
@@ -660,6 +724,20 @@ document.getElementById('variant-list').addEventListener('click', (event) => {
   confirmVariant(productId, productName);
 });
 
+
+document.getElementById('shopping-list').addEventListener('click', (event) => {
+  const target = event.target.closest('.mhd-picker-button');
+  if (!target) return;
+
+  event.stopPropagation();
+  const shoppingListId = Number(target.dataset.mhdShoppingListId || '');
+  if (!Number.isFinite(shoppingListId) || shoppingListId <= 0) return;
+
+  const productName = decodeURIComponent(target.dataset.mhdProductName || '');
+  const currentDate = target.dataset.mhdCurrentDate || '';
+  openMhdPicker(shoppingListId, productName, currentDate);
+});
+
 document.addEventListener('change', (event) => {
   if (event.target && event.target.closest('#location-filters')) {
     loadStockProducts();
@@ -682,6 +760,7 @@ const addMissingButton = document.getElementById('recipe-add-missing-button');
 if (addMissingButton) addMissingButton.addEventListener('click', addMissingRecipeProducts);
 switchTab('shopping');
 loadShoppingList();
+preloadRecipeSuggestionsOnStartup();
 
 
 async function searchSuggestedProduct(productName) {
@@ -839,6 +918,11 @@ async function loadStockProducts() {
   }
 
   });
+}
+
+function preloadRecipeSuggestionsOnStartup() {
+  if (recipeState.initialized) return;
+  loadLocations();
 }
 
 async function loadRecipeSuggestions(options = {}) {
@@ -1054,6 +1138,7 @@ async function lookupBarcode(barcode) {
 async function startBarcodeScanner() {
   const status = getScannerStatusElement();
   const video = document.getElementById('scanner-video');
+  const canvas = document.getElementById('scanner-canvas');
   const startButton = document.getElementById('start-scan-button');
   const stopButton = document.getElementById('stop-scan-button');
 
@@ -1063,16 +1148,27 @@ async function startBarcodeScanner() {
   }
 
   try {
+    stopBarcodeScanner();
+
     scannerStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { ideal: 'environment' } },
+      video: {
+        facingMode: { ideal: 'environment' },
+        width: { ideal: 1920 },
+        height: { ideal: 1080 },
+      },
       audio: false,
     });
+
+    await optimizeScannerTrack(scannerStream, status);
+
     video.srcObject = scannerStream;
     await video.play();
     video.classList.remove('hidden');
     startButton.classList.add('hidden');
     stopButton.classList.remove('hidden');
-    status.textContent = 'Scanner aktiv. Barcode vor die Kamera halten...';
+    if (!String(status.textContent || '').startsWith('Scanner aktiv')) {
+      status.textContent = 'Scanner aktiv. Barcode vor die Kamera halten...';
+    }
 
     if ('BarcodeDetector' in window) {
       scannerDetector = new window.BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e'] });
@@ -1084,7 +1180,8 @@ async function startBarcodeScanner() {
 
       if (scannerDetector) {
         try {
-          const barcodes = await scannerDetector.detect(video);
+          const detectionSource = getScannerDetectionSource(video, canvas, scannerDigitalZoomFactor);
+          const barcodes = await scannerDetector.detect(detectionSource);
           if (barcodes.length) {
             const value = String(barcodes[0].rawValue || '').trim();
             if (value && value !== scannerLastBarcode) {
@@ -1099,6 +1196,65 @@ async function startBarcodeScanner() {
   } catch (_) {
     status.textContent = 'Kamera konnte nicht gestartet werden. Bitte Berechtigung prüfen.';
   }
+}
+
+async function optimizeScannerTrack(stream, status) {
+  const videoTrack = stream?.getVideoTracks?.()[0];
+  if (!videoTrack) return;
+
+  const capabilities = videoTrack.getCapabilities ? videoTrack.getCapabilities() : null;
+  const constraints = {};
+
+  if (capabilities?.focusMode?.includes('continuous')) {
+    constraints.focusMode = 'continuous';
+  }
+
+  if (capabilities?.zoom) {
+    const minZoom = Number(capabilities.zoom.min || 1);
+    const maxZoom = Number(capabilities.zoom.max || minZoom);
+    const preferredZoom = Math.max(minZoom, Math.min(maxZoom, 1.8));
+    constraints.zoom = preferredZoom;
+    status.textContent = `Scanner aktiv (Kamera-Zoom ${preferredZoom.toFixed(1)}x). Barcode vor die Kamera halten...`;
+  }
+
+  if (!Object.keys(constraints).length) return;
+
+  try {
+    await videoTrack.applyConstraints({ advanced: [constraints] });
+  } catch (_) {
+    // Ignore optimization failures and keep default stream settings.
+  }
+}
+
+function getScannerDetectionSource(video, canvas, zoomFactor) {
+  if (!canvas || !video || !video.videoWidth || !video.videoHeight || zoomFactor <= 1) {
+    return video;
+  }
+
+  const context = canvas.getContext('2d', { willReadFrequently: true });
+  if (!context) return video;
+
+  const sourceWidth = Math.round(video.videoWidth / zoomFactor);
+  const sourceHeight = Math.round(video.videoHeight / zoomFactor);
+  const sourceX = Math.max(0, Math.round((video.videoWidth - sourceWidth) / 2));
+  const sourceY = Math.max(0, Math.round((video.videoHeight - sourceHeight) / 2));
+
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+
+  context.drawImage(
+    video,
+    sourceX,
+    sourceY,
+    sourceWidth,
+    sourceHeight,
+    0,
+    0,
+    canvas.width,
+    canvas.height
+  );
+
+  return canvas;
 }
 
 function stopBarcodeScanner() {

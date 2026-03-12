@@ -369,22 +369,16 @@ img {
 
 
 
-.shopping-product-fields {
-  margin-top: 0.6rem;
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 0.35rem;
-}
-
-.shopping-product-fields label {
-  font-size: 0.85rem;
-  color: var(--muted);
-}
-
 .shopping-item-badges {
   display: grid;
   gap: 0.35rem;
   justify-items: end;
+}
+
+.mhd-picker-button {
+  margin-left: 0;
+  border: none;
+  cursor: pointer;
 }
 
 .recipe-actions {
@@ -532,6 +526,9 @@ img {
   position: fixed;
   inset: 0;
   z-index: 60;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 .shopping-modal-backdrop {
   position: absolute;
@@ -544,6 +541,10 @@ img {
   position: relative;
   margin: min(8vh, 4rem) auto;
   width: min(980px, calc(100% - 1.5rem));
+  max-height: calc(100dvh - min(16vh, 8rem));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   z-index: 1;
 }
 .shopping-modal-close {
@@ -577,6 +578,10 @@ img {
 }
 @media (max-width: 640px) {
   .shopping-details-grid { grid-template-columns: 1fr; }
+  .shopping-modal-content {
+    margin: 0.75rem auto;
+    max-height: calc(100dvh - 1.5rem);
+  }
 }
 
 #recipe-modal-preparation { white-space: pre-wrap; }
