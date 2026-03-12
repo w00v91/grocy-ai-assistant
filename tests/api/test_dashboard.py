@@ -184,7 +184,6 @@ def test_dashboard_does_not_autoload_recipe_suggestions_on_recipe_tab_open(clien
     )
 
 
-
 def test_dashboard_preloads_recipe_suggestions_on_startup(client):
     static_response = client.get("/dashboard-static/dashboard.js")
 
@@ -198,10 +197,23 @@ def test_dashboard_loads_initial_recipe_suggestions_once_after_stock_load(client
 
     assert static_response.status_code == 200
     assert "hasLoadedInitialSuggestions" in static_response.text
-    assert "if (!hasStockChanged && !recipeState.hasLoadedInitialSuggestions)" in static_response.text
-    assert "await loadRecipeSuggestions({ usePrefetchedCache: true });" in static_response.text
-    assert "const usePrefetchedCache = Boolean(options.usePrefetchedCache);" in static_response.text
-    assert "const selectedIds = usePrefetchedCache ? [] : getSelectedProductIds();" in static_response.text
+    assert (
+        "if (!hasStockChanged && !recipeState.hasLoadedInitialSuggestions)"
+        in static_response.text
+    )
+    assert (
+        "await loadRecipeSuggestions({ usePrefetchedCache: true });"
+        in static_response.text
+    )
+    assert (
+        "const usePrefetchedCache = Boolean(options.usePrefetchedCache);"
+        in static_response.text
+    )
+    assert (
+        "const selectedIds = usePrefetchedCache ? [] : getSelectedProductIds();"
+        in static_response.text
+    )
+
 
 def test_dashboard_contains_clear_button(client):
     response = client.get("/")
@@ -422,6 +434,7 @@ def test_stock_products_endpoint_returns_items(client, monkeypatch):
                 "name": "Milch",
                 "location_name": "Kühlschrank",
                 "amount": "1",
+                "best_before_date": "2026-01-02",
             }
         ]
 
@@ -436,6 +449,7 @@ def test_stock_products_endpoint_returns_items(client, monkeypatch):
 
     assert response.status_code == 200
     assert response.json()[0]["name"] == "Milch"
+    assert response.json()[0]["best_before_date"] == "2026-01-02"
 
 
 def test_recipe_suggestions_prioritize_grocy_then_ai(client, monkeypatch):
@@ -984,7 +998,9 @@ def test_dashboard_barcode_lookup_falls_back_to_grocy(client, monkeypatch):
             assert barcode == "4008400408400"
             return {"id": 5, "name": "Hausmarke Pasta"}
 
-    monkeypatch.setattr(routes.requests, "get", lambda *args, **kwargs: FakeOffResponse())
+    monkeypatch.setattr(
+        routes.requests, "get", lambda *args, **kwargs: FakeOffResponse()
+    )
     monkeypatch.setattr(routes, "GrocyClient", FakeGrocyClient)
 
     response = client.get(

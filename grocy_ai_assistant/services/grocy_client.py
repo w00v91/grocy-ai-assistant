@@ -226,7 +226,11 @@ class GrocyClient:
         if primary_response.status_code == 200:
             payload = primary_response.json()
             if isinstance(payload, dict):
-                product = payload.get("product") if isinstance(payload.get("product"), dict) else payload
+                product = (
+                    payload.get("product")
+                    if isinstance(payload.get("product"), dict)
+                    else payload
+                )
                 if product.get("id") is not None:
                     return product
 
@@ -493,6 +497,11 @@ class GrocyClient:
                     "location_id": normalized_location_id,
                     "location_name": location_name,
                     "amount": str(entry.get("amount") or ""),
+                    "best_before_date": str(
+                        entry.get("best_before_date")
+                        or entry.get("best_before_date_calculated")
+                        or ""
+                    ),
                 }
             )
 
