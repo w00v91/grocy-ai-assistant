@@ -199,7 +199,7 @@ def test_dashboard_limits_displayed_recipe_amount_per_source(client):
     static_response = client.get("/dashboard-static/dashboard.js")
 
     assert static_response.status_code == 200
-    assert "const GROCY_RECIPE_DISPLAY_LIMIT = 3;" in static_response.text
+    assert "const GROCY_RECIPE_DISPLAY_LIMIT = 2;" in static_response.text
     assert "const AI_RECIPE_DISPLAY_LIMIT = 2;" in static_response.text
     assert ".slice(0, GROCY_RECIPE_DISPLAY_LIMIT)" in static_response.text
     assert ".slice(0, AI_RECIPE_DISPLAY_LIMIT)" in static_response.text

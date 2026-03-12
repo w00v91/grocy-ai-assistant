@@ -9,7 +9,7 @@ const ingressPrefix = ingressPrefixMatch ? ingressPrefixMatch[0] : '';
 let pendingRequests = 0;
 let activeRecipeItem = null;
 
-const GROCY_RECIPE_DISPLAY_LIMIT = 3;
+const GROCY_RECIPE_DISPLAY_LIMIT = 2;
 const AI_RECIPE_DISPLAY_LIMIT = 2;
 
 let modalScrollLockY = 0;
