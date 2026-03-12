@@ -40,6 +40,7 @@ let scannerStream = null;
 let scannerInterval = null;
 let scannerLastBarcode = "";
 let scannerDetector = null;
+const scannerDigitalZoomFactor = 1.35;
 const recipeState = {
   initialized: false,
   hasLoadedInitialSuggestions: false,
@@ -1055,6 +1056,7 @@ async function lookupBarcode(barcode) {
 async function startBarcodeScanner() {
   const status = getScannerStatusElement();
   const video = document.getElementById('scanner-video');
+  const canvas = document.getElementById('scanner-canvas');
   const startButton = document.getElementById('start-scan-button');
   const stopButton = document.getElementById('stop-scan-button');
 
@@ -1064,16 +1066,27 @@ async function startBarcodeScanner() {
   }
 
   try {
+    stopBarcodeScanner();
+
     scannerStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { ideal: 'environment' } },
+      video: {
+        facingMode: { ideal: 'environment' },
+        width: { ideal: 1920 },
+        height: { ideal: 1080 },
+      },
       audio: false,
     });
+
+    await optimizeScannerTrack(scannerStream, status);
+
     video.srcObject = scannerStream;
     await video.play();
     video.classList.remove('hidden');
     startButton.classList.add('hidden');
     stopButton.classList.remove('hidden');
-    status.textContent = 'Scanner aktiv. Barcode vor die Kamera halten...';
+    if (!String(status.textContent || '').startsWith('Scanner aktiv')) {
+      status.textContent = 'Scanner aktiv. Barcode vor die Kamera halten...';
+    }
 
     if ('BarcodeDetector' in window) {
       scannerDetector = new window.BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e'] });
@@ -1085,7 +1098,8 @@ async function startBarcodeScanner() {
 
       if (scannerDetector) {
         try {
-          const barcodes = await scannerDetector.detect(video);
+          const detectionSource = getScannerDetectionSource(video, canvas, scannerDigitalZoomFactor);
+          const barcodes = await scannerDetector.detect(detectionSource);
           if (barcodes.length) {
             const value = String(barcodes[0].rawValue || '').trim();
             if (value && value !== scannerLastBarcode) {
@@ -1100,6 +1114,65 @@ async function startBarcodeScanner() {
   } catch (_) {
     status.textContent = 'Kamera konnte nicht gestartet werden. Bitte Berechtigung prüfen.';
   }
+}
+
+async function optimizeScannerTrack(stream, status) {
+  const videoTrack = stream?.getVideoTracks?.()[0];
+  if (!videoTrack) return;
+
+  const capabilities = videoTrack.getCapabilities ? videoTrack.getCapabilities() : null;
+  const constraints = {};
+
+  if (capabilities?.focusMode?.includes('continuous')) {
+    constraints.focusMode = 'continuous';
+  }
+
+  if (capabilities?.zoom) {
+    const minZoom = Number(capabilities.zoom.min || 1);
+    const maxZoom = Number(capabilities.zoom.max || minZoom);
+    const preferredZoom = Math.max(minZoom, Math.min(maxZoom, 1.8));
+    constraints.zoom = preferredZoom;
+    status.textContent = `Scanner aktiv (Kamera-Zoom ${preferredZoom.toFixed(1)}x). Barcode vor die Kamera halten...`;
+  }
+
+  if (!Object.keys(constraints).length) return;
+
+  try {
+    await videoTrack.applyConstraints({ advanced: [constraints] });
+  } catch (_) {
+    // Ignore optimization failures and keep default stream settings.
+  }
+}
+
+function getScannerDetectionSource(video, canvas, zoomFactor) {
+  if (!canvas || !video || !video.videoWidth || !video.videoHeight || zoomFactor <= 1) {
+    return video;
+  }
+
+  const context = canvas.getContext('2d', { willReadFrequently: true });
+  if (!context) return video;
+
+  const sourceWidth = Math.round(video.videoWidth / zoomFactor);
+  const sourceHeight = Math.round(video.videoHeight / zoomFactor);
+  const sourceX = Math.max(0, Math.round((video.videoWidth - sourceWidth) / 2));
+  const sourceY = Math.max(0, Math.round((video.videoHeight - sourceHeight) / 2));
+
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+
+  context.drawImage(
+    video,
+    sourceX,
+    sourceY,
+    sourceWidth,
+    sourceHeight,
+    0,
+    0,
+    canvas.width,
+    canvas.height
+  );
+
+  return canvas;
 }
 
 function stopBarcodeScanner() {
