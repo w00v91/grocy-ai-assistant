@@ -16,7 +16,9 @@
   --badge-bg: #edf2ff;
   --badge-text: #3555ad;
   --image-bg: #eef2f9;
+  --modal-backdrop-bg: rgba(15, 23, 42, 0.72);
 }
+
 
 :root[data-theme='dark'] {
   color-scheme: dark;
@@ -31,7 +33,9 @@
   --badge-bg: #273a63;
   --badge-text: #dbe7ff;
   --image-bg: #1f2b44;
+  --modal-backdrop-bg: rgba(2, 8, 23, 0.8);
 }
+
 
 body {
   font-family: Inter, Arial, sans-serif;
@@ -39,6 +43,13 @@ body {
   background: var(--bg-gradient);
   color: var(--text);
   padding-bottom: 5.5rem;
+}
+
+body.modal-open {
+  overflow: hidden;
+  overscroll-behavior: none;
+  width: 100%;
+  position: fixed;
 }
 .theme-toggle {
   position: fixed;
@@ -122,6 +133,17 @@ h1, h2 { margin: 0 0 0.75rem; }
   margin-bottom: 0.8rem;
 }
 
+.stock-filters-layout {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.8rem;
+  align-items: start;
+}
+
+.stock-filters-layout h3 {
+  margin-bottom: 0.5rem;
+}
+
 .location-dropdown {
   background: var(--item-bg);
   border: 1px solid var(--item-border);
@@ -150,9 +172,10 @@ h1, h2 { margin: 0 0 0.75rem; }
   transform: rotate(180deg);
 }
 
-.location-options {
+.location-options,
+.stock-options {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-template-columns: 1fr;
   gap: 0.55rem;
   padding: 0.6rem;
   border-top: 1px solid var(--item-border);
@@ -281,6 +304,10 @@ img {
   .expiring-search-controls {
     grid-template-columns: 1fr;
   }
+
+  .stock-filters-layout {
+    grid-template-columns: 1fr;
+  }
   button {
     min-height: 44px;
   }
@@ -341,6 +368,25 @@ img {
 }
 
 
+
+.shopping-product-fields {
+  margin-top: 0.6rem;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.35rem;
+}
+
+.shopping-product-fields label {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.shopping-item-badges {
+  display: grid;
+  gap: 0.35rem;
+  justify-items: end;
+}
+
 .recipe-actions {
   display: grid;
   gap: 0.6rem;
@@ -358,9 +404,6 @@ img {
   color: var(--muted);
 }
 .stock-products {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 0.55rem;
   margin-bottom: 0.8rem;
 }
 .stock-item {
@@ -493,7 +536,9 @@ img {
 .shopping-modal-backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(15, 23, 42, 0.55);
+  background: var(--modal-backdrop-bg);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
 }
 .shopping-modal-content {
   position: relative;
@@ -535,6 +580,7 @@ img {
 }
 
 #recipe-modal-preparation { white-space: pre-wrap; }
+#recipe-modal-ingredients,
 #recipe-modal-missing-products { margin: 0.4rem 0 0.8rem; padding-left: 1.1rem; }
 
 
