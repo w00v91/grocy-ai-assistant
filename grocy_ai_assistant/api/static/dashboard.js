@@ -838,6 +838,7 @@ function openRecipeDetails(item) {
   const title = document.getElementById('recipe-modal-title');
   const reason = document.getElementById('recipe-modal-reason');
   const preparation = document.getElementById('recipe-modal-preparation');
+  const ingredients = document.getElementById('recipe-modal-ingredients');
   const missingProducts = document.getElementById('recipe-modal-missing-products');
   const addButton = document.getElementById('recipe-add-missing-button');
 
@@ -845,6 +846,13 @@ function openRecipeDetails(item) {
   title.textContent = item.title || 'Rezeptdetails';
   reason.textContent = item.reason || '';
   preparation.textContent = item.preparation || 'Keine Zubereitungsdetails vorhanden.';
+
+  const ingredientItems = Array.isArray(item.ingredients) ? item.ingredients : [];
+  if (!ingredientItems.length) {
+    ingredients.innerHTML = '<li class="muted">Keine Zutatenliste vorhanden.</li>';
+  } else {
+    ingredients.innerHTML = ingredientItems.map((ingredient) => `<li>${ingredient}</li>`).join('');
+  }
 
   const missingItems = Array.isArray(item.missing_products) ? item.missing_products : [];
   if (!missingItems.length) {
