@@ -682,6 +682,7 @@ const addMissingButton = document.getElementById('recipe-add-missing-button');
 if (addMissingButton) addMissingButton.addEventListener('click', addMissingRecipeProducts);
 switchTab('shopping');
 loadShoppingList();
+preloadRecipeSuggestionsOnStartup();
 
 
 async function searchSuggestedProduct(productName) {
@@ -839,6 +840,11 @@ async function loadStockProducts() {
   }
 
   });
+}
+
+function preloadRecipeSuggestionsOnStartup() {
+  if (recipeState.initialized) return;
+  loadLocations();
 }
 
 async function loadRecipeSuggestions(options = {}) {

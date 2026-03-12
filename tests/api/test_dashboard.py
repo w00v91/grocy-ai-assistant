@@ -185,13 +185,12 @@ def test_dashboard_does_not_autoload_recipe_suggestions_on_recipe_tab_open(clien
 
 
 
-def test_dashboard_loads_initial_recipe_suggestions_once_after_stock_load(client):
+def test_dashboard_preloads_recipe_suggestions_on_startup(client):
     static_response = client.get("/dashboard-static/dashboard.js")
 
     assert static_response.status_code == 200
-    assert "hasLoadedInitialSuggestions" in static_response.text
-    assert "if (!hasStockChanged && !recipeState.hasLoadedInitialSuggestions)" in static_response.text
-    assert "await loadRecipeSuggestions();" in static_response.text
+    assert "function preloadRecipeSuggestionsOnStartup()" in static_response.text
+    assert "preloadRecipeSuggestionsOnStartup();" in static_response.text
 
 
 def test_dashboard_loads_initial_recipe_suggestions_once_after_stock_load(client):
