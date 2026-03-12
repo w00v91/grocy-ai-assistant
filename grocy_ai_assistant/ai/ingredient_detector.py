@@ -294,7 +294,13 @@ class IngredientDetector:
         return []
 
     def detect_product_from_image(self, image_base64: str) -> Dict[str, str]:
-        prompt = self.settings.scanner_llava_prompt
+        min_confidence = max(1, min(100, int(self.settings.scanner_llava_min_confidence)))
+        prompt = (
+            "Erkenne das Hauptprodukt auf dem Bild. "
+            f"Antworte NUR wenn du dir zu mindestens {min_confidence} prozent sicher bist "
+            "als JSON mit den Feldern product_name, brand und hint. "
+            "Antworte ansonsten mit NULL"
+        )
         ollama_payload = {
             "model": self.settings.ollama_llava_model,
             "prompt": prompt,
@@ -314,6 +320,9 @@ class IngredientDetector:
         try:
             parsed = json.loads(raw_answer or "{}")
         except json.JSONDecodeError:
+            return {"product_name": "", "brand": "", "hint": ""}
+
+        if not isinstance(parsed, dict):
             return {"product_name": "", "brand": "", "hint": ""}
 
         return {

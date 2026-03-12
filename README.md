@@ -65,6 +65,7 @@ Wichtige Felder:
 - `grocy_base_url`
 - `ollama_url`
 - `ollama_model`
+- `scanner_llava_min_confidence`
 - `required_integration_version`
 
 

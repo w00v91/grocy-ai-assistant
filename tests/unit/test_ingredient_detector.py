@@ -286,3 +286,52 @@ def test_generate_recipe_suggestions_logs_raw_ai_response_in_debug_mode(
         detector.generate_recipe_suggestions(["Tomate"], [])
 
     assert "KI-Antwort generate_recipe_suggestions" in caplog.text
+
+
+def test_detect_product_from_image_uses_configurable_min_confidence(monkeypatch):
+    captured_payload = {}
+
+    def fake_post(*args, **kwargs):
+        captured_payload.update(kwargs.get("json") or {})
+        return FakeResponse({"response": '{"product_name":"Milch","brand":"Bio","hint":"1L"}'})
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.ai.ingredient_detector.requests.post", fake_post
+    )
+
+    detector = IngredientDetector(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+            scanner_llava_min_confidence=82,
+        )
+    )
+
+    result = detector.detect_product_from_image("img")
+
+    assert "mindestens 82 prozent sicher" in captured_payload["prompt"]
+    assert result == {"product_name": "Milch", "brand": "Bio", "hint": "1L"}
+
+
+def test_detect_product_from_image_returns_empty_on_null_response(monkeypatch):
+    def fake_post(*args, **kwargs):
+        return FakeResponse({"response": "null"})
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.ai.ingredient_detector.requests.post", fake_post
+    )
+
+    detector = IngredientDetector(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+        )
+    )
+
+    result = detector.detect_product_from_image("img")
+
+    assert result == {"product_name": "", "brand": "", "hint": ""}
