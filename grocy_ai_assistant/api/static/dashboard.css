@@ -599,7 +599,7 @@ img {
 
 .scanner-actions {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 0.65rem;
 }
 
@@ -609,4 +609,16 @@ img {
 
 .scanner-result ul {
   margin-top: 0.5rem;
+}
+
+
+.scanner-options {
+  margin-top: 0.75rem;
+  display: grid;
+  gap: 0.35rem;
+  max-width: 260px;
+}
+
+.scanner-options input {
+  width: 100%;
 }

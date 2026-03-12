@@ -291,6 +291,35 @@ class IngredientDetector:
             return normalized
         return []
 
+    def detect_product_from_image(self, image_base64: str) -> Dict[str, str]:
+        prompt = self.settings.scanner_llava_prompt
+        ollama_payload = {
+            "model": self.settings.ollama_llava_model,
+            "prompt": prompt,
+            "stream": False,
+            "format": "json",
+            "images": [image_base64],
+        }
+
+        response = requests.post(
+            self.settings.ollama_url, json=ollama_payload, timeout=90
+        )
+        response.raise_for_status()
+        raw_answer = response.json().get("response")
+        if self.settings.debug_mode:
+            logger.info("KI-Antwort detect_product_from_image: %s", raw_answer)
+
+        try:
+            parsed = json.loads(raw_answer or "{}")
+        except json.JSONDecodeError:
+            return {"product_name": "", "brand": "", "hint": ""}
+
+        return {
+            "product_name": str(parsed.get("product_name") or "").strip(),
+            "brand": str(parsed.get("brand") or "").strip(),
+            "hint": str(parsed.get("hint") or "").strip(),
+        }
+
     def generate_product_image(self, product_name: str):
         prompt = IMAGE_PROMPT_TEMPLATE.format(product_name=product_name)
         payload = {

@@ -53,6 +53,12 @@ class Settings(BaseModel):
     )
     ollama_url: str = Field(default_factory=_default_ollama_url)
     ollama_model: str = "llama3"
+    ollama_llava_model: str = "llava"
+    scanner_barcode_fallback_seconds: int = 5
+    scanner_llava_prompt: str = (
+        "Erkenne das Hauptprodukt auf dem Bild. "
+        "Antworte NUR als JSON mit den Feldern product_name, brand und hint."
+    )
     debug_mode: bool = False
     grocy_base_url: str = "http://homeassistant.local:9192/api"
     grocy_api_key: str = ""

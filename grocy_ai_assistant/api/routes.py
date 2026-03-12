@@ -27,6 +27,8 @@ from grocy_ai_assistant.models.ingredient import (
     RecipeSuggestionResponse,
     ShoppingListBestBeforeDateUpdateRequest,
     ShoppingListItemResponse,
+    ScannerLlavaRequest,
+    ScannerLlavaResponse,
     StockProductResponse,
 )
 from grocy_ai_assistant.services.grocy_client import GrocyClient
@@ -607,6 +609,42 @@ def dashboard_barcode_lookup(
         )
         raise HTTPException(
             status_code=500, detail="Barcode konnte nicht abgefragt werden"
+        ) from error
+
+
+@router.post("/api/dashboard/scanner/llava", response_model=ScannerLlavaResponse)
+def dashboard_scanner_llava(
+    payload: ScannerLlavaRequest,
+    request: Request,
+    _: None = Depends(require_auth),
+    settings: Settings = Depends(get_settings),
+):
+    image_base64 = str(payload.image_base64 or "").strip()
+    if not image_base64:
+        raise HTTPException(status_code=400, detail="Bilddaten fehlen")
+
+    detector = IngredientDetector(settings)
+    try:
+        detection = detector.detect_product_from_image(image_base64)
+        if not any(detection.values()):
+            return ScannerLlavaResponse(success=False)
+
+        return ScannerLlavaResponse(
+            success=True,
+            product_name=detection.get("product_name", ""),
+            brand=detection.get("brand", ""),
+            hint=detection.get("hint", ""),
+        )
+    except Exception as error:
+        log_api_error(
+            logger,
+            request=request,
+            status_code=500,
+            message=str(error),
+            exc=error,
+        )
+        raise HTTPException(
+            status_code=500, detail="LLaVA-Erkennung konnte nicht durchgeführt werden"
         ) from error
 
 
@@ -1218,6 +1256,7 @@ def _render_dashboard(settings: Settings, request: Request):
             "configured_api_key": settings.api_key,
             "api_base_path": api_request_base_path,
             "static_base_path": static_base_path,
+            "scanner_llava_fallback_seconds": settings.scanner_barcode_fallback_seconds,
         },
     )
 

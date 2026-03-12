@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="de" data-configured-api-key="{{ configured_api_key }}" data-api-base-path="{{ api_base_path }}">
+<html lang="de" data-configured-api-key="{{ configured_api_key }}" data-api-base-path="{{ api_base_path }}" data-scanner-llava-fallback-seconds="{{ scanner_llava_fallback_seconds }}">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
@@ -57,6 +57,11 @@
           <div class='scanner-actions'>
             <button id='start-scan-button' type='button' onclick='startBarcodeScanner()'>📷 Kamera starten</button>
             <button id='stop-scan-button' type='button' class='danger-button hidden' onclick='stopBarcodeScanner()'>⏹ Kamera stoppen</button>
+            <button id='llava-scan-button' type='button' onclick='triggerLlavaScan()'>🤖 LLaVA jetzt befragen</button>
+          </div>
+          <div class='scanner-options'>
+            <label for='scanner-llava-delay'>KI-Fallback nach (Sekunden)</label>
+            <input id='scanner-llava-delay' type='number' min='1' max='30' value='5' />
           </div>
           <p id='status-scanner'>Bereit.</p>
           <section id='scanner-result' class='scanner-result hidden'></section>

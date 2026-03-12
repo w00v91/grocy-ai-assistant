@@ -184,7 +184,6 @@ def test_dashboard_does_not_autoload_recipe_suggestions_on_recipe_tab_open(clien
     )
 
 
-
 def test_dashboard_preloads_recipe_suggestions_on_startup(client):
     static_response = client.get("/dashboard-static/dashboard.js")
 
@@ -198,10 +197,23 @@ def test_dashboard_loads_initial_recipe_suggestions_once_after_stock_load(client
 
     assert static_response.status_code == 200
     assert "hasLoadedInitialSuggestions" in static_response.text
-    assert "if (!hasStockChanged && !recipeState.hasLoadedInitialSuggestions)" in static_response.text
-    assert "await loadRecipeSuggestions({ usePrefetchedCache: true });" in static_response.text
-    assert "const usePrefetchedCache = Boolean(options.usePrefetchedCache);" in static_response.text
-    assert "const selectedIds = usePrefetchedCache ? [] : getSelectedProductIds();" in static_response.text
+    assert (
+        "if (!hasStockChanged && !recipeState.hasLoadedInitialSuggestions)"
+        in static_response.text
+    )
+    assert (
+        "await loadRecipeSuggestions({ usePrefetchedCache: true });"
+        in static_response.text
+    )
+    assert (
+        "const usePrefetchedCache = Boolean(options.usePrefetchedCache);"
+        in static_response.text
+    )
+    assert (
+        "const selectedIds = usePrefetchedCache ? [] : getSelectedProductIds();"
+        in static_response.text
+    )
+
 
 def test_dashboard_contains_clear_button(client):
     response = client.get("/")
@@ -984,7 +996,9 @@ def test_dashboard_barcode_lookup_falls_back_to_grocy(client, monkeypatch):
             assert barcode == "4008400408400"
             return {"id": 5, "name": "Hausmarke Pasta"}
 
-    monkeypatch.setattr(routes.requests, "get", lambda *args, **kwargs: FakeOffResponse())
+    monkeypatch.setattr(
+        routes.requests, "get", lambda *args, **kwargs: FakeOffResponse()
+    )
     monkeypatch.setattr(routes, "GrocyClient", FakeGrocyClient)
 
     response = client.get(
@@ -1106,3 +1120,43 @@ def test_prefetch_initial_recipe_suggestions_returns_cache_payload(
     )
     assert prefetched["response"]["selected_products"] == ["Tomate"]
     assert prefetched["response"]["grocy_recipes"][0]["title"] == "Tomaten Pasta"
+
+
+def test_dashboard_scanner_contains_llava_controls(client):
+    response = client.get("/")
+
+    assert response.status_code == 200
+    assert "id='llava-scan-button'" in response.text
+    assert "id='scanner-llava-delay'" in response.text
+    assert 'data-scanner-llava-fallback-seconds="5"' in response.text
+
+
+def test_dashboard_scanner_llava_endpoint(client, monkeypatch):
+    def fake_detect_product_from_image(self, image_base64):
+        assert image_base64 == "abc123"
+        return {
+            "product_name": "Apfelsaft",
+            "brand": "Biohof",
+            "hint": "1L Karton",
+        }
+
+    monkeypatch.setattr(
+        routes.IngredientDetector,
+        "detect_product_from_image",
+        fake_detect_product_from_image,
+    )
+
+    response = client.post(
+        "/api/dashboard/scanner/llava",
+        headers={"Authorization": "Bearer test-api-key"},
+        json={"image_base64": "abc123"},
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "success": True,
+        "product_name": "Apfelsaft",
+        "brand": "Biohof",
+        "hint": "1L Karton",
+        "source": "ollama_llava",
+    }

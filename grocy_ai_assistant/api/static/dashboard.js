@@ -40,6 +40,9 @@ let scannerStream = null;
 let scannerInterval = null;
 let scannerLastBarcode = "";
 let scannerDetector = null;
+let scannerLastBarcodeAt = 0;
+let scannerLlavaInFlight = false;
+let scannerLlavaTimer = null;
 const scannerDigitalZoomFactor = 1.35;
 const recipeState = {
   initialized: false,
@@ -1097,6 +1100,111 @@ function renderScannerResult(payload) {
   `;
 }
 
+
+function getScannerLlavaDelaySeconds() {
+  const configuredFallback = Number(rootElement.dataset.scannerLlavaFallbackSeconds || 5);
+  const input = document.getElementById('scanner-llava-delay');
+  const fromInput = Number(input?.value || configuredFallback || 5);
+  if (!Number.isFinite(fromInput)) return 5;
+  return Math.max(1, Math.min(30, Math.round(fromInput)));
+}
+
+function captureScannerFrameBase64() {
+  const video = document.getElementById('scanner-video');
+  const canvas = document.getElementById('scanner-canvas');
+  if (!video || !canvas || !video.videoWidth || !video.videoHeight) return '';
+
+  const context = canvas.getContext('2d', { willReadFrequently: true });
+  if (!context) return '';
+
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+  const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+  return String(dataUrl).replace(/^data:image\/\w+;base64,/, '');
+}
+
+async function queryLlavaWithCurrentFrame(reason = 'manual') {
+  const key = ensureApiKey();
+  const status = getScannerStatusElement();
+  if (!key) {
+    status.textContent = 'Kein API-Key angegeben.';
+    return;
+  }
+
+  if (scannerLlavaInFlight) return;
+  scannerLlavaInFlight = true;
+
+  if (reason === 'timeout') {
+    status.textContent = 'Kein Barcode gefunden. Starte KI-Produkterkennung mit LLaVA...';
+  } else {
+    status.textContent = 'Starte KI-Produkterkennung mit LLaVA...';
+  }
+
+  try {
+    const imageBase64 = captureScannerFrameBase64();
+    if (!imageBase64) {
+      status.textContent = 'Kein Kamerabild verfügbar für LLaVA.';
+      return;
+    }
+
+    const res = await fetch(buildApiUrl('/api/dashboard/scanner/llava'), {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${key}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ image_base64: imageBase64 }),
+    });
+    const payload = await parseJsonSafe(res);
+
+    if (!res.ok) {
+      status.textContent = getErrorMessage(payload, 'LLaVA konnte nicht abgefragt werden.');
+      return;
+    }
+
+    if (!payload.success) {
+      status.textContent = 'LLaVA hat kein eindeutiges Produkt erkannt.';
+      return;
+    }
+
+    status.textContent = `LLaVA erkannt: ${payload.product_name || 'Unbekanntes Produkt'}`;
+    renderScannerResult({
+      found: true,
+      barcode: '-',
+      product_name: payload.product_name || 'Unbekanntes Produkt',
+      brand: payload.brand || '-',
+      quantity: payload.hint || '-',
+      ingredients_text: payload.hint || '-',
+      nutrition_grade: payload.source || 'LLaVA',
+    });
+  } catch (_) {
+    status.textContent = 'LLaVA konnte nicht abgefragt werden (Netzwerk-/Ingress-Fehler).';
+  } finally {
+    scannerLlavaInFlight = false;
+  }
+}
+
+function scheduleLlavaFallback() {
+  if (scannerLlavaTimer) {
+    clearTimeout(scannerLlavaTimer);
+  }
+  const waitMs = getScannerLlavaDelaySeconds() * 1000;
+  scannerLlavaTimer = setTimeout(() => {
+    if (activeTab !== 'scanner' || !scannerStream) return;
+    const elapsed = Date.now() - scannerLastBarcodeAt;
+    if (elapsed >= waitMs - 100) {
+      queryLlavaWithCurrentFrame('timeout');
+    }
+    scheduleLlavaFallback();
+  }, waitMs);
+}
+
+async function triggerLlavaScan() {
+  await queryLlavaWithCurrentFrame('manual');
+}
+
 async function lookupBarcode(barcode) {
   const key = ensureApiKey();
   const status = getScannerStatusElement();
@@ -1109,6 +1217,7 @@ async function lookupBarcode(barcode) {
   if (normalized.length < 8) return;
 
   scannerLastBarcode = normalized;
+  scannerLastBarcodeAt = Date.now();
   status.textContent = `Barcode erkannt: ${normalized}. Lade Produktdaten...`;
 
   try {
@@ -1141,6 +1250,10 @@ async function startBarcodeScanner() {
   const canvas = document.getElementById('scanner-canvas');
   const startButton = document.getElementById('start-scan-button');
   const stopButton = document.getElementById('stop-scan-button');
+  const scannerDelayInput = document.getElementById('scanner-llava-delay');
+  if (scannerDelayInput && !String(scannerDelayInput.value || '').trim()) {
+    scannerDelayInput.value = String(getScannerLlavaDelaySeconds());
+  }
 
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
     status.textContent = 'Kamera wird von diesem Browser nicht unterstützt.';
@@ -1169,6 +1282,8 @@ async function startBarcodeScanner() {
     if (!String(status.textContent || '').startsWith('Scanner aktiv')) {
       status.textContent = 'Scanner aktiv. Barcode vor die Kamera halten...';
     }
+    scannerLastBarcodeAt = Date.now();
+    scheduleLlavaFallback();
 
     if ('BarcodeDetector' in window) {
       scannerDetector = new window.BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e'] });
@@ -1266,6 +1381,12 @@ function stopBarcodeScanner() {
     clearInterval(scannerInterval);
     scannerInterval = null;
   }
+
+  if (scannerLlavaTimer) {
+    clearTimeout(scannerLlavaTimer);
+    scannerLlavaTimer = null;
+  }
+  scannerLlavaInFlight = false;
 
   if (scannerStream) {
     scannerStream.getTracks().forEach((track) => track.stop());
