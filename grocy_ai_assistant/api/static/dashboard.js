@@ -218,6 +218,20 @@ function formatValue(value, fallback = 'Nicht verfügbar') {
   return text || fallback;
 }
 
+function getShoppingAmount() {
+  const amountInput = document.getElementById('amount');
+  const amount = Number(amountInput?.value || 1);
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return 1;
+  }
+  return amount;
+}
+
+function getShoppingBestBeforeDate() {
+  const dateInput = document.getElementById('best-before-date');
+  return String(dateInput?.value || '').trim();
+}
+
 function renderShoppingList(items) {
   const list = document.getElementById('shopping-list');
   if (!items.length) {
@@ -242,7 +256,10 @@ function renderShoppingList(items) {
           <div><strong>${item.product_name}</strong></div>
           <div class="muted">${item.note || 'Keine Notiz'}</div>
         </div>
-        <span class="badge">Menge: ${item.amount}</span>
+        <div class="shopping-item-badges">
+          <span class="badge">Menge: ${item.amount}</span>
+          <span class="badge">MHD: ${item.best_before_date || "-"}</span>
+        </div>
       </div>
     </li>
   `).join('');
@@ -352,11 +369,19 @@ async function confirmVariant(productId, productName) {
   }
 
   status.textContent = `Füge ${productName} zur Einkaufsliste hinzu...`;
+  const amount = getShoppingAmount();
+  const bestBeforeDate = getShoppingBestBeforeDate();
+
   try {
     const res = await fetch(buildApiUrl('/api/dashboard/add-existing-product'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
-      body: JSON.stringify({ product_id: productId, product_name: productName }),
+      body: JSON.stringify({
+        product_id: productId,
+        product_name: productName,
+        amount,
+        best_before_date: bestBeforeDate,
+      }),
     });
     const payload = await parseJsonSafe(res);
     status.textContent = payload.message || getErrorMessage(payload, 'Unbekannte Antwort');
@@ -567,6 +592,8 @@ async function searchProduct() {
   const name = document.getElementById('name').value;
   const status = getShoppingStatusElement();
   const key = ensureApiKey();
+  const amount = getShoppingAmount();
+  const bestBeforeDate = getShoppingBestBeforeDate();
 
   if (!key) {
     status.textContent = 'Kein API-Key angegeben.';
@@ -582,7 +609,11 @@ async function searchProduct() {
     const res = await fetch(buildApiUrl('/api/dashboard/search'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
-      body: JSON.stringify({ name })
+      body: JSON.stringify({
+        name,
+        amount,
+        best_before_date: bestBeforeDate,
+      })
     });
 
     const payload = await parseJsonSafe(res);
