@@ -84,6 +84,7 @@ class RecipeSuggestionItem(BaseModel):
     source: str
     reason: str = ""
     preparation: str = ""
+    ingredients: list[str] = Field(default_factory=list)
     picture_url: str = ""
     missing_products: list[ProductVariantResponse] = Field(default_factory=list)
 

@@ -39,8 +39,18 @@ def test_generate_recipe_suggestions_normalizes_preparation_fields(monkeypatch):
     result = detector.generate_recipe_suggestions(["Tomate"], ["Pasta"])
 
     assert result == [
-        {"title": "Suppe", "reason": "passt", "preparation": "Gemüse kochen"},
-        {"title": "Salat", "reason": "frisch", "preparation": "Mischen"},
+        {
+            "title": "Suppe",
+            "reason": "passt",
+            "preparation": "Gemüse kochen",
+            "ingredients": [],
+        },
+        {
+            "title": "Salat",
+            "reason": "frisch",
+            "preparation": "Mischen",
+            "ingredients": [],
+        },
     ]
 
 
@@ -72,6 +82,7 @@ def test_generate_recipe_suggestions_decodes_escaped_newlines(monkeypatch):
             "title": "Apfel, Butter Pfanne\nSchnell",
             "reason": "Resteverwertung\nmit Bestand",
             "preparation": "Schritt 1\nSchritt 2",
+            "ingredients": [],
         }
     ]
 
@@ -82,7 +93,7 @@ def test_generate_recipe_suggestions_extracts_embedded_recipe_sections(monkeypat
             {
                 "response": (
                     '[{"title":"Apfel Salat\\nLeichtes Rezept, das mit den vorhandenen Zutaten startet.'
-                    '\\nZubereitung\\nApfel schneiden und mit Nüssen vermischen.'
+                    "\\nZubereitung\\nApfel schneiden und mit Nüssen vermischen."
                     '\\n\\nFehlende Produkte\\nKeine fehlenden Produkte.","reason":"","preparation":""}]'
                 )
             }
@@ -108,6 +119,7 @@ def test_generate_recipe_suggestions_extracts_embedded_recipe_sections(monkeypat
             "title": "Apfel Salat",
             "reason": "Leichtes Rezept, das mit den vorhandenen Zutaten startet.",
             "preparation": "Apfel schneiden und mit Nüssen vermischen.",
+            "ingredients": [],
         }
     ]
 
@@ -136,16 +148,54 @@ def test_generate_recipe_suggestions_accepts_single_object_payload(monkeypatch):
     result = detector.generate_recipe_suggestions(["Apfel"], [])
 
     assert result == [
-        {"title": "Apfel-Käse-Toast", "reason": "passt", "preparation": "Toast rösten"}
+        {
+            "title": "Apfel-Käse-Toast",
+            "reason": "passt",
+            "preparation": "Toast rösten",
+            "ingredients": [],
+        }
     ]
 
 
-def test_generate_recipe_suggestions_logs_raw_ai_response_in_debug_mode(monkeypatch, caplog):
+def test_generate_recipe_suggestions_normalizes_ingredients_list(monkeypatch):
     def fake_post(*args, **kwargs):
         return FakeResponse(
             {
-                "response": '[{"title":"Suppe","reason":"passt","preparation":"Kochen"}]'
+                "response": '[{"title":"Curry","reason":"passt","preparation":"Kochen","ingredients":["2 Karotten","  ","1 Dose Kokosmilch"]}]'
             }
+        )
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.ai.ingredient_detector.requests.post", fake_post
+    )
+
+    detector = IngredientDetector(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+        )
+    )
+
+    result = detector.generate_recipe_suggestions(["Karotte"], [])
+
+    assert result == [
+        {
+            "title": "Curry",
+            "reason": "passt",
+            "preparation": "Kochen",
+            "ingredients": ["2 Karotten", "1 Dose Kokosmilch"],
+        }
+    ]
+
+
+def test_generate_recipe_suggestions_logs_raw_ai_response_in_debug_mode(
+    monkeypatch, caplog
+):
+    def fake_post(*args, **kwargs):
+        return FakeResponse(
+            {"response": '[{"title":"Suppe","reason":"passt","preparation":"Kochen"}]'}
         )
 
     monkeypatch.setattr(
@@ -165,6 +215,4 @@ def test_generate_recipe_suggestions_logs_raw_ai_response_in_debug_mode(monkeypa
     with caplog.at_level(logging.INFO):
         detector.generate_recipe_suggestions(["Tomate"], [])
 
-    assert (
-        "KI-Antwort generate_recipe_suggestions" in caplog.text
-    )
+    assert "KI-Antwort generate_recipe_suggestions" in caplog.text

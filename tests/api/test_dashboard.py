@@ -167,8 +167,6 @@ def test_dashboard_does_not_autoload_variants(client):
     assert "list.innerHTML = '';" in static_response.text
 
 
-
-
 def test_dashboard_does_not_autoload_recipe_suggestions_on_recipe_tab_open(client):
     response = client.get("/")
     static_response = client.get("/dashboard-static/dashboard.js")
@@ -176,8 +174,15 @@ def test_dashboard_does_not_autoload_recipe_suggestions_on_recipe_tab_open(clien
     assert response.status_code == 200
     assert static_response.status_code == 200
     assert "onclick='loadRecipeSuggestions()'" in response.text
-    assert "Bestand geladen. Lade Rezeptvorschläge bei Bedarf manuell." in static_response.text
-    assert "Bestand aktualisiert. Lade Rezeptvorschläge bei Bedarf manuell." in static_response.text
+    assert (
+        "Bestand geladen. Lade Rezeptvorschläge bei Bedarf manuell."
+        in static_response.text
+    )
+    assert (
+        "Bestand aktualisiert. Lade Rezeptvorschläge bei Bedarf manuell."
+        in static_response.text
+    )
+
 
 
 def test_dashboard_loads_initial_recipe_suggestions_once_after_stock_load(client):
@@ -477,6 +482,7 @@ def test_recipe_suggestions_prioritize_grocy_then_ai(client, monkeypatch):
     assert payload["grocy_recipes"][0]["preparation"] == "Pasta kochen"
     assert payload["ai_recipes"][0]["source"] == "ai"
     assert payload["ai_recipes"][0]["preparation"] == "Tomaten schneiden und köcheln."
+    assert payload["ai_recipes"][0]["ingredients"] == []
 
 
 def test_recipe_suggestions_uses_stock_products_when_selection_is_empty(
@@ -607,6 +613,7 @@ def test_recipe_suggestions_generates_fallback_when_ai_returns_nothing(
     assert payload["grocy_recipes"][0]["picture_url"] == "/img/tomaten-pasta.jpg"
     assert payload["ai_recipes"]
     assert payload["ai_recipes"][0]["title"]
+    assert payload["ai_recipes"][0]["ingredients"]
 
 
 def test_add_missing_recipe_products_adds_to_shopping_list(client, monkeypatch):
@@ -645,6 +652,7 @@ def test_dashboard_contains_recipe_section(client):
 
     assert response.status_code == 200
     assert "Rezeptvorschläge" in response.text
+    assert "recipe-modal-ingredients" in response.text
 
     js_response = client.get("/dashboard-static/dashboard.js")
     assert js_response.status_code == 200
@@ -947,6 +955,8 @@ def test_dashboard_barcode_lookup_rejects_invalid_barcode(client):
     )
 
     assert response.status_code == 400
+
+
 def test_recipe_suggestions_uses_prefetched_cache_when_stock_unchanged(
     client, monkeypatch
 ):
@@ -981,6 +991,7 @@ def test_recipe_suggestions_uses_prefetched_cache_when_stock_unchanged(
                     "source": "grocy",
                     "reason": "Passt",
                     "preparation": "Kochen",
+                    "ingredients": [],
                     "picture_url": "",
                     "missing_products": [],
                 }
