@@ -20,6 +20,9 @@ Damit beide Teile kompatibel bleiben, werden Add-on- und Integrationsversion gem
 
 ## Projektstruktur
 
+Detaillierte Schichtbeschreibung: siehe [ARCHITECTURE.md](ARCHITECTURE.md).
+
+
 ```text
 grocy_ai_assistant/
 ├── api/                                # FastAPI App + Routen
@@ -102,7 +105,7 @@ black .
 - API-Tests für Status, Dashboard, HTTPS-Redirect und Produkt-Workflow
 - Unit-Tests für Engine, Grocy-Client, Add-on-Client und Panel-URL-Logik
 - Hilfsfunktions-Tests für Produktbild-URL-Aufbereitung
-- Architektur-Test für Layering-Regeln zwischen `api`, `core`, `ai`, `services` und `custom_components`
+- Architektur-Test für Layering-Regeln zwischen `api`, `core`, `ai`, `services` und `custom_components` (`tests/architecture/test_layering.py`)
 
 ## Architektur-Review (aktueller Stand)
 
