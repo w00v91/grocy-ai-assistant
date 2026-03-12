@@ -9,6 +9,8 @@ const ingressPrefix = ingressPrefixMatch ? ingressPrefixMatch[0] : '';
 let pendingRequests = 0;
 let activeRecipeItem = null;
 
+const GROCY_RECIPE_DISPLAY_LIMIT = 3;
+const AI_RECIPE_DISPLAY_LIMIT = 2;
 
 let modalScrollLockY = 0;
 
@@ -982,8 +984,8 @@ async function loadRecipeSuggestions(options = {}) {
       return;
     }
 
-    renderRecipeList('grocy-recipe-list', payload.grocy_recipes || [], 'Keine gespeicherten Grocy-Rezepte gefunden.');
-    renderRecipeList('ai-recipe-list', payload.ai_recipes || [], 'Keine KI-Rezepte erzeugt.');
+    renderRecipeList('grocy-recipe-list', (payload.grocy_recipes || []).slice(0, GROCY_RECIPE_DISPLAY_LIMIT), 'Keine gespeicherten Grocy-Rezepte gefunden.');
+    renderRecipeList('ai-recipe-list', (payload.ai_recipes || []).slice(0, AI_RECIPE_DISPLAY_LIMIT), 'Keine KI-Rezepte erzeugt.');
     status.textContent = `Rezeptvorschläge geladen für: ${(payload.selected_products || []).join(', ')}`;
   } catch (_) {
     status.textContent = 'Rezeptvorschläge konnten nicht geladen werden (Netzwerk-/Ingress-Fehler).';
