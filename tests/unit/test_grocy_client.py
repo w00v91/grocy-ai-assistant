@@ -369,8 +369,12 @@ def test_get_stock_products_resolves_product_and_location_names(monkeypatch):
         if url.endswith("/stock"):
             return FakeResponse(
                 [
-                    {"product_id": 2, "amount": 3},
-                    {"product_id": 1, "amount": 1},
+                    {
+                        "product_id": 2,
+                        "amount": 3,
+                        "best_before_date_calculated": "2026-01-03",
+                    },
+                    {"product_id": 1, "amount": 1, "best_before_date": "2026-01-02"},
                 ]
             )
         if url.endswith("/objects/products"):
@@ -411,6 +415,7 @@ def test_get_stock_products_resolves_product_and_location_names(monkeypatch):
             "location_id": 4,
             "location_name": "Obstkorb",
             "amount": "1",
+            "best_before_date": "2026-01-02",
         },
         {
             "id": 2,
@@ -418,6 +423,7 @@ def test_get_stock_products_resolves_product_and_location_names(monkeypatch):
             "location_id": 1,
             "location_name": "Kühlschrank",
             "amount": "3",
+            "best_before_date": "2026-01-03",
         },
     ]
 
@@ -500,8 +506,12 @@ def test_get_stock_products_filters_by_locations(monkeypatch):
         if url.endswith("/stock"):
             return FakeResponse(
                 [
-                    {"product_id": 2, "amount": 3},
-                    {"product_id": 1, "amount": 1},
+                    {
+                        "product_id": 2,
+                        "amount": 3,
+                        "best_before_date_calculated": "2026-01-03",
+                    },
+                    {"product_id": 1, "amount": 1, "best_before_date": "2026-01-02"},
                 ]
             )
         if url.endswith("/objects/products"):
@@ -542,6 +552,7 @@ def test_get_stock_products_filters_by_locations(monkeypatch):
             "location_id": 1,
             "location_name": "Kühlschrank",
             "amount": "3",
+            "best_before_date": "2026-01-03",
         },
     ]
 
@@ -551,7 +562,12 @@ def test_get_stock_products_uses_stock_location_for_filter_and_display(monkeypat
         if url.endswith("/stock"):
             return FakeResponse(
                 [
-                    {"product_id": "2", "location_id": "4", "amount": 1},
+                    {
+                        "product_id": "2",
+                        "location_id": "4",
+                        "amount": 1,
+                        "best_before_date": "2026-01-10",
+                    },
                     {"product_id": "3", "location_id": "1", "amount": 2},
                 ]
             )
@@ -593,6 +609,7 @@ def test_get_stock_products_uses_stock_location_for_filter_and_display(monkeypat
             "location_id": 4,
             "location_name": "Vorrat",
             "amount": "1",
+            "best_before_date": "2026-01-10",
         }
     ]
 
@@ -690,9 +707,7 @@ def test_find_product_by_barcode_uses_primary_endpoint(monkeypatch):
 
     def fake_get(url, *args, **kwargs):
         if url.endswith("/stock/products/by-barcode/4008400408400"):
-            return PrimaryHitResponse(
-                {"product": {"id": 3, "name": "Nudeln"}}
-            )
+            return PrimaryHitResponse({"product": {"id": 3, "name": "Nudeln"}})
         raise AssertionError(f"Unexpected url: {url}")
 
     monkeypatch.setattr(
@@ -725,10 +740,12 @@ def test_find_product_by_barcode_falls_back_to_product_barcodes(monkeypatch):
             assert kwargs.get("params") == {"query[]": "barcode=4008400408400"}
             return FakeResponse([{"product_id": 12, "barcode": "4008400408400"}])
         if url.endswith("/objects/products"):
-            return FakeResponse([
-                {"id": 11, "name": "Butter"},
-                {"id": 12, "name": "Vollkornbrot"},
-            ])
+            return FakeResponse(
+                [
+                    {"id": 11, "name": "Butter"},
+                    {"id": 12, "name": "Vollkornbrot"},
+                ]
+            )
         raise AssertionError(f"Unexpected url: {url}")
 
     monkeypatch.setattr(
