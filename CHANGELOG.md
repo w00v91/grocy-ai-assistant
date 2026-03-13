@@ -2,9 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+
 ## 7.0.34
 
 - Fix: CHANGELOG-Format für Home Assistant angepasst (versionierte Abschnitte statt reinem "Unreleased"), damit Änderungen korrekt erkannt werden.
+- UI: Button „Rezeptvorschläge laden“ unter den Suchbutton für bald ablaufende Produkte verschoben und mit zusätzlichem Abstand davor/danach versehen.
 
 ## 7.0.33
 

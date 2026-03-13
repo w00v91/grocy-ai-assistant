@@ -472,6 +472,10 @@ img {
   gap: 0.6rem;
 }
 
+.recipe-load-button {
+  margin: 0.4rem 0;
+}
+
 .expiring-search-controls {
   display: grid;
   grid-template-columns: auto 90px 1fr;
