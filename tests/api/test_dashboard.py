@@ -335,6 +335,55 @@ def test_product_picture_proxy_fetches_with_grocy_api_key(client, monkeypatch):
     assert captured["headers"]["GROCY-API-KEY"] == "test-grocy-key"
 
 
+def test_product_picture_proxy_uses_files_fallback_on_404(client, monkeypatch):
+    class NotFoundResponse:
+        status_code = 404
+
+    class FakeResponse:
+        content = b"img"
+        headers = {"Content-Type": "image/jpeg"}
+
+        def raise_for_status(self):
+            return None
+
+    calls = []
+
+    def fake_requests_get(url, headers, timeout):
+        calls.append(url)
+
+        class FirstAttempt:
+            def raise_for_status(self_inner):
+                if url.startswith("http://homeassistant.local:9192/api/files/"):
+                    error = routes.requests.HTTPError("not found")
+                    error.response = NotFoundResponse()
+                    raise error
+                return None
+
+            content = b"img"
+            headers = {"Content-Type": "image/jpeg"}
+
+        if url.startswith("http://homeassistant.local:9192/api/files/"):
+            return FirstAttempt()
+        return FakeResponse()
+
+    monkeypatch.setattr(routes.requests, "get", fake_requests_get)
+    client.app.state.product_image_cache = None
+
+    response = client.get(
+        "/api/dashboard/product-picture",
+        params={
+            "src": "http://homeassistant.local:9192/api/files/recipepictures/test.jpg?force_serve_as=picture"
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.content == b"img"
+    assert calls == [
+        "http://homeassistant.local:9192/api/files/recipepictures/test.jpg?force_serve_as=picture",
+        "http://homeassistant.local:9192/files/recipepictures/test.jpg?force_serve_as=picture",
+    ]
+
+
 def test_product_picture_proxy_rejects_foreign_hosts(client):
     response = client.get(
         "/api/dashboard/product-picture",
