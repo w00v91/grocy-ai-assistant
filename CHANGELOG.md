@@ -3,6 +3,11 @@
 All notable changes to this project are documented in this file.
 
 
+## 7.0.36
+
+- UI: Button „Aktualisieren“ in der Einkaufsliste nutzt jetzt den invertierten Primary-Stil, damit er im Darkmode nicht zu dunkel erscheint.
+
+
 ## 7.0.35
 
 - UI: Swipe-Aktionen in der Einkaufsliste auf eine moderne, iOS-inspirierte Implementation mit flüssigem Drag, dynamischen Action-Hintergründen und sanfter Commit-Animation umgestellt.
