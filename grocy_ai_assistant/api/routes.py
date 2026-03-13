@@ -2,7 +2,7 @@ import logging
 import re
 from datetime import date, timedelta
 from pathlib import Path
-from urllib.parse import quote, urlparse
+from urllib.parse import ParseResult, quote, urlparse
 from uuid import uuid4
 
 import requests
@@ -751,39 +751,79 @@ def dashboard_product_picture(
         if cached_content is not None:
             return Response(content=cached_content, media_type=cached_media_type)
 
-    logger.info("Lade Produktbild via Proxy: %s", src)
-    try:
-        response = requests.get(
-            src,
-            headers={"GROCY-API-KEY": settings.grocy_api_key},
-            timeout=30,
+    parsed_src = urlparse(src)
+    candidate_urls = [src]
+    if parsed_src.path.startswith("/api/files/"):
+        candidate_urls.append(
+            ParseResult(
+                scheme=parsed_src.scheme,
+                netloc=parsed_src.netloc,
+                path=parsed_src.path.removeprefix("/api"),
+                params=parsed_src.params,
+                query=parsed_src.query,
+                fragment=parsed_src.fragment,
+            ).geturl()
         )
-    except requests.RequestException as error:
-        log_api_error(
-            logger,
-            request=request,
-            status_code=502,
-            message="Produktbild konnte nicht geladen werden",
-            details=[{"source": src}],
-            exc=error,
+    elif parsed_src.path.startswith("/files/"):
+        candidate_urls.append(
+            ParseResult(
+                scheme=parsed_src.scheme,
+                netloc=parsed_src.netloc,
+                path=f"/api{parsed_src.path}",
+                params=parsed_src.params,
+                query=parsed_src.query,
+                fragment=parsed_src.fragment,
+            ).geturl()
         )
-        raise HTTPException(
-            status_code=502,
-            detail="Produktbild konnte nicht geladen werden",
-        ) from error
 
-    try:
-        response.raise_for_status()
-    except requests.HTTPError as error:
-        log_api_error(
-            logger,
-            request=request,
-            status_code=404,
-            message="Bild nicht gefunden",
-            details=[{"source": src}],
-            exc=error,
-        )
-        raise HTTPException(status_code=404, detail="Bild nicht gefunden") from error
+    response = None
+    for index, candidate_url in enumerate(candidate_urls):
+        logger.info("Lade Produktbild via Proxy: %s", candidate_url)
+        try:
+            response = requests.get(
+                candidate_url,
+                headers={"GROCY-API-KEY": settings.grocy_api_key},
+                timeout=30,
+            )
+            response.raise_for_status()
+            break
+        except requests.HTTPError as error:
+            is_not_found = (
+                error.response is not None and error.response.status_code == 404
+            )
+            has_fallback = index < len(candidate_urls) - 1
+            if is_not_found and has_fallback:
+                logger.info(
+                    "Bild unter %s nicht gefunden, versuche Fallback-URL %s",
+                    candidate_url,
+                    candidate_urls[index + 1],
+                )
+                continue
+            log_api_error(
+                logger,
+                request=request,
+                status_code=404,
+                message="Bild nicht gefunden",
+                details=[{"source": candidate_url}],
+                exc=error,
+            )
+            raise HTTPException(status_code=404, detail="Bild nicht gefunden") from error
+        except requests.RequestException as error:
+            log_api_error(
+                logger,
+                request=request,
+                status_code=502,
+                message="Produktbild konnte nicht geladen werden",
+                details=[{"source": candidate_url}],
+                exc=error,
+            )
+            raise HTTPException(
+                status_code=502,
+                detail="Produktbild konnte nicht geladen werden",
+            ) from error
+
+    if response is None:
+        raise HTTPException(status_code=404, detail="Bild nicht gefunden")
 
     content_type = response.headers.get("Content-Type", "image/jpeg")
     return Response(content=response.content, media_type=content_type)
