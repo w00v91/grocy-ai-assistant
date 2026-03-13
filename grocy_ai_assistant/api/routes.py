@@ -2,7 +2,7 @@ import logging
 import re
 from datetime import date, timedelta
 from pathlib import Path
-from urllib.parse import ParseResult, quote, urlparse
+from urllib.parse import ParseResult, quote, unquote, urlparse
 from uuid import uuid4
 
 import requests
@@ -77,6 +77,27 @@ def _build_dashboard_picture_proxy_url(raw_picture_url: str, settings: Settings)
 
     return f"/api/dashboard/product-picture?src={quote(absolute_picture_url, safe='')}"
 
+
+
+
+def _normalize_dashboard_picture_source_url(src: str) -> str:
+    parsed_src = urlparse(src)
+    if parsed_src.query:
+        return src
+
+    decoded_path = unquote(parsed_src.path)
+    if "?" not in decoded_path:
+        return src
+
+    normalized_path, normalized_query = decoded_path.split("?", 1)
+    return ParseResult(
+        scheme=parsed_src.scheme,
+        netloc=parsed_src.netloc,
+        path=normalized_path,
+        params=parsed_src.params,
+        query=normalized_query,
+        fragment=parsed_src.fragment,
+    ).geturl()
 
 def _extract_shopping_item_picture_value(item: dict) -> str:
     product = item.get("product") if isinstance(item.get("product"), dict) else {}
@@ -736,6 +757,8 @@ def dashboard_product_picture(
 
     if not src:
         raise HTTPException(status_code=400, detail="Bildquelle fehlt")
+
+    src = _normalize_dashboard_picture_source_url(src)
 
     parsed_src = urlparse(src)
     parsed_grocy = urlparse(settings.grocy_base_url)
