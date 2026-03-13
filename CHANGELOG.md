@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Fix: Dashboard-Layout setzt `html` auf `height: 100%` (inkl. `body`-Mindesthöhe), damit der Hintergrund die volle Viewport-Höhe abdeckt.
 - Doku: README vollständig strukturell überarbeitet (Zielbild, Architektur, Konfiguration, API-Endpunkte, Entwicklungsabläufe).
 - Pflege: Versionsstände für Add-on und Integration angehoben und im Projekt konsistent dokumentiert.
 
