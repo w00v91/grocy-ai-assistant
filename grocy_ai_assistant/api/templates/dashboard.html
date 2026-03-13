@@ -7,46 +7,48 @@
     <link rel="stylesheet" href="{{ static_base_path }}/dashboard.css" />
   </head>
   <body>
-    <button id='theme-toggle' class='theme-toggle' onclick='toggleTheme()'>🌙 Darkmode</button>
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">Grocy AI Assistant</p>
+        <h1>Smart Pantry Dashboard</h1>
+      </div>
+      <button id='theme-toggle' class='theme-toggle' onclick='toggleTheme()'>🌙 Darkmode</button>
+    </header>
+
     <main class='container'>
       <section id='tab-shopping' class='tab-view'>
-      <section class='card'>
-        <div class='section-header'>
-          <h1>Grocy AI Suche</h1>
-          <span id='activity-spinner' class='activity-spinner hidden' aria-label='Lädt' title='Lädt'></span>
-        </div>
-        <div class='search-row'>
-          <div class='search-input-wrapper'>
-            <input id='name' placeholder='z.B. Hafermilch 1L' />
-            <button
-              id='clear-name'
-              class='clear-input-button'
-              type='button'
-              aria-label='Sucheingabe löschen'
-              onclick='clearSearchInput()'
-            >
-              ×
-            </button>
+        <section class='card hero-card'>
+          <div class='section-header'>
+            <h2>Grocy AI Suche</h2>
+            <span id='activity-spinner' class='activity-spinner hidden' aria-label='Lädt' title='Lädt'></span>
           </div>
-          <button onclick='searchProduct()'>Suchen & hinzufügen</button>
-        </div>
-        <section id='variant-section' class='variant-section hidden'>
-          <h2>Gefundene Produktvarianten</h2>
-          <div id='variant-list' class='variant-grid'></div>
+          <p class="muted">Shadcn-inspiriertes Interface für Produktsuche, Einkauf und KI-Unterstützung.</p>
+          <div class='search-row'>
+            <div class='search-input-wrapper'>
+              <input id='name' placeholder='z.B. Hafermilch 1L' />
+              <button id='clear-name' class='clear-input-button' type='button' aria-label='Sucheingabe löschen' onclick='clearSearchInput()'>×</button>
+            </div>
+            <button class="primary-button" onclick='searchProduct()'>Suchen & hinzufügen</button>
+          </div>
+          <section id='variant-section' class='variant-section hidden'>
+            <h3>Gefundene Produktvarianten</h3>
+            <div id='variant-list' class='variant-grid'></div>
+          </section>
+        </section>
+
+        <section class='card shopping-list-section'>
+          <div class="section-header">
+            <h2>Einkaufsliste</h2>
+            <button class="ghost-button" onclick='loadShoppingList()'>Aktualisieren</button>
+          </div>
+          <ul id='shopping-list'></ul>
+          <p id='status-shopping'>Bereit.</p>
+          <div class="button-row">
+            <button class='success-button' onclick='completeShoppingList()'>Einkauf abschließen</button>
+            <button class='danger-button' onclick='clearShoppingList()'>Einkaufsliste leeren</button>
+          </div>
         </section>
       </section>
-
-      <section class='card shopping-list-section'>
-        <h2>Einkaufsliste</h2>
-        <button onclick='loadShoppingList()'>Einkaufsliste aktualisieren</button>
-        <ul id='shopping-list'></ul>
-        <p id='status-shopping'>Bereit.</p>
-        <button class='success-button' onclick='completeShoppingList()'>Einkauf abschließen</button>
-        <button class='danger-button' onclick='clearShoppingList()'>Einkaufsliste leeren</button>
-      </section>
-      </section>
-
-
 
       <section id='tab-scanner' class='tab-view hidden'>
         <section class='card'>
@@ -106,7 +108,6 @@
       <button id='tab-button-scanner' class='tab-button' type='button' onclick='switchTab("scanner")'>📷 Scanner</button>
     </nav>
 
-
     <div id='shopping-item-modal' class='shopping-modal hidden'>
       <div class='shopping-modal-backdrop' onclick='closeShoppingItemDetails()'></div>
       <section class='shopping-modal-content card'>
@@ -115,8 +116,6 @@
         <div id='shopping-item-details' class='shopping-details-grid'></div>
       </section>
     </div>
-
-
 
     <div id='mhd-modal' class='shopping-modal hidden'>
       <div class='shopping-modal-backdrop' onclick='closeMhdPicker()'></div>

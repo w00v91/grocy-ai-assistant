@@ -34,5 +34,5 @@ format:
 - Grocy communication only in /services
 - Home Assistant integration must stay in /custom_components
 - Create a Changelog when performing changes
-
+- Update version at least in config.json on changes
 
