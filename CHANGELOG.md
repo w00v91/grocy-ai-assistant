@@ -4,6 +4,7 @@ All notable changes to this project are documented in this file.
 
 ## 7.1.3
 
+- UI: Darkmode-Button im Header in die Titelzeile verschoben und rechts neben „Smart Pantry Dashboard“ ausgerichtet.
 - Fix: Rezeptbilder in den Rezeptvorschlägen werden jetzt über den Dashboard-Bild-Proxy ausgeliefert, damit sie auch auf mobilen Geräten über Ingress zuverlässig laden.
 
 ## 7.1.2
