@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="de" data-configured-api-key="{{ configured_api_key }}" data-api-base-path="{{ api_base_path }}" data-scanner-llava-fallback-seconds="{{ scanner_llava_fallback_seconds }}">
+<html lang="de" data-configured-api-key="{{ configured_api_key }}" data-api-base-path="{{ api_base_path }}" data-scanner-llava-fallback-seconds="{{ scanner_llava_fallback_seconds }}" data-ha-user-id="{{ ha_user_id }}">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
@@ -132,13 +132,8 @@
           </div>
 
           <h3>Regelverwaltung</h3>
-          <div class='notification-rule-editor'>
-            <input id='notify-rule-name' placeholder='Regelname' />
-            <input id='notify-rule-events' placeholder='Events, z.B. shopping_due,low_stock_detected' />
-            <input id='notify-rule-devices' placeholder='Zielgeräte-IDs (optional, comma-separated)' />
-            <input id='notify-rule-cooldown' type='number' min='0' placeholder='Cooldown in Sekunden' />
-            <textarea id='notify-rule-template' placeholder='Template, z.B. ${message}'></textarea>
-            <button class='success-button' type='button' onclick='createNotificationRule()'>Regel anlegen</button>
+          <div class='button-row'>
+            <button class='success-button' type='button' onclick='openNotificationRuleModal()'>Neue Regel</button>
           </div>
           <ul id='notification-rules' class='notification-list'></ul>
 
@@ -195,6 +190,22 @@
         <h4>Fehlende Produkte</h4>
         <ul id='recipe-modal-missing-products'></ul>
         <button id='recipe-add-missing-button' class='success-button' type='button'>Alles hinzufügen</button>
+      </section>
+    </div>
+
+    <div id='notification-rule-modal' class='shopping-modal hidden'>
+      <div class='shopping-modal-backdrop' onclick='closeNotificationRuleModal()'></div>
+      <section class='shopping-modal-content card'>
+        <button class='shopping-modal-close' type='button' onclick='closeNotificationRuleModal()' aria-label='Regel-Dialog schließen'>×</button>
+        <h3>Neue Regel</h3>
+        <div class='notification-rule-editor'>
+          <input id='notify-rule-name' placeholder='Regelname' />
+          <input id='notify-rule-events' placeholder='Events, z.B. shopping_due,low_stock_detected' />
+          <input id='notify-rule-devices' placeholder='Zielgeräte-IDs (optional, comma-separated)' />
+          <input id='notify-rule-cooldown' type='number' min='0' placeholder='Cooldown in Sekunden' />
+          <textarea id='notify-rule-template' placeholder='Template, z.B. ${message}'></textarea>
+          <button class='success-button' type='button' onclick='createNotificationRule()'>Regel anlegen</button>
+        </div>
       </section>
     </div>
 

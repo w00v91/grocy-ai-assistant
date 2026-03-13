@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.4
+
+- UI: „Regel anlegen" aus der Notification-Seite in ein eigenes Popup verschoben und über den neuen Button „Neue Regel" aufrufbar gemacht.
+- Neu: Notification-Dashboard liefert jetzt mehrere sinnvolle, vordefinierte Standardregeln (Einkauf fällig, niedriger Bestand, fehlende Rezept-Zutaten).
+- Fix: Frontend-Fehler `getAuthHeaders is not defined` behoben.
+- Anpassung: Notification-Einstellungen und Regeln werden nun pro Home-Assistant-Benutzer gespeichert; der aktuell angemeldete Nutzer wird automatisch verwendet.
+- Pflege: Add-on-Version auf 7.1.4 erhöht.
+
 ## 7.1.3
 
 - UI: Darkmode-Button im Header in die Titelzeile verschoben und rechts neben „Smart Pantry Dashboard“ ausgerichtet.
