@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.4
+
+- UI: `.topbar-content` im Dashboard-Header auf `width: 100%` gesetzt.
+
+## 7.1.3
+
+- UI: Darkmode-Button im Header in die Titelzeile verschoben und rechts neben „Smart Pantry Dashboard“ ausgerichtet.
+
 ## 7.1.2
 
 - Anpassung: Kamera-Zoom des Barcode-Scanners auf 1.4x reduziert.
