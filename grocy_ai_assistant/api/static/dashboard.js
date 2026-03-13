@@ -229,7 +229,7 @@ async function toggleNotificationDevice(deviceId, isActive) {
     const res = await fetch(buildApiUrl(`/api/dashboard/notifications/devices/${encodeURIComponent(deviceId)}`), {
       method: 'PATCH',
       headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
-      body: JSON.stringify({ active: isActive, user_id: '' }),
+      body: JSON.stringify({ active: isActive, user_id: getSelectedNotificationUserId() }),
     });
     const payload = await parseJsonSafe(res);
     if (!res.ok) throw new Error(getErrorMessage(payload, 'Gerät konnte nicht aktualisiert werden.'));
@@ -237,6 +237,21 @@ async function toggleNotificationDevice(deviceId, isActive) {
   } catch (error) {
     status.textContent = `Fehler: ${error.message}`;
   }
+}
+
+
+function openNotificationRuleModal() {
+  document.getElementById('notification-rule-modal').classList.remove('hidden');
+  syncModalScrollLock();
+}
+
+function closeNotificationRuleModal() {
+  document.getElementById('notification-rule-modal').classList.add('hidden');
+  syncModalScrollLock();
+}
+
+function getSelectedNotificationUserId() {
+  return document.documentElement.dataset.haUserId || 'default-user';
 }
 
 async function createNotificationRule() {
@@ -252,7 +267,7 @@ async function createNotificationRule() {
     name,
     enabled: true,
     event_types: eventTypes,
-    target_user_ids: [],
+    target_user_ids: [getSelectedNotificationUserId()],
     target_device_ids: targetDevices,
     channels: [document.getElementById('notify-default-channel').value],
     severity: document.getElementById('notify-default-severity').value,
@@ -272,6 +287,7 @@ async function createNotificationRule() {
     const responsePayload = await parseJsonSafe(res);
     if (!res.ok) throw new Error(getErrorMessage(responsePayload, 'Regel konnte nicht angelegt werden.'));
     status.textContent = 'Regel angelegt.';
+    closeNotificationRuleModal();
     await loadNotificationOverview();
   } catch (error) {
     status.textContent = `Fehler: ${error.message}`;
@@ -347,6 +363,12 @@ function toggleTheme() {
 
 function ensureApiKey() {
   return apiKey;
+}
+
+function getAuthHeaders() {
+  const key = ensureApiKey();
+  if (!key) return {};
+  return { 'Authorization': `Bearer ${key}` };
 }
 
 async function parseJsonSafe(response) {

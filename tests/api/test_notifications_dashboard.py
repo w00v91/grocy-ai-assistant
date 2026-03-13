@@ -59,3 +59,64 @@ def test_notification_rule_can_be_created_and_deleted(client, monkeypatch, tmp_p
 
     assert delete_response.status_code == 200
     assert delete_response.json()["success"] is True
+
+
+def test_notification_settings_are_user_scoped(client, monkeypatch, tmp_path):
+    monkeypatch.setattr(
+        routes, "NOTIFICATION_STORAGE_PATH", tmp_path / "notification_dashboard.json"
+    )
+
+    update_response = client.put(
+        "/api/dashboard/notifications/settings",
+        headers={
+            "Authorization": "Bearer test-api-key",
+            "X-HA-User-Id": "user-a",
+        },
+        json={
+            "enabled": True,
+            "enabled_event_types": ["shopping_due"],
+            "default_channels": ["persistent_notification"],
+            "default_severity": "critical",
+        },
+    )
+    assert update_response.status_code == 200
+
+    user_a_overview = client.get(
+        "/api/dashboard/notifications/overview",
+        headers={
+            "Authorization": "Bearer test-api-key",
+            "X-HA-User-Id": "user-a",
+        },
+    )
+    user_b_overview = client.get(
+        "/api/dashboard/notifications/overview",
+        headers={
+            "Authorization": "Bearer test-api-key",
+            "X-HA-User-Id": "user-b",
+        },
+    )
+
+    assert user_a_overview.status_code == 200
+    assert user_b_overview.status_code == 200
+    assert user_a_overview.json()["settings"]["default_severity"] == "critical"
+    assert user_b_overview.json()["settings"]["default_severity"] == "info"
+
+
+def test_notification_defaults_include_multiple_sensible_rules(
+    client, monkeypatch, tmp_path
+):
+    monkeypatch.setattr(
+        routes, "NOTIFICATION_STORAGE_PATH", tmp_path / "notification_dashboard.json"
+    )
+
+    response = client.get(
+        "/api/dashboard/notifications/overview",
+        headers={"Authorization": "Bearer test-api-key"},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    rule_names = {rule["name"] for rule in payload["rules"]}
+    assert {"Einkauf fällig", "Niedriger Bestand", "Fehlende Rezept-Zutaten"}.issubset(
+        rule_names
+    )
