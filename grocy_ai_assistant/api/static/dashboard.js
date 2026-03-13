@@ -263,7 +263,7 @@ function renderShoppingList(items) {
       </div>
       <div class="shopping-item-content">
         <img src="${toImageSource(item.picture_url)}" alt="${item.product_name}" loading="lazy" />
-        <div>
+        <div class="shopping-item-meta">
           <div><strong>${item.product_name}</strong></div>
           <div class="muted">${item.note || 'Keine Notiz'}</div>
         </div>
