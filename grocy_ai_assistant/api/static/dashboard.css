@@ -29,6 +29,13 @@
   --badge-text: #1e293b;
   --image-bg: #e2e8f0;
   --modal-backdrop-bg: rgba(15, 23, 42, 0.7);
+  --text-on-accent: #f8fafc;
+  --danger-bg: #b4232d;
+  --danger-bg-hover: #991b1b;
+  --danger-border: rgba(127, 29, 29, 0.2);
+  --success-bg: #1f7a36;
+  --success-bg-hover: #166534;
+  --success-border: rgba(21, 101, 52, 0.28);
 }
 
 :root[data-theme='dark'] {
@@ -48,6 +55,13 @@
   --badge-bg: #1e293b;
   --badge-text: #e2e8f0;
   --image-bg: #1e293b;
+  --text-on-accent: #020617;
+  --danger-bg: #ef4444;
+  --danger-bg-hover: #dc2626;
+  --danger-border: rgba(248, 113, 113, 0.28);
+  --success-bg: #22c55e;
+  --success-bg-hover: #16a34a;
+  --success-border: rgba(74, 222, 128, 0.35);
 }
 
 
@@ -137,7 +151,7 @@ body.modal-open {
 
 .tab-button.active {
   background: var(--accent-primary);
-  color: #0b0c10;
+  color: var(--text-on-accent);
 }
 
 .card {
@@ -284,7 +298,7 @@ input {
 input { min-width: 0; }
 button {
   background: var(--accent-primary);
-  color: #0b0c10;
+  color: var(--text-on-accent);
   cursor: pointer;
   font-weight: 600;
 }
@@ -366,10 +380,11 @@ img {
 .danger-button {
   margin-top: 0.85rem;
   width: 100%;
-  background: #7c2d35;
-  border-color: rgba(255, 255, 255, 0.08);
+  background: var(--danger-bg);
+  color: var(--text-on-accent);
+  border-color: var(--danger-border);
 }
-.danger-button:hover { background: #6b222b; }
+.danger-button:hover { background: var(--danger-bg-hover); }
 .variant-section {
   margin-top: 1rem;
   padding-top: 1rem;
@@ -500,10 +515,11 @@ img {
 .success-button {
   margin-top: 0.6rem;
   width: 100%;
-  background: #3b6d3f;
-  border-color: rgba(255, 255, 255, 0.08);
+  background: var(--success-bg);
+  color: var(--text-on-accent);
+  border-color: var(--success-border);
 }
-.success-button:hover { background: #315d35; }
+.success-button:hover { background: var(--success-bg-hover); }
 
 #shopping-list li.shopping-item {
   position: relative;
