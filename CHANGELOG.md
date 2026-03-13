@@ -1,6 +1,12 @@
 # Changelog
 
-## Unreleased
+All notable changes to this project are documented in this file.
+
+## 7.0.34
+
+- Fix: CHANGELOG-Format für Home Assistant angepasst (versionierte Abschnitte statt reinem "Unreleased"), damit Änderungen korrekt erkannt werden.
+
+## 7.0.33
 
 - Anpassung: Scanner-Beschreibungstext „Mit der Handykamera scannen und Produktdaten abrufen.“ aus dem Dashboard entfernt.
 - Pflege: Add-on-Version auf 7.0.34 erhöht.
