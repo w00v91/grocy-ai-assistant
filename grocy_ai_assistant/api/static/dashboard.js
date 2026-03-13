@@ -126,12 +126,16 @@ function applyTheme(theme) {
 
   if (theme === 'dark') {
     root.setAttribute('data-theme', 'dark');
-    toggle.textContent = '☀️ Lightmode';
+    toggle.textContent = '☀️';
+    toggle.setAttribute('aria-label', 'Zu Lightmode wechseln');
+    toggle.setAttribute('title', 'Zu Lightmode wechseln');
     return;
   }
 
   root.removeAttribute('data-theme');
-  toggle.textContent = '🌙 Darkmode';
+  toggle.textContent = '☾';
+  toggle.setAttribute('aria-label', 'Zu Darkmode wechseln');
+  toggle.setAttribute('title', 'Zu Darkmode wechseln');
 }
 
 function toggleTheme() {

@@ -3,6 +3,19 @@
 All notable changes to this project are documented in this file.
 
 
+
+## 7.0.38
+
+- UI: Lightmode-Theme-Icon auf dunklen Halbmond (`☾`) geändert.
+- UI: Theme-Button nicht mehr `fixed`, sondern wieder mitscrollend im Header positioniert.
+- Pflege: Add-on-Version auf 7.0.38 erhöht.
+
+## 7.0.37
+
+- UI: Theme-Button als modernes, schwebendes Icon ohne Hintergrund gestaltet (nur Sonne/Mond-Icon mit subtiler Floating-Interaktion).
+- Pflege: Add-on-Version auf 7.0.37 erhöht.
+
+
 ## 7.0.36
 
 - UI: Button „Aktualisieren“ in der Einkaufsliste nutzt jetzt den invertierten Primary-Stil, damit er im Darkmode nicht zu dunkel erscheint.
