@@ -133,7 +133,7 @@ function applyTheme(theme) {
   }
 
   root.removeAttribute('data-theme');
-  toggle.textContent = '🌙';
+  toggle.textContent = '☾';
   toggle.setAttribute('aria-label', 'Zu Darkmode wechseln');
   toggle.setAttribute('title', 'Zu Darkmode wechseln');
 }
