@@ -151,8 +151,10 @@ async function loadNotificationOverview() {
 
 function hydrateNotificationSettings(settings) {
   document.getElementById('notify-enabled').checked = Boolean(settings.enabled);
-  document.getElementById('notify-default-severity').value = settings.default_severity || 'info';
-  document.getElementById('notify-default-channel').value = (settings.default_channels || ['mobile_push'])[0] || 'mobile_push';
+  const ruleSeverity = document.getElementById('notify-rule-severity');
+  const ruleChannel = document.getElementById('notify-rule-channel');
+  if (ruleSeverity) ruleSeverity.value = settings.default_severity || 'info';
+  if (ruleChannel) ruleChannel.value = (settings.default_channels || ['mobile_push'])[0] || 'mobile_push';
 }
 
 function renderNotificationDevices(devices) {
@@ -206,8 +208,8 @@ async function saveNotificationSettings() {
   const payload = {
     enabled: document.getElementById('notify-enabled').checked,
     enabled_event_types: ['item_added', 'item_removed', 'item_checked', 'item_unchecked', 'shopping_due', 'low_stock_detected', 'recipe_missing_items'],
-    default_channels: [document.getElementById('notify-default-channel').value],
-    default_severity: document.getElementById('notify-default-severity').value,
+    default_channels: ['mobile_push'],
+    default_severity: 'info',
   };
   try {
     const res = await fetch(buildApiUrl('/api/dashboard/notifications/settings'), {
@@ -269,8 +271,8 @@ async function createNotificationRule() {
     event_types: eventTypes,
     target_user_ids: [getSelectedNotificationUserId()],
     target_device_ids: targetDevices,
-    channels: [document.getElementById('notify-default-channel').value],
-    severity: document.getElementById('notify-default-severity').value,
+    channels: [document.getElementById('notify-rule-channel').value],
+    severity: document.getElementById('notify-rule-severity').value,
     cooldown_seconds: Number(document.getElementById('notify-rule-cooldown').value || '0'),
     quiet_hours_start: '',
     quiet_hours_end: '',

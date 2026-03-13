@@ -115,19 +115,6 @@
           <h3>Einstellungen</h3>
           <div class='notification-settings'>
             <label><input id='notify-enabled' type='checkbox' /> Benachrichtigungen global aktiv</label>
-            <label>Default Severity
-              <select id='notify-default-severity'>
-                <option value='info'>Info</option>
-                <option value='warning'>Warning</option>
-                <option value='critical'>Critical</option>
-              </select>
-            </label>
-            <label>Default Kanal
-              <select id='notify-default-channel'>
-                <option value='mobile_push'>Mobile Push</option>
-                <option value='persistent_notification'>Persistent Notification</option>
-              </select>
-            </label>
             <button class='success-button' type='button' onclick='saveNotificationSettings()'>Einstellungen speichern</button>
           </div>
 
@@ -202,6 +189,19 @@
           <input id='notify-rule-name' placeholder='Regelname' />
           <input id='notify-rule-events' placeholder='Events, z.B. shopping_due,low_stock_detected' />
           <input id='notify-rule-devices' placeholder='Zielgeräte-IDs (optional, comma-separated)' />
+          <label>Regel-Severity
+            <select id='notify-rule-severity'>
+              <option value='info'>Info</option>
+              <option value='warning'>Warning</option>
+              <option value='critical'>Critical</option>
+            </select>
+          </label>
+          <label>Regel-Kanal
+            <select id='notify-rule-channel'>
+              <option value='mobile_push'>Mobile Push</option>
+              <option value='persistent_notification'>Persistent Notification</option>
+            </select>
+          </label>
           <input id='notify-rule-cooldown' type='number' min='0' placeholder='Cooldown in Sekunden' />
           <textarea id='notify-rule-template' placeholder='Template, z.B. ${message}'></textarea>
           <button class='success-button' type='button' onclick='createNotificationRule()'>Regel anlegen</button>

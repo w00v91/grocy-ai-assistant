@@ -13,6 +13,10 @@ All notable changes to this project are documented in this file.
 - Fix: Dashboard-Bildproxy versucht bei 404 auf `/api/files/...` automatisch die passende Fallback-URL `/files/...` (und umgekehrt), damit Rezeptbilder hinter Home-Assistant/Grocy-Setups zuverlässig laden.
 - Test: API-Test ergänzt, der den 404-Fallbackpfad des Bildproxys absichert.
 - Pflege: Add-on-Version auf 7.1.5 erhöht.
+- UI: Kanal und Severity wurden aus den allgemeinen Notification-Einstellungen in das Regel-Popup verschoben.
+- Fix: Beim Erstellen neuer Regeln werden Kanal und Severity jetzt direkt aus dem Popup an die Regel gebunden und gespeichert.
+- Fix: Dashboard-Bildproxy versucht bei 404 auf `/api/files/...` automatisch die passende Fallback-URL `/files/...` (und umgekehrt), damit Rezeptbilder hinter Home-Assistant/Grocy-Setups zuverlässig laden.
+- Test: API-Test ergänzt, der den 404-Fallbackpfad des Bildproxys absichert.
 
 ## 7.1.4
 
@@ -20,7 +24,7 @@ All notable changes to this project are documented in this file.
 - Neu: Notification-Dashboard liefert jetzt mehrere sinnvolle, vordefinierte Standardregeln (Einkauf fällig, niedriger Bestand, fehlende Rezept-Zutaten).
 - Fix: Frontend-Fehler `getAuthHeaders is not defined` behoben.
 - Anpassung: Notification-Einstellungen und Regeln werden nun pro Home-Assistant-Benutzer gespeichert; der aktuell angemeldete Nutzer wird automatisch verwendet.
-- Pflege: Add-on-Version auf 7.1.4 erhöht.
+- UI: `.topbar-content` im Dashboard-Header auf `width: 100%` gesetzt.
 
 ## 7.1.3
 
