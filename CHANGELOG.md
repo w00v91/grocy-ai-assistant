@@ -2,6 +2,10 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.2
+
+- Anpassung: Kamera-Zoom des Barcode-Scanners auf 1.4x reduziert.
+
 ## 7.1.1
 
 - UI: Swipe-Buttons in der Einkaufsliste lösen jetzt bei 75px statt 72px aus.
