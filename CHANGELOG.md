@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Anpassung: Scanner-Beschreibungstext „Mit der Handykamera scannen und Produktdaten abrufen.“ aus dem Dashboard entfernt.
+- Pflege: Add-on-Version auf 7.0.34 erhöht.
+
 - Doku: README vollständig strukturell überarbeitet (Zielbild, Architektur, Konfiguration, API-Endpunkte, Entwicklungsabläufe).
 - Pflege: Versionsstände für Add-on und Integration angehoben und im Projekt konsistent dokumentiert.
 
