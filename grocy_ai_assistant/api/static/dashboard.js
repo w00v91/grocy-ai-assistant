@@ -1387,7 +1387,7 @@ async function optimizeScannerTrack(stream, status) {
   if (capabilities?.zoom) {
     const minZoom = Number(capabilities.zoom.min || 1);
     const maxZoom = Number(capabilities.zoom.max || minZoom);
-    const preferredZoom = Math.max(minZoom, Math.min(maxZoom, 1.8));
+    const preferredZoom = Math.max(minZoom, Math.min(maxZoom, 1.4));
     constraints.zoom = preferredZoom;
     status.textContent = `Scanner aktiv (Kamera-Zoom ${preferredZoom.toFixed(1)}x). Barcode vor die Kamera halten...`;
   }
