@@ -384,6 +384,41 @@ def test_product_picture_proxy_uses_files_fallback_on_404(client, monkeypatch):
     ]
 
 
+
+
+def test_product_picture_proxy_decodes_encoded_query_in_src_path(client, monkeypatch):
+    class FakeResponse:
+        content = b"img"
+        headers = {"Content-Type": "image/jpeg"}
+
+        def raise_for_status(self):
+            return None
+
+    captured = {}
+
+    def fake_requests_get(url, headers, timeout):
+        captured["url"] = url
+        captured["headers"] = headers
+        captured["timeout"] = timeout
+        return FakeResponse()
+
+    monkeypatch.setattr(routes.requests, "get", fake_requests_get)
+    client.app.state.product_image_cache = None
+
+    response = client.get(
+        "/api/dashboard/product-picture",
+        params={
+            "src": "http://homeassistant.local:9192/api/files/recipepictures/test.jpg%3Fforce_serve_as%3Dpicture"
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.content == b"img"
+    assert (
+        captured["url"]
+        == "http://homeassistant.local:9192/api/files/recipepictures/test.jpg?force_serve_as=picture"
+    )
+
 def test_product_picture_proxy_rejects_foreign_hosts(client):
     response = client.get(
         "/api/dashboard/product-picture",
