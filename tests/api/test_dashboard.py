@@ -814,9 +814,9 @@ def test_dashboard_swipe_actions_match_labels(client):
     static_response = client.get("/dashboard-static/dashboard.js")
 
     assert static_response.status_code == 200
-    assert "if (deltaX <= -55)" in static_response.text
+    assert "if (deltaX <= -commitDistance)" in static_response.text
     assert "await purchaseShoppingItem(shoppingListId);" in static_response.text
-    assert "if (deltaX >= 55)" in static_response.text
+    assert "if (deltaX >= commitDistance)" in static_response.text
     assert "await removeShoppingItem(shoppingListId);" in static_response.text
 
 
