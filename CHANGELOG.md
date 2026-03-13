@@ -1,6 +1,12 @@
 # Changelog
 
-## Unreleased
+All notable changes to this project are documented in this file.
+
+## 7.0.34
+
+- Fix: CHANGELOG-Format für Home Assistant angepasst (versionierte Abschnitte statt reinem "Unreleased"), damit Änderungen korrekt erkannt werden.
+
+## 7.0.33
 
 - Doku: README vollständig strukturell überarbeitet (Zielbild, Architektur, Konfiguration, API-Endpunkte, Entwicklungsabläufe).
 - Pflege: Versionsstände für Add-on und Integration angehoben und im Projekt konsistent dokumentiert.
