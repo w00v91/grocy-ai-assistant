@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.1
+
+- UI: Swipe-Buttons in der Einkaufsliste lösen jetzt bei 75px statt 72px aus.
+- UI: Fingerbewegung für Swipe-Aktionen direkter auf `distance * 0.8` abgestimmt.
+
 ## 7.1.0
 
 - Neu: Enterprise-Notification-Architektur in der Home-Assistant-Integration eingeführt (Event-Modelle, Rule Engine, Dispatcher, persistenter Store und Orchestrator-Services).

@@ -561,7 +561,7 @@ function closeShoppingItemDetails() {
 
 function bindShoppingSwipeInteractions() {
   const items = document.querySelectorAll('#shopping-list .shopping-item');
-  const commitDistance = 72;
+  const commitDistance = 75;
   const maxDistance = 132;
 
   const resetSwipeState = (item) => {
@@ -600,7 +600,7 @@ function bindShoppingSwipeInteractions() {
       }
 
       const distance = event.clientX - startX;
-      const dragScale = 0.9;
+      const dragScale = 0.8;
       deltaX = Math.max(-maxDistance, Math.min(maxDistance, distance * dragScale));
 
       const rightProgress = Math.min(Math.max(deltaX / commitDistance, 0), 1);
