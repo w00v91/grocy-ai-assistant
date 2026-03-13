@@ -267,7 +267,7 @@ function renderShoppingList(items) {
       </div>
       <div class="shopping-item-content">
         <img src="${toImageSource(item.picture_url)}" alt="${item.product_name}" loading="lazy" />
-        <div>
+        <div class="shopping-item-meta">
           <div><strong>${item.product_name}</strong></div>
           <div class="muted">${item.note || 'Keine Notiz'}</div>
         </div>
@@ -561,7 +561,7 @@ function closeShoppingItemDetails() {
 
 function bindShoppingSwipeInteractions() {
   const items = document.querySelectorAll('#shopping-list .shopping-item');
-  const commitDistance = 86;
+  const commitDistance = 72;
   const maxDistance = 132;
 
   const resetSwipeState = (item) => {
@@ -600,8 +600,8 @@ function bindShoppingSwipeInteractions() {
       }
 
       const distance = event.clientX - startX;
-      const resistance = Math.sign(distance) * Math.sqrt(Math.abs(distance)) * 1.85;
-      deltaX = Math.max(-maxDistance, Math.min(maxDistance, resistance));
+      const dragScale = 0.9;
+      deltaX = Math.max(-maxDistance, Math.min(maxDistance, distance * dragScale));
 
       const rightProgress = Math.min(Math.max(deltaX / commitDistance, 0), 1);
       const leftProgress = Math.min(Math.max((-deltaX) / commitDistance, 0), 1);

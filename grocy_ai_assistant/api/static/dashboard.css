@@ -493,7 +493,13 @@ img {
 
 
 
+.shopping-item-meta {
+  flex: 1;
+  min-width: 0;
+}
+
 .shopping-item-badges {
+  margin-left: auto;
   display: grid;
   gap: 0.35rem;
   justify-items: end;
@@ -539,6 +545,7 @@ img {
 }
 
 .stock-item-name {
+  flex: 1;
   min-width: 0;
 }
 
