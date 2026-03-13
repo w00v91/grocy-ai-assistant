@@ -3,9 +3,10 @@
 All notable changes to this project are documented in this file.
 
 
-
 ## 7.0.35
 
+- UI: Swipe-Aktionen in der Einkaufsliste auf eine moderne, iOS-inspirierte Implementation mit flüssigem Drag, dynamischen Action-Hintergründen und sanfter Commit-Animation umgestellt.
+- Pflege: Add-on-Version auf 7.0.35 erhöht.
 - UI: Im Bereich „Einkaufsliste“ den Button „Aktualisieren“ unter die Überschrift verschoben, damit der Titel nicht mehr neben dem Button umbricht.
 
 ## 7.0.34

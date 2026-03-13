@@ -566,6 +566,10 @@ img {
 .success-button:hover { background: var(--success-bg-hover); }
 
 #shopping-list li.shopping-item {
+  --swipe-offset: 0px;
+  --swipe-progress-left: 0;
+  --swipe-progress-right: 0;
+  --swipe-glow: transparent;
   position: relative;
   display: block;
   padding: 0;
@@ -589,14 +593,20 @@ img {
   padding: 0.6rem 0.8rem;
   border-radius: inherit;
   background: var(--item-bg);
-  transform: translateX(0);
-  transition: transform 0.24s ease;
+  transform: translate3d(var(--swipe-offset), 0, 0);
+  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.22s ease;
+  will-change: transform;
+  box-shadow: inset 0 0 0 1px transparent;
 }
-.shopping-item.swiping-left .shopping-item-content {
-  transform: translateX(-96px);
+.shopping-item.dragging .shopping-item-content {
+  transition: none;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--swipe-glow) 55%, transparent);
 }
-.shopping-item.swiping-right .shopping-item-content {
-  transform: translateX(96px);
+.shopping-item.swipe-commit-left {
+  --swipe-offset: -118px;
+}
+.shopping-item.swipe-commit-right {
+  --swipe-offset: 118px;
 }
 .shopping-item-action {
   position: absolute;
@@ -608,7 +618,8 @@ img {
   align-items: center;
   justify-content: center;
   pointer-events: none;
-  opacity: 0.92;
+  opacity: 0.86;
+  transition: opacity 0.2s ease;
 }
 .shopping-item-action::before {
   font-size: 1rem;
@@ -617,10 +628,12 @@ img {
 .shopping-item-action-left {
   left: 0;
   background: linear-gradient(135deg, #0f8a43, #16a34a);
+  opacity: calc(0.4 + (var(--swipe-progress-right) * 0.7));
 }
 .shopping-item-action-right {
   right: 0;
   background: linear-gradient(135deg, #ef4444, #b91c1c);
+  opacity: calc(0.4 + (var(--swipe-progress-left) * 0.7));
 }
 .swipe-chip {
   display: inline-flex;
@@ -636,6 +649,8 @@ img {
   padding: 0.38rem 0.62rem;
   backdrop-filter: blur(2px);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  transform: scale(calc(0.92 + (max(var(--swipe-progress-left), var(--swipe-progress-right)) * 0.12)));
+  transition: transform 0.16s ease;
 }
 
 .shopping-modal {
