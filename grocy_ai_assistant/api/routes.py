@@ -1293,6 +1293,20 @@ def _notification_store() -> NotificationDashboardStore:
     return NotificationDashboardStore(NOTIFICATION_STORAGE_PATH)
 
 
+def _resolve_dashboard_user_id(request: Request) -> str:
+    possible_headers = [
+        "x-ha-user-id",
+        "x-home-assistant-user-id",
+        "x-forwarded-user",
+        "remote-user",
+    ]
+    for header_name in possible_headers:
+        value = (request.headers.get(header_name) or "").strip()
+        if value:
+            return value
+    return "default-user"
+
+
 def _discover_notification_targets_from_env() -> list[NotificationTargetModel]:
     configured = (
         Path("/data/options.json").read_text(encoding="utf-8")
@@ -1321,9 +1335,10 @@ def _discover_notification_targets_from_env() -> list[NotificationTargetModel]:
     return targets
 
 
-def _load_notification_overview() -> NotificationOverviewResponse:
+def _load_notification_overview(request: Request) -> NotificationOverviewResponse:
     store = _notification_store()
-    overview = store.load()
+    user_id = _resolve_dashboard_user_id(request)
+    overview = store.load_for_user(user_id)
     discovered_targets = _discover_notification_targets_from_env()
     if discovered_targets:
         existing_by_id = {item.id: item for item in overview.devices}
@@ -1333,9 +1348,11 @@ def _load_notification_overview() -> NotificationOverviewResponse:
             if current:
                 discovered.user_id = current.user_id
                 discovered.active = current.active
+            elif user_id != "default-user":
+                discovered.user_id = user_id
             merged_devices.append(discovered)
         overview.devices = merged_devices
-        store.save_overview(overview)
+        store.save_overview_for_user(user_id, overview)
     return overview
 
 
@@ -1344,9 +1361,10 @@ def _load_notification_overview() -> NotificationOverviewResponse:
     response_model=NotificationOverviewResponse,
 )
 def dashboard_notification_overview(
+    request: Request,
     _: None = Depends(require_auth),
 ):
-    return _load_notification_overview()
+    return _load_notification_overview(request)
 
 
 @router.put(
@@ -1354,13 +1372,15 @@ def dashboard_notification_overview(
     response_model=NotificationSettingsModel,
 )
 def dashboard_notification_update_settings(
+    request: Request,
     payload: NotificationSettingsUpdateRequest,
     _: None = Depends(require_auth),
 ):
     store = _notification_store()
-    overview = _load_notification_overview()
+    user_id = _resolve_dashboard_user_id(request)
+    overview = _load_notification_overview(request)
     overview.settings = NotificationSettingsModel(**payload.model_dump())
-    store.save_overview(overview)
+    store.save_overview_for_user(user_id, overview)
     return overview.settings
 
 
@@ -1369,17 +1389,19 @@ def dashboard_notification_update_settings(
     response_model=NotificationTargetModel,
 )
 def dashboard_notification_update_device(
+    request: Request,
     device_id: str,
     payload: NotificationDeviceUpdateRequest,
     _: None = Depends(require_auth),
 ):
     store = _notification_store()
-    overview = _load_notification_overview()
+    user_id = _resolve_dashboard_user_id(request)
+    overview = _load_notification_overview(request)
     for device in overview.devices:
         if device.id == device_id:
             device.active = payload.active
-            device.user_id = payload.user_id
-            store.save_overview(overview)
+            device.user_id = payload.user_id or user_id
+            store.save_overview_for_user(user_id, overview)
             return device
     raise HTTPException(status_code=404, detail="Device not found")
 
@@ -1389,14 +1411,16 @@ def dashboard_notification_update_device(
     response_model=NotificationRuleModel,
 )
 def dashboard_notification_create_rule(
+    request: Request,
     payload: NotificationRuleUpsertRequest,
     _: None = Depends(require_auth),
 ):
     store = _notification_store()
-    overview = _load_notification_overview()
+    user_id = _resolve_dashboard_user_id(request)
+    overview = _load_notification_overview(request)
     rule = NotificationRuleModel(id=str(uuid4()), **payload.model_dump())
     overview.rules.insert(0, rule)
-    store.save_overview(overview)
+    store.save_overview_for_user(user_id, overview)
     return rule
 
 
@@ -1405,43 +1429,49 @@ def dashboard_notification_create_rule(
     response_model=NotificationRuleModel,
 )
 def dashboard_notification_update_rule(
+    request: Request,
     rule_id: str,
     payload: NotificationRuleUpsertRequest,
     _: None = Depends(require_auth),
 ):
     store = _notification_store()
-    overview = _load_notification_overview()
+    user_id = _resolve_dashboard_user_id(request)
+    overview = _load_notification_overview(request)
     for index, rule in enumerate(overview.rules):
         if rule.id == rule_id:
             updated = NotificationRuleModel(id=rule_id, **payload.model_dump())
             overview.rules[index] = updated
-            store.save_overview(overview)
+            store.save_overview_for_user(user_id, overview)
             return updated
     raise HTTPException(status_code=404, detail="Rule not found")
 
 
 @router.delete("/api/dashboard/notifications/rules/{rule_id}")
 def dashboard_notification_delete_rule(
+    request: Request,
     rule_id: str,
     _: None = Depends(require_auth),
 ):
     store = _notification_store()
-    overview = _load_notification_overview()
+    user_id = _resolve_dashboard_user_id(request)
+    overview = _load_notification_overview(request)
     original_count = len(overview.rules)
     overview.rules = [rule for rule in overview.rules if rule.id != rule_id]
     if len(overview.rules) == original_count:
         raise HTTPException(status_code=404, detail="Rule not found")
-    store.save_overview(overview)
+    store.save_overview_for_user(user_id, overview)
     return {"success": True, "removed_rule_id": rule_id}
 
 
 @router.post("/api/dashboard/notifications/tests/device")
 def dashboard_notification_test_device(
+    request: Request,
     payload: NotificationTestRequest,
     _: None = Depends(require_auth),
 ):
     store = _notification_store()
-    overview = _load_notification_overview()
+    user_id = _resolve_dashboard_user_id(request)
+    overview = _load_notification_overview(request)
     target_id = payload.target_id
     if target_id and not any(device.id == target_id for device in overview.devices):
         raise HTTPException(status_code=404, detail="Device not found")
@@ -1455,16 +1485,18 @@ def dashboard_notification_test_device(
         channels=["mobile_push"],
     )
     overview.history.insert(0, entry)
-    store.save_overview(overview)
+    store.save_overview_for_user(user_id, overview)
     return {"success": True, "message": "Testbenachrichtigung protokolliert."}
 
 
 @router.post("/api/dashboard/notifications/tests/all")
 def dashboard_notification_test_all(
+    request: Request,
     _: None = Depends(require_auth),
 ):
     store = _notification_store()
-    overview = _load_notification_overview()
+    user_id = _resolve_dashboard_user_id(request)
+    overview = _load_notification_overview(request)
     active_devices = [device for device in overview.devices if device.active]
     for device in active_devices:
         overview.history.insert(
@@ -1478,16 +1510,18 @@ def dashboard_notification_test_all(
                 channels=["mobile_push"],
             ),
         )
-    store.save_overview(overview)
+    store.save_overview_for_user(user_id, overview)
     return {"success": True, "sent_to": len(active_devices)}
 
 
 @router.post("/api/dashboard/notifications/tests/persistent")
 def dashboard_notification_test_persistent(
+    request: Request,
     _: None = Depends(require_auth),
 ):
     store = _notification_store()
-    overview = _load_notification_overview()
+    user_id = _resolve_dashboard_user_id(request)
+    overview = _load_notification_overview(request)
     overview.history.insert(
         0,
         create_history_entry(
@@ -1499,7 +1533,7 @@ def dashboard_notification_test_persistent(
             channels=["persistent_notification"],
         ),
     )
-    store.save_overview(overview)
+    store.save_overview_for_user(user_id, overview)
     return {"success": True}
 
 
@@ -1548,6 +1582,7 @@ def _render_dashboard(settings: Settings, request: Request):
             "api_base_path": api_request_base_path,
             "static_base_path": static_base_path,
             "scanner_llava_fallback_seconds": settings.scanner_barcode_fallback_seconds,
+            "ha_user_id": _resolve_dashboard_user_id(request),
         },
     )
 
