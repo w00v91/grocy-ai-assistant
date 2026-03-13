@@ -3,6 +3,11 @@
 All notable changes to this project are documented in this file.
 
 
+
+## 7.0.35
+
+- UI: Im Bereich „Einkaufsliste“ den Button „Aktualisieren“ unter die Überschrift verschoben, damit der Titel nicht mehr neben dem Button umbricht.
+
 ## 7.0.34
 
 - Fix: CHANGELOG-Format für Home Assistant angepasst (versionierte Abschnitte statt reinem "Unreleased"), damit Änderungen korrekt erkannt werden.
