@@ -677,7 +677,13 @@ def test_recipe_suggestions_generates_fallback_when_ai_returns_nothing(
 
     assert response.status_code == 200
     payload = response.json()
-    assert payload["grocy_recipes"][0]["picture_url"] == "/img/tomaten-pasta.jpg"
+    assert payload["grocy_recipes"][0]["picture_url"].startswith(
+        "/api/dashboard/product-picture?src="
+    )
+    assert (
+        "http%3A%2F%2Fhomeassistant.local%3A9192%2Fimg%2Ftomaten-pasta.jpg"
+        in payload["grocy_recipes"][0]["picture_url"]
+    )
     assert len(payload["ai_recipes"]) == 3
     assert payload["ai_recipes"][0]["title"]
     assert payload["ai_recipes"][0]["ingredients"]

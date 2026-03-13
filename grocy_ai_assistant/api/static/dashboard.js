@@ -95,22 +95,26 @@ async function withBusyState(callback) {
 
 
 function switchTab(tabName) {
-  const allowedTabs = ['shopping', 'recipes', 'scanner'];
+  const allowedTabs = ['shopping', 'recipes', 'scanner', 'notifications'];
   activeTab = allowedTabs.includes(tabName) ? tabName : 'shopping';
 
   const shoppingTab = document.getElementById('tab-shopping');
   const recipesTab = document.getElementById('tab-recipes');
   const scannerTab = document.getElementById('tab-scanner');
+  const notificationsTab = document.getElementById('tab-notifications');
   const shoppingButton = document.getElementById('tab-button-shopping');
   const recipesButton = document.getElementById('tab-button-recipes');
   const scannerButton = document.getElementById('tab-button-scanner');
+  const notificationsButton = document.getElementById('tab-button-notifications');
 
   shoppingTab.classList.toggle('hidden', activeTab !== 'shopping');
   recipesTab.classList.toggle('hidden', activeTab !== 'recipes');
   scannerTab.classList.toggle('hidden', activeTab !== 'scanner');
+  notificationsTab.classList.toggle('hidden', activeTab !== 'notifications');
   shoppingButton.classList.toggle('active', activeTab === 'shopping');
   recipesButton.classList.toggle('active', activeTab === 'recipes');
   scannerButton.classList.toggle('active', activeTab === 'scanner');
+  notificationsButton.classList.toggle('active', activeTab === 'notifications');
 
   if (activeTab === 'recipes' && !recipeState.initialized) {
     loadLocations();
@@ -118,6 +122,202 @@ function switchTab(tabName) {
   if (activeTab !== 'scanner') {
     stopBarcodeScanner();
   }
+  if (activeTab === 'notifications') {
+    loadNotificationOverview();
+  }
+}
+
+function getNotificationStatusElement() {
+  return document.getElementById('status-notifications');
+}
+
+async function loadNotificationOverview() {
+  const status = getNotificationStatusElement();
+  status.textContent = 'Lade Notification-Konfiguration…';
+  try {
+    const res = await fetch(buildApiUrl('/api/dashboard/notifications/overview'), { headers: getAuthHeaders() });
+    const payload = await parseJsonSafe(res);
+    if (!res.ok) throw new Error(getErrorMessage(payload, 'Fehler beim Laden der Notification-Daten.'));
+
+    renderNotificationDevices(payload.devices || []);
+    renderNotificationRules(payload.rules || []);
+    renderNotificationHistory(payload.history || []);
+    hydrateNotificationSettings(payload.settings || {});
+    status.textContent = 'Notification-Konfiguration geladen.';
+  } catch (error) {
+    status.textContent = `Fehler: ${error.message}`;
+  }
+}
+
+function hydrateNotificationSettings(settings) {
+  document.getElementById('notify-enabled').checked = Boolean(settings.enabled);
+  document.getElementById('notify-default-severity').value = settings.default_severity || 'info';
+  document.getElementById('notify-default-channel').value = (settings.default_channels || ['mobile_push'])[0] || 'mobile_push';
+}
+
+function renderNotificationDevices(devices) {
+  const container = document.getElementById('notification-devices');
+  if (!Array.isArray(devices) || devices.length === 0) {
+    container.innerHTML = '<p class="muted">Keine mobilen Notify-Targets gefunden.</p>';
+    return;
+  }
+  container.innerHTML = devices.map((device) => `
+    <label class="notification-device-item">
+      <input type="checkbox" ${device.active ? 'checked' : ''} onchange="toggleNotificationDevice('${device.id}', this.checked)" />
+      <span><strong>${device.display_name}</strong><small>${device.service} · ${device.platform}</small></span>
+    </label>
+  `).join('');
+}
+
+function renderNotificationRules(rules) {
+  const list = document.getElementById('notification-rules');
+  if (!Array.isArray(rules) || rules.length === 0) {
+    list.innerHTML = '<li class="muted">Keine Regeln vorhanden.</li>';
+    return;
+  }
+  list.innerHTML = rules.map((rule) => `
+    <li>
+      <strong>${rule.name}</strong>
+      <div class="muted">Events: ${(rule.event_types || []).join(', ') || '-'}</div>
+      <div class="muted">Channels: ${(rule.channels || []).join(', ') || '-'}</div>
+      <button class="danger-button" type="button" onclick="deleteNotificationRule('${rule.id}')">Löschen</button>
+    </li>
+  `).join('');
+}
+
+function renderNotificationHistory(history) {
+  const list = document.getElementById('notification-history');
+  if (!Array.isArray(history) || history.length === 0) {
+    list.innerHTML = '<li class="muted">Keine Einträge.</li>';
+    return;
+  }
+  list.innerHTML = history.slice(0, 30).map((entry) => `
+    <li>
+      <strong>${entry.title}</strong>
+      <div>${entry.message}</div>
+      <small class="muted">${entry.event_type} · ${entry.created_at} · ${entry.delivered ? '✅' : '❌'}</small>
+    </li>
+  `).join('');
+}
+
+async function saveNotificationSettings() {
+  const status = getNotificationStatusElement();
+  status.textContent = 'Speichere Einstellungen…';
+  const payload = {
+    enabled: document.getElementById('notify-enabled').checked,
+    enabled_event_types: ['item_added', 'item_removed', 'item_checked', 'item_unchecked', 'shopping_due', 'low_stock_detected', 'recipe_missing_items'],
+    default_channels: [document.getElementById('notify-default-channel').value],
+    default_severity: document.getElementById('notify-default-severity').value,
+  };
+  try {
+    const res = await fetch(buildApiUrl('/api/dashboard/notifications/settings'), {
+      method: 'PUT',
+      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const responsePayload = await parseJsonSafe(res);
+    if (!res.ok) throw new Error(getErrorMessage(responsePayload, 'Einstellungen konnten nicht gespeichert werden.'));
+    status.textContent = 'Einstellungen gespeichert.';
+  } catch (error) {
+    status.textContent = `Fehler: ${error.message}`;
+  }
+}
+
+async function toggleNotificationDevice(deviceId, isActive) {
+  const status = getNotificationStatusElement();
+  try {
+    const res = await fetch(buildApiUrl(`/api/dashboard/notifications/devices/${encodeURIComponent(deviceId)}`), {
+      method: 'PATCH',
+      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ active: isActive, user_id: '' }),
+    });
+    const payload = await parseJsonSafe(res);
+    if (!res.ok) throw new Error(getErrorMessage(payload, 'Gerät konnte nicht aktualisiert werden.'));
+    status.textContent = `Gerät ${deviceId} aktualisiert.`;
+  } catch (error) {
+    status.textContent = `Fehler: ${error.message}`;
+  }
+}
+
+async function createNotificationRule() {
+  const status = getNotificationStatusElement();
+  const name = document.getElementById('notify-rule-name').value.trim();
+  if (!name) {
+    status.textContent = 'Bitte Regelname eingeben.';
+    return;
+  }
+  const eventTypes = document.getElementById('notify-rule-events').value.split(',').map((value) => value.trim()).filter(Boolean);
+  const targetDevices = document.getElementById('notify-rule-devices').value.split(',').map((value) => value.trim()).filter(Boolean);
+  const payload = {
+    name,
+    enabled: true,
+    event_types: eventTypes,
+    target_user_ids: [],
+    target_device_ids: targetDevices,
+    channels: [document.getElementById('notify-default-channel').value],
+    severity: document.getElementById('notify-default-severity').value,
+    cooldown_seconds: Number(document.getElementById('notify-rule-cooldown').value || '0'),
+    quiet_hours_start: '',
+    quiet_hours_end: '',
+    conditions: [],
+    message_template: document.getElementById('notify-rule-template').value,
+  };
+
+  try {
+    const res = await fetch(buildApiUrl('/api/dashboard/notifications/rules'), {
+      method: 'POST',
+      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const responsePayload = await parseJsonSafe(res);
+    if (!res.ok) throw new Error(getErrorMessage(responsePayload, 'Regel konnte nicht angelegt werden.'));
+    status.textContent = 'Regel angelegt.';
+    await loadNotificationOverview();
+  } catch (error) {
+    status.textContent = `Fehler: ${error.message}`;
+  }
+}
+
+async function deleteNotificationRule(ruleId) {
+  const status = getNotificationStatusElement();
+  try {
+    const res = await fetch(buildApiUrl(`/api/dashboard/notifications/rules/${encodeURIComponent(ruleId)}`), {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+    const payload = await parseJsonSafe(res);
+    if (!res.ok) throw new Error(getErrorMessage(payload, 'Regel konnte nicht gelöscht werden.'));
+    status.textContent = 'Regel gelöscht.';
+    await loadNotificationOverview();
+  } catch (error) {
+    status.textContent = `Fehler: ${error.message}`;
+  }
+}
+
+async function testNotificationAll() {
+  const status = getNotificationStatusElement();
+  status.textContent = 'Sende Test an alle Geräte…';
+  const res = await fetch(buildApiUrl('/api/dashboard/notifications/tests/all'), { method: 'POST', headers: getAuthHeaders() });
+  const payload = await parseJsonSafe(res);
+  if (!res.ok) {
+    status.textContent = `Fehler: ${getErrorMessage(payload, 'Test fehlgeschlagen.')}`;
+    return;
+  }
+  status.textContent = `Test versendet (${payload.sent_to || 0} Geräte).`;
+  await loadNotificationOverview();
+}
+
+async function testNotificationPersistent() {
+  const status = getNotificationStatusElement();
+  status.textContent = 'Sende Persistent-Test…';
+  const res = await fetch(buildApiUrl('/api/dashboard/notifications/tests/persistent'), { method: 'POST', headers: getAuthHeaders() });
+  const payload = await parseJsonSafe(res);
+  if (!res.ok) {
+    status.textContent = `Fehler: ${getErrorMessage(payload, 'Test fehlgeschlagen.')}`;
+    return;
+  }
+  status.textContent = 'Persistent-Test versendet.';
+  await loadNotificationOverview();
 }
 
 function applyTheme(theme) {
