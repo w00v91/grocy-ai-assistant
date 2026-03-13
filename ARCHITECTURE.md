@@ -31,6 +31,19 @@ grocy_ai_assistant/
 - `custom_components/`
   - Home-Assistant-seitige Integration (Panel, Sensor, Add-on Kommunikation).
 
+
+## Notification-Subsystem (Home-Assistant-seitig)
+
+Für produktionsreife Benachrichtigungen existiert im Integrationsmodul eine dedizierte Pipeline:
+
+- `notify_events.py`: kanonische fachliche Events (`item_added`, `shopping_due`, …).
+- `notify_rules.py`: Rule Engine (Aktivierung, Zielauflösung, Conditions, Quiet Hours, Cooldown/Deduplizierung).
+- `notify_dispatcher.py`: Zustellung über `notify.mobile_app_*` und `persistent_notification.create`.
+- `notify_store.py`: persistente Ablage von Regeln/Zielen/Preferences/Historie via HA-`.storage` inkl. Versionierung.
+- `services.py`: Orchestrator + Home-Assistant-Services für Event-Ingestion und Testcenter.
+
+Die fachliche Event-Erzeugung bleibt dabei strikt von der Zustellung getrennt.
+
 ## Architektur-Regeln (automatisiert)
 
 Ein Architekturtest validiert Layer-Abhängigkeiten:

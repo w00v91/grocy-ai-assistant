@@ -8,3 +8,49 @@ add_product_via_ai:
       example: "Gala Äpfel 1kg"
       selector:
         text:
+
+notification_emit_event:
+  name: Notification Event auslösen
+  description: Triggert ein internes Notification-Event, das durch die Rule Engine verarbeitet wird.
+  fields:
+    event_type:
+      name: Event-Typ
+      description: Einer der unterstützten Eventtypen (z.B. item_added, shopping_due).
+      required: true
+      selector:
+        text:
+    title:
+      name: Titel
+      selector:
+        text:
+    message:
+      name: Nachricht
+      selector:
+        text:
+    severity:
+      name: Severity
+      selector:
+        select:
+          options:
+            - info
+            - warning
+            - critical
+
+notification_test_device:
+  name: Testbenachrichtigung an Gerät
+  description: Sendet eine Test-Push-Nachricht an ein spezifisches mobiles Ziel.
+  fields:
+    target_id:
+      name: Ziel-ID
+      description: Interne Ziel-ID, z.B. notify.mobile_app_pixel_8.
+      required: true
+      selector:
+        text:
+
+notification_test_all:
+  name: Testbenachrichtigung an alle Geräte
+  description: Sendet eine Test-Push-Nachricht an alle aktiven mobilen Ziele.
+
+notification_test_persistent:
+  name: Test als Persistent Notification
+  description: Sendet eine Test-Nachricht in Home Assistant als persistent_notification.
