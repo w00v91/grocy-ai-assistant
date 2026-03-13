@@ -170,7 +170,10 @@ def _generate_recipe_suggestions(
                 reason=reason,
                 preparation=html_to_plain_text(recipe.get("description") or ""),
                 ingredients=recipe_ingredients,
-                picture_url=str(recipe.get("picture_url") or ""),
+                picture_url=_build_dashboard_picture_proxy_url(
+                    str(recipe.get("picture_url") or ""),
+                    settings,
+                ),
                 missing_products=missing_products,
             )
         )

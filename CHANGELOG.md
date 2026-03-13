@@ -2,6 +2,10 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.3
+
+- Fix: Rezeptbilder in den Rezeptvorschlägen werden jetzt über den Dashboard-Bild-Proxy ausgeliefert, damit sie auch auf mobilen Geräten über Ingress zuverlässig laden.
+
 ## 7.1.2
 
 - Anpassung: Kamera-Zoom des Barcode-Scanners auf 1.4x reduziert.
