@@ -557,44 +557,96 @@ function closeShoppingItemDetails() {
 
 function bindShoppingSwipeInteractions() {
   const items = document.querySelectorAll('#shopping-list .shopping-item');
+  const commitDistance = 86;
+  const maxDistance = 132;
+
+  const resetSwipeState = (item) => {
+    item.classList.remove('dragging', 'swipe-commit-left', 'swipe-commit-right');
+    item.style.setProperty('--swipe-offset', '0px');
+    item.style.setProperty('--swipe-progress-left', '0');
+    item.style.setProperty('--swipe-progress-right', '0');
+    item.style.setProperty('--swipe-glow', 'transparent');
+  };
+
   items.forEach((item) => {
     let startX = 0;
-    let moved = false;
+    let deltaX = 0;
+    let pointerId = null;
+    let isDragging = false;
+
+    resetSwipeState(item);
 
     item.addEventListener('pointerdown', (event) => {
-      startX = event.clientX;
-      moved = false;
-      item.classList.remove('swiping-left', 'swiping-right');
-    });
-
-    item.addEventListener('pointerup', async (event) => {
       if (event.target.closest('.mhd-picker-button')) {
         return;
       }
-      const deltaX = event.clientX - startX;
+
+      pointerId = event.pointerId;
+      startX = event.clientX;
+      deltaX = 0;
+      isDragging = true;
+      item.classList.remove('swipe-commit-left', 'swipe-commit-right');
+      item.classList.add('dragging');
+      item.setPointerCapture(pointerId);
+    });
+
+    item.addEventListener('pointermove', (event) => {
+      if (!isDragging || event.pointerId !== pointerId) {
+        return;
+      }
+
+      const distance = event.clientX - startX;
+      const resistance = Math.sign(distance) * Math.sqrt(Math.abs(distance)) * 1.85;
+      deltaX = Math.max(-maxDistance, Math.min(maxDistance, resistance));
+
+      const rightProgress = Math.min(Math.max(deltaX / commitDistance, 0), 1);
+      const leftProgress = Math.min(Math.max((-deltaX) / commitDistance, 0), 1);
+      const glow = deltaX >= 0 ? 'rgba(22, 163, 74, 0.7)' : 'rgba(239, 68, 68, 0.7)';
+
+      item.style.setProperty('--swipe-offset', `${deltaX}px`);
+      item.style.setProperty('--swipe-progress-left', leftProgress.toFixed(3));
+      item.style.setProperty('--swipe-progress-right', rightProgress.toFixed(3));
+      item.style.setProperty('--swipe-glow', glow);
+    });
+
+    item.addEventListener('pointercancel', () => {
+      isDragging = false;
+      resetSwipeState(item);
+    });
+
+    item.addEventListener('pointerup', async (event) => {
+      if (!isDragging || event.pointerId !== pointerId) {
+        return;
+      }
+
+      isDragging = false;
+      if (item.hasPointerCapture(pointerId)) {
+        item.releasePointerCapture(pointerId);
+      }
+      pointerId = null;
+      item.classList.remove('dragging');
+
       const payloadText = decodeURIComponent(item.dataset.shoppingItem || '');
       const payload = payloadText ? JSON.parse(payloadText) : {};
       const shoppingListId = payload.id;
 
-      if (Math.abs(deltaX) > 55) {
-        moved = true;
-      }
-
-      if (deltaX <= -55) {
-        item.classList.add('swiping-left');
+      if (deltaX <= -commitDistance) {
+        item.classList.add('swipe-commit-left');
         await purchaseShoppingItem(shoppingListId);
         return;
       }
 
-      if (deltaX >= 55) {
-        item.classList.add('swiping-right');
+      if (deltaX >= commitDistance) {
+        item.classList.add('swipe-commit-right');
         await removeShoppingItem(shoppingListId);
         return;
       }
 
-      if (!moved) {
+      if (Math.abs(deltaX) < 14) {
         showShoppingItemDetails(payload);
       }
+
+      resetSwipeState(item);
     });
   });
 }

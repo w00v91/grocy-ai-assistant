@@ -3,6 +3,11 @@
 All notable changes to this project are documented in this file.
 
 
+## 7.0.35
+
+- UI: Swipe-Aktionen in der Einkaufsliste auf eine moderne, iOS-inspirierte Implementation mit flüssigem Drag, dynamischen Action-Hintergründen und sanfter Commit-Animation umgestellt.
+- Pflege: Add-on-Version auf 7.0.35 erhöht.
+
 ## 7.0.34
 
 - Fix: CHANGELOG-Format für Home Assistant angepasst (versionierte Abschnitte statt reinem "Unreleased"), damit Änderungen korrekt erkannt werden.
