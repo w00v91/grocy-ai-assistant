@@ -395,8 +395,10 @@ def test_dashboard_contains_darkmode_toggle_in_top_right(client):
 
     static_response = client.get("/dashboard-static/dashboard.css")
     assert static_response.status_code == 200
-    assert "right: 1rem;" in static_response.text
+    assert "right: 0.85rem;" in static_response.text
+    assert "background: transparent;" in static_response.text
     assert "toggleTheme()" in response.text
+    assert "aria-label='Zu Darkmode wechseln'" in response.text
 
     js_response = client.get("/dashboard-static/dashboard.js")
     assert js_response.status_code == 200
