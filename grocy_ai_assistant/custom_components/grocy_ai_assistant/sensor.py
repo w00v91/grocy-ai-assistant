@@ -1,6 +1,6 @@
 import logging
 
-from homeassistant.components.sensor import SensorEntity
+from homeassistant.components.sensor import SensorEntity, SensorStateClass
 from homeassistant.helpers.entity import EntityCategory
 
 from .addon_client import AddonClient
@@ -20,6 +20,8 @@ async def async_setup_entry(hass, entry, async_add_entities):
             GrocyAISensor(entry),
             GrocyAIResponseSensor(entry),
             GrocyAIUpdateRequiredSensor(entry),
+            GrocyAILastResponseTimeSensor(entry),
+            GrocyAIAverageResponseTimeSensor(entry),
         ],
         update_before_add=True,
     )
@@ -125,3 +127,29 @@ class GrocyAIResponseSensor(SensorEntity):
 
     async def async_added_to_hass(self):
         _LOGGER.info("Response Sensor registriert und bereit.")
+
+
+class GrocyAILastResponseTimeSensor(SensorEntity):
+    """Diagnostic sensor containing the duration of the latest AI request."""
+
+    def __init__(self, entry):
+        self._attr_name = "Grocy AI KI Antwortzeit (letzte Anfrage)"
+        self._attr_unique_id = f"{entry.entry_id}_ai_response_time_last_ms"
+        self._attr_native_value = None
+        self._attr_native_unit_of_measurement = "ms"
+        self._attr_state_class = SensorStateClass.MEASUREMENT
+        self._attr_icon = "mdi:timer-outline"
+        self._attr_entity_category = EntityCategory.DIAGNOSTIC
+
+
+class GrocyAIAverageResponseTimeSensor(SensorEntity):
+    """Diagnostic sensor containing the average duration of AI requests."""
+
+    def __init__(self, entry):
+        self._attr_name = "Grocy AI KI Antwortzeit (Durchschnitt)"
+        self._attr_unique_id = f"{entry.entry_id}_ai_response_time_avg_ms"
+        self._attr_native_value = None
+        self._attr_native_unit_of_measurement = "ms"
+        self._attr_state_class = SensorStateClass.MEASUREMENT
+        self._attr_icon = "mdi:chart-line"
+        self._attr_entity_category = EntityCategory.DIAGNOSTIC

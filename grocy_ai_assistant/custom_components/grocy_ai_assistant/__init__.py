@@ -1,4 +1,5 @@
 import logging
+import time
 
 from homeassistant.components.frontend import async_remove_panel
 from homeassistant.config_entries import ConfigEntry
@@ -32,6 +33,30 @@ def _response_sensor_entity_id(hass: HomeAssistant, entry: ConfigEntry) -> str:
     )
 
 
+def _last_response_time_sensor_entity_id(
+    hass: HomeAssistant, entry: ConfigEntry
+) -> str:
+    return _get_entity_id(
+        hass,
+        entry.entry_id,
+        "sensor",
+        "ai_response_time_last_ms",
+        f"sensor.{DOMAIN}_ki_antwortzeit_letzte_anfrage",
+    )
+
+
+def _average_response_time_sensor_entity_id(
+    hass: HomeAssistant, entry: ConfigEntry
+) -> str:
+    return _get_entity_id(
+        hass,
+        entry.entry_id,
+        "sensor",
+        "ai_response_time_avg_ms",
+        f"sensor.{DOMAIN}_ki_antwortzeit_durchschnitt",
+    )
+
+
 def _product_input_entity_id(hass: HomeAssistant, entry: ConfigEntry) -> str:
     return _get_entity_id(
         hass,
@@ -55,6 +80,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     async_remove_panel(hass, "grocy-ai")
 
     response_reset_unsubs = hass.data[DOMAIN].setdefault("_response_reset_unsubs", {})
+    response_timing_stats = hass.data[DOMAIN].setdefault("_response_timing_stats", {})
+    stats = response_timing_stats.setdefault(
+        entry.entry_id,
+        {"count": 0, "total_ms": 0.0},
+    )
 
     def _cancel_response_reset() -> None:
         if unsubscribe := response_reset_unsubs.pop(entry.entry_id, None):
@@ -90,6 +120,30 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         else:
             _cancel_response_reset()
 
+    def _set_response_timing_states(duration_ms: float) -> None:
+        stats["count"] = int(stats.get("count", 0)) + 1
+        stats["total_ms"] = float(stats.get("total_ms", 0.0)) + duration_ms
+        average_ms = stats["total_ms"] / max(stats["count"], 1)
+
+        hass.states.async_set(
+            _last_response_time_sensor_entity_id(hass, entry),
+            round(duration_ms, 1),
+            {
+                "unit_of_measurement": "ms",
+                "state_class": "measurement",
+                "requests_count": stats["count"],
+            },
+        )
+        hass.states.async_set(
+            _average_response_time_sensor_entity_id(hass, entry),
+            round(average_ms, 1),
+            {
+                "unit_of_measurement": "ms",
+                "state_class": "measurement",
+                "requests_count": stats["count"],
+            },
+        )
+
     async def add_product_via_ai_service(call):
         """Analyze a product through the add-on and sync it to Grocy shopping list."""
         current_entry = hass.config_entries.async_get_entry(entry.entry_id)
@@ -117,9 +171,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         )
 
         _set_response_state("KI analysiert…", "mdi:progress-clock")
+        start_time = time.perf_counter()
 
         try:
             payload = await client.dashboard_search(product_name)
+            duration_ms = (time.perf_counter() - start_time) * 1000
+            _set_response_timing_states(duration_ms)
             if payload.get("_http_status") != 200:
                 raise RuntimeError(payload.get("detail") or "Unbekannter API-Fehler")
 
@@ -157,6 +214,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         .pop(entry.entry_id, None)
     ):
         unsubscribe()
+
+    hass.data.get(DOMAIN, {}).get("_response_timing_stats", {}).pop(entry.entry_id, None)
 
     hass.services.async_remove(DOMAIN, "add_product_via_ai")
     unload_ok = await hass.config_entries.async_unload_platforms(
