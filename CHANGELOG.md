@@ -2,13 +2,23 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.5
+
+- Fix: Dashboard-Bildproxy versucht bei 404 auf `/api/files/...` automatisch die passende Fallback-URL `/files/...` (und umgekehrt), damit Rezeptbilder hinter Home-Assistant/Grocy-Setups zuverlässig laden.
+- Test: API-Test ergänzt, der den 404-Fallbackpfad des Bildproxys absichert.
+
 ## 7.1.4
 
+- UI: „Regel anlegen" aus der Notification-Seite in ein eigenes Popup verschoben und über den neuen Button „Neue Regel" aufrufbar gemacht.
+- Neu: Notification-Dashboard liefert jetzt mehrere sinnvolle, vordefinierte Standardregeln (Einkauf fällig, niedriger Bestand, fehlende Rezept-Zutaten).
+- Fix: Frontend-Fehler `getAuthHeaders is not defined` behoben.
+- Anpassung: Notification-Einstellungen und Regeln werden nun pro Home-Assistant-Benutzer gespeichert; der aktuell angemeldete Nutzer wird automatisch verwendet.
 - UI: `.topbar-content` im Dashboard-Header auf `width: 100%` gesetzt.
 
 ## 7.1.3
 
 - UI: Darkmode-Button im Header in die Titelzeile verschoben und rechts neben „Smart Pantry Dashboard“ ausgerichtet.
+- Fix: Rezeptbilder in den Rezeptvorschlägen werden jetzt über den Dashboard-Bild-Proxy ausgeliefert, damit sie auch auf mobilen Geräten über Ingress zuverlässig laden.
 
 ## 7.1.2
 
@@ -30,6 +40,19 @@ All notable changes to this project are documented in this file.
 - UI: Lightmode-Theme-Icon auf dunklen Halbmond (`☾`) geändert.
 - UI: Theme-Button nicht mehr `fixed`, sondern wieder mitscrollend im Header positioniert.
 - Pflege: Add-on-Version auf 7.0.38 erhöht.
+
+## 7.1.1
+
+- Neu: Notification-Dashboard direkt in die App integriert (Geräteverwaltung, globale Einstellungen, Regelverwaltung, Testcenter, Historie) inklusive neuem Navigations-Tab.
+- Neu: FastAPI-Endpunkte für Notification-Dashboard ergänzt (`/api/dashboard/notifications/*`) mit persistenter JSON-Ablage unter `/data/notification_dashboard.json`.
+- Pflege: Versionen auf `7.1.1` erhöht.
+
+## 7.1.0
+
+- Neu: Enterprise-Notification-Architektur in der Home-Assistant-Integration eingeführt (Event-Modelle, Rule Engine, Dispatcher, persistenter Store und Orchestrator-Services).
+- Neu: Home-Assistant-Services für Notification-Events und Testcenter ergänzt (`notification_emit_event`, `notification_test_device`, `notification_test_all`, `notification_test_persistent`).
+- Neu: Architekturdokumentation und Dashboard-Spezifikation für Geräteverwaltung, Regeln, Testcenter und Historie ergänzt.
+- Pflege: Versionsstände von Add-on und Integration auf `7.1.0` aktualisiert.
 
 ## 7.0.37
 

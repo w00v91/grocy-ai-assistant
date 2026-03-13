@@ -180,10 +180,58 @@ body.modal-open {
   border: 1px solid var(--card-border);
   border-radius: var(--radius-pill);
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 0.35rem;
   backdrop-filter: blur(8px);
   z-index: 40;
+}
+
+.notification-settings,
+.notification-rule-editor {
+  display: grid;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+
+.notification-settings select,
+.notification-rule-editor input,
+.notification-rule-editor textarea {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.notification-grid {
+  display: grid;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.notification-device-item {
+  display: flex;
+  gap: 0.55rem;
+  align-items: flex-start;
+  padding: 0.55rem 0.7rem;
+  background: var(--item-bg);
+  border: 1px solid var(--item-border);
+  border-radius: 10px;
+}
+
+.notification-device-item small {
+  display: block;
+}
+
+.notification-list {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.notification-list li {
+  background: var(--item-bg);
+  border: 1px solid var(--item-border);
+  border-radius: 10px;
+  padding: 0.65rem 0.75rem;
 }
 
 .tab-button {

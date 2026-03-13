@@ -2,7 +2,8 @@ import logging
 import re
 from datetime import date, timedelta
 from pathlib import Path
-from urllib.parse import quote, urlparse
+from urllib.parse import ParseResult, quote, urlparse
+from uuid import uuid4
 
 import requests
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
@@ -11,6 +12,10 @@ from fastapi.templating import Jinja2Templates
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from grocy_ai_assistant.ai.ingredient_detector import IngredientDetector
+from grocy_ai_assistant.api.notification_store import (
+    NotificationDashboardStore,
+    create_history_entry,
+)
 from grocy_ai_assistant.api.errors import log_api_error
 from grocy_ai_assistant.config.settings import Settings, get_settings
 from grocy_ai_assistant.core.picture_urls import build_product_picture_url
@@ -32,6 +37,16 @@ from grocy_ai_assistant.models.ingredient import (
     ScannerLlavaResponse,
     StockProductResponse,
 )
+from grocy_ai_assistant.models.notification import (
+    NotificationDeviceUpdateRequest,
+    NotificationOverviewResponse,
+    NotificationRuleModel,
+    NotificationRuleUpsertRequest,
+    NotificationSettingsModel,
+    NotificationSettingsUpdateRequest,
+    NotificationTargetModel,
+    NotificationTestRequest,
+)
 from grocy_ai_assistant.services.grocy_client import GrocyClient
 
 logger = logging.getLogger(__name__)
@@ -40,6 +55,8 @@ AI_RECIPE_SUGGESTION_LIMIT = 3
 router = APIRouter()
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
 bearer_auth = HTTPBearer(auto_error=False)
+
+NOTIFICATION_STORAGE_PATH = Path("/data/notification_dashboard.json")
 
 
 def _build_product_picture_url(raw_picture_url: str, settings: Settings) -> str:
@@ -170,7 +187,10 @@ def _generate_recipe_suggestions(
                 reason=reason,
                 preparation=html_to_plain_text(recipe.get("description") or ""),
                 ingredients=recipe_ingredients,
-                picture_url=str(recipe.get("picture_url") or ""),
+                picture_url=_build_dashboard_picture_proxy_url(
+                    str(recipe.get("picture_url") or ""),
+                    settings,
+                ),
                 missing_products=missing_products,
             )
         )
@@ -268,7 +288,9 @@ def _generate_recipe_suggestions(
                 source="ai",
                 reason=html_to_plain_text(fallback_item.get("reason") or ""),
                 preparation=html_to_plain_text(fallback_item.get("preparation") or ""),
-                ingredients=[ingredient for ingredient in fallback_ingredients if ingredient],
+                ingredients=[
+                    ingredient for ingredient in fallback_ingredients if ingredient
+                ],
                 picture_url="",
             )
         )
@@ -729,39 +751,79 @@ def dashboard_product_picture(
         if cached_content is not None:
             return Response(content=cached_content, media_type=cached_media_type)
 
-    logger.info("Lade Produktbild via Proxy: %s", src)
-    try:
-        response = requests.get(
-            src,
-            headers={"GROCY-API-KEY": settings.grocy_api_key},
-            timeout=30,
+    parsed_src = urlparse(src)
+    candidate_urls = [src]
+    if parsed_src.path.startswith("/api/files/"):
+        candidate_urls.append(
+            ParseResult(
+                scheme=parsed_src.scheme,
+                netloc=parsed_src.netloc,
+                path=parsed_src.path.removeprefix("/api"),
+                params=parsed_src.params,
+                query=parsed_src.query,
+                fragment=parsed_src.fragment,
+            ).geturl()
         )
-    except requests.RequestException as error:
-        log_api_error(
-            logger,
-            request=request,
-            status_code=502,
-            message="Produktbild konnte nicht geladen werden",
-            details=[{"source": src}],
-            exc=error,
+    elif parsed_src.path.startswith("/files/"):
+        candidate_urls.append(
+            ParseResult(
+                scheme=parsed_src.scheme,
+                netloc=parsed_src.netloc,
+                path=f"/api{parsed_src.path}",
+                params=parsed_src.params,
+                query=parsed_src.query,
+                fragment=parsed_src.fragment,
+            ).geturl()
         )
-        raise HTTPException(
-            status_code=502,
-            detail="Produktbild konnte nicht geladen werden",
-        ) from error
 
-    try:
-        response.raise_for_status()
-    except requests.HTTPError as error:
-        log_api_error(
-            logger,
-            request=request,
-            status_code=404,
-            message="Bild nicht gefunden",
-            details=[{"source": src}],
-            exc=error,
-        )
-        raise HTTPException(status_code=404, detail="Bild nicht gefunden") from error
+    response = None
+    for index, candidate_url in enumerate(candidate_urls):
+        logger.info("Lade Produktbild via Proxy: %s", candidate_url)
+        try:
+            response = requests.get(
+                candidate_url,
+                headers={"GROCY-API-KEY": settings.grocy_api_key},
+                timeout=30,
+            )
+            response.raise_for_status()
+            break
+        except requests.HTTPError as error:
+            is_not_found = (
+                error.response is not None and error.response.status_code == 404
+            )
+            has_fallback = index < len(candidate_urls) - 1
+            if is_not_found and has_fallback:
+                logger.info(
+                    "Bild unter %s nicht gefunden, versuche Fallback-URL %s",
+                    candidate_url,
+                    candidate_urls[index + 1],
+                )
+                continue
+            log_api_error(
+                logger,
+                request=request,
+                status_code=404,
+                message="Bild nicht gefunden",
+                details=[{"source": candidate_url}],
+                exc=error,
+            )
+            raise HTTPException(status_code=404, detail="Bild nicht gefunden") from error
+        except requests.RequestException as error:
+            log_api_error(
+                logger,
+                request=request,
+                status_code=502,
+                message="Produktbild konnte nicht geladen werden",
+                details=[{"source": candidate_url}],
+                exc=error,
+            )
+            raise HTTPException(
+                status_code=502,
+                detail="Produktbild konnte nicht geladen werden",
+            ) from error
+
+    if response is None:
+        raise HTTPException(status_code=404, detail="Bild nicht gefunden")
 
     content_type = response.headers.get("Content-Type", "image/jpeg")
     return Response(content=response.content, media_type=content_type)
@@ -1267,6 +1329,254 @@ def dashboard_clear_shopping_list(
         raise HTTPException(status_code=500, detail=str(error)) from error
 
 
+def _notification_store() -> NotificationDashboardStore:
+    return NotificationDashboardStore(NOTIFICATION_STORAGE_PATH)
+
+
+def _resolve_dashboard_user_id(request: Request) -> str:
+    possible_headers = [
+        "x-ha-user-id",
+        "x-home-assistant-user-id",
+        "x-forwarded-user",
+        "remote-user",
+    ]
+    for header_name in possible_headers:
+        value = (request.headers.get(header_name) or "").strip()
+        if value:
+            return value
+    return "default-user"
+
+
+def _discover_notification_targets_from_env() -> list[NotificationTargetModel]:
+    configured = (
+        Path("/data/options.json").read_text(encoding="utf-8")
+        if Path("/data/options.json").exists()
+        else ""
+    )
+    service_names = re.findall(r"mobile_app_[a-zA-Z0-9_]+", configured)
+    targets: list[NotificationTargetModel] = []
+    seen: set[str] = set()
+    for service_name in service_names:
+        service = f"notify.{service_name}"
+        if service in seen:
+            continue
+        seen.add(service)
+        targets.append(
+            NotificationTargetModel(
+                id=service,
+                service=service,
+                display_name=service_name.replace("mobile_app_", "")
+                .replace("_", " ")
+                .title(),
+                platform="ios" if "iphone" in service_name else "android",
+                active=True,
+            )
+        )
+    return targets
+
+
+def _load_notification_overview(request: Request) -> NotificationOverviewResponse:
+    store = _notification_store()
+    user_id = _resolve_dashboard_user_id(request)
+    overview = store.load_for_user(user_id)
+    discovered_targets = _discover_notification_targets_from_env()
+    if discovered_targets:
+        existing_by_id = {item.id: item for item in overview.devices}
+        merged_devices: list[NotificationTargetModel] = []
+        for discovered in discovered_targets:
+            current = existing_by_id.get(discovered.id)
+            if current:
+                discovered.user_id = current.user_id
+                discovered.active = current.active
+            elif user_id != "default-user":
+                discovered.user_id = user_id
+            merged_devices.append(discovered)
+        overview.devices = merged_devices
+        store.save_overview_for_user(user_id, overview)
+    return overview
+
+
+@router.get(
+    "/api/dashboard/notifications/overview",
+    response_model=NotificationOverviewResponse,
+)
+def dashboard_notification_overview(
+    request: Request,
+    _: None = Depends(require_auth),
+):
+    return _load_notification_overview(request)
+
+
+@router.put(
+    "/api/dashboard/notifications/settings",
+    response_model=NotificationSettingsModel,
+)
+def dashboard_notification_update_settings(
+    request: Request,
+    payload: NotificationSettingsUpdateRequest,
+    _: None = Depends(require_auth),
+):
+    store = _notification_store()
+    user_id = _resolve_dashboard_user_id(request)
+    overview = _load_notification_overview(request)
+    overview.settings = NotificationSettingsModel(**payload.model_dump())
+    store.save_overview_for_user(user_id, overview)
+    return overview.settings
+
+
+@router.patch(
+    "/api/dashboard/notifications/devices/{device_id}",
+    response_model=NotificationTargetModel,
+)
+def dashboard_notification_update_device(
+    request: Request,
+    device_id: str,
+    payload: NotificationDeviceUpdateRequest,
+    _: None = Depends(require_auth),
+):
+    store = _notification_store()
+    user_id = _resolve_dashboard_user_id(request)
+    overview = _load_notification_overview(request)
+    for device in overview.devices:
+        if device.id == device_id:
+            device.active = payload.active
+            device.user_id = payload.user_id or user_id
+            store.save_overview_for_user(user_id, overview)
+            return device
+    raise HTTPException(status_code=404, detail="Device not found")
+
+
+@router.post(
+    "/api/dashboard/notifications/rules",
+    response_model=NotificationRuleModel,
+)
+def dashboard_notification_create_rule(
+    request: Request,
+    payload: NotificationRuleUpsertRequest,
+    _: None = Depends(require_auth),
+):
+    store = _notification_store()
+    user_id = _resolve_dashboard_user_id(request)
+    overview = _load_notification_overview(request)
+    rule = NotificationRuleModel(id=str(uuid4()), **payload.model_dump())
+    overview.rules.insert(0, rule)
+    store.save_overview_for_user(user_id, overview)
+    return rule
+
+
+@router.patch(
+    "/api/dashboard/notifications/rules/{rule_id}",
+    response_model=NotificationRuleModel,
+)
+def dashboard_notification_update_rule(
+    request: Request,
+    rule_id: str,
+    payload: NotificationRuleUpsertRequest,
+    _: None = Depends(require_auth),
+):
+    store = _notification_store()
+    user_id = _resolve_dashboard_user_id(request)
+    overview = _load_notification_overview(request)
+    for index, rule in enumerate(overview.rules):
+        if rule.id == rule_id:
+            updated = NotificationRuleModel(id=rule_id, **payload.model_dump())
+            overview.rules[index] = updated
+            store.save_overview_for_user(user_id, overview)
+            return updated
+    raise HTTPException(status_code=404, detail="Rule not found")
+
+
+@router.delete("/api/dashboard/notifications/rules/{rule_id}")
+def dashboard_notification_delete_rule(
+    request: Request,
+    rule_id: str,
+    _: None = Depends(require_auth),
+):
+    store = _notification_store()
+    user_id = _resolve_dashboard_user_id(request)
+    overview = _load_notification_overview(request)
+    original_count = len(overview.rules)
+    overview.rules = [rule for rule in overview.rules if rule.id != rule_id]
+    if len(overview.rules) == original_count:
+        raise HTTPException(status_code=404, detail="Rule not found")
+    store.save_overview_for_user(user_id, overview)
+    return {"success": True, "removed_rule_id": rule_id}
+
+
+@router.post("/api/dashboard/notifications/tests/device")
+def dashboard_notification_test_device(
+    request: Request,
+    payload: NotificationTestRequest,
+    _: None = Depends(require_auth),
+):
+    store = _notification_store()
+    user_id = _resolve_dashboard_user_id(request)
+    overview = _load_notification_overview(request)
+    target_id = payload.target_id
+    if target_id and not any(device.id == target_id for device in overview.devices):
+        raise HTTPException(status_code=404, detail="Device not found")
+
+    entry = create_history_entry(
+        event_type="shopping_due",
+        title="Testbenachrichtigung",
+        message=f"Test an {target_id or 'aktives Gerät'}",
+        delivered=True,
+        target_id=target_id,
+        channels=["mobile_push"],
+    )
+    overview.history.insert(0, entry)
+    store.save_overview_for_user(user_id, overview)
+    return {"success": True, "message": "Testbenachrichtigung protokolliert."}
+
+
+@router.post("/api/dashboard/notifications/tests/all")
+def dashboard_notification_test_all(
+    request: Request,
+    _: None = Depends(require_auth),
+):
+    store = _notification_store()
+    user_id = _resolve_dashboard_user_id(request)
+    overview = _load_notification_overview(request)
+    active_devices = [device for device in overview.devices if device.active]
+    for device in active_devices:
+        overview.history.insert(
+            0,
+            create_history_entry(
+                event_type="shopping_due",
+                title="Testbenachrichtigung",
+                message=f"Test an {device.display_name}",
+                delivered=True,
+                target_id=device.id,
+                channels=["mobile_push"],
+            ),
+        )
+    store.save_overview_for_user(user_id, overview)
+    return {"success": True, "sent_to": len(active_devices)}
+
+
+@router.post("/api/dashboard/notifications/tests/persistent")
+def dashboard_notification_test_persistent(
+    request: Request,
+    _: None = Depends(require_auth),
+):
+    store = _notification_store()
+    user_id = _resolve_dashboard_user_id(request)
+    overview = _load_notification_overview(request)
+    overview.history.insert(
+        0,
+        create_history_entry(
+            event_type="shopping_due",
+            title="Testbenachrichtigung",
+            message="Test als persistent_notification",
+            delivered=True,
+            target_id="persistent_notification",
+            channels=["persistent_notification"],
+        ),
+    )
+    store.save_overview_for_user(user_id, overview)
+    return {"success": True}
+
+
 def _normalize_base_path(value: str) -> str:
     normalized_value = (value or "").strip().rstrip("/")
     if not normalized_value:
@@ -1312,6 +1622,7 @@ def _render_dashboard(settings: Settings, request: Request):
             "api_base_path": api_request_base_path,
             "static_base_path": static_base_path,
             "scanner_llava_fallback_seconds": settings.scanner_barcode_fallback_seconds,
+            "ha_user_id": _resolve_dashboard_user_id(request),
         },
     )
 
