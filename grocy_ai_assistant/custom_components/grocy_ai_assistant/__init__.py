@@ -9,6 +9,11 @@ from homeassistant.helpers.event import async_call_later
 
 from .addon_client import AddonClient
 from .const import DEFAULT_ADDON_BASE_URL, DOMAIN, INTEGRATION_VERSION
+from .services import (
+    DATA_NOTIFICATION_MANAGER,
+    NotificationManager,
+    async_setup_notification_services,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -196,6 +201,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         DOMAIN, "add_product_via_ai", add_product_via_ai_service
     )
 
+    manager = NotificationManager(hass, entry.entry_id)
+    await manager.async_initialize()
+    hass.data[DOMAIN].setdefault(DATA_NOTIFICATION_MANAGER, {})[
+        entry.entry_id
+    ] = manager
+    await async_setup_notification_services(hass, manager)
+
     await hass.config_entries.async_forward_entry_setups(entry, ["sensor", "text"])
     return True
 
@@ -215,9 +227,18 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     ):
         unsubscribe()
 
-    hass.data.get(DOMAIN, {}).get("_response_timing_stats", {}).pop(entry.entry_id, None)
+    hass.data.get(DOMAIN, {}).get("_response_timing_stats", {}).pop(
+        entry.entry_id, None
+    )
 
     hass.services.async_remove(DOMAIN, "add_product_via_ai")
+    hass.services.async_remove(DOMAIN, "notification_emit_event")
+    hass.services.async_remove(DOMAIN, "notification_test_device")
+    hass.services.async_remove(DOMAIN, "notification_test_all")
+    hass.services.async_remove(DOMAIN, "notification_test_persistent")
+    hass.data.get(DOMAIN, {}).get(DATA_NOTIFICATION_MANAGER, {}).pop(
+        entry.entry_id, None
+    )
     unload_ok = await hass.config_entries.async_unload_platforms(
         entry, ["sensor", "text"]
     )
