@@ -195,6 +195,7 @@ body.modal-open {
 
 .notification-settings select,
 .notification-rule-editor input,
+.notification-rule-editor select,
 .notification-rule-editor textarea {
   width: 100%;
   box-sizing: border-box;

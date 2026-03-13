@@ -4,6 +4,8 @@ All notable changes to this project are documented in this file.
 
 ## 7.1.5
 
+- UI: Kanal und Severity wurden aus den allgemeinen Notification-Einstellungen in das Regel-Popup verschoben.
+- Fix: Beim Erstellen neuer Regeln werden Kanal und Severity jetzt direkt aus dem Popup an die Regel gebunden und gespeichert.
 - Fix: Dashboard-Bildproxy versucht bei 404 auf `/api/files/...` automatisch die passende Fallback-URL `/files/...` (und umgekehrt), damit Rezeptbilder hinter Home-Assistant/Grocy-Setups zuverlässig laden.
 - Test: API-Test ergänzt, der den 404-Fallbackpfad des Bildproxys absichert.
 
