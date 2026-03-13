@@ -2,6 +2,30 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.3
+
+- Fix: Rezeptbilder in den Rezeptvorschlägen werden jetzt über den Dashboard-Bild-Proxy ausgeliefert, damit sie auch auf mobilen Geräten über Ingress zuverlässig laden.
+
+## 7.1.2
+
+- Anpassung: Kamera-Zoom des Barcode-Scanners auf 1.4x reduziert.
+
+## 7.1.1
+
+- UI: Swipe-Buttons in der Einkaufsliste lösen jetzt bei 75px statt 72px aus.
+- UI: Fingerbewegung für Swipe-Aktionen direkter auf `distance * 0.8` abgestimmt.
+
+## 7.1.0
+
+- Neu: Enterprise-Notification-Architektur in der Home-Assistant-Integration eingeführt (Event-Modelle, Rule Engine, Dispatcher, persistenter Store und Orchestrator-Services).
+- Neu: Home-Assistant-Services für Notification-Events und Testcenter ergänzt (`notification_emit_event`, `notification_test_device`, `notification_test_all`, `notification_test_persistent`).
+- Neu: Architekturdokumentation und Dashboard-Spezifikation für Geräteverwaltung, Regeln, Testcenter und Historie ergänzt.
+
+## 7.0.38
+
+- UI: Lightmode-Theme-Icon auf dunklen Halbmond (`☾`) geändert.
+- UI: Theme-Button nicht mehr `fixed`, sondern wieder mitscrollend im Header positioniert.
+- Pflege: Add-on-Version auf 7.0.38 erhöht.
 
 ## 7.1.1
 
