@@ -90,12 +90,12 @@
             </section>
           </div>
           <div class='recipe-actions'>
-            <button onclick='loadRecipeSuggestions()'>Rezeptvorschläge laden</button>
             <div class='expiring-search-controls'>
               <label for='expiring-days'>Ablauf in Tagen</label>
               <input id='expiring-days' type='number' min='1' max='30' value='3' />
               <button type='button' onclick='loadExpiringRecipeSuggestions()'>Mit bald ablaufenden Produkten suchen</button>
             </div>
+            <button class='recipe-load-button' type='button' onclick='loadRecipeSuggestions()'>Rezeptvorschläge laden</button>
           </div>
           <p id='status-recipes'>Bereit.</p>
         </section>

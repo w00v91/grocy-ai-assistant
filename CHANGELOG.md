@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- UI: Button „Rezeptvorschläge laden“ unter den Suchbutton für bald ablaufende Produkte verschoben und mit zusätzlichem Abstand davor/danach versehen.
 - Doku: README vollständig strukturell überarbeitet (Zielbild, Architektur, Konfiguration, API-Endpunkte, Entwicklungsabläufe).
 - Pflege: Versionsstände für Add-on und Integration angehoben und im Projekt konsistent dokumentiert.
 
