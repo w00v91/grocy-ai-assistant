@@ -111,13 +111,6 @@
 
           <div class='notification-options-layout'>
             <section class='notification-options-card'>
-              <h3>Optionen</h3>
-              <p class='muted notification-options-description'>
-                Die globale Benachrichtigungs-Aktivierung findest du jetzt in den Add-on/App-Optionen von „Grocy AI Assistant“ (dort, wo auch die API-Keys stehen).
-              </p>
-            </section>
-
-            <section class='notification-options-card'>
               <h3>Geräteverwaltung</h3>
               <p class='muted notification-options-description'>
                 Zeigt alle erkannten Ziele für Push- und System-Benachrichtigungen.
@@ -160,18 +153,9 @@
       <section class='shopping-modal-content card'>
         <button class='shopping-modal-close' type='button' onclick='closeShoppingItemDetails()' aria-label='Details schließen'>×</button>
         <h3 id='shopping-item-title'>Produktdetails</h3>
+        <label for='shopping-item-note-input'>Notiz</label>
+        <textarea id='shopping-item-note-input' rows='3' placeholder='Optionale Einkaufsnotiz'></textarea>
         <div id='shopping-item-details' class='shopping-details-grid'></div>
-      </section>
-    </div>
-
-    <div id='shopping-note-modal' class='shopping-modal hidden'>
-      <div class='shopping-modal-backdrop' onclick='closeShoppingNoteEditor()'></div>
-      <section class='shopping-modal-content card'>
-        <button class='shopping-modal-close' type='button' onclick='closeShoppingNoteEditor()' aria-label='Notiz-Dialog schließen'>×</button>
-        <h3 id='shopping-note-modal-title'>Notiz bearbeiten</h3>
-        <label for='shopping-note-input'>Notiz</label>
-        <textarea id='shopping-note-input' rows='4' placeholder='Optionale Einkaufsnotiz'></textarea>
-        <button class='success-button' type='button' onclick='saveShoppingNote()'>Speichern</button>
       </section>
     </div>
 
