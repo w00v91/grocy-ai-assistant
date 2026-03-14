@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.22
+
+- UI: Eingabefelder (`input`, `select`, `textarea`) visuell an den restlichen Dashboard-Stil angepasst (einheitliche Rundungen, Schatten, Focus-Ring und weichere Placeholder-Farbe).
+- UI: Fokuszustände für Formularelemente verbessert, inklusive klarerer Hervorhebung im Light- und Dark-Theme.
+- Pflege: Add-on-Version auf `7.1.22` erhöht.
+
 ## 7.1.21
 
 - Fix/Scope: Mengen-Badge-Funktion fokussiert auf Produkte in der Einkaufsliste (Badge „Menge“ erhöht weiterhin die einzukaufende Menge direkt im Listen-Eintrag).
