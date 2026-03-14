@@ -1226,7 +1226,7 @@ async function clearShoppingList() {
   });
 }
 
-async function searchProduct() {
+async function searchProduct(options = {}) {
   return withBusyState(async () => {
   const rawName = document.getElementById('name').value;
   const status = getShoppingStatusElement();
@@ -1244,7 +1244,8 @@ async function searchProduct() {
     return;
   }
 
-  status.textContent = 'Prüfe Produkt...';
+  const forceCreate = options.forceCreate === true;
+  status.textContent = forceCreate ? 'Lege Produkt direkt an...' : 'Prüfe Produkt...';
   try {
     const res = await fetch(buildApiUrl('/api/dashboard/search'), {
       method: 'POST',
@@ -1253,6 +1254,7 @@ async function searchProduct() {
         name: productName,
         amount,
         best_before_date: bestBeforeDate,
+        force_create: forceCreate,
       })
     });
 
@@ -1286,6 +1288,11 @@ document.getElementById('variant-list').addEventListener('click', (event) => {
   const productId = Number(productIdRaw);
   const productName = decodeURIComponent(target.dataset.productName || '');
   const source = target.dataset.productSource || 'grocy';
+
+  if (source === 'input') {
+    searchSuggestedProduct(productName, { forceCreate: true });
+    return;
+  }
 
   if (!Number.isFinite(productId) || !productIdRaw) {
     searchSuggestedProduct(productName);
@@ -1369,11 +1376,11 @@ loadShoppingList();
 preloadRecipeSuggestionsOnStartup();
 
 
-async function searchSuggestedProduct(productName) {
+async function searchSuggestedProduct(productName, options = {}) {
   const nameInput = document.getElementById('name');
   nameInput.value = productName;
   updateClearButtonVisibility();
-  await searchProduct();
+  await searchProduct(options);
 }
 
 function getSelectedLocationIds() {

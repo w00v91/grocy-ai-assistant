@@ -475,6 +475,61 @@ def test_dashboard_search_keeps_ai_variant_without_grocy_match(client, monkeypat
     ]
 
 
+def test_dashboard_search_force_create_skips_variant_selection(client, monkeypatch):
+    calls = {"created": None, "added": None}
+
+    class FakeDetector:
+        def __init__(self, settings):
+            self.settings = settings
+
+        def suggest_similar_products(self, name):
+            return [{"name": "Olivenöl"}]
+
+        def analyze_product_name(self, name, locations=None):
+            return {
+                "name": name,
+                "description": "neu",
+                "location_id": 1,
+                "qu_id_purchase": 2,
+                "qu_id_stock": 2,
+                "calories": 100,
+            }
+
+    class FakeGrocyClient:
+        def __init__(self, settings):
+            self.settings = settings
+
+        def find_product_by_name(self, name):
+            return None
+
+        def search_products_by_partial_name(self, query):
+            if query == "oliven":
+                return [{"id": 1, "name": "Olivenöl", "picture_url": ""}]
+            return []
+
+        def create_product(self, payload):
+            calls["created"] = payload
+            return 42
+
+        def add_product_to_shopping_list(self, product_id, amount, best_before_date=""):
+            calls["added"] = (product_id, amount, best_before_date)
+
+    monkeypatch.setattr(routes, "IngredientDetector", FakeDetector)
+    monkeypatch.setattr(routes, "GrocyClient", FakeGrocyClient)
+
+    response = client.post(
+        "/api/dashboard/search",
+        headers={"Authorization": "Bearer test-api-key"},
+        json={"name": "2 oliven", "force_create": True},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["action"] == "created_and_added"
+    assert calls["created"]["name"] == "oliven"
+    assert calls["added"] == (42, 2, "")
+
+
 def test_dashboard_search_generates_and_attaches_image_for_new_product(
     client, test_settings, monkeypatch
 ):

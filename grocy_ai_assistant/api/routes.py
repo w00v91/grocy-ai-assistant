@@ -666,7 +666,7 @@ def dashboard_search(
             detector=detector,
             settings=settings,
         )
-        if fallback_variants:
+        if fallback_variants and not payload.force_create:
             fallback_variants = _prepend_input_variant_if_no_exact(
                 product_name, fallback_variants
             )
