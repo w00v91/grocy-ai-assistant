@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.17
+
+- Fix: Syntaxfehler in `dashboard.js` behoben (`Unexpected end of input`), verursacht durch einen unvollständig gebliebenen Event-Handler im Shopping-List-Click-Handling.
+- Pflege: Add-on-Version auf `7.1.17` erhöht.
+
 ## 7.1.16
 
 - Fix: Doppelte Deklarationen in `dashboard.js` entfernt, die im Browser den Fehler `Identifier 'NOTIFICATION_EVENT_LABELS' has already been declared` ausgelöst haben.
