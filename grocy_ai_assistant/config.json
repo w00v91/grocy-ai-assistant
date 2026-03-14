@@ -1,6 +1,6 @@
 {
   "name": "Grocy AI Assistant",
-  "version": "7.1.27",
+  "version": "7.1.28",
   "slug": "grocy_ai_assistant",
   "dependencies": [
     "a0d49513_grocy"
@@ -39,7 +39,8 @@
     "scanner_llava_min_confidence": 75,
     "image_generation_enabled": false,
     "openai_api_key": "DEIN_OPENAI_KEY",
-    "openai_image_model": "gpt-image-1"
+    "openai_image_model": "gpt-image-1",
+    "generate_missing_product_images_on_startup": false
   },
   "schema": {
     "api_key": "str",
@@ -54,6 +55,7 @@
     "scanner_llava_min_confidence": "int(1,100)",
     "image_generation_enabled": "bool",
     "openai_api_key": "password",
-    "openai_image_model": "str"
+    "openai_image_model": "str",
+    "generate_missing_product_images_on_startup": "bool"
   }
 }
