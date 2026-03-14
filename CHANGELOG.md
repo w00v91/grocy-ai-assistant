@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.14
+
+- UI: Schalter „Benachrichtigungen global aktiv“ aus der allgemeinen Notification-Optionenkarte in den Bereich „App-Optionen“ verschoben und Bezeichnung/Texte entsprechend angepasst.
+- Pflege: Add-on-Version auf `7.1.14` erhöht.
+
 ## 7.1.13
 
 - UI: Regel-Popup visuell an das restliche Dashboard angepasst (klarerer Titel/Untertitel, bessere Formular- und Mehrfachauswahl-Darstellung, konsistente Aktionsleiste).
