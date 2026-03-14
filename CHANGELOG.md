@@ -12,6 +12,9 @@ All notable changes to this project are documented in this file.
 
 ## 7.1.36
 
+- UI (Lager-Tab): Aktions-Buttons pro Lagereintrag visuell überarbeitet und auf einen einheitlichen, pillenförmigen Stil umgestellt.
+- UI (Lager-Tab): Reihenfolge und Beschriftung der Aktionen verbessert (`✏️ Bearbeiten`, `✅ Verbrauchen`) für klarere Bedienung.
+- UX (Lager-Tab): Button-Zustände für deaktivierte Aktionen konsistenter dargestellt und Mobile-Layout für Button-Zeile verbessert.
 - Fix (Dashboard/Lager): Produktbilder im Lager-Tab werden jetzt wie im Einkaufs-Tab über den Dashboard-Bildproxy ausgeliefert (`/api/dashboard/product-picture?...`) statt mit rohem Dateinamenpfad, wodurch 404-Fehler für reine Dateinamen verhindert werden.
 - Test: API-Test ergänzt/erweitert, der für `/api/dashboard/stock-products` den Proxy-Bildpfad für `picture_url` absichert.
 - UI (Suche/Einkaufsliste): Badge-Breitenbegrenzung gezielt auf Mobile (`max-width: 33.333%`) angewendet; Desktop-Badge-Breite bleibt beim bisherigen festen Layout.
