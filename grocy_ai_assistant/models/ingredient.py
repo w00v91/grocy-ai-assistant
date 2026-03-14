@@ -20,6 +20,10 @@ class ShoppingListBestBeforeDateUpdateRequest(BaseModel):
     best_before_date: str = Field(..., min_length=1)
 
 
+class ShoppingListNoteUpdateRequest(BaseModel):
+    note: str = ""
+
+
 class ProductData(BaseModel):
     name: str
     description: str

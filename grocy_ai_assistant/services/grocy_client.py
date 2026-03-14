@@ -310,6 +310,24 @@ class GrocyClient:
         )
         response.raise_for_status()
 
+    def update_shopping_list_item_note(
+        self,
+        shopping_list_id: int,
+        note: str,
+        current_best_before_date: str = "",
+    ) -> None:
+        note_with_best_before_date = self._embed_best_before_date_in_note(
+            note,
+            current_best_before_date,
+        )
+        response = requests.put(
+            f"{self.settings.grocy_base_url}/objects/shopping_list/{shopping_list_id}",
+            headers=self.headers,
+            json={"note": note_with_best_before_date},
+            timeout=30,
+        )
+        response.raise_for_status()
+
     @classmethod
     def _extract_best_before_date_from_note(cls, note: str) -> tuple[str, str]:
         safe_note = cls._safe_str(note)
