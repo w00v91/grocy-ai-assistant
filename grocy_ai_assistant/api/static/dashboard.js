@@ -299,8 +299,8 @@ function renderNotificationRules(rules) {
         <span class="badge">Cooldown: ${Number(rule.cooldown_seconds || 0)}s</span>
       </div>
       <div class="button-row notification-rule-item-actions">
-        <button class="ghost-button notification-action-button" type="button" onclick="openNotificationRuleModal('${rule.id}')">Regel ändern</button>
-        <button class="danger-button notification-action-button" type="button" onclick="deleteNotificationRule('${rule.id}')">Löschen</button>
+        <button class="notification-action-button notification-action-button-edit" type="button" onclick="openNotificationRuleModal('${rule.id}')">Regel ändern</button>
+        <button class="notification-action-button notification-action-button-delete" type="button" onclick="deleteNotificationRule('${rule.id}')">Löschen</button>
       </div>
     </li>
   `).join('');
