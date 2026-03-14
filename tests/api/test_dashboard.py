@@ -883,6 +883,7 @@ def test_add_missing_recipe_products_adds_to_shopping_list(client, monkeypatch):
     assert captured == [(1, 1), (2, 1)]
 
 
+
 def test_dashboard_contains_recipe_section(client):
     response = client.get("/")
 
@@ -899,6 +900,7 @@ def test_dashboard_contains_recipe_section(client):
         "/api/dashboard/recipe/${activeRecipeItem.recipe_id}/add-missing"
         in js_response.text
     )
+
 
 
 def test_dashboard_contains_complete_button(client):
