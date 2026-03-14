@@ -152,6 +152,14 @@ def test_dashboard_search_rejects_blank_name(client):
 
 
 def test_dashboard_search_variants_returns_partial_matches(client, monkeypatch):
+    class FakeDetector:
+        def __init__(self, settings):
+            self.settings = settings
+
+        def suggest_similar_products(self, name):
+            assert name == "apf"
+            return []
+
     class FakeGrocyClient:
         def __init__(self, settings):
             self.settings = settings
@@ -172,6 +180,7 @@ def test_dashboard_search_variants_returns_partial_matches(client, monkeypatch):
             ]
 
     monkeypatch.setattr(routes, "GrocyClient", FakeGrocyClient)
+    monkeypatch.setattr(routes, "IngredientDetector", FakeDetector)
 
     response = client.get(
         "/api/dashboard/search-variants?q=apf",
@@ -183,6 +192,14 @@ def test_dashboard_search_variants_returns_partial_matches(client, monkeypatch):
 
 
 def test_dashboard_search_variants_ignores_amount_prefix(client, monkeypatch):
+    class FakeDetector:
+        def __init__(self, settings):
+            self.settings = settings
+
+        def suggest_similar_products(self, name):
+            assert name == "apf"
+            return []
+
     class FakeGrocyClient:
         def __init__(self, settings):
             self.settings = settings
@@ -198,6 +215,7 @@ def test_dashboard_search_variants_ignores_amount_prefix(client, monkeypatch):
             ]
 
     monkeypatch.setattr(routes, "GrocyClient", FakeGrocyClient)
+    monkeypatch.setattr(routes, "IngredientDetector", FakeDetector)
 
     response = client.get(
         "/api/dashboard/search-variants?q=2%20apf",
@@ -206,6 +224,42 @@ def test_dashboard_search_variants_ignores_amount_prefix(client, monkeypatch):
 
     assert response.status_code == 200
     assert [item["name"] for item in response.json()] == ["Apfel"]
+
+
+def test_dashboard_search_variants_includes_ai_suggestions_not_in_grocy(
+    client, monkeypatch
+):
+    class FakeDetector:
+        def __init__(self, settings):
+            self.settings = settings
+
+        def suggest_similar_products(self, name):
+            assert name == "hafer"
+            return [{"name": "Haferdrink"}, {"name": "Haferjoghurt"}]
+
+    class FakeGrocyClient:
+        def __init__(self, settings):
+            self.settings = settings
+
+        def search_products_by_partial_name(self, query):
+            if query == "hafer":
+                return [{"id": 1, "name": "Haferflocken", "picture_url": ""}]
+            return []
+
+    monkeypatch.setattr(routes, "GrocyClient", FakeGrocyClient)
+    monkeypatch.setattr(routes, "IngredientDetector", FakeDetector)
+
+    response = client.get(
+        "/api/dashboard/search-variants?q=hafer",
+        headers={"Authorization": "Bearer test-api-key"},
+    )
+
+    assert response.status_code == 200
+    assert response.json() == [
+        {"id": 1, "name": "Haferflocken", "picture_url": "", "source": "grocy"},
+        {"id": None, "name": "Haferdrink", "picture_url": "", "source": "ai"},
+        {"id": None, "name": "Haferjoghurt", "picture_url": "", "source": "ai"},
+    ]
 
 
 def test_dashboard_add_existing_product_adds_to_shopping_list(client, monkeypatch):

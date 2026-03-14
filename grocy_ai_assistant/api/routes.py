@@ -540,12 +540,13 @@ def dashboard_search_variants(
 
     try:
         grocy_client = GrocyClient(settings)
-        matches = grocy_client.search_products_by_partial_name(query)
-        return [
-            _variant_from_grocy_product(product, settings)
-            for product in matches
-            if product.get("id")
-        ]
+        detector = IngredientDetector(settings)
+        return _build_fallback_variants(
+            product_name=query,
+            grocy_client=grocy_client,
+            detector=detector,
+            settings=settings,
+        )
     except Exception as error:
         log_api_error(
             logger,
