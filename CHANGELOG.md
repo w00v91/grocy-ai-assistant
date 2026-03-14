@@ -10,6 +10,10 @@ All notable changes to this project are documented in this file.
 
 ## 7.1.24
 
+- Neu: Optionale OpenAI-Bildgenerierung für neu erkannte Produkte ergänzt (`image_generation_enabled`, `openai_api_key`, `openai_image_model`).
+- API/Service: Beim Neuanlegen eines Produkts über die Dashboard-Suche wird bei aktiver Option automatisch ein Produktbild über die OpenAI Images API erzeugt, in Grocy hochgeladen und dem Produkt zugewiesen.
+- UI: Swipe-Aktionsfläche in der Einkaufsliste auf `138px` verbreitert (`.shopping-item-action`).
+- UI: Scanner-Button-Icon auf ein Barcode-Symbol umgestellt (statt Kamera-Emoji), inklusive neuer CSS-Icon-Gestaltung.
 - Fix (Lager-Dashboard): Fehlende Bearbeitungs-IDs aus `/stock` werden jetzt über `/objects/stock` ergänzt, damit Aktionen „Ändern“ und „Verbrauchen“ wieder für betroffene Einträge funktionieren.
 - Test: Unit-Tests für Fallback der Bearbeitungs-ID in `get_stock_products` und `get_stock_entries` ergänzt.
 - Pflege: Add-on-Version auf `7.1.24` erhöht.

@@ -160,6 +160,29 @@ def _get_recipe_suggestion_cache(request: Request):
     return getattr(request.app.state, "recipe_suggestion_cache", None)
 
 
+def _generate_and_attach_product_picture(
+    product_name: str,
+    product_id: int,
+    detector: IngredientDetector,
+    grocy_client: GrocyClient,
+    settings: Settings,
+) -> None:
+    if not settings.image_generation_enabled:
+        return
+
+    try:
+        image_path = detector.generate_product_image(product_name)
+        if not image_path:
+            return
+        grocy_client.attach_product_picture(product_id, image_path)
+    except Exception as error:
+        logger.warning(
+            "Produktbild konnte nicht automatisch erstellt/gespeichert werden (%s): %s",
+            product_name,
+            error,
+        )
+
+
 def _build_stock_signature(
     stock_products: list[dict],
 ) -> tuple[tuple[str, str, str, str, str], ...]:
@@ -633,6 +656,13 @@ def dashboard_search(
         else:
             product_data = detector.analyze_product_name(product_name)
         created_object_id = grocy_client.create_product(product_data)
+        _generate_and_attach_product_picture(
+            product_name=product_name,
+            product_id=created_object_id,
+            detector=detector,
+            grocy_client=grocy_client,
+            settings=settings,
+        )
         grocy_client.add_product_to_shopping_list(
             created_object_id,
             amount=amount,

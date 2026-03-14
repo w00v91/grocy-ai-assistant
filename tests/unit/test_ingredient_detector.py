@@ -1,3 +1,4 @@
+from pathlib import Path
 import logging
 
 from grocy_ai_assistant.ai.ingredient_detector import IngredientDetector
@@ -335,3 +336,49 @@ def test_detect_product_from_image_returns_empty_on_null_response(monkeypatch):
     result = detector.detect_product_from_image("img")
 
     assert result == {"product_name": "", "brand": "", "hint": ""}
+
+
+def test_generate_product_image_uses_openai_images_api(monkeypatch, tmp_path):
+    captured = {}
+
+    def fake_post(url, headers=None, json=None, timeout=None):
+        captured["url"] = url
+        captured["headers"] = headers
+        captured["json"] = json
+
+        class FakeImageResponse:
+            def raise_for_status(self):
+                return None
+
+            def json(self):
+                return {"data": [{"b64_json": "aGVsbG8="}]}
+
+        return FakeImageResponse()
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.ai.ingredient_detector.requests.post", fake_post
+    )
+    monkeypatch.setattr(
+        "grocy_ai_assistant.ai.ingredient_detector.Path",
+        lambda value: tmp_path / str(value).strip("/"),
+    )
+
+    detector = IngredientDetector(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+            image_generation_enabled=True,
+            openai_api_key="sk-test",
+            openai_image_model="gpt-image-1",
+        )
+    )
+
+    result = detector.generate_product_image("Hafer Milch")
+
+    assert captured["url"] == "https://api.openai.com/v1/images/generations"
+    assert captured["headers"]["Authorization"] == "Bearer sk-test"
+    assert captured["json"]["model"] == "gpt-image-1"
+    assert "Erstelle ein produktbild für \"Hafer Milch\"" in captured["json"]["prompt"]
+    assert Path(result).exists()
