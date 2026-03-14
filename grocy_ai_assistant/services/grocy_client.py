@@ -267,6 +267,15 @@ class GrocyClient:
 
         return None
 
+
+    def get_products_without_picture(self) -> list[Dict[str, Any]]:
+        products = self._get_all_products()
+        return [
+            product
+            for product in products
+            if not self._safe_str(product.get("picture_file_name"))
+        ]
+
     def create_product(self, product_payload: Dict[str, Any]) -> int:
         response = requests.post(
             f"{self.settings.grocy_base_url}/objects/products",

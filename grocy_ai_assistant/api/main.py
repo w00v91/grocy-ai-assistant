@@ -16,7 +16,9 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from grocy_ai_assistant.api.errors import build_error_response, log_api_error
 from grocy_ai_assistant.api.routes import prefetch_initial_recipe_suggestions, router
-from grocy_ai_assistant.config.settings import get_settings
+from grocy_ai_assistant.ai.ingredient_detector import IngredientDetector
+from grocy_ai_assistant.config.settings import Settings, get_settings
+from grocy_ai_assistant.services.grocy_client import GrocyClient
 from grocy_ai_assistant.services.location_cache import LocationCache
 from grocy_ai_assistant.services.product_image_cache import ProductImageCache
 
@@ -26,6 +28,66 @@ logging.basicConfig(
     stream=sys.stdout,
 )
 logger = logging.getLogger(__name__)
+
+
+def _generate_missing_product_images_on_startup(settings: Settings) -> None:
+    if not settings.generate_missing_product_images_on_startup:
+        return
+
+    if not settings.image_generation_enabled:
+        logger.info(
+            "Batch-Bildgenerierung beim Start übersprungen: image_generation_enabled ist deaktiviert"
+        )
+        return
+
+    client = GrocyClient(settings)
+    detector = IngredientDetector(settings)
+
+    try:
+        products_without_picture = client.get_products_without_picture()
+    except Exception as error:
+        logger.warning("Produkte ohne Bild konnten nicht geladen werden: %s", error)
+        return
+
+    if not products_without_picture:
+        logger.info("Batch-Bildgenerierung beim Start: Keine Produkte ohne Bild gefunden")
+        return
+
+    logger.info(
+        "Batch-Bildgenerierung beim Start gestartet für %s Produkte ohne Bild",
+        len(products_without_picture),
+    )
+
+    generated_count = 0
+    for product in products_without_picture:
+        product_name = str(product.get("name") or "").strip()
+        raw_product_id = product.get("id")
+        try:
+            product_id = int(raw_product_id)
+        except (TypeError, ValueError):
+            continue
+
+        if not product_name:
+            continue
+
+        try:
+            image_path = detector.generate_product_image(product_name)
+            if not image_path:
+                continue
+            client.attach_product_picture(product_id, image_path)
+            generated_count += 1
+        except Exception as error:
+            logger.warning(
+                "Produktbild konnte im Startup-Batch nicht erstellt/gespeichert werden (%s): %s",
+                product_name,
+                error,
+            )
+
+    logger.info(
+        "Batch-Bildgenerierung beim Start abgeschlossen: %s von %s Produkten aktualisiert",
+        generated_count,
+        len(products_without_picture),
+    )
 
 
 @asynccontextmanager
@@ -48,6 +110,8 @@ async def _lifespan(app: FastAPI):
             if prefetched:
                 app.state.recipe_suggestion_cache.update(prefetched)
                 logger.info("Initiale Rezeptvorschläge zeitverzögert vorab geladen und gecacht")
+
+            await asyncio.to_thread(_generate_missing_product_images_on_startup, settings)
         except Exception as error:
             logger.warning(
                 "Zeitverzögertes Vorladen der Rezeptvorschläge fehlgeschlagen: %s",
