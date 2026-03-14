@@ -1,6 +1,8 @@
 from pathlib import Path
 import logging
 
+import requests
+
 from grocy_ai_assistant.ai.ingredient_detector import IngredientDetector
 from grocy_ai_assistant.config.settings import Settings
 
@@ -382,3 +384,100 @@ def test_generate_product_image_uses_openai_images_api(monkeypatch, tmp_path):
     assert captured["json"]["model"] == "gpt-image-1"
     assert "Erstelle ein produktbild für \"Hafer Milch\"" in captured["json"]["prompt"]
     assert Path(result).exists()
+
+
+def test_generate_product_image_falls_back_to_dalle_on_403(monkeypatch, tmp_path):
+    captured_models = []
+
+    class FakeForbiddenResponse:
+        status_code = 403
+
+        def raise_for_status(self):
+            raise requests.HTTPError("forbidden", response=self)
+
+    class FakeSuccessResponse:
+        status_code = 200
+
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return {"data": [{"b64_json": "aGVsbG8="}]}
+
+    def fake_post(url, headers=None, json=None, timeout=None):
+        captured_models.append(json["model"])
+        if json["model"] == "gpt-image-1":
+            return FakeForbiddenResponse()
+        return FakeSuccessResponse()
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.ai.ingredient_detector.requests.post", fake_post
+    )
+    monkeypatch.setattr(
+        "grocy_ai_assistant.ai.ingredient_detector.Path",
+        lambda value: tmp_path / str(value).strip("/"),
+    )
+
+    detector = IngredientDetector(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+            image_generation_enabled=True,
+            openai_api_key="sk-test",
+            openai_image_model="gpt-image-1",
+        )
+    )
+
+    result = detector.generate_product_image("Zucchini")
+
+    assert captured_models == ["gpt-image-1", "dall-e-3"]
+    assert Path(result).exists()
+
+
+def test_generate_product_image_downloads_from_url_when_b64_missing(monkeypatch, tmp_path):
+    class FakeImageApiResponse:
+        status_code = 200
+
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return {"data": [{"url": "https://example.invalid/image.png"}]}
+
+    class FakeDownloadResponse:
+        def __init__(self):
+            self.content = b"png-bytes"
+
+        def raise_for_status(self):
+            return None
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.ai.ingredient_detector.requests.post",
+        lambda *args, **kwargs: FakeImageApiResponse(),
+    )
+    monkeypatch.setattr(
+        "grocy_ai_assistant.ai.ingredient_detector.requests.get",
+        lambda *args, **kwargs: FakeDownloadResponse(),
+    )
+    monkeypatch.setattr(
+        "grocy_ai_assistant.ai.ingredient_detector.Path",
+        lambda value: tmp_path / str(value).strip("/"),
+    )
+
+    detector = IngredientDetector(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+            image_generation_enabled=True,
+            openai_api_key="sk-test",
+            openai_image_model="gpt-image-1",
+        )
+    )
+
+    result = detector.generate_product_image("Tomate")
+
+    assert Path(result).read_bytes() == b"png-bytes"

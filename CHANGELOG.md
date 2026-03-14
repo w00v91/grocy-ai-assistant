@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.27
+
+- Fix (Bildgenerierung): OpenAI-Image-Erstellung nutzt jetzt ein robustes Modell-Fallback (`openai_image_model` -> `dall-e-3` -> `dall-e-2`), wenn der primäre Modellzugriff mit `403 Forbidden` abgelehnt wird.
+- Fix (Bildgenerierung): Antwortverarbeitung akzeptiert jetzt sowohl `b64_json` als auch `url`-basierte Bildantworten und lädt URL-Bilder automatisch herunter.
+- Test: Unit-Tests für Modell-Fallback bei `403` und URL-Downloadpfad ergänzt.
+- Pflege: Add-on-Version auf `7.1.27` erhöht.
+
 ## 7.1.26
 
 - UI (Rezepte): Unten auf der Rezeptseite neuen Button „Rezept hinzufügen" ergänzt.
