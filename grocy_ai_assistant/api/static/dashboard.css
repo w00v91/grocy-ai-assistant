@@ -1171,6 +1171,32 @@ img {
   transition: transform 0.16s ease;
 }
 
+
+.storage-edit-modal-content {
+  max-width: 520px;
+}
+
+.storage-edit-media {
+  margin-bottom: 0.75rem;
+}
+
+.storage-edit-picture {
+  width: 92px;
+  height: 92px;
+  border-radius: 12px;
+  object-fit: cover;
+  border: 1px solid var(--item-border);
+}
+
+.storage-edit-details {
+  margin-bottom: 0.75rem;
+  font-size: 0.95rem;
+}
+
+.storage-edit-details p {
+  margin: 0.18rem 0;
+}
+
 .shopping-modal {
   position: fixed;
   inset: 0;

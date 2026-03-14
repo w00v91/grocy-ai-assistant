@@ -1680,8 +1680,25 @@ function openStorageEditModal(stockId) {
   storageEditingItem = stockItem;
   storageEditingTargetId = normalizedStockId;
   document.getElementById('storage-edit-modal-title').textContent = `Bestand ändern: ${stockItem.name}`;
+  document.getElementById('storage-edit-name').textContent = stockItem.name || '-';
+  document.getElementById('storage-edit-product-id').textContent = String(stockItem.id || '-');
+  document.getElementById('storage-edit-stock-id').textContent = String(stockItem.stock_id || '-');
+  document.getElementById('storage-edit-location').textContent = stockItem.location_name || '-';
   document.getElementById('storage-edit-amount').value = String(stockItem.amount || '0').replace(',', '.');
   document.getElementById('storage-edit-best-before').value = stockItem.best_before_date || '';
+
+  const picture = document.getElementById('storage-edit-picture');
+  if (picture) {
+    const pictureUrl = String(stockItem.picture_url || '').trim();
+    if (pictureUrl) {
+      picture.src = pictureUrl;
+      picture.classList.remove('hidden');
+    } else {
+      picture.removeAttribute('src');
+      picture.classList.add('hidden');
+    }
+  }
+
   document.getElementById('storage-edit-modal').classList.remove('hidden');
   syncModalScrollLock();
 }
@@ -1689,6 +1706,11 @@ function openStorageEditModal(stockId) {
 function closeStorageEditModal() {
   storageEditingItem = null;
   storageEditingTargetId = null;
+  const picture = document.getElementById('storage-edit-picture');
+  if (picture) {
+    picture.removeAttribute('src');
+    picture.classList.add('hidden');
+  }
   document.getElementById('storage-edit-modal').classList.add('hidden');
   syncModalScrollLock();
 }
@@ -1714,6 +1736,29 @@ async function saveStorageEditModal() {
     if (!res.ok) throw new Error(getErrorMessage(payload, 'Bestand konnte nicht aktualisiert werden.'));
     closeStorageEditModal();
     status.textContent = 'Bestand wurde aktualisiert.';
+    await loadStorageProducts();
+  } catch (error) {
+    status.textContent = `Fehler: ${error.message}`;
+  }
+}
+
+
+async function deleteStorageEditItem() {
+  if (!storageEditingItem || !Number.isFinite(storageEditingTargetId) || storageEditingTargetId <= 0) return;
+  const status = getStorageStatusElement();
+  const productName = storageEditingItem.name || 'dieses Produkt';
+  const confirmed = window.confirm(`Soll ${productName} wirklich aus dem Bestand gelöscht werden?`);
+  if (!confirmed) return;
+
+  try {
+    const res = await fetch(buildApiUrl(`/api/dashboard/stock-products/${encodeURIComponent(storageEditingTargetId)}`), {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+    const payload = await parseJsonSafe(res);
+    if (!res.ok) throw new Error(getErrorMessage(payload, 'Bestandseintrag konnte nicht gelöscht werden.'));
+    closeStorageEditModal();
+    status.textContent = payload?.message || 'Bestandseintrag wurde gelöscht.';
     await loadStorageProducts();
   } catch (error) {
     status.textContent = `Fehler: ${error.message}`;
