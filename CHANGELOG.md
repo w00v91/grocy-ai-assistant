@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.20
+
+- UI: Scanner-Tab aus der unteren Navigation entfernt und als Popup hinter ein Barcode-/Scanner-Icon verschoben.
+- UI: Scanner-Icon rechts neben der Überschrift „Grocy AI Suche“ ergänzt; öffnet den Barcode-Scanner als Modal.
+- UI: Untere Tabbar auf drei Tabs reduziert (Einkauf, Rezepte, Notify).
+- Pflege: Add-on-Version auf `7.1.20` erhöht.
+
 ## 7.1.19
 
 - UI: Produkt-Badges in der Einkaufsliste erneut etwas schmaler gemacht, damit sie weniger Breite einnehmen.

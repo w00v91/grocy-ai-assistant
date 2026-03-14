@@ -1203,12 +1203,14 @@ def test_dashboard_renders_location_dropdown_filters(client):
     assert "Lagerstandorte auswählen" in static_response.text
 
 
-def test_dashboard_contains_scanner_tab(client):
+def test_dashboard_contains_scanner_modal_trigger(client):
     response = client.get("/")
 
     assert response.status_code == 200
     assert "id='tab-scanner'" in response.text
-    assert 'switchTab("scanner")' in response.text
+    assert "id='open-scanner-modal-button'" in response.text
+    assert 'openScannerModal()' in response.text
+    assert "id='scanner-modal'" in response.text
 
 
 def test_dashboard_exposes_scanner_logic_in_js(client):
