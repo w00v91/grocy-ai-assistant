@@ -8,6 +8,9 @@ All notable changes to this project are documented in this file.
 - API: `POST /api/dashboard/search` akzeptiert `force_create`, um die Varianten-Fallback-Auswahl gezielt zu überspringen.
 - UI (Suche): Beim Klick auf `source: input` wird die Suche mit `force_create` ausgelöst und die Statusmeldung auf direkte Anlage angepasst.
 - Test: API-Test ergänzt, der `force_create` mit Mengenpräfix (`2 oliven`) und direkte Anlage (`created_and_added`) absichert.
+- Fix (Lager-Tab): Bearbeiten/Verbrauchen-Endpunkte akzeptieren nun zusätzlich `product_id` als Fallback-ID und lösen diese serverseitig zuverlässig auf den echten Bestandseintrag (`stock_id`) auf.
+- Fix (Lager-Tab): Verbrauchen nutzt beim Fallback weiterhin korrekt den passenden `stock_entry_id`, sodass in Grocy der richtige Bestandsposten reduziert wird.
+- Test: API-Tests für Produkt-ID-Fallback beim Verbrauchen und Bearbeiten von Lagerprodukten ergänzt.
 - Pflege: Add-on-Version auf `7.1.39` erhöht.
 
 ## 7.1.38

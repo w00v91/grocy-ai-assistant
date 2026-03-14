@@ -1104,6 +1104,7 @@ def dashboard_consume_stock_product(
     try:
         grocy_client = GrocyClient(settings)
         stock_entries = grocy_client.get_stock_entries()
+        matched_stock_id: int | None = None
         matched_entry = next(
             (
                 entry
@@ -1112,6 +1113,25 @@ def dashboard_consume_stock_product(
             ),
             None,
         )
+        if matched_entry:
+            matched_stock_id = int(
+                matched_entry.get("stock_id") or matched_entry.get("id") or 0
+            )
+        else:
+            # Fallback für Clients, die mangels stock_id auf product_id umschalten.
+            matched_entry = next(
+                (
+                    entry
+                    for entry in stock_entries
+                    if int(entry.get("product_id") or 0) == stock_id
+                ),
+                None,
+            )
+            if matched_entry:
+                matched_stock_id = int(
+                    matched_entry.get("stock_id") or matched_entry.get("id") or 0
+                )
+
         if not matched_entry:
             raise HTTPException(
                 status_code=404, detail="Bestandseintrag nicht gefunden"
@@ -1124,7 +1144,7 @@ def dashboard_consume_stock_product(
         grocy_client.consume_stock_product(
             product_id=product_id,
             amount=payload.amount,
-            stock_id=stock_id,
+            stock_id=matched_stock_id,
         )
         return {"success": True, "message": "Produkt wurde verbraucht."}
     except HTTPException:
@@ -1155,12 +1175,43 @@ def dashboard_update_stock_product(
 
     try:
         grocy_client = GrocyClient(settings)
+        stock_entries = grocy_client.get_stock_entries()
+        matched_entry = next(
+            (
+                entry
+                for entry in stock_entries
+                if int(entry.get("stock_id") or entry.get("id") or 0) == stock_id
+            ),
+            None,
+        )
+        if not matched_entry:
+            matched_entry = next(
+                (
+                    entry
+                    for entry in stock_entries
+                    if int(entry.get("product_id") or 0) == stock_id
+                ),
+                None,
+            )
+        if not matched_entry:
+            raise HTTPException(
+                status_code=404, detail="Bestandseintrag nicht gefunden"
+            )
+
+        resolved_stock_id = int(
+            matched_entry.get("stock_id") or matched_entry.get("id") or 0
+        )
+        if resolved_stock_id <= 0:
+            raise HTTPException(status_code=400, detail="Ungültiger Bestandseintrag")
+
         grocy_client.update_stock_entry(
-            stock_id=stock_id,
+            stock_id=resolved_stock_id,
             amount=payload.amount,
             best_before_date=payload.best_before_date,
         )
         return {"success": True, "message": "Bestandseintrag wurde aktualisiert."}
+    except HTTPException:
+        raise
     except Exception as error:
         log_api_error(
             logger,
