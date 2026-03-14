@@ -1496,18 +1496,23 @@ function renderStorageProducts() {
     return;
   }
 
-  list.innerHTML = filteredItems.map((item) => `
+  list.innerHTML = filteredItems.map((item) => {
+    const hasStockId = Number(item.stock_id || 0) > 0;
+    const disabledAttr = hasStockId ? '' : ' disabled';
+    const disabledTitle = hasStockId ? '' : ' title="Für diesen Eintrag ist keine Bestand-ID verfügbar"';
+    return `
     <li>
       <div class="storage-item-main">
         <strong>${escapeHtml(item.name || 'Unbekanntes Produkt')}</strong>
         <div class="muted">Lager: ${escapeHtml(item.location_name || '-')} · Menge: ${escapeHtml(formatBadgeValue(item.amount, '0'))} · MHD: ${escapeHtml(formatBadgeValue(item.best_before_date, '-'))}</div>
       </div>
       <div class="storage-item-actions">
-        <button class="danger-button storage-action-button" type="button" onclick="consumeStorageProduct(${Number(item.stock_id || 0)})">Verbrauchen</button>
-        <button class="ghost-button storage-action-button" type="button" onclick="openStorageEditModal(${Number(item.stock_id || 0)})">Ändern</button>
+        <button class="danger-button storage-action-button" type="button" onclick="consumeStorageProduct(${Number(item.stock_id || 0)})"${disabledAttr}${disabledTitle}>Verbrauchen</button>
+        <button class="ghost-button storage-action-button" type="button" onclick="openStorageEditModal(${Number(item.stock_id || 0)})"${disabledAttr}${disabledTitle}>Ändern</button>
       </div>
     </li>
-  `).join('');
+  `;
+  }).join('');
 }
 
 async function loadStorageProducts() {
@@ -1524,9 +1529,12 @@ async function loadStorageProducts() {
       const res = await fetch(buildApiUrl('/api/dashboard/stock-products'), { headers: { Authorization: `Bearer ${key}` } });
       const payload = await parseJsonSafe(res);
       if (!res.ok) throw new Error(getErrorMessage(payload, 'Bestand konnte nicht geladen werden.'));
-      storageProductsCache = Array.isArray(payload) ? payload.filter((item) => Number(item.stock_id || 0) > 0) : [];
+      storageProductsCache = Array.isArray(payload) ? payload : [];
       renderStorageProducts();
-      status.textContent = 'Lagerbestand geladen.';
+      const missingStockIds = storageProductsCache.filter((item) => Number(item.stock_id || 0) <= 0).length;
+      status.textContent = missingStockIds > 0
+        ? `Lagerbestand geladen (${missingStockIds} Einträge ohne Bearbeitungs-ID).`
+        : 'Lagerbestand geladen.';
     } catch (error) {
       status.textContent = `Fehler: ${error.message}`;
     }

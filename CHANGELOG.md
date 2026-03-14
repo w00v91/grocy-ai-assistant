@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.23
+
+- Fix (Lager-Dashboard): Produkte ohne `stock_id` werden nicht mehr vollständig ausgeblendet; sie werden jetzt in der Liste angezeigt.
+- UX (Lager-Dashboard): Aktionen „Verbrauchen“ und „Ändern“ sind für Einträge ohne Bearbeitungs-ID deaktiviert und mit Hinweis versehen.
+- UX (Lager-Dashboard): Statusmeldung zeigt an, wenn Einträge ohne Bearbeitungs-ID geladen wurden.
+- Pflege: Add-on-Version auf `7.1.23` erhöht.
+
 ## 7.1.22
 
 - UI: Eingabefelder (`input`, `select`, `textarea`) visuell an den restlichen Dashboard-Stil angepasst (einheitliche Rundungen, Schatten, Focus-Ring und weichere Placeholder-Farbe).
