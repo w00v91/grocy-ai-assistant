@@ -1323,6 +1323,39 @@ def test_dashboard_barcode_lookup_falls_back_to_grocy(client, monkeypatch):
     }
 
 
+def test_dashboard_barcode_lookup_returns_not_found_on_off_timeout(client, monkeypatch):
+    class FakeGrocyClient:
+        def __init__(self, settings):
+            self.settings = settings
+
+        def find_product_by_barcode(self, barcode):
+            assert barcode == "4008400408400"
+            return None
+
+    def fake_requests_get(*args, **kwargs):
+        raise requests.ReadTimeout("timed out")
+
+    monkeypatch.setattr(routes.requests, "get", fake_requests_get)
+    monkeypatch.setattr(routes, "GrocyClient", FakeGrocyClient)
+
+    response = client.get(
+        "/api/dashboard/barcode/4008400408400",
+        headers={"Authorization": "Bearer test-api-key"},
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "barcode": "4008400408400",
+        "found": False,
+        "product_name": "",
+        "brand": "",
+        "quantity": "",
+        "ingredients_text": "",
+        "nutrition_grade": "",
+        "source": "OpenFoodFacts",
+    }
+
+
 def test_dashboard_barcode_lookup_rejects_invalid_barcode(client):
     response = client.get(
         "/api/dashboard/barcode/abc",
