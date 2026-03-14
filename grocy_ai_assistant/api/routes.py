@@ -243,6 +243,41 @@ def _build_stock_signature(
     return tuple(sorted(signature_entries))
 
 
+def _safe_int(value: object) -> int | None:
+    if value is None or isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value
+    if isinstance(value, float):
+        return int(value) if value.is_integer() else None
+
+    text = str(value).strip()
+    if not text:
+        return None
+
+    return int(text) if text.isdigit() else None
+
+
+def _parse_best_before_date(value: object) -> date | None:
+    raw_value = str(value or "").strip()
+    if not raw_value:
+        return None
+
+    for parser in (
+        date.fromisoformat,
+        lambda item: date.fromisoformat(item.split("T", 1)[0]),
+        lambda item: date.fromisoformat(item.split(" ", 1)[0]),
+    ):
+        try:
+            parsed = parser(raw_value)
+            if isinstance(parsed, date):
+                return parsed
+        except ValueError:
+            continue
+
+    return None
+
+
 def _generate_recipe_suggestions(
     stock_products: list[dict],
     selected_ids: set[int],
@@ -1388,21 +1423,15 @@ def dashboard_recipe_suggestions(
 
             expiring_product_ids: set[int] = set()
             for entry in grocy_client.get_stock_entries(payload.location_ids):
-                product_id = entry.get("product_id")
-                if not isinstance(product_id, int):
+                product_id = _safe_int(entry.get("product_id"))
+                if product_id is None:
                     continue
 
-                best_before_raw = str(
+                best_before = _parse_best_before_date(
                     entry.get("best_before_date")
                     or entry.get("best_before_date_calculated")
-                    or ""
-                ).strip()
-                if not best_before_raw:
-                    continue
-
-                try:
-                    best_before = date.fromisoformat(best_before_raw)
-                except ValueError:
+                )
+                if best_before is None:
                     continue
 
                 if today <= best_before <= deadline:
