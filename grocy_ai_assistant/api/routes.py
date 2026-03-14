@@ -53,6 +53,7 @@ from grocy_ai_assistant.services.grocy_client import GrocyClient
 logger = logging.getLogger(__name__)
 GROCY_RECIPE_SUGGESTION_LIMIT = 3
 AI_RECIPE_SUGGESTION_LIMIT = 3
+AMOUNT_PREFIX_PATTERN = re.compile(r"^\s*(\d+(?:[.,]\d+)?)\s+(.+)$")
 router = APIRouter()
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
 bearer_auth = HTTPBearer(auto_error=False)
@@ -109,6 +110,24 @@ def _extract_shopping_item_picture_value(item: dict) -> str:
         or product.get("picture_file_name")
         or ""
     )
+
+
+def _extract_amount_prefixed_product_input(raw_value: str) -> tuple[str, float | None]:
+    value = raw_value.strip()
+    match = AMOUNT_PREFIX_PATTERN.match(value)
+    if not match:
+        return value, None
+
+    amount_raw, product_name = match.groups()
+    try:
+        parsed_amount = float(amount_raw.replace(",", "."))
+    except ValueError:
+        return value, None
+
+    if parsed_amount <= 0:
+        return value, None
+
+    return product_name.strip(), parsed_amount
 
 
 def _score_recipe_match(recipe: dict, selected_products: list[str]) -> tuple[int, str]:
@@ -490,7 +509,7 @@ def dashboard_search_variants(
             status_code=500, detail="grocy_api_key fehlt in Add-on Optionen"
         )
 
-    query = q.strip()
+    query, _ = _extract_amount_prefixed_product_input(q)
     if not query:
         return []
 
@@ -563,9 +582,11 @@ def dashboard_search(
             status_code=500, detail="grocy_api_key fehlt in Add-on Optionen"
         )
 
-    product_name = payload.name.strip()
+    product_name, parsed_amount = _extract_amount_prefixed_product_input(payload.name)
     if not product_name:
         raise HTTPException(status_code=400, detail="Bitte Produktname eingeben")
+
+    amount = parsed_amount if parsed_amount is not None else payload.amount
 
     detector = IngredientDetector(settings)
     grocy_client = GrocyClient(settings)
@@ -575,7 +596,7 @@ def dashboard_search(
         if existing_product:
             grocy_client.add_product_to_shopping_list(
                 existing_product.get("id"),
-                amount=payload.amount,
+                amount=amount,
                 best_before_date=payload.best_before_date,
             )
             return DashboardSearchResponse(
@@ -612,7 +633,7 @@ def dashboard_search(
         created_object_id = grocy_client.create_product(product_data)
         grocy_client.add_product_to_shopping_list(
             created_object_id,
-            amount=payload.amount,
+            amount=amount,
             best_before_date=payload.best_before_date,
         )
 
