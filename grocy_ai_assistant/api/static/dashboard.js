@@ -627,6 +627,22 @@ function formatBadgeValue(value, fallback) {
   return text || fallback;
 }
 
+function formatStockCount(value) {
+  const textValue = String(value ?? '').trim();
+  if (!textValue) return '0';
+
+  const normalized = textValue.replace(',', '.');
+  const parsed = Number(normalized);
+  if (!Number.isFinite(parsed) || parsed < 0) return textValue;
+
+  if (Number.isInteger(parsed)) return String(parsed);
+
+  return parsed.toLocaleString('de-DE', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  });
+}
+
 function getShoppingAmount() {
   const amountInput = document.getElementById('amount');
   const amount = Number(amountInput?.value || 1);
@@ -682,6 +698,7 @@ function renderShoppingList(items) {
         <div class="shopping-item-meta">
           <div><strong>${item.product_name}</strong></div>
           <div class="muted">${item.note || 'Keine Notiz'}</div>
+          <div class="shopping-item-stock-tag"><span class="badge">Bestand: ${formatStockCount(item.in_stock)}</span></div>
         </div>
         <div class="shopping-item-badges">
           <button type="button" class="badge amount-increment-button" data-shopping-list-id="${item.id}">Menge: ${formatBadgeValue(item.amount, '-')}</button>
