@@ -236,6 +236,13 @@ def test_dashboard_loads_initial_recipe_suggestions_once_after_stock_load(client
     )
 
 
+def test_dashboard_recipes_use_normalized_image_sources(client):
+    static_response = client.get("/dashboard-static/dashboard.js")
+
+    assert static_response.status_code == 200
+    assert 'class="recipe-thumb" src="${toImageSource(item.picture_url)}"' in static_response.text
+
+
 def test_dashboard_contains_clear_button(client):
     response = client.get("/")
 
