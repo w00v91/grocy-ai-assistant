@@ -4,6 +4,7 @@ All notable changes to this project are documented in this file.
 
 ## 7.1.18
 
+- UI: Die Karte/Spalte „Optionen“ wurde aus dem Benachrichtigungs-Dashboard entfernt.
 - UI: Badge „Notiz bearbeiten“ in der Einkaufsliste entfernt.
 - UI: Notizfeld direkt im Produkt-Detail-Popup unter der Überschrift ergänzt.
 - UX/Logik: Notizen werden beim Schließen des Produkt-Popups automatisch gespeichert, falls sich der Inhalt geändert hat.
