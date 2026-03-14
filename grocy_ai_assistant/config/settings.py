@@ -56,6 +56,9 @@ class Settings(BaseModel):
     ollama_llava_model: str = "llava"
     scanner_barcode_fallback_seconds: int = 5
     scanner_llava_min_confidence: int = 75
+    image_generation_enabled: bool = False
+    openai_api_key: str = ""
+    openai_image_model: str = "gpt-image-1"
     debug_mode: bool = False
     notification_global_enabled: bool = True
     grocy_base_url: str = "http://homeassistant.local:9192/api"
