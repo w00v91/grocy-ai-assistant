@@ -1046,3 +1046,38 @@ def test_update_stock_entry_updates_amount_and_best_before(monkeypatch):
 
     assert called["url"].endswith("/objects/stock/77")
     assert called["json"] == {"amount": 3, "best_before_date": "2026-01-31"}
+
+
+def test_attach_product_picture_uploads_file_and_updates_product(monkeypatch, tmp_path):
+    calls = []
+
+    class FakeResponse:
+        def raise_for_status(self):
+            return None
+
+    def fake_put(url, headers=None, data=None, json=None, timeout=None):
+        calls.append((url, headers, data, json))
+        return FakeResponse()
+
+    monkeypatch.setattr("grocy_ai_assistant.services.grocy_client.requests.put", fake_put)
+
+    image_path = tmp_path / "my_product.png"
+    image_path.write_bytes(b"img")
+
+    client = GrocyClient(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+            grocy_base_url="http://grocy.local/api",
+        )
+    )
+
+    result = client.attach_product_picture(10, str(image_path))
+
+    assert result == "my_product.png"
+    assert calls[0][0] == "http://grocy.local/api/files/productpictures/my_product.png"
+    assert calls[0][2] == b"img"
+    assert calls[1][0] == "http://grocy.local/api/objects/products/10"
+    assert calls[1][3] == {"picture_file_name": "my_product.png"}

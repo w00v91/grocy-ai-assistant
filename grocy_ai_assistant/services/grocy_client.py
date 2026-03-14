@@ -1,6 +1,7 @@
 from collections import Counter
 from datetime import datetime
 from math import sqrt
+from pathlib import Path
 import re
 from typing import Any, Dict, Optional
 from urllib.parse import ParseResult, parse_qsl, urlencode, urlparse
@@ -272,6 +273,31 @@ class GrocyClient:
         )
         response.raise_for_status()
         return response.json().get("created_object_id")
+
+
+    def attach_product_picture(self, product_id: int, image_path: str) -> str:
+        file_name = Path(image_path).name
+        image_bytes = Path(image_path).read_bytes()
+
+        upload_response = requests.put(
+            f"{self.settings.grocy_base_url}/files/productpictures/{file_name}",
+            headers={
+                "GROCY-API-KEY": self.settings.grocy_api_key,
+                "Content-Type": "application/octet-stream",
+            },
+            data=image_bytes,
+            timeout=60,
+        )
+        upload_response.raise_for_status()
+
+        update_response = requests.put(
+            f"{self.settings.grocy_base_url}/objects/products/{product_id}",
+            headers=self.headers,
+            json={"picture_file_name": file_name},
+            timeout=30,
+        )
+        update_response.raise_for_status()
+        return file_name
 
     def add_product_to_shopping_list(
         self,
