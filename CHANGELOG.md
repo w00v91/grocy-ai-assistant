@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.46
+
+- UI (Notify-Tab): Regelkarten im iOS-inspirierten Stil überarbeitet (abgerundete Card-Flächen, sanfte Verlaufshintergründe, kompakter Header mit Icon und strukturierte Meta-Badges).
+- UI (Notify-Tab): Badges um visuelle Marker ergänzt (Kanäle/Priorität/Cooldown), damit Regeln schneller erfassbar sind.
+- UI (Notify-Tab): Aktions-Buttons weiterhin pillenförmig, aber mit dezentem Lift/Hover für einen app-artigen Touch optimiert.
+- Pflege: Add-on-Version auf `7.1.46` erhöht.
+
 ## 7.1.45
 
 - UI (Einkaufsliste): Im Produkt-Popup kann die Einkaufsmenge jetzt direkt bearbeitet und gespeichert werden.

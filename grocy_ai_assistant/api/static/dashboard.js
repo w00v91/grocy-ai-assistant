@@ -290,13 +290,16 @@ function renderNotificationRules(rules) {
   list.innerHTML = rules.map((rule) => `
     <li class="notification-rule-item">
       <div class="notification-rule-main">
-        <strong>${rule.name}</strong>
-        <div class="muted">Ereignisse: ${(rule.event_types || []).map((eventType) => getEventLabel(eventType)).join(', ') || '-'}</div>
+        <div class="notification-rule-main-header">
+          <span class="notification-rule-icon" aria-hidden="true">🔔</span>
+          <strong>${rule.name}</strong>
+        </div>
+        <div class="muted notification-rule-events">Ereignisse: ${(rule.event_types || []).map((eventType) => getEventLabel(eventType)).join(', ') || '-'}</div>
       </div>
       <div class="notification-rule-badges">
-        <span class="badge">Kanäle: ${(rule.channels || []).map((channelType) => getChannelLabel(channelType)).join(', ') || '-'}</span>
-        <span class="badge">Priorität: ${escapeHtml(rule.severity || 'info')}</span>
-        <span class="badge">Cooldown: ${Number(rule.cooldown_seconds || 0)}s</span>
+        <span class="badge"><span aria-hidden="true">📡</span> Kanäle: ${(rule.channels || []).map((channelType) => getChannelLabel(channelType)).join(', ') || '-'}</span>
+        <span class="badge"><span aria-hidden="true">⚡</span> Priorität: ${escapeHtml(rule.severity || 'info')}</span>
+        <span class="badge"><span aria-hidden="true">⏱</span> Cooldown: ${Number(rule.cooldown_seconds || 0)}s</span>
       </div>
       <div class="button-row notification-rule-item-actions">
         <button class="notification-action-button notification-action-button-edit" type="button" onclick="openNotificationRuleModal('${rule.id}')">Regel ändern</button>
