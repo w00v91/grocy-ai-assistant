@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.28
+
+- Fix (Grocy-Bildupload): Produktbild-Upload versucht bei `404/405` auf `/api/files/...` jetzt automatisch einen Fallback auf `/files/...` ohne `/api`-Präfix.
+- Logging: Beim Fallback wird eine Warnung mit der fehlgeschlagenen Upload-URL protokolliert.
+- Test: Unit-Test ergänzt, der den 405-Fall und den erfolgreichen Fallback-Upload absichert.
+- Pflege: Add-on-Version auf `7.1.28` erhöht.
+
 ## 7.1.27
 
 - Fix (Bildgenerierung): OpenAI-Image-Erstellung nutzt jetzt ein robustes Modell-Fallback (`openai_image_model` -> `dall-e-3` -> `dall-e-2`), wenn der primäre Modellzugriff mit `403 Forbidden` abgelehnt wird.
