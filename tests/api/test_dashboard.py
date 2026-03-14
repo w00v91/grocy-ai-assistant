@@ -1080,6 +1080,37 @@ def test_shopping_list_can_be_completed(client, monkeypatch):
     }
 
 
+def test_shopping_list_item_amount_can_be_updated(client, monkeypatch):
+    captured = {}
+
+    def fake_get_shopping_list(self):
+        return [{"id": 9, "amount": "3"}]
+
+    def fake_update_shopping_list_item_amount(self, shopping_list_id, amount):
+        captured["shopping_list_id"] = shopping_list_id
+        captured["amount"] = amount
+
+    monkeypatch.setattr(routes.GrocyClient, "get_shopping_list", fake_get_shopping_list)
+    monkeypatch.setattr(
+        routes.GrocyClient,
+        "update_shopping_list_item_amount",
+        fake_update_shopping_list_item_amount,
+    )
+
+    response = client.put(
+        "/api/dashboard/shopping-list/item/9/amount",
+        headers={"Authorization": "Bearer test-api-key"},
+        json={"amount": 4.5},
+    )
+
+    assert response.status_code == 200
+    assert captured == {
+        "shopping_list_id": 9,
+        "amount": "4.5",
+    }
+    assert response.json()["amount"] == "4.5"
+
+
 def test_shopping_list_item_amount_can_be_incremented(client, monkeypatch):
     captured = {}
 

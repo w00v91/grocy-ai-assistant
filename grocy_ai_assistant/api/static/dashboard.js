@@ -923,7 +923,7 @@ function showShoppingItemDetails(item) {
         <li><span>Produkt-ID</span><strong>${formatValue(item.product_id)}</strong></li>
         <li><span>Lagerort</span><strong>${formatValue(item.location_name)}</strong></li>
         <li><span>In Bestand</span><strong>${formatValue(item.in_stock)}</strong></li>
-        <li><span>Menge Einkauf</span><strong>${formatValue(item.amount)}</strong></li>
+        <li><span>Menge Einkauf</span><strong id="shopping-item-current-amount">${formatValue(item.amount)}</strong></li>
         <li><span>Standardmenge</span><strong>${formatValue(item.default_amount)}</strong></li>
         <li><span>MHD</span><strong>${formatValue(item.best_before_date)}</strong></li>
       </ul>
@@ -939,6 +939,7 @@ function showShoppingItemDetails(item) {
       </ul>
     </section>
   `;
+  openShoppingAmountEditor(item.amount || '');
   openShoppingNoteEditor(item.id, item.note || '');
   modal.classList.remove('hidden');
   syncModalScrollLock();
@@ -947,6 +948,13 @@ function showShoppingItemDetails(item) {
 
 let activeShoppingNoteItemId = null;
 let activeShoppingNoteValue = '';
+let activeShoppingAmountValue = '';
+
+function openShoppingAmountEditor(currentAmount = '') {
+  activeShoppingAmountValue = String(currentAmount || '').trim();
+  const input = document.getElementById('shopping-item-amount-input');
+  if (input) input.value = activeShoppingAmountValue || '';
+}
 
 function openShoppingNoteEditor(shoppingListId, currentNote = '') {
   activeShoppingNoteItemId = shoppingListId;
@@ -988,6 +996,63 @@ async function saveShoppingNote(shoppingListId, note) {
   } catch (_) {
     status.textContent = 'Notiz konnte nicht gespeichert werden (Netzwerk-/Ingress-Fehler).';
     return false;
+  }
+}
+
+
+async function saveShoppingAmount(shoppingListId, amount) {
+  const key = ensureApiKey();
+  const status = getShoppingStatusElement();
+
+  if (!key) {
+    status.textContent = 'Kein API-Key angegeben.';
+    return false;
+  }
+  if (!shoppingListId) {
+    status.textContent = 'Einkaufslisten-Eintrag fehlt.';
+    return false;
+  }
+
+  const normalizedAmount = String(amount || '').replace(',', '.').trim();
+  const parsedAmount = Number(normalizedAmount);
+  if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+    status.textContent = 'Bitte eine gültige Menge größer als 0 eingeben.';
+    return false;
+  }
+
+  status.textContent = 'Speichere Menge...';
+  try {
+    const res = await fetch(buildApiUrl(`/api/dashboard/shopping-list/item/${shoppingListId}/amount`), {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
+      body: JSON.stringify({ amount: parsedAmount }),
+    });
+    const payload = await parseJsonSafe(res);
+
+    if (!res.ok) {
+      status.textContent = getErrorMessage(payload, 'Menge konnte nicht gespeichert werden.');
+      return false;
+    }
+
+    const amountValue = String(payload.amount ?? parsedAmount);
+    activeShoppingAmountValue = amountValue;
+    const amountLabel = document.getElementById('shopping-item-current-amount');
+    if (amountLabel) amountLabel.textContent = amountValue;
+
+    status.textContent = payload.message || 'Menge gespeichert.';
+    return true;
+  } catch (_) {
+    status.textContent = 'Menge konnte nicht gespeichert werden (Netzwerk-/Ingress-Fehler).';
+    return false;
+  }
+}
+
+async function saveShoppingAmountFromModal() {
+  const input = document.getElementById('shopping-item-amount-input');
+  const amount = String(input?.value || '').trim();
+  const saved = await saveShoppingAmount(activeShoppingNoteItemId, amount);
+  if (saved) {
+    await loadShoppingList();
   }
 }
 
@@ -1064,6 +1129,7 @@ async function closeShoppingItemDetails() {
 
   activeShoppingNoteItemId = null;
   activeShoppingNoteValue = '';
+  activeShoppingAmountValue = '';
   modal.classList.add('hidden');
   syncModalScrollLock();
 }

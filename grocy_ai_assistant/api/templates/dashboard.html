@@ -160,6 +160,11 @@
       <section class='shopping-modal-content card'>
         <button class='shopping-modal-close' type='button' onclick='closeShoppingItemDetails()' aria-label='Details schließen'>×</button>
         <h3 id='shopping-item-title'>Produktdetails</h3>
+        <div class='shopping-modal-inline-editor'>
+          <label for='shopping-item-amount-input'>Menge</label>
+          <input id='shopping-item-amount-input' type='number' min='0.01' step='0.01' inputmode='decimal' />
+          <button id='shopping-item-amount-save-button' class='success-button' type='button' onclick='saveShoppingAmountFromModal()'>Speichern</button>
+        </div>
         <label for='shopping-item-note-input'>Notiz</label>
         <textarea id='shopping-item-note-input' rows='3' placeholder='Optionale Einkaufsnotiz'></textarea>
         <div id='shopping-item-details' class='shopping-details-grid'></div>
