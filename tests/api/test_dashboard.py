@@ -1623,7 +1623,10 @@ def test_dashboard_stock_products_include_stock_id(client, monkeypatch):
     assert response.status_code == 200
     assert response.json()[0]["stock_id"] == 99
     assert "/api/dashboard/product-picture?src=" in response.json()[0]["picture_url"]
-    assert "homeassistant.local%3A9192%2Fapi%2Ffiles%2Fproductpictures%2F" in response.json()[0]["picture_url"]
+    assert (
+        "homeassistant.local%3A9192%2Fapi%2Ffiles%2Fproductpictures%2F"
+        in response.json()[0]["picture_url"]
+    )
 
 
 def test_dashboard_can_consume_stock_product(client, monkeypatch):
@@ -1674,12 +1677,66 @@ def test_dashboard_can_consume_stock_product_by_stock_id_field(client, monkeypat
     assert called["args"] == (10, 1, 99)
 
 
-def test_dashboard_can_update_stock_product(client, monkeypatch):
+def test_dashboard_can_consume_stock_product_by_product_id_fallback(
+    client, monkeypatch
+):
+    def fake_get_stock_entries(self, location_ids=None):
+        return [{"stock_id": 321, "product_id": 99}]
+
+    called = {}
+
+    def fake_consume_stock_product(self, product_id, amount=1, stock_id=None):
+        called["args"] = (product_id, amount, stock_id)
+
+    monkeypatch.setattr(routes.GrocyClient, "get_stock_entries", fake_get_stock_entries)
+    monkeypatch.setattr(
+        routes.GrocyClient, "consume_stock_product", fake_consume_stock_product
+    )
+
+    response = client.post(
+        "/api/dashboard/stock-products/99/consume",
+        headers={"Authorization": "Bearer test-api-key"},
+        json={"amount": 1},
+    )
+
+    assert response.status_code == 200
+    assert called["args"] == (99, 1, 321)
+
+
+def test_dashboard_can_update_stock_product_by_product_id_fallback(client, monkeypatch):
+    def fake_get_stock_entries(self, location_ids=None):
+        return [{"id": 321, "product_id": 99}]
+
     called = {}
 
     def fake_update_stock_entry(self, stock_id, amount, best_before_date=""):
         called["args"] = (stock_id, amount, best_before_date)
 
+    monkeypatch.setattr(routes.GrocyClient, "get_stock_entries", fake_get_stock_entries)
+    monkeypatch.setattr(
+        routes.GrocyClient, "update_stock_entry", fake_update_stock_entry
+    )
+
+    response = client.put(
+        "/api/dashboard/stock-products/99",
+        headers={"Authorization": "Bearer test-api-key"},
+        json={"amount": 5, "best_before_date": "2026-02-01"},
+    )
+
+    assert response.status_code == 200
+    assert called["args"] == (321, 5, "2026-02-01")
+
+
+def test_dashboard_can_update_stock_product(client, monkeypatch):
+    def fake_get_stock_entries(self, location_ids=None):
+        return [{"id": 99, "product_id": 10}]
+
+    called = {}
+
+    def fake_update_stock_entry(self, stock_id, amount, best_before_date=""):
+        called["args"] = (stock_id, amount, best_before_date)
+
+    monkeypatch.setattr(routes.GrocyClient, "get_stock_entries", fake_get_stock_entries)
     monkeypatch.setattr(
         routes.GrocyClient, "update_stock_entry", fake_update_stock_entry
     )

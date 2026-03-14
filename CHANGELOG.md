@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.39
+
+- Fix (Lager-Tab): Bearbeiten/Verbrauchen-Endpunkte akzeptieren nun zusätzlich `product_id` als Fallback-ID und lösen diese serverseitig zuverlässig auf den echten Bestandseintrag (`stock_id`) auf.
+- Fix (Lager-Tab): Verbrauchen nutzt beim Fallback weiterhin korrekt den passenden `stock_entry_id`, sodass in Grocy der richtige Bestandsposten reduziert wird.
+- Test: API-Tests für Produkt-ID-Fallback beim Verbrauchen und Bearbeiten von Lagerprodukten ergänzt.
+- Pflege: Add-on-Version auf `7.1.39` erhöht.
+
 ## 7.1.38
 
 - UI (Navigation): Untere Navigationsleiste (Tab-Bar) wieder verkleinert (geringere Gesamtbreite, engeres Innenpadding und kleinerer Abstand zwischen Tabs).
