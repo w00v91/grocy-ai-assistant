@@ -298,8 +298,8 @@ function renderNotificationRules(rules) {
         <span class="badge">Cooldown: ${Number(rule.cooldown_seconds || 0)}s</span>
       </div>
       <div class="button-row notification-rule-item-actions">
-        <button class="ghost-button" type="button" onclick="openNotificationRuleModal('${rule.id}')">Regel ändern</button>
-        <button class="danger-button" type="button" onclick="deleteNotificationRule('${rule.id}')">Löschen</button>
+        <button class="ghost-button notification-action-button" type="button" onclick="openNotificationRuleModal('${rule.id}')">Regel ändern</button>
+        <button class="danger-button notification-action-button" type="button" onclick="deleteNotificationRule('${rule.id}')">Löschen</button>
       </div>
     </li>
   `).join('');
@@ -737,7 +737,7 @@ function renderVariants(items) {
   list.innerHTML = items.map((item) => {
     const productId = item.id ?? '';
     const source = item.source || 'grocy';
-    const sourceLabel = source === 'ai' ? 'KI-Vorschlag' : 'Grocy';
+    const sourceLabel = source === 'ai' ? 'KI-Vorschlag' : (source === 'input' ? 'Neu anlegen' : 'Grocy');
     return `
     <div class="variant-card">
       <button type="button" class="variant-select" data-product-id="${productId}" data-product-name="${encodeURIComponent(item.name)}" data-product-source="${source}">
@@ -750,6 +750,8 @@ function renderVariants(items) {
   }).join('');
 }
 
+let variantsRequestToken = 0;
+
 async function loadVariants() {
   return withBusyState(async () => {
   const key = ensureApiKey();
@@ -759,6 +761,7 @@ async function loadVariants() {
   if (!key) return;
 
   const query = name.trim();
+  const requestToken = ++variantsRequestToken;
   if (!query) {
     document.getElementById('variant-list').innerHTML = '';
     document.getElementById('variant-section').classList.add('hidden');
@@ -766,7 +769,7 @@ async function loadVariants() {
   }
 
   try {
-    const res = await fetch(buildApiUrl(`/api/dashboard/search-variants?q=${encodeURIComponent(query)}`), {
+    const res = await fetch(buildApiUrl(`/api/dashboard/search-variants?q=${encodeURIComponent(query)}&include_ai=false`), {
       headers: { 'Authorization': `Bearer ${key}` },
     });
     const payload = await parseJsonSafe(res);
@@ -776,7 +779,21 @@ async function loadVariants() {
       return;
     }
 
+    if (requestToken !== variantsRequestToken) return;
     renderVariants(payload);
+
+    const aiRes = await fetch(buildApiUrl(`/api/dashboard/search-variants?q=${encodeURIComponent(query)}&include_ai=true`), {
+      headers: { 'Authorization': `Bearer ${key}` },
+    });
+    const aiPayload = await parseJsonSafe(aiRes);
+
+    if (!aiRes.ok) {
+      status.textContent = getErrorMessage(aiPayload, 'KI-Varianten konnten nicht geladen werden.');
+      return;
+    }
+
+    if (requestToken !== variantsRequestToken) return;
+    renderVariants(aiPayload);
   } catch (_) {
     status.textContent = 'Varianten konnten nicht geladen werden (Netzwerk-/Ingress-Fehler).';
   }
