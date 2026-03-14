@@ -4,6 +4,8 @@ All notable changes to this project are documented in this file.
 
 ## 7.1.37
 
+- UI (Lager-Tab): Letzte Button-Anpassung rückgängig gemacht; Aktions-Buttons sind wieder im vorherigen kompakten Stil (`Verbrauchen`, `Ändern`).
+- UI (Notify-Tab): Buttons auf den vorherigen Stil der Lager-Tab-Buttons umgestellt (kompakter Button-Look für Regelaktionen, „Neue Regel“ und Test-Aktionen).
 - Suche (Produktauswahl): Varianten-Suche im Such-Tab nutzt jetzt KI-gestützte Vorschläge zusätzlich zu Grocy-Teiltreffern.
 - UX (Produktauswahl): In der Variantenliste werden jetzt auch KI-Vorschläge als auswählbare Einträge angezeigt, selbst wenn diese Produkte noch nicht in Grocy existieren.
 - API: `/api/dashboard/search-variants` verwendet dieselbe Fallback-Logik wie die Produktsuche und liefert dadurch Grocy- und KI-Varianten konsistent.
