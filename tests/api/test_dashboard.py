@@ -1625,6 +1625,7 @@ def test_dashboard_static_contains_storage_actions(client):
     assert "function consumeStorageProduct(stockId)" in response.text
     assert "function openStorageEditModal(stockId)" in response.text
     assert "function saveStorageEditModal()" in response.text
+    assert "function deleteStorageEditPicture()" in response.text
 
 
 def test_dashboard_stock_products_include_stock_id(client, monkeypatch):
@@ -1658,6 +1659,25 @@ def test_dashboard_stock_products_include_stock_id(client, monkeypatch):
         "homeassistant.local%3A9192%2Fapi%2Ffiles%2Fproductpictures%2F"
         in response.json()[0]["picture_url"]
     )
+
+
+def test_dashboard_can_delete_product_picture(client, monkeypatch):
+    called = {}
+
+    def fake_clear_product_picture(self, product_id):
+        called["product_id"] = product_id
+
+    monkeypatch.setattr(
+        routes.GrocyClient, "clear_product_picture", fake_clear_product_picture
+    )
+
+    response = client.delete(
+        "/api/dashboard/products/10/picture",
+        headers={"Authorization": "Bearer test-api-key"},
+    )
+
+    assert response.status_code == 200
+    assert called["product_id"] == 10
 
 
 def test_dashboard_can_consume_stock_product(client, monkeypatch):
@@ -1758,8 +1778,6 @@ def test_dashboard_can_update_stock_product_by_product_id_fallback(client, monke
     assert called["args"] == (321, 5, "2026-02-01")
 
 
-
-
 def test_dashboard_can_delete_stock_product(client, monkeypatch):
     def fake_get_stock_entries(self, location_ids=None):
         return [{"id": 99, "product_id": 10}]
@@ -1804,6 +1822,7 @@ def test_dashboard_can_delete_stock_product_by_product_id_fallback(client, monke
 
     assert response.status_code == 200
     assert called["stock_id"] == 321
+
 
 def test_dashboard_can_update_stock_product(client, monkeypatch):
     def fake_get_stock_entries(self, location_ids=None):

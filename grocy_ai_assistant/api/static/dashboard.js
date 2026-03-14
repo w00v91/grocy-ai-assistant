@@ -1665,22 +1665,19 @@ function renderStorageProducts() {
     const canExecuteAction = actionableId > 0;
     const disabledAttr = canExecuteAction ? '' : ' disabled';
     const disabledTitle = canExecuteAction ? '' : ' title="Für diesen Eintrag ist keine nutzbare Produkt-/Bestand-ID verfügbar"';
-    const productName = escapeHtml(item.name || 'Unbekanntes Produkt');
-    const attributes = [
-      `Lager: ${escapeHtml(formatBadgeValue(item.location_name, '-'))}`,
-      `Menge: ${escapeHtml(formatBadgeValue(item.amount, '0'))}`,
-      `MHD: ${escapeHtml(formatBadgeValue(item.best_before_date, '-'))}`,
-    ];
 
     return `
-    <li>
-      <div class="storage-item-main">
-        <strong>${escapeHtml(item.name || 'Unbekanntes Produkt')}</strong>
-        <div class="muted">Lager: ${escapeHtml(item.location_name || '-')} · Menge: ${escapeHtml(formatBadgeValue(item.amount, '0'))} · MHD: ${escapeHtml(formatBadgeValue(item.best_before_date, '-'))}</div>
-      </div>
-      <div class="storage-item-actions">
-        <button class="ghost-button storage-action-button storage-edit-button" type="button" onclick="openStorageEditModal(${actionableId})"${disabledAttr}${disabledTitle}>✏️ Bearbeiten</button>
-        <button class="storage-action-button storage-consume-button" type="button" onclick="consumeStorageProduct(${actionableId})"${disabledAttr}${disabledTitle}>✅ Verbrauchen</button>
+    <li class="storage-item">
+      <div class="storage-item-content">
+        <img src="${toImageSource(item.picture_url)}" alt="${escapeHtml(item.name || 'Unbekanntes Produkt')}" loading="lazy" />
+        <div class="storage-item-main">
+          <strong>${escapeHtml(item.name || 'Unbekanntes Produkt')}</strong>
+          <div class="muted">Lager: ${escapeHtml(item.location_name || '-')} · Menge: ${escapeHtml(formatBadgeValue(item.amount, '0'))} · MHD: ${escapeHtml(formatBadgeValue(item.best_before_date, '-'))}</div>
+        </div>
+        <div class="storage-item-actions">
+          <button class="ghost-button storage-action-button storage-edit-button" type="button" onclick="openStorageEditModal(${actionableId})"${disabledAttr}${disabledTitle}>✏️ Bearbeiten</button>
+          <button class="storage-action-button storage-consume-button" type="button" onclick="consumeStorageProduct(${actionableId})"${disabledAttr}${disabledTitle}>✅ Verbrauchen</button>
+        </div>
       </div>
     </li>
   `;
@@ -1757,7 +1754,7 @@ function openStorageEditModal(stockId) {
   if (picture) {
     const pictureUrl = String(stockItem.picture_url || '').trim();
     if (pictureUrl) {
-      picture.src = pictureUrl;
+      picture.src = toImageSource(pictureUrl);
       picture.classList.remove('hidden');
     } else {
       picture.removeAttribute('src');
@@ -1808,6 +1805,34 @@ async function saveStorageEditModal() {
   }
 }
 
+
+async function deleteStorageEditPicture() {
+  if (!storageEditingItem) return;
+  const productId = Number(storageEditingItem.id || 0);
+  if (!Number.isFinite(productId) || productId <= 0) return;
+
+  const status = getStorageStatusElement();
+  const productName = storageEditingItem.name || 'dieses Produkt';
+  const confirmed = window.confirm(`Soll das Produktbild von ${productName} wirklich gelöscht werden?`);
+  if (!confirmed) return;
+
+  try {
+    const res = await fetch(buildApiUrl(`/api/dashboard/products/${encodeURIComponent(productId)}/picture`), {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+    const payload = await parseJsonSafe(res);
+    if (!res.ok) throw new Error(getErrorMessage(payload, 'Produktbild konnte nicht gelöscht werden.'));
+    status.textContent = payload?.message || 'Produktbild wurde gelöscht.';
+    await loadStorageProducts();
+    const refreshedItem = storageProductsCache.find((item) => Number(item.id || 0) === productId);
+    if (refreshedItem) {
+      openStorageEditModal(getActionableStorageId(refreshedItem));
+    }
+  } catch (error) {
+    status.textContent = `Fehler: ${error.message}`;
+  }
+}
 
 async function deleteStorageEditItem() {
   if (!storageEditingItem || !Number.isFinite(storageEditingTargetId) || storageEditingTargetId <= 0) return;

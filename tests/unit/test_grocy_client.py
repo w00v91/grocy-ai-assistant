@@ -1201,8 +1201,6 @@ def test_update_stock_entry_updates_amount_and_best_before(monkeypatch):
     assert called["json"] == {"amount": 3, "best_before_date": "2026-01-31"}
 
 
-
-
 def test_delete_stock_entry_deletes_objects_stock(monkeypatch):
     called = {}
 
@@ -1229,6 +1227,37 @@ def test_delete_stock_entry_deletes_objects_stock(monkeypatch):
     client.delete_stock_entry(stock_id=77)
 
     assert called["url"].endswith("/objects/stock/77")
+
+
+def test_clear_product_picture_sets_picture_file_name_to_none(monkeypatch):
+    called = {}
+
+    class FakePutResponse(FakeResponse):
+        pass
+
+    def fake_put(url, *args, **kwargs):
+        called["url"] = url
+        called["json"] = kwargs.get("json")
+        return FakePutResponse({})
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.services.grocy_client.requests.put", fake_put
+    )
+
+    client = GrocyClient(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+        )
+    )
+
+    client.clear_product_picture(product_id=42)
+
+    assert called["url"].endswith("/objects/products/42")
+    assert called["json"] == {"picture_file_name": None}
+
 
 def test_attach_product_picture_uploads_file_and_updates_product(monkeypatch, tmp_path):
     calls = []

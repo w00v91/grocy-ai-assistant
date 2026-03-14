@@ -1089,6 +1089,35 @@ def dashboard_stock_products(
         raise HTTPException(status_code=500, detail=str(error)) from error
 
 
+@router.delete("/api/dashboard/products/{product_id}/picture")
+def dashboard_delete_product_picture(
+    product_id: int,
+    request: Request,
+    _: None = Depends(require_auth),
+    settings: Settings = Depends(get_settings),
+):
+    if not settings.grocy_api_key:
+        raise HTTPException(
+            status_code=500, detail="grocy_api_key fehlt in Add-on Optionen"
+        )
+
+    try:
+        grocy_client = GrocyClient(settings)
+        grocy_client.clear_product_picture(product_id)
+        return {"success": True, "message": "Produktbild wurde gelöscht."}
+    except HTTPException:
+        raise
+    except Exception as error:
+        log_api_error(
+            logger,
+            request=request,
+            status_code=500,
+            message=str(error),
+            exc=error,
+        )
+        raise HTTPException(status_code=500, detail=str(error)) from error
+
+
 @router.post("/api/dashboard/stock-products/{stock_id}/consume")
 def dashboard_consume_stock_product(
     stock_id: int,
