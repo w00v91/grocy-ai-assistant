@@ -683,7 +683,12 @@ def dashboard_barcode_lookup(
             ),
             nutrition_grade=str(product.get("nutrition_grades") or "").upper(),
         )
-    except requests.RequestException:
+    except requests.RequestException as error:
+        logger.warning(
+            "OpenFoodFacts lookup failed for barcode %s: %s",
+            normalized_barcode,
+            error,
+        )
         grocy_product = grocy_client.find_product_by_barcode(normalized_barcode)
         if grocy_product:
             return BarcodeProductResponse(
@@ -692,7 +697,11 @@ def dashboard_barcode_lookup(
                 product_name=str(grocy_product.get("name") or ""),
                 source="Grocy",
             )
-        raise
+        return BarcodeProductResponse(
+            barcode=normalized_barcode,
+            found=False,
+            source="OpenFoodFacts",
+        )
     except HTTPException:
         raise
     except Exception as error:
