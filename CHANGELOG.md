@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.32
+
+- Fix (Grocy-Bildupload): Produktbild-Upload versucht bei `405/404` jetzt wieder pro URL den Methoden-Fallback `PUT` -> `POST` (jeweils mit `api_key` und `curl_compatible` Header-Modus), bevor zur nächsten URL gewechselt wird.
+- Logging: Warnungen enthalten neben URL und Header-Modus nun auch die fehlgeschlagene HTTP-Methode (`PUT`/`POST`).
+- Test: Unit-Tests für die neue Upload-Reihenfolge über `requests.request(...)` ergänzt/angepasst.
+- Pflege: Add-on-Version auf `7.1.32` erhöht.
+
 ## 7.1.31
 
 - Fix (Grocy-Bildupload): Upload versucht je URL zuerst mit `GROCY-API-KEY` und bei `404/405` zusätzlich einen zweiten PUT im curl-kompatiblen Header-Modus ohne API-Key (`Accept: */*`, `Content-Type: application/octet-stream`).

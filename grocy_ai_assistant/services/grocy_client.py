@@ -309,16 +309,21 @@ class GrocyClient:
         if stripped_base_url.endswith("/api"):
             upload_urls.append(f"{stripped_base_url[:-4]}/files/productpictures/{file_name}")
 
-        upload_attempts: list[tuple[str, dict[str, str], str]] = []
+        upload_attempts: list[tuple[str, str, dict[str, str], str]] = []
         for upload_url in upload_urls:
-            upload_attempts.append((upload_url, upload_headers_with_key, "api_key"))
+            upload_attempts.append(("PUT", upload_url, upload_headers_with_key, "api_key"))
             upload_attempts.append(
-                (upload_url, upload_headers_curl_compatible, "curl_compatible")
+                ("PUT", upload_url, upload_headers_curl_compatible, "curl_compatible")
+            )
+            upload_attempts.append(("POST", upload_url, upload_headers_with_key, "api_key"))
+            upload_attempts.append(
+                ("POST", upload_url, upload_headers_curl_compatible, "curl_compatible")
             )
 
-        for index, (upload_url, upload_headers, header_mode) in enumerate(upload_attempts):
+        for index, (http_method, upload_url, upload_headers, header_mode) in enumerate(upload_attempts):
             try:
-                upload_response = requests.put(
+                upload_response = requests.request(
+                    http_method,
                     upload_url,
                     headers=upload_headers,
                     data=image_bytes,
@@ -339,7 +344,8 @@ class GrocyClient:
                 if not should_retry:
                     raise
                 logger.warning(
-                    "Produktbild-Upload über PUT %s fehlgeschlagen (%s, header_mode=%s), versuche Fallback",
+                    "Produktbild-Upload über %s %s fehlgeschlagen (%s, header_mode=%s), versuche Fallback",
+                    http_method,
                     upload_url,
                     status_code,
                     header_mode,
