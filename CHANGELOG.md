@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.48
+
+- API: Bild-Proxy (`/api/dashboard/product-picture`) um den Query-Parameter `size` erweitert (`thumb`/`full`) und ruft bei Grocy nun unterschiedliche Zielgrößen via `best_fit_width`/`best_fit_height` ab.
+- UI: Thumbnail-Kontexte (Listen/Karten) bleiben bei `size=thumb`, während Volldarstellungen (Rezept-Modal und Lager-Produktbild im Bearbeiten-Dialog) explizit `size=full` anfordern, damit kleine Vorschauen keine großen Bilder mehr laden.
+- Pflege: Add-on-Version auf `7.1.48` erhöht.
+
 ## 7.1.47
 
 - UI (Lager-Tab): Produktbilder in der Lagerliste vereinheitlicht und über dieselbe Bild-Logik wie in den anderen Tabs gerendert (inkl. Proxy/Fallback-Verhalten).

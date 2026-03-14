@@ -341,7 +341,7 @@ def test_product_picture_proxy_fetches_with_grocy_api_key(client, monkeypatch):
     assert response.headers["content-type"].startswith("image/png")
     assert (
         captured["url"]
-        == "http://homeassistant.local:9192/files/productpictures/abc123.jpg"
+        == "http://homeassistant.local:9192/files/productpictures/abc123.jpg?best_fit_width=96&best_fit_height=96"
     )
     assert captured["headers"]["GROCY-API-KEY"] == "test-grocy-key"
 
@@ -390,8 +390,8 @@ def test_product_picture_proxy_uses_files_fallback_on_404(client, monkeypatch):
     assert response.status_code == 200
     assert response.content == b"img"
     assert calls == [
-        "http://homeassistant.local:9192/api/files/recipepictures/test.jpg?force_serve_as=picture",
-        "http://homeassistant.local:9192/files/recipepictures/test.jpg?force_serve_as=picture",
+        "http://homeassistant.local:9192/api/files/recipepictures/test.jpg?force_serve_as=picture&best_fit_width=96&best_fit_height=96",
+        "http://homeassistant.local:9192/files/recipepictures/test.jpg?force_serve_as=picture&best_fit_width=96&best_fit_height=96",
     ]
 
 
@@ -425,7 +425,7 @@ def test_product_picture_proxy_decodes_encoded_query_in_src_path(client, monkeyp
     assert response.content == b"img"
     assert (
         captured["url"]
-        == "http://homeassistant.local:9192/api/files/recipepictures/test.jpg?force_serve_as=picture"
+        == "http://homeassistant.local:9192/api/files/recipepictures/test.jpg?force_serve_as=picture&best_fit_width=96&best_fit_height=96"
     )
 
 
@@ -505,7 +505,7 @@ def test_product_picture_uses_app_cache_when_available(client):
         def get_cached_image(self, src):
             assert (
                 src
-                == "http://homeassistant.local:9192/files/productpictures/abc123.jpg"
+                == "http://homeassistant.local:9192/files/productpictures/abc123.jpg?best_fit_width=96&best_fit_height=96"
             )
             return b"cached", "image/jpeg"
 
