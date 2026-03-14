@@ -289,7 +289,6 @@ class GrocyClient:
 
         return None
 
-
     def get_products_without_picture(self) -> list[Dict[str, Any]]:
         products = self._get_all_products()
         return [
@@ -299,15 +298,68 @@ class GrocyClient:
         ]
 
     def create_product(self, product_payload: Dict[str, Any]) -> int:
+        create_endpoint = f"{self.settings.grocy_base_url}/objects/products"
         response = requests.post(
-            f"{self.settings.grocy_base_url}/objects/products",
+            create_endpoint,
             headers=self.headers,
             json=product_payload,
             timeout=30,
         )
-        response.raise_for_status()
-        return response.json().get("created_object_id")
 
+        try:
+            response.raise_for_status()
+            return response.json().get("created_object_id")
+        except HTTPError:
+            if response.status_code != 400:
+                raise
+
+            retry_payload = self._build_product_payload_retry(product_payload)
+            if retry_payload == product_payload:
+                raise
+
+            logger.warning(
+                "Grocy rejected product payload with 400. Retrying with sanitized payload. "
+                "response_body=%s",
+                response.text,
+            )
+            retry_response = requests.post(
+                create_endpoint,
+                headers=self.headers,
+                json=retry_payload,
+                timeout=30,
+            )
+            retry_response.raise_for_status()
+            return retry_response.json().get("created_object_id")
+
+    def _build_product_payload_retry(
+        self, product_payload: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        valid_location_ids = {item["id"] for item in self.get_locations()}
+        valid_unit_ids = set(self.get_quantity_units().keys())
+
+        fallback_unit_id = next(iter(valid_unit_ids), 1)
+        fallback_location_id = next(iter(valid_location_ids), 1)
+
+        location_id = self._safe_int(product_payload.get("location_id"))
+        if location_id not in valid_location_ids:
+            location_id = fallback_location_id
+
+        qu_id_stock = self._safe_int(product_payload.get("qu_id_stock"))
+        if qu_id_stock not in valid_unit_ids:
+            qu_id_stock = fallback_unit_id
+
+        qu_id_purchase = self._safe_int(product_payload.get("qu_id_purchase"))
+        if qu_id_purchase not in valid_unit_ids:
+            qu_id_purchase = qu_id_stock
+
+        return {
+            "name": self._safe_str(product_payload.get("name")),
+            "description": self._safe_str(product_payload.get("description")),
+            "location_id": location_id,
+            "qu_id_purchase": qu_id_purchase,
+            "qu_id_stock": qu_id_stock,
+            "qu_factor_purchase_to_stock": 1,
+        }
 
     def attach_product_picture(self, product_id: int, image_path: str) -> str:
         file_name = Path(image_path).name
@@ -342,16 +394,22 @@ class GrocyClient:
 
         upload_attempts: list[tuple[str, str, dict[str, str], str]] = []
         for upload_url in upload_urls:
-            upload_attempts.append(("PUT", upload_url, upload_headers_with_key, "api_key"))
+            upload_attempts.append(
+                ("PUT", upload_url, upload_headers_with_key, "api_key")
+            )
             upload_attempts.append(
                 ("PUT", upload_url, upload_headers_curl_compatible, "curl_compatible")
             )
-            upload_attempts.append(("POST", upload_url, upload_headers_with_key, "api_key"))
+            upload_attempts.append(
+                ("POST", upload_url, upload_headers_with_key, "api_key")
+            )
             upload_attempts.append(
                 ("POST", upload_url, upload_headers_curl_compatible, "curl_compatible")
             )
 
-        for index, (http_method, upload_url, upload_headers, header_mode) in enumerate(upload_attempts):
+        for index, (http_method, upload_url, upload_headers, header_mode) in enumerate(
+            upload_attempts
+        ):
             try:
                 upload_response = requests.request(
                     http_method,
@@ -364,14 +422,12 @@ class GrocyClient:
                 break
             except HTTPError as error:
                 status_code = (
-                    error.response.status_code
-                    if error.response is not None
-                    else None
+                    error.response.status_code if error.response is not None else None
                 )
-                should_retry = (
-                    index < len(upload_attempts) - 1
-                    and status_code in {404, 405}
-                )
+                should_retry = index < len(upload_attempts) - 1 and status_code in {
+                    404,
+                    405,
+                }
                 if not should_retry:
                     raise
                 logger.warning(
@@ -918,6 +974,9 @@ class GrocyClient:
                 mapped_units[unit_id] = unit_name
 
         return mapped_units
+
+    def get_quantity_units(self) -> Dict[int, str]:
+        return self._get_quantity_unit_map()
 
     def get_recipe_ingredients(self, recipe_id: int) -> list[str]:
         positions = self.get_recipe_positions(recipe_id)

@@ -4,6 +4,10 @@ All notable changes to this project are documented in this file.
 
 ## 7.1.41
 
+- Fix (Produktsuche): Produktanlage in Grocy erhält bei `400 Bad Request` jetzt automatisch einen Retry mit bereinigtem Payload (nur von Grocy akzeptierte Felder + validierte `location_id`/`quantity_unit` IDs).
+- Stabilität: Bei ungültigen KI-IDs werden fallback-fähige Werte aus den tatsächlich in Grocy verfügbaren Lagerorten und Mengeneinheiten verwendet.
+- Logging: Bei einem 400-Fehler der Produktanlage wird der Retry inkl. Response-Body als Warnung protokolliert.
+- Test: Unit-Tests für Retry-Logik und Payload-Bereinigung in `GrocyClient.create_product` ergänzt.
 - Fix (Lager-Tab): Der Button „✏️ Bearbeiten“ öffnet das Popup „Bestand ändern“ jetzt wieder zuverlässig auch dann, wenn ein Eintrag nur über `product_id` (Fallback-ID) adressierbar ist.
 - Fix (Lager-Tab): Speichern im Bearbeiten-Popup nutzt nun dieselbe aufgelöste Ziel-ID wie der Button-Aufruf, wodurch Updates konsistent am korrekten Eintrag landen.
 - Pflege: Add-on-Version auf `7.1.41` erhöht.
