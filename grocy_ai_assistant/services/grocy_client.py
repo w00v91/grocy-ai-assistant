@@ -20,6 +20,7 @@ class GrocyClient:
     MIN_VECTOR_SIMILARITY = 0.55
     SHOPPING_LIST_MHD_NOTE_PREFIX = "[grocy_ai_mhd:"
     SHOPPING_LIST_MHD_NOTE_PATTERN = re.compile(r"\[grocy_ai_mhd:(\d{4}-\d{2}-\d{2})\]")
+    UNKNOWN_COLUMN_PATTERN = re.compile(r"has no column named ([a-zA-Z0-9_]+)")
 
     def __init__(self, settings: Settings):
         self.settings = settings
@@ -314,22 +315,56 @@ class GrocyClient:
                 raise
 
             retry_payload = self._build_product_payload_retry(product_payload)
-            if retry_payload == product_payload:
-                raise
+            attempted_payloads: list[Dict[str, Any]] = [product_payload]
 
-            logger.warning(
-                "Grocy rejected product payload with 400. Retrying with sanitized payload. "
-                "response_body=%s",
-                response.text,
-            )
-            retry_response = requests.post(
-                create_endpoint,
-                headers=self.headers,
-                json=retry_payload,
-                timeout=30,
-            )
-            retry_response.raise_for_status()
-            return retry_response.json().get("created_object_id")
+            while retry_payload not in attempted_payloads:
+                attempted_payloads.append(retry_payload)
+                logger.warning(
+                    "Grocy rejected product payload with 400. Retrying with sanitized payload. "
+                    "response_body=%s",
+                    response.text,
+                )
+                retry_response = requests.post(
+                    create_endpoint,
+                    headers=self.headers,
+                    json=retry_payload,
+                    timeout=30,
+                )
+                try:
+                    retry_response.raise_for_status()
+                    return retry_response.json().get("created_object_id")
+                except HTTPError:
+                    if retry_response.status_code != 400:
+                        raise
+
+                    next_payload = self._remove_unknown_column_field(
+                        retry_payload,
+                        retry_response.text,
+                    )
+                    if next_payload == retry_payload:
+                        raise
+
+                    response = retry_response
+                    retry_payload = next_payload
+
+            raise
+
+    def _remove_unknown_column_field(
+        self, product_payload: Dict[str, Any], response_text: str
+    ) -> Dict[str, Any]:
+        match = self.UNKNOWN_COLUMN_PATTERN.search(response_text or "")
+        if not match:
+            return product_payload
+
+        unknown_field = match.group(1)
+        if unknown_field not in product_payload:
+            return product_payload
+
+        return {
+            key: value
+            for key, value in product_payload.items()
+            if key != unknown_field
+        }
 
     def _build_product_payload_retry(
         self, product_payload: Dict[str, Any]

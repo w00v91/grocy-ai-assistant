@@ -4,6 +4,9 @@ All notable changes to this project are documented in this file.
 
 ## 7.1.42
 
+- Fix (Produktsuche): Produktanlage in Grocy entfernt bei aufeinanderfolgenden `400 Bad Request`-Antworten mit Schemafehlern ("has no column named ...") die jeweils bemängelten Felder schrittweise aus dem Retry-Payload.
+- Stabilität: Retry-Logik bricht weiterhin sauber ab, wenn kein unbekanntes Feld aus der Fehlermeldung extrahiert werden kann.
+- Test: Unit-Test ergänzt, der mehrere `unknown column`-Fehler (`carbohydrates`, danach `qu_factor_purchase_to_stock`) und den erfolgreichen dritten Request absichert.
 - UI (Dashboard): Einheitliches visuelles Theme für alle Dashboard-Bereiche eingeführt (konsistente Farbpalette, Karten-/Header-Stil und harmonisierte Light-/Dark-Variablen).
 - UI (Navigation): Bottom-Tabbar und aktiver Tab mit neuem Akzent-Gradienten, Glassmorphism-Hintergrund und angepasstem Shadow-Design vereinheitlicht.
 - UI (Interaktionen): Buttons inkl. Hover-/Focus-/Active-States global vereinheitlicht; Primary-, Danger-, Success- und Ghost-Varianten optisch konsistent gemacht.
