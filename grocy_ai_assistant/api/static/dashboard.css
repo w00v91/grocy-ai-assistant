@@ -1073,6 +1073,8 @@ img {
   display: flex;
   flex-direction: column;
   align-items: stretch;
+  justify-self: end;
+  width: 8.8rem;
   gap: 0.45rem;
 }
 
@@ -1113,6 +1115,8 @@ img {
   .storage-item-actions {
     grid-column: 1 / -1;
     flex-direction: column;
+    justify-self: stretch;
+    width: 100%;
   }
 }
 
