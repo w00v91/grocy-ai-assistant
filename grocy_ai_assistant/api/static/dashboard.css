@@ -911,6 +911,7 @@ img {
 
 .recipe-modal-image-wrapper {
   margin: -0.25rem -0.25rem 0.9rem;
+  min-height: 180px;
   border-radius: 14px;
   overflow: hidden;
   border: 1px solid var(--item-border);
@@ -921,10 +922,7 @@ img {
 .recipe-modal-image {
   display: block;
   width: 100%;
-  max-height: clamp(240px, 42vh, 460px);
-  object-fit: cover;
-  filter: saturate(1.06) contrast(1.02);
-  transform: scale(1.01);
+  height: auto;
 }
 
 

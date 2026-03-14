@@ -4,6 +4,8 @@ All notable changes to this project are documented in this file.
 
 ## 7.1.18
 
+- UI: Rezeptbild im Rezept-Detail-Popup auf Standardgröße zurückgesetzt (keine erzwungene Vergrößerung mehr).
+- UI: Wrapper-Div für Rezeptbilder im Popup um eine `min-height` ergänzt, damit der Bildbereich stabil bleibt.
 - UI: Die Karte/Spalte „Optionen“ wurde aus dem Benachrichtigungs-Dashboard entfernt.
 - UI: Badge „Notiz bearbeiten“ in der Einkaufsliste entfernt.
 - UI: Notizfeld direkt im Produkt-Detail-Popup unter der Überschrift ergänzt.
