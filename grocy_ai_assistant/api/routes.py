@@ -36,7 +36,9 @@ from grocy_ai_assistant.models.ingredient import (
     ShoppingListNoteUpdateRequest,
     ScannerLlavaRequest,
     ScannerLlavaResponse,
+    StockProductConsumeRequest,
     StockProductResponse,
+    StockProductUpdateRequest,
 )
 from grocy_ai_assistant.models.notification import (
     NotificationDeviceUpdateRequest,
@@ -1001,6 +1003,86 @@ def dashboard_stock_products(
             else grocy_client.get_stock_products()
         )
         return [StockProductResponse(**item) for item in stock_products]
+    except Exception as error:
+        log_api_error(
+            logger,
+            request=request,
+            status_code=500,
+            message=str(error),
+            exc=error,
+        )
+        raise HTTPException(status_code=500, detail=str(error)) from error
+
+
+@router.post("/api/dashboard/stock-products/{stock_id}/consume")
+def dashboard_consume_stock_product(
+    stock_id: int,
+    payload: StockProductConsumeRequest,
+    request: Request,
+    _: None = Depends(require_auth),
+    settings: Settings = Depends(get_settings),
+):
+    if not settings.grocy_api_key:
+        raise HTTPException(
+            status_code=500, detail="grocy_api_key fehlt in Add-on Optionen"
+        )
+
+    try:
+        grocy_client = GrocyClient(settings)
+        stock_entries = grocy_client.get_stock_entries()
+        matched_entry = next(
+            (entry for entry in stock_entries if int(entry.get("id") or 0) == stock_id),
+            None,
+        )
+        if not matched_entry:
+            raise HTTPException(
+                status_code=404, detail="Bestandseintrag nicht gefunden"
+            )
+
+        product_id = int(matched_entry.get("product_id") or 0)
+        if product_id <= 0:
+            raise HTTPException(status_code=400, detail="Ungültiger Produkteintrag")
+
+        grocy_client.consume_stock_product(
+            product_id=product_id,
+            amount=payload.amount,
+            stock_id=stock_id,
+        )
+        return {"success": True, "message": "Produkt wurde verbraucht."}
+    except HTTPException:
+        raise
+    except Exception as error:
+        log_api_error(
+            logger,
+            request=request,
+            status_code=500,
+            message=str(error),
+            exc=error,
+        )
+        raise HTTPException(status_code=500, detail=str(error)) from error
+
+
+@router.put("/api/dashboard/stock-products/{stock_id}")
+def dashboard_update_stock_product(
+    stock_id: int,
+    payload: StockProductUpdateRequest,
+    request: Request,
+    _: None = Depends(require_auth),
+    settings: Settings = Depends(get_settings),
+):
+    if not settings.grocy_api_key:
+        raise HTTPException(
+            status_code=500, detail="grocy_api_key fehlt in Add-on Optionen"
+        )
+
+    try:
+        grocy_client = GrocyClient(settings)
+        grocy_client.update_stock_entry(
+            stock_id=stock_id,
+            amount=payload.amount,
+            best_before_date=payload.best_before_date,
+        )
+        return {"success": True, "message": "Bestandseintrag wurde aktualisiert."}
     except Exception as error:
         log_api_error(
             logger,

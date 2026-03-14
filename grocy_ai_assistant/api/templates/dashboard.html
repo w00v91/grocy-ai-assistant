@@ -94,6 +94,19 @@
         </section>
       </section>
 
+
+      <section id='tab-storage' class='tab-view hidden'>
+        <section class='card'>
+          <div class='section-header'>
+            <h2>Lager</h2>
+            <button class='primary-button' type='button' onclick='loadStorageProducts()'>Aktualisieren</button>
+          </div>
+          <input id='storage-filter-input' type='text' placeholder='Produkte filtern...' oninput='renderStorageProducts()' />
+          <p id='status-storage'>Bereit.</p>
+          <ul id='storage-products' class='storage-products-list'></ul>
+        </section>
+      </section>
+
       <section id='tab-notifications' class='tab-view hidden'>
         <section class='card'>
           <div class='section-header'>
@@ -137,6 +150,7 @@
     <nav class='bottom-tabbar' aria-label='Navigation'>
       <button id='tab-button-shopping' class='tab-button active' type='button' onclick='switchTab("shopping")'>🛒 Einkauf</button>
       <button id='tab-button-recipes' class='tab-button' type='button' onclick='switchTab("recipes")'>🍳 Rezepte</button>
+      <button id='tab-button-storage' class='tab-button' type='button' onclick='switchTab("storage")'>📦 Lager</button>
       <button id='tab-button-notifications' class='tab-button' type='button' onclick='switchTab("notifications")'>🔔 Notify</button>
     </nav>
 
@@ -222,6 +236,24 @@
       </section>
     </div>
 
+
+    <div id='storage-edit-modal' class='shopping-modal hidden'>
+      <div class='shopping-modal-backdrop' onclick='closeStorageEditModal()'></div>
+      <section class='shopping-modal-content card'>
+        <button class='shopping-modal-close' type='button' onclick='closeStorageEditModal()' aria-label='Bearbeiten schließen'>×</button>
+        <h3 id='storage-edit-modal-title'>Bestand ändern</h3>
+        <label for='storage-edit-amount'>Menge</label>
+        <input id='storage-edit-amount' type='number' min='0' step='0.01' />
+        <label for='storage-edit-best-before'>MHD</label>
+        <input id='storage-edit-best-before' type='date' />
+        <div class='button-row'>
+          <button class='success-button' type='button' onclick='saveStorageEditModal()'>Speichern</button>
+          <button class='ghost-button' type='button' onclick='closeStorageEditModal()'>Abbrechen</button>
+        </div>
+      </section>
+    </div>
+      
+      
     <div id='scanner-modal' class='shopping-modal hidden'>
       <div class='shopping-modal-backdrop' onclick='closeScannerModal()'></div>
       <section class='shopping-modal-content card scanner-modal-content'>

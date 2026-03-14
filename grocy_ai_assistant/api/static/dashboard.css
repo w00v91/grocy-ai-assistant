@@ -188,7 +188,7 @@ body.modal-open {
   border: 1px solid var(--card-border);
   border-radius: var(--radius-pill);
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 0.35rem;
   backdrop-filter: blur(8px);
   z-index: 40;
@@ -784,6 +784,33 @@ img {
   border-color: var(--success-border);
 }
 .success-button:hover { background: var(--success-bg-hover); }
+
+
+#status-storage {
+  margin-top: 0.85rem;
+  font-weight: 600;
+}
+
+.storage-products-list {
+  margin-top: 0.8rem;
+}
+
+.storage-item-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.storage-item-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.storage-action-button {
+  margin-top: 0;
+  width: auto;
+  min-width: 7.5rem;
+}
 
 #shopping-list li.shopping-item {
   --swipe-offset: 0px;

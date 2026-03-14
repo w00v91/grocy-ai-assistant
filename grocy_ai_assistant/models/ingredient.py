@@ -72,10 +72,20 @@ class ProductVariantResponse(BaseModel):
 
 class StockProductResponse(BaseModel):
     id: int
+    stock_id: int | None = None
     name: str
     location_id: int | None = None
     location_name: str = ""
     amount: str = ""
+    best_before_date: str = ""
+
+
+class StockProductConsumeRequest(BaseModel):
+    amount: float = Field(default=1, gt=0)
+
+
+class StockProductUpdateRequest(BaseModel):
+    amount: float = Field(..., ge=0)
     best_before_date: str = ""
 
 
