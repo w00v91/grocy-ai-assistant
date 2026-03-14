@@ -91,6 +91,7 @@
             <button class='recipe-load-button' type='button' onclick='loadRecipeSuggestions()'>Rezeptvorschläge laden</button>
           </div>
           <p id='status-recipes'>Bereit.</p>
+          <button id='open-recipe-create-modal-button' class='primary-button recipe-create-button' type='button' onclick='openRecipeCreateModal()'>Rezept hinzufügen</button>
         </section>
       </section>
 
@@ -196,6 +197,52 @@
         <h4>Fehlende Produkte</h4>
         <ul id='recipe-modal-missing-products'></ul>
         <button id='recipe-add-missing-button' class='success-button' type='button'>Alles hinzufügen</button>
+      </section>
+    </div>
+
+    <div id='recipe-create-modal' class='shopping-modal hidden'>
+      <div class='shopping-modal-backdrop' onclick='closeRecipeCreateModal()'></div>
+      <section class='shopping-modal-content card recipe-create-modal-content'>
+        <button class='shopping-modal-close recipe-modal-close' type='button' onclick='closeRecipeCreateModal()' aria-label='Rezept hinzufügen schließen'>
+          <span aria-hidden='true'>✕</span>
+        </button>
+        <h3>Rezept hinzufügen</h3>
+        <p class='muted'>Wähle eine Methode, um ein Rezept schnell anzulegen.</p>
+
+        <div class='recipe-create-methods'>
+          <button id='recipe-create-method-webscrape' class='ghost-button' type='button' onclick='setRecipeCreateMethod("webscrape")'>WebScrape</button>
+          <button id='recipe-create-method-ai' class='ghost-button' type='button' onclick='setRecipeCreateMethod("ai")'>KI</button>
+          <button id='recipe-create-method-manual' class='ghost-button' type='button' onclick='setRecipeCreateMethod("manual")'>Manuell</button>
+        </div>
+
+        <section id='recipe-create-panel-webscrape' class='recipe-create-panel hidden'>
+          <label for='recipe-webscrape-url'>Webseite / URL</label>
+          <input id='recipe-webscrape-url' type='url' placeholder='https://example.com/rezept' />
+          <p class='muted'>Die URL wird für das spätere Scraping inkl. KI-gestützter Attribut-Extraktion vorbereitet.</p>
+          <button class='primary-button' type='button' onclick='submitRecipeCreateWebscrape()'>URL übernehmen</button>
+        </section>
+
+        <section id='recipe-create-panel-ai' class='recipe-create-panel hidden'>
+          <label for='recipe-ai-prompt'>Rezept-Anfrage für KI</label>
+          <textarea id='recipe-ai-prompt' placeholder='z.B. Erstelle ein vegetarisches Pasta-Rezept für 2 Personen...'></textarea>
+          <button class='primary-button' type='button' onclick='submitRecipeCreateAiPrompt()'>KI-Anfrage übernehmen</button>
+        </section>
+
+        <section id='recipe-create-panel-manual' class='recipe-create-panel hidden'>
+          <label for='recipe-manual-title'>Rezeptname</label>
+          <input id='recipe-manual-title' type='text' placeholder='z.B. Schnelle Gemüsesuppe' />
+
+          <label for='recipe-manual-servings'>Portionen</label>
+          <input id='recipe-manual-servings' type='number' min='1' step='1' value='2' />
+
+          <label for='recipe-manual-ingredients'>Zutaten (eine pro Zeile)</label>
+          <textarea id='recipe-manual-ingredients' placeholder='2 Karotten\n1 Zwiebel\n500 ml Gemüsebrühe'></textarea>
+
+          <label for='recipe-manual-preparation'>Zubereitung</label>
+          <textarea id='recipe-manual-preparation' placeholder='1) Gemüse schneiden ...'></textarea>
+
+          <button class='success-button' type='button' onclick='submitRecipeCreateManual()'>Schnell erfassen</button>
+        </section>
       </section>
     </div>
 
