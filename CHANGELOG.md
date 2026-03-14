@@ -4,6 +4,10 @@ All notable changes to this project are documented in this file.
 
 ## 7.1.34
 
+- KI (lokale Produktanalyse): Prompt für `analyze_product_name` erweitert, damit neben Kalorien/Kohlenhydraten auch weitere bekannte Nährwerte (`fat`, `protein`, `sugar`) zurückgegeben werden.
+- KI (Robustheit): Antwortnormalisierung ergänzt, inkl. Zahlen-Normalisierung, Fallbacks und Alias-Mapping von `carbs` -> `carbohydrates`.
+- API-Modell: `ProductData` um zusätzliche Nährwertfelder (`carbohydrates`, `fat`, `protein`, `sugar`) ergänzt.
+- Test: Unit-Tests für erweiterte Nährwertausgabe und Alias-Mapping ergänzt.
 - Fix (Produktsuche): Fuzzy-Match übernimmt keine zusammengesetzten Präfix-Treffer mehr (z. B. `Oliven` -> `Olivenöl`), wenn nur ein längeres Kompositum ähnlich ist.
 - Test: Unit-Test ergänzt, der sicherstellt, dass `Oliven` nicht automatisch als `Olivenöl` übernommen wird.
 - Pflege: Add-on-Version auf `7.1.34` erhöht.
