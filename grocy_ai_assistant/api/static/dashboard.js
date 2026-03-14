@@ -668,7 +668,7 @@ function renderShoppingList(items) {
           <div class="muted">${item.note || 'Keine Notiz'}</div>
         </div>
         <div class="shopping-item-badges">
-          <span class="badge">Menge: ${formatBadgeValue(item.amount, '-')}</span>
+          <button type="button" class="badge amount-increment-button" data-shopping-list-id="${item.id}">Menge: ${formatBadgeValue(item.amount, '-')}</button>
           <button type="button" class="badge mhd-picker-button" data-mhd-shopping-list-id="${item.id}" data-mhd-product-name="${encodeURIComponent(item.product_name || '')}" data-mhd-current-date="${item.best_before_date || ''}">${item.best_before_date ? `MHD: ${item.best_before_date}` : 'MHD wählen'}</button>
         </div>
       </div>
@@ -812,6 +812,25 @@ async function confirmVariant(productId, productName) {
     status.textContent = 'Produkt konnte nicht hinzugefügt werden (Netzwerk-/Ingress-Fehler).';
   }
 
+  });
+}
+
+async function incrementShoppingItemAmount(shoppingListId) {
+  const status = getShoppingStatusElement();
+
+  return withBusyState(async () => {
+    const res = await fetch(buildApiUrl(`/api/dashboard/shopping-list/item/${shoppingListId}/amount/increment`), {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    });
+    const payload = await parseJsonSafe(res);
+
+    if (!res.ok) {
+      throw new Error(getErrorMessage(payload, 'Menge konnte nicht erhöht werden.'));
+    }
+
+    status.textContent = payload.message || `Menge für Eintrag ${shoppingListId} erhöht.`;
+    await loadShoppingList();
   });
 }
 
@@ -1187,7 +1206,21 @@ document.getElementById('variant-list').addEventListener('click', (event) => {
 });
 
 
-document.getElementById('shopping-list').addEventListener('click', (event) => {
+document.getElementById('shopping-list').addEventListener('click', async (event) => {
+  const amountButton = event.target.closest('.amount-increment-button');
+  if (amountButton) {
+    event.stopPropagation();
+    const shoppingListId = Number(amountButton.dataset.shoppingListId || '');
+    if (!Number.isFinite(shoppingListId) || shoppingListId <= 0) return;
+
+    try {
+      await incrementShoppingItemAmount(shoppingListId);
+    } catch (error) {
+      getShoppingStatusElement().textContent = `Fehler: ${error.message}`;
+    }
+    return;
+  }
+
   const target = event.target.closest('.mhd-picker-button');
   if (!target) return;
 
@@ -1281,7 +1314,7 @@ function renderStockProducts(items) {
             <input type="checkbox" value="${item.id}" ${selectedProductIds.size === 0 || selectedProductIds.has(item.id) ? 'checked' : ''} />
             <span class="stock-item-name"><strong>${item.name}</strong></span>
             <span class="stock-item-attributes">
-              <span class="badge">Menge: ${formatBadgeValue(item.amount, '-')}</span>
+              <button type="button" class="badge amount-increment-button" data-shopping-list-id="${item.id}">Menge: ${formatBadgeValue(item.amount, '-')}</button>
               <span class="badge">MHD: ${formatBadgeValue(item.best_before_date, '-')}</span>
             </span>
           </label>

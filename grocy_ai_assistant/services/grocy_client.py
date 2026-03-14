@@ -310,6 +310,19 @@ class GrocyClient:
         )
         response.raise_for_status()
 
+    def update_shopping_list_item_amount(
+        self,
+        shopping_list_id: int,
+        amount: str,
+    ) -> None:
+        response = requests.put(
+            f"{self.settings.grocy_base_url}/objects/shopping_list/{shopping_list_id}",
+            headers=self.headers,
+            json={"amount": self._safe_str(amount) or "1"},
+            timeout=30,
+        )
+        response.raise_for_status()
+
     @classmethod
     def _extract_best_before_date_from_note(cls, note: str) -> tuple[str, str]:
         safe_note = cls._safe_str(note)
@@ -657,9 +670,8 @@ class GrocyClient:
             if unit_id is None:
                 continue
 
-            unit_name = (
-                self._safe_str(item.get("name"))
-                or self._safe_str(item.get("name_plural"))
+            unit_name = self._safe_str(item.get("name")) or self._safe_str(
+                item.get("name_plural")
             )
             if unit_name:
                 mapped_units[unit_id] = unit_name
@@ -686,9 +698,7 @@ class GrocyClient:
             product_id = self._safe_int(position.get("product_id"))
             product = all_products.get(product_id or -1, {})
             product_name = (
-                product.get("name")
-                or position.get("product")
-                or "Unbekannte Zutat"
+                product.get("name") or position.get("product") or "Unbekannte Zutat"
             )
 
             amount = self._safe_str(position.get("amount"))

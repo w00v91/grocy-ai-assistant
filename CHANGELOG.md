@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.14
+
+- UI: Badges in der Einkaufsliste auf eine einheitliche Breite gebracht, damit „Menge“ und „MHD" konsistent groß angezeigt werden.
+- UI/Funktion: „Menge" in der Einkaufsliste ist jetzt klickbar und erhöht die Einkaufsmenge des ausgewählten Produkts um 1.
+- API: Neuer Endpoint zum Erhöhen der Menge einzelner Einkaufslisten-Einträge ergänzt.
+- Tests: API-/Client-Tests für das Erhöhen der Einkaufslisten-Menge ergänzt.
+- Pflege: Add-on-Version auf `7.1.14` erhöht.
+
 ## 7.1.13
 
 - UI: Regel-Popup visuell an das restliche Dashboard angepasst (klarerer Titel/Untertitel, bessere Formular- und Mehrfachauswahl-Darstellung, konsistente Aktionsleiste).
