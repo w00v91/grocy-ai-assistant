@@ -9,6 +9,10 @@ All notable changes to this project are documented in this file.
 
 ## 7.1.35
 
+- UI (Notify-Tab): Darstellung der Regeleinträge auf ein einheitliches Karten-/Badge-Format umgestellt, angelehnt an Einkaufslisten-Produkte und Lager-Einträge.
+- UI (Notify-Tab): Regeleinträge zeigen jetzt konsistent Ereignisse, Kanäle, Priorität und Cooldown.
+- UX (Notify-Tab): Notification-Kanäle werden in natürlicher Sprache dargestellt (z. B. „Mobile Push-Benachrichtigung“, „Persistente Benachrichtigung“).
+- UI/Texte: Bezeichnungen im Notify-Bereich sprachlich vereinheitlicht (u. a. Tab-Label, Regelverwaltung, Feldbeschriftungen).
 - Dashboard (Tab „Lager“): Einträge visuell an das Kartenformat der Einkaufsliste angepasst (Bild + Name/Attribute + Aktions-Buttons).
 - Dashboard (Tab „Lager“): Lager-Objekte in 3 Spalten aufgebaut (Bild, Name/Attributliste, Buttons); Attribute werden nun als Liste unter dem Produktnamen angezeigt.
 - API/Service: Lagerprodukte liefern jetzt zusätzlich `picture_url`, damit Produktbilder auch im Lager-Tab dargestellt werden können.
