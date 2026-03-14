@@ -665,6 +665,10 @@ img {
   .badge {
     margin-left: 0;
   }
+
+  .shopping-item-badges {
+    max-width: 100%;
+  }
 }
 .shopping-list-section button { width: 100%; }
 #shopping-list {
@@ -727,7 +731,8 @@ img {
   display: grid;
   gap: 0.35rem;
   justify-items: stretch;
-  width: 10.75rem;
+  width: 100%;
+  max-width: 33.333%;
 }
 
 .shopping-item-badges .badge {
