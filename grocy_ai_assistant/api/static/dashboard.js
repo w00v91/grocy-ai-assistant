@@ -289,19 +289,16 @@ function renderNotificationRules(rules) {
   }
   list.innerHTML = rules.map((rule) => `
     <li class="notification-rule-item">
-      <div class="notification-rule-main">
-        <div class="notification-rule-main-header">
-          <span class="notification-rule-icon" aria-hidden="true">🔔</span>
-          <strong>${rule.name}</strong>
-        </div>
-        <div class="muted notification-rule-events">Ereignisse: ${(rule.event_types || []).map((eventType) => getEventLabel(eventType)).join(', ') || '-'}</div>
+      <div class="notification-rule-name" title="${escapeHtml(rule.name || '')}">
+        <strong>${rule.name}</strong>
       </div>
-      <div class="notification-rule-badges">
-        <span class="badge"><span aria-hidden="true">📡</span> Kanäle: ${(rule.channels || []).map((channelType) => getChannelLabel(channelType)).join(', ') || '-'}</span>
-        <span class="badge"><span aria-hidden="true">⚡</span> Priorität: ${escapeHtml(rule.severity || 'info')}</span>
-        <span class="badge"><span aria-hidden="true">⏱</span> Cooldown: ${Number(rule.cooldown_seconds || 0)}s</span>
+      <div class="notification-rule-meta">
+        <div class="notification-rule-meta-row"><span class="notification-rule-meta-label">Priorität</span><span class="notification-rule-meta-value">${escapeHtml(rule.severity || 'info')}</span></div>
+        <div class="notification-rule-meta-row"><span class="notification-rule-meta-label">Ereignisse</span><span class="notification-rule-meta-value">${(rule.event_types || []).map((eventType) => getEventLabel(eventType)).join(', ') || '-'}</span></div>
+        <div class="notification-rule-meta-row"><span class="notification-rule-meta-label">Kanäle</span><span class="notification-rule-meta-value">${(rule.channels || []).map((channelType) => getChannelLabel(channelType)).join(', ') || '-'}</span></div>
+        <div class="notification-rule-meta-row"><span class="notification-rule-meta-label">Cooldown</span><span class="notification-rule-meta-value">${Number(rule.cooldown_seconds || 0)}s</span></div>
       </div>
-      <div class="button-row notification-rule-item-actions">
+      <div class="notification-rule-item-actions">
         <button class="notification-action-button notification-action-button-edit" type="button" onclick="openNotificationRuleModal('${rule.id}')">Regel ändern</button>
         <button class="notification-action-button notification-action-button-delete" type="button" onclick="deleteNotificationRule('${rule.id}')">Löschen</button>
       </div>

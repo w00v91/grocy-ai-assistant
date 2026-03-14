@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.47
+
+- UI (Notify-Tab): Layout der Regeln vollständig auf ein 3-Spalten-Raster umgestellt (`Name | Priorität/Ereignisse/Kanäle/Cooldown | Buttons`) für bessere Struktur und passendere Einbindung ins bestehende Dashboard.
+- UI (Notify-Tab): Metadaten werden nun untereinander mit klaren Labels dargestellt (Priorität, Ereignisse, Kanäle, Cooldown).
+- UI (Notify-Tab): Aktions-Buttons pro Regel werden untereinander angezeigt und konsistent an die Kartenbreite angepasst.
+- Pflege: Add-on-Version auf `7.1.47` erhöht.
+
 ## 7.1.46
 
 - UI (Notify-Tab): Regelkarten im iOS-inspirierten Stil überarbeitet (abgerundete Card-Flächen, sanfte Verlaufshintergründe, kompakter Header mit Icon und strukturierte Meta-Badges).
