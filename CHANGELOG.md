@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.44
+
+- UI (Einkaufsliste): MHD-Badge zeigt bei vorhandenem Datum jetzt nur noch das Datum ohne Präfix `MHD:`; ohne Datum bleibt der CTA `MHD wählen` unverändert.
+- Pflege: Add-on-Version auf `7.1.44` erhöht.
+
 ## 7.1.43
 
 - UI (Dashboard): Alle Box-Shadows im Dashboard-Theme entfernt, inklusive Cards, Buttons, Tabbar, Header, Inputs und Modal-Elementen, für einen flacheren, einheitlichen Stil.
