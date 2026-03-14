@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.44
+
+- UI (Lager/Popup „Bestand ändern“): Popup um relevante Produktinfos erweitert (Produktname, Produkt-ID, Bestands-ID, Lagerort) und Produktbild direkt im Dialog ergänzt.
+- UI (Lager/Popup „Bestand ändern“): Lösch-Button „Produkt löschen“ im Bearbeiten-Dialog hinzugefügt, inkl. Bestätigungsdialog und aktualisierter Statusmeldung.
+- API: Neuer Endpoint `DELETE /api/dashboard/stock-products/{stock_id}` zum Löschen eines Bestandseintrags (inkl. `product_id`-Fallback auf den passenden `stock_id`).
+- Service: `GrocyClient.delete_stock_entry(...)` ergänzt, um Bestände über Grocy `objects/stock/{id}` zu löschen.
+- Test: Unit- und API-Tests für das Löschen von Bestandseinträgen ergänzt.
+- Pflege: Add-on-Version auf `7.1.44` erhöht.
+
 ## 7.1.43
 
 - UI (Dashboard): Alle Box-Shadows im Dashboard-Theme entfernt, inklusive Cards, Buttons, Tabbar, Header, Inputs und Modal-Elementen, für einen flacheren, einheitlichen Stil.

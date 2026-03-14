@@ -892,6 +892,14 @@ class GrocyClient:
         )
         response.raise_for_status()
 
+    def delete_stock_entry(self, stock_id: int) -> None:
+        response = requests.delete(
+            f"{self.settings.grocy_base_url}/objects/stock/{int(stock_id)}",
+            headers=self.headers,
+            timeout=30,
+        )
+        response.raise_for_status()
+
     def get_recipe_positions(self, recipe_id: int) -> list[Dict[str, Any]]:
         response = requests.get(
             f"{self.settings.grocy_base_url}/objects/recipes_pos",

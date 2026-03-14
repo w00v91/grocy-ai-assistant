@@ -1160,6 +1160,64 @@ def dashboard_consume_stock_product(
         raise HTTPException(status_code=500, detail=str(error)) from error
 
 
+@router.delete("/api/dashboard/stock-products/{stock_id}")
+def dashboard_delete_stock_product(
+    stock_id: int,
+    request: Request,
+    _: None = Depends(require_auth),
+    settings: Settings = Depends(get_settings),
+):
+    if not settings.grocy_api_key:
+        raise HTTPException(
+            status_code=500, detail="grocy_api_key fehlt in Add-on Optionen"
+        )
+
+    try:
+        grocy_client = GrocyClient(settings)
+        stock_entries = grocy_client.get_stock_entries()
+        matched_entry = next(
+            (
+                entry
+                for entry in stock_entries
+                if int(entry.get("stock_id") or entry.get("id") or 0) == stock_id
+            ),
+            None,
+        )
+        if not matched_entry:
+            matched_entry = next(
+                (
+                    entry
+                    for entry in stock_entries
+                    if int(entry.get("product_id") or 0) == stock_id
+                ),
+                None,
+            )
+        if not matched_entry:
+            raise HTTPException(
+                status_code=404, detail="Bestandseintrag nicht gefunden"
+            )
+
+        resolved_stock_id = int(
+            matched_entry.get("stock_id") or matched_entry.get("id") or 0
+        )
+        if resolved_stock_id <= 0:
+            raise HTTPException(status_code=400, detail="Ungültiger Bestandseintrag")
+
+        grocy_client.delete_stock_entry(stock_id=resolved_stock_id)
+        return {"success": True, "message": "Bestandseintrag wurde gelöscht."}
+    except HTTPException:
+        raise
+    except Exception as error:
+        log_api_error(
+            logger,
+            request=request,
+            status_code=500,
+            message=str(error),
+            exc=error,
+        )
+        raise HTTPException(status_code=500, detail=str(error)) from error
+
+
 @router.put("/api/dashboard/stock-products/{stock_id}")
 def dashboard_update_stock_product(
     stock_id: int,
