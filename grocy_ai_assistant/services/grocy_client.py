@@ -1,4 +1,5 @@
 from collections import Counter
+import logging
 from datetime import datetime
 from math import sqrt
 from pathlib import Path
@@ -11,6 +12,8 @@ import requests
 from requests import HTTPError
 
 from grocy_ai_assistant.config.settings import Settings
+
+logger = logging.getLogger(__name__)
 
 
 class GrocyClient:
@@ -279,16 +282,54 @@ class GrocyClient:
         file_name = Path(image_path).name
         image_bytes = Path(image_path).read_bytes()
 
-        upload_response = requests.put(
-            f"{self.settings.grocy_base_url}/files/productpictures/{file_name}",
-            headers={
-                "GROCY-API-KEY": self.settings.grocy_api_key,
-                "Content-Type": "application/octet-stream",
-            },
-            data=image_bytes,
-            timeout=60,
+        upload_headers = {
+            "GROCY-API-KEY": self.settings.grocy_api_key,
+            "Content-Type": "application/octet-stream",
+            "Accept": "*/*",
+        }
+        primary_upload_url = (
+            f"{self.settings.grocy_base_url}/files/productpictures/{file_name}"
         )
-        upload_response.raise_for_status()
+        upload_urls = [primary_upload_url]
+
+        stripped_base_url = self.settings.grocy_base_url.rstrip("/")
+        if stripped_base_url.endswith("/api"):
+            upload_urls.append(f"{stripped_base_url[:-4]}/files/productpictures/{file_name}")
+
+        upload_attempts: list[tuple[str, str]] = []
+        for upload_url in upload_urls:
+            upload_attempts.append(("PUT", upload_url))
+            upload_attempts.append(("POST", upload_url))
+
+        for index, (upload_method, upload_url) in enumerate(upload_attempts):
+            try:
+                request_fn = requests.put if upload_method == "PUT" else requests.post
+                upload_response = request_fn(
+                    upload_url,
+                    headers=upload_headers,
+                    data=image_bytes,
+                    timeout=60,
+                )
+                upload_response.raise_for_status()
+                break
+            except HTTPError as error:
+                status_code = (
+                    error.response.status_code
+                    if error.response is not None
+                    else None
+                )
+                should_retry = (
+                    index < len(upload_attempts) - 1
+                    and status_code in {404, 405}
+                )
+                if not should_retry:
+                    raise
+                logger.warning(
+                    "Produktbild-Upload über %s %s fehlgeschlagen (%s), versuche Fallback",
+                    upload_method,
+                    upload_url,
+                    status_code,
+                )
 
         update_response = requests.put(
             f"{self.settings.grocy_base_url}/objects/products/{product_id}",
