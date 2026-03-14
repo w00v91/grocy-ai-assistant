@@ -1400,6 +1400,14 @@ function renderStockProducts(items) {
   `;
 }
 
+function getRecipeSuggestionDescription(item) {
+  const reason = String(item.reason || '').trim();
+  const preparation = String(item.preparation || '').replace(/\s+/g, ' ').trim();
+  if (reason) return reason;
+  if (!preparation) return 'Keine zusätzliche Beschreibung verfügbar.';
+  return preparation.length > 120 ? `${preparation.slice(0, 117)}...` : preparation;
+}
+
 function renderRecipeList(elementId, items, emptyText) {
   const list = document.getElementById(elementId);
   if (!items.length) {
@@ -1407,15 +1415,18 @@ function renderRecipeList(elementId, items, emptyText) {
     return;
   }
 
-  list.innerHTML = items.map((item) => `
-    <li class="recipe-item" data-recipe-item="${encodeURIComponent(JSON.stringify(item))}">
-      ${item.picture_url ? `<img class="recipe-thumb" src="${toImageSource(item.picture_url)}" alt="${item.title}" loading="lazy" />` : '<div class="recipe-thumb recipe-thumb-fallback">🍽️</div>'}
-      <div>
-        <div><strong>${item.title}</strong></div>
-        <div class="muted">${item.reason || ''}</div>
-      </div>
-    </li>
-  `).join('');
+  list.innerHTML = items.map((item) => {
+    const description = getRecipeSuggestionDescription(item);
+    return `
+      <li class="recipe-item" data-recipe-item="${encodeURIComponent(JSON.stringify(item))}">
+        ${item.picture_url ? `<img class="recipe-thumb" src="${toImageSource(item.picture_url)}" alt="${item.title}" loading="lazy" />` : '<div class="recipe-thumb recipe-thumb-fallback">🍽️</div>'}
+        <div class="recipe-item-copy">
+          <div class="recipe-item-title">${item.title}</div>
+          <div class="muted recipe-item-description">${description}</div>
+        </div>
+      </li>
+    `;
+  }).join('');
 
   bindRecipeItemInteractions();
 }
@@ -1525,6 +1536,13 @@ function renderStorageProducts() {
     const hasStockId = Number(item.stock_id || 0) > 0;
     const disabledAttr = hasStockId ? '' : ' disabled';
     const disabledTitle = hasStockId ? '' : ' title="Für diesen Eintrag ist keine Bestand-ID verfügbar"';
+    const productName = escapeHtml(item.name || 'Unbekanntes Produkt');
+    const attributes = [
+      `Lager: ${escapeHtml(formatBadgeValue(item.location_name, '-'))}`,
+      `Menge: ${escapeHtml(formatBadgeValue(item.amount, '0'))}`,
+      `MHD: ${escapeHtml(formatBadgeValue(item.best_before_date, '-'))}`,
+    ];
+
     return `
     <li>
       <div class="storage-item-main">
@@ -1532,8 +1550,8 @@ function renderStorageProducts() {
         <div class="muted">Lager: ${escapeHtml(item.location_name || '-')} · Menge: ${escapeHtml(formatBadgeValue(item.amount, '0'))} · MHD: ${escapeHtml(formatBadgeValue(item.best_before_date, '-'))}</div>
       </div>
       <div class="storage-item-actions">
-        <button class="danger-button storage-action-button" type="button" onclick="consumeStorageProduct(${Number(item.stock_id || 0)})"${disabledAttr}${disabledTitle}>Verbrauchen</button>
-        <button class="ghost-button storage-action-button" type="button" onclick="openStorageEditModal(${Number(item.stock_id || 0)})"${disabledAttr}${disabledTitle}>Ändern</button>
+        <button class="ghost-button storage-action-button storage-edit-button" type="button" onclick="openStorageEditModal(${Number(item.stock_id || 0)})"${disabledAttr}${disabledTitle}>✏️ Bearbeiten</button>
+        <button class="storage-action-button storage-consume-button" type="button" onclick="consumeStorageProduct(${Number(item.stock_id || 0)})"${disabledAttr}${disabledTitle}>✅ Verbrauchen</button>
       </div>
     </li>
   `;
