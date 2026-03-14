@@ -820,6 +820,10 @@ img {
   min-width: 0;
 }
 
+.shopping-item-stock-tag {
+  margin-top: 0.35rem;
+}
+
 .shopping-item-badges {
   margin-left: auto;
   display: grid;
