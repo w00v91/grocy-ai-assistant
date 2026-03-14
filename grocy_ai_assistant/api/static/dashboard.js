@@ -1291,6 +1291,8 @@ function openRecipeDetails(item) {
   const ingredients = document.getElementById('recipe-modal-ingredients');
   const missingProducts = document.getElementById('recipe-modal-missing-products');
   const addButton = document.getElementById('recipe-add-missing-button');
+  const imageWrapper = document.getElementById('recipe-modal-image-wrapper');
+  const image = document.getElementById('recipe-modal-image');
 
   activeRecipeItem = item;
   title.textContent = item.title || 'Rezeptdetails';
@@ -1311,6 +1313,19 @@ function openRecipeDetails(item) {
     missingProducts.innerHTML = missingItems.map((product) => `<li>${product.name}</li>`).join('');
   }
 
+  const recipeImageSource = toImageSource(item.picture_url || '');
+  if (recipeImageSource && imageWrapper && image) {
+    image.src = recipeImageSource;
+    image.alt = item.title ? `${item.title} Rezeptbild` : 'Rezeptbild';
+    imageWrapper.classList.remove('hidden');
+    imageWrapper.setAttribute('aria-hidden', 'false');
+  } else if (imageWrapper && image) {
+    image.src = '';
+    image.alt = '';
+    imageWrapper.classList.add('hidden');
+    imageWrapper.setAttribute('aria-hidden', 'true');
+  }
+
   addButton.disabled = !(item.source === 'grocy' && Number.isInteger(item.recipe_id));
   modal.classList.remove('hidden');
   syncModalScrollLock();
@@ -1318,7 +1333,15 @@ function openRecipeDetails(item) {
 
 function closeRecipeDetails() {
   const modal = document.getElementById('recipe-modal');
+  const imageWrapper = document.getElementById('recipe-modal-image-wrapper');
+  const image = document.getElementById('recipe-modal-image');
   modal.classList.add('hidden');
+  if (imageWrapper && image) {
+    image.src = '';
+    image.alt = '';
+    imageWrapper.classList.add('hidden');
+    imageWrapper.setAttribute('aria-hidden', 'true');
+  }
   activeRecipeItem = null;
   syncModalScrollLock();
 }
