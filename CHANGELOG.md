@@ -4,6 +4,8 @@ All notable changes to this project are documented in this file.
 
 ## 7.1.38
 
+- UI (Navigation): Untere Navigationsleiste (Tab-Bar) wieder verkleinert (geringere Gesamtbreite, engeres Innenpadding und kleinerer Abstand zwischen Tabs).
+- UI (Navigation): Tab-Buttons in der Navigationsleiste kompakter gestaltet (kleinere Schrift, reduzierte Mindesthöhe und weniger Innenabstand).
 - Fix (Dashboard Lager): Lade- und ID-Normalisierungslogik für Bestandsprodukte zwischen Rezepte-Tab (Produktauswahl) und Lager-Tab vereinheitlicht.
 - Fix (Dashboard Lager): Aktionen im Lager-Tab ("Bearbeiten", "Verbrauchen") nutzen jetzt automatisch `stock_id` und fallen bei fehlender Bestand-ID auf `product_id` zurück.
 - UX (Dashboard Lager): Statusmeldung zeigt jetzt transparent an, wie viele Einträge per Produkt-ID-Fallback laufen bzw. gar keine nutzbare ID haben.
