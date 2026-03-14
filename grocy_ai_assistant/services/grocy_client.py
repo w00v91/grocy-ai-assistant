@@ -743,6 +743,9 @@ class GrocyClient:
                 "name": product.get("name")
                 or entry.get("product_name")
                 or "Unbekanntes Produkt",
+                "picture_url": str(
+                    product.get("picture_url") or product.get("picture_file_name") or ""
+                ),
                 "location_id": normalized_location_id,
                 "location_name": location_name,
                 "amount": str(entry.get("amount") or ""),
