@@ -1216,8 +1216,12 @@ def test_attach_product_picture_uploads_file_and_updates_product(monkeypatch, tm
         calls.append(("PUT", url, headers, data, json))
         return FakeResponse()
 
-    monkeypatch.setattr("grocy_ai_assistant.services.grocy_client.requests.request", fake_request)
-    monkeypatch.setattr("grocy_ai_assistant.services.grocy_client.requests.put", fake_put)
+    monkeypatch.setattr(
+        "grocy_ai_assistant.services.grocy_client.requests.request", fake_request
+    )
+    monkeypatch.setattr(
+        "grocy_ai_assistant.services.grocy_client.requests.put", fake_put
+    )
 
     image_path = tmp_path / "my_product.png"
     image_path.write_bytes(b"img")
@@ -1244,7 +1248,9 @@ def test_attach_product_picture_uploads_file_and_updates_product(monkeypatch, tm
     assert calls[1][4] == {"picture_file_name": "my_product.png"}
 
 
-def test_attach_product_picture_retries_without_api_key_headers_on_405(monkeypatch, tmp_path):
+def test_attach_product_picture_retries_without_api_key_headers_on_405(
+    monkeypatch, tmp_path
+):
     calls = []
 
     class FakeResponse:
@@ -1262,7 +1268,11 @@ def test_attach_product_picture_retries_without_api_key_headers_on_405(monkeypat
 
     def fake_request(method, url, headers=None, data=None, json=None, timeout=None):
         calls.append((method, url, headers, data, json))
-        if headers and headers.get("GROCY-API-KEY") and "/files/productpictures/" in url:
+        if (
+            headers
+            and headers.get("GROCY-API-KEY")
+            and "/files/productpictures/" in url
+        ):
             return FakeResponse(status_code=405)
         return FakeResponse(status_code=200)
 
@@ -1270,8 +1280,12 @@ def test_attach_product_picture_retries_without_api_key_headers_on_405(monkeypat
         calls.append(("PUT", url, headers, data, json))
         return FakeResponse(status_code=200)
 
-    monkeypatch.setattr("grocy_ai_assistant.services.grocy_client.requests.request", fake_request)
-    monkeypatch.setattr("grocy_ai_assistant.services.grocy_client.requests.put", fake_put)
+    monkeypatch.setattr(
+        "grocy_ai_assistant.services.grocy_client.requests.request", fake_request
+    )
+    monkeypatch.setattr(
+        "grocy_ai_assistant.services.grocy_client.requests.put", fake_put
+    )
 
     image_path = tmp_path / "my_product.png"
     image_path.write_bytes(b"img")
@@ -1296,7 +1310,9 @@ def test_attach_product_picture_retries_without_api_key_headers_on_405(monkeypat
     assert calls[2][1] == "http://grocy.local/api/objects/products/10"
 
 
-def test_attach_product_picture_retries_without_api_prefix_on_405(monkeypatch, tmp_path):
+def test_attach_product_picture_retries_without_api_prefix_on_405(
+    monkeypatch, tmp_path
+):
     calls = []
 
     class FakeResponse:
@@ -1316,9 +1332,8 @@ def test_attach_product_picture_retries_without_api_prefix_on_405(monkeypatch, t
         calls.append((method, url, headers, data, json))
         if url.startswith("http://grocy.local/api/files/productpictures/"):
             return FakeResponse(status_code=405)
-        if (
-            url.startswith("http://grocy.local/files/productpictures/")
-            and headers.get("GROCY-API-KEY")
+        if url.startswith("http://grocy.local/files/productpictures/") and headers.get(
+            "GROCY-API-KEY"
         ):
             return FakeResponse(status_code=405)
         return FakeResponse(status_code=200)
@@ -1327,8 +1342,12 @@ def test_attach_product_picture_retries_without_api_prefix_on_405(monkeypatch, t
         calls.append(("PUT", url, headers, data, json))
         return FakeResponse(status_code=200)
 
-    monkeypatch.setattr("grocy_ai_assistant.services.grocy_client.requests.request", fake_request)
-    monkeypatch.setattr("grocy_ai_assistant.services.grocy_client.requests.put", fake_put)
+    monkeypatch.setattr(
+        "grocy_ai_assistant.services.grocy_client.requests.request", fake_request
+    )
+    monkeypatch.setattr(
+        "grocy_ai_assistant.services.grocy_client.requests.put", fake_put
+    )
 
     image_path = tmp_path / "my_product.png"
     image_path.write_bytes(b"img")
@@ -1347,7 +1366,10 @@ def test_attach_product_picture_retries_without_api_prefix_on_405(monkeypatch, t
 
     assert result == "my_product.png"
     upload_calls = [call for call in calls if "/files/productpictures/" in call[1]]
-    assert upload_calls[0][1] == "http://grocy.local/api/files/productpictures/my_product.png"
+    assert (
+        upload_calls[0][1]
+        == "http://grocy.local/api/files/productpictures/my_product.png"
+    )
     assert any(
         call[1] == "http://grocy.local/files/productpictures/my_product.png"
         and "GROCY-API-KEY" not in call[2]
@@ -1383,8 +1405,12 @@ def test_attach_product_picture_retries_with_post_on_put_405(monkeypatch, tmp_pa
         calls.append(("PUT", url, headers, data, json))
         return FakeResponse(status_code=200)
 
-    monkeypatch.setattr("grocy_ai_assistant.services.grocy_client.requests.request", fake_request)
-    monkeypatch.setattr("grocy_ai_assistant.services.grocy_client.requests.put", fake_put)
+    monkeypatch.setattr(
+        "grocy_ai_assistant.services.grocy_client.requests.request", fake_request
+    )
+    monkeypatch.setattr(
+        "grocy_ai_assistant.services.grocy_client.requests.put", fake_put
+    )
 
     image_path = tmp_path / "my_product.png"
     image_path.write_bytes(b"img")
@@ -1441,8 +1467,12 @@ def test_attach_product_picture_retries_with_base64_filename(monkeypatch, tmp_pa
         calls.append(("PUT", url, headers, data, json))
         return FakeResponse(status_code=200)
 
-    monkeypatch.setattr("grocy_ai_assistant.services.grocy_client.requests.request", fake_request)
-    monkeypatch.setattr("grocy_ai_assistant.services.grocy_client.requests.put", fake_put)
+    monkeypatch.setattr(
+        "grocy_ai_assistant.services.grocy_client.requests.request", fake_request
+    )
+    monkeypatch.setattr(
+        "grocy_ai_assistant.services.grocy_client.requests.put", fake_put
+    )
 
     client = GrocyClient(
         Settings(
@@ -1458,5 +1488,153 @@ def test_attach_product_picture_retries_with_base64_filename(monkeypatch, tmp_pa
 
     assert result == "my_product.png"
     upload_urls = [call[1] for call in calls if "/files/productpictures/" in call[1]]
-    assert f"http://grocy.local/api/files/productpictures/{encoded_file_name}" in upload_urls
+    assert (
+        f"http://grocy.local/api/files/productpictures/{encoded_file_name}"
+        in upload_urls
+    )
     assert calls[-1][1] == "http://grocy.local/api/objects/products/10"
+
+
+def test_create_product_retries_with_sanitized_payload_on_400(monkeypatch):
+    class BadRequestResponse:
+        status_code = 400
+        text = "invalid fields"
+
+        def raise_for_status(self):
+            raise HTTPError("Bad Request")
+
+        def json(self):
+            return {}
+
+    class CreatedResponse:
+        status_code = 200
+        text = ""
+
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return {"created_object_id": 42}
+
+    posted_payloads = []
+
+    def fake_post(url, *args, **kwargs):
+        posted_payloads.append(kwargs.get("json"))
+        if len(posted_payloads) == 1:
+            return BadRequestResponse()
+        return CreatedResponse()
+
+    def fake_get(url, *args, **kwargs):
+        if url.endswith("/objects/locations"):
+            return FakeResponse([{"id": 3, "name": "Speisekammer"}])
+        if url.endswith("/objects/quantity_units"):
+            return FakeResponse([{"id": 2, "name": "Packung"}])
+        raise AssertionError(f"Unexpected url: {url}")
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.services.grocy_client.requests.post", fake_post
+    )
+    monkeypatch.setattr(
+        "grocy_ai_assistant.services.grocy_client.requests.get", fake_get
+    )
+
+    client = GrocyClient(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+        )
+    )
+
+    created_id = client.create_product(
+        {
+            "name": "Oliven",
+            "description": "text",
+            "location_id": 999,
+            "qu_id_purchase": 999,
+            "qu_id_stock": 999,
+            "calories": 160,
+            "carbohydrates": 7,
+        }
+    )
+
+    assert created_id == 42
+    assert len(posted_payloads) == 2
+    assert posted_payloads[1] == {
+        "name": "Oliven",
+        "description": "text",
+        "location_id": 3,
+        "qu_id_purchase": 2,
+        "qu_id_stock": 2,
+        "qu_factor_purchase_to_stock": 1,
+    }
+
+
+def test_create_product_keeps_valid_ids_in_retry_payload(monkeypatch):
+    posted_payloads = []
+
+    class BadRequestResponse:
+        status_code = 400
+        text = "invalid fields"
+
+        def raise_for_status(self):
+            raise HTTPError("Bad Request")
+
+        def json(self):
+            return {}
+
+    class CreatedResponse:
+        status_code = 200
+        text = ""
+
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return {"created_object_id": 9}
+
+    def fake_post(url, *args, **kwargs):
+        posted_payloads.append(kwargs.get("json"))
+        return BadRequestResponse() if len(posted_payloads) == 1 else CreatedResponse()
+
+    def fake_get(url, *args, **kwargs):
+        if url.endswith("/objects/locations"):
+            return FakeResponse([{"id": 1, "name": "Kuehlschrank"}])
+        if url.endswith("/objects/quantity_units"):
+            return FakeResponse(
+                [{"id": 1, "name": "Stueck"}, {"id": 2, "name": "Packung"}]
+            )
+        raise AssertionError(f"Unexpected url: {url}")
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.services.grocy_client.requests.post", fake_post
+    )
+    monkeypatch.setattr(
+        "grocy_ai_assistant.services.grocy_client.requests.get", fake_get
+    )
+
+    client = GrocyClient(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+        )
+    )
+
+    client.create_product(
+        {
+            "name": "Oliven",
+            "description": "text",
+            "location_id": 1,
+            "qu_id_purchase": 2,
+            "qu_id_stock": 1,
+            "fat": 14,
+        }
+    )
+
+    assert posted_payloads[1]["location_id"] == 1
+    assert posted_payloads[1]["qu_id_purchase"] == 2
+    assert posted_payloads[1]["qu_id_stock"] == 1
+    assert "fat" not in posted_payloads[1]
