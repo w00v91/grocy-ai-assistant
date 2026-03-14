@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.24
+
+- UI: Swipe-Aktionsfläche in der Einkaufsliste auf `138px` verbreitert (`.shopping-item-action`).
+- UI: Scanner-Button-Icon auf ein Barcode-Symbol umgestellt (statt Kamera-Emoji), inklusive neuer CSS-Icon-Gestaltung.
+- Pflege: Add-on-Version auf `7.1.24` erhöht.
+
 ## 7.1.23
 
 - Fix: Klick auf den Badge „Menge" in der Einkaufsliste öffnet nicht mehr das Produkt-Popup, sondern erhöht zuverlässig die Menge des Eintrags.
