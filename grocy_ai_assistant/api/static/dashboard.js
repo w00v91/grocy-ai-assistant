@@ -1681,8 +1681,8 @@ function renderStorageProducts() {
       <div class="storage-item-content">
         <img src="${toImageSource(item.picture_url)}" alt="${escapeHtml(item.name || 'Unbekanntes Produkt')}" loading="lazy" />
         <div class="storage-item-main">
-          <strong>${escapeHtml(item.name || 'Unbekanntes Produkt')}</strong>
-          <div class="muted">Lager: ${escapeHtml(item.location_name || '-')} · Menge: ${escapeHtml(formatBadgeValue(item.amount, '0'))} · MHD: ${escapeHtml(formatBadgeValue(item.best_before_date, '-'))}</div>
+          <strong class="storage-item-name">${escapeHtml(item.name || 'Unbekanntes Produkt')}</strong>
+          <div class="muted storage-item-description">Lager: ${escapeHtml(item.location_name || '-')} · Menge: ${escapeHtml(formatBadgeValue(item.amount, '0'))} · MHD: ${escapeHtml(formatBadgeValue(item.best_before_date, '-'))}</div>
         </div>
         <div class="storage-item-actions">
           <button class="ghost-button storage-action-button storage-edit-button" type="button" onclick="openStorageEditModal(${actionableId})"${disabledAttr}${disabledTitle}>✏️ Bearbeiten</button>
