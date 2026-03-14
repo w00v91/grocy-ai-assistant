@@ -573,9 +573,11 @@ def dashboard_add_existing_product(
 
     try:
         grocy_client = GrocyClient(settings)
+        _, parsed_amount = _extract_amount_prefixed_product_input(payload.product_name)
+        amount = parsed_amount if parsed_amount is not None else payload.amount
         grocy_client.add_product_to_shopping_list(
             payload.product_id,
-            amount=payload.amount,
+            amount=amount,
             best_before_date=payload.best_before_date,
         )
         return DashboardSearchResponse(
