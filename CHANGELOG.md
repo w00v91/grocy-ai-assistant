@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.26
+
+- UI (Rezepte): Unten auf der Rezeptseite neuen Button „Rezept hinzufügen" ergänzt.
+- UI (Rezepte): Neues Modal für Rezept-Erfassung mit Auswahl der Modi „WebScrape", „KI" und „Manuell" ergänzt.
+- UI (Rezepte): Für „WebScrape" URL-Eingabe, für „KI" Prompt-Eingabe und für „Manuell" schnelles Rezeptformular mit den wichtigsten Feldern ergänzt.
+- UX (Rezepte): Methoden-Auswahl im Modal als umschaltbare Panels umgesetzt, damit keine doppelten Codepfade nötig sind.
+- Pflege: Add-on-Version auf `7.1.26` erhöht.
+
 ## 7.1.25
 
 - UI: Scanner-Button in der Suche ohne Hintergrund gestaltet und vertikal an die Überschrift ausgerichtet.

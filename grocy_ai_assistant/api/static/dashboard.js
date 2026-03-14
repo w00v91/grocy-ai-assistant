@@ -96,6 +96,9 @@ const recipeState = {
   selectedProductIds: [],
   stockSignature: null,
 };
+const recipeCreateState = {
+  method: null,
+};
 
 function buildStockSignature(items) {
   return JSON.stringify(
@@ -1300,6 +1303,11 @@ if (addMissingButton) addMissingButton.addEventListener('click', addMissingRecip
 
 document.addEventListener('keydown', (event) => {
   if (event.key !== 'Escape') return;
+  const recipeCreateModal = document.getElementById('recipe-create-modal');
+  if (recipeCreateModal && !recipeCreateModal.classList.contains('hidden')) {
+    closeRecipeCreateModal();
+    return;
+  }
   if (isScannerModalVisible()) {
     closeScannerModal();
   }
@@ -1736,6 +1744,86 @@ function closeRecipeDetails() {
   }
   activeRecipeItem = null;
   syncModalScrollLock();
+}
+
+function openRecipeCreateModal() {
+  const modal = document.getElementById('recipe-create-modal');
+  if (!modal) return;
+  modal.classList.remove('hidden');
+  setRecipeCreateMethod(recipeCreateState.method || 'webscrape');
+  syncModalScrollLock();
+}
+
+function closeRecipeCreateModal() {
+  const modal = document.getElementById('recipe-create-modal');
+  if (!modal) return;
+  modal.classList.add('hidden');
+  syncModalScrollLock();
+}
+
+function setRecipeCreateMethod(method) {
+  const methods = ['webscrape', 'ai', 'manual'];
+  const nextMethod = methods.includes(method) ? method : 'webscrape';
+  recipeCreateState.method = nextMethod;
+
+  methods.forEach((item) => {
+    const methodButton = document.getElementById(`recipe-create-method-${item}`);
+    const methodPanel = document.getElementById(`recipe-create-panel-${item}`);
+    if (methodButton) methodButton.classList.toggle('active', item === nextMethod);
+    if (methodPanel) methodPanel.classList.toggle('hidden', item !== nextMethod);
+  });
+}
+
+function setRecipeCreateStatus(message) {
+  const status = getRecipeStatusElement();
+  if (status) status.textContent = message;
+}
+
+function submitRecipeCreateWebscrape() {
+  const urlInput = document.getElementById('recipe-webscrape-url');
+  const rawUrl = String(urlInput?.value || '').trim();
+  if (!rawUrl) {
+    setRecipeCreateStatus('Bitte zuerst eine URL für WebScrape eingeben.');
+    return;
+  }
+
+  try {
+    const parsedUrl = new URL(rawUrl);
+    setRecipeCreateStatus(`WebScrape-URL erfasst: ${parsedUrl.toString()}`);
+    closeRecipeCreateModal();
+  } catch (_) {
+    setRecipeCreateStatus('Bitte eine gültige URL angeben (inkl. http/https).');
+  }
+}
+
+function submitRecipeCreateAiPrompt() {
+  const promptInput = document.getElementById('recipe-ai-prompt');
+  const prompt = String(promptInput?.value || '').trim();
+  if (!prompt) {
+    setRecipeCreateStatus('Bitte eine KI-Anfrage für das Rezept eingeben.');
+    return;
+  }
+
+  setRecipeCreateStatus('KI-Rezeptanfrage erfasst. Nächster Schritt: Attribut-Extraktion anbinden.');
+  closeRecipeCreateModal();
+}
+
+function submitRecipeCreateManual() {
+  const title = String(document.getElementById('recipe-manual-title')?.value || '').trim();
+  const ingredientsRaw = String(document.getElementById('recipe-manual-ingredients')?.value || '').trim();
+  if (!title) {
+    setRecipeCreateStatus('Bitte einen Rezeptnamen eingeben.');
+    return;
+  }
+  if (!ingredientsRaw) {
+    setRecipeCreateStatus('Bitte mindestens eine Zutat für das manuelle Rezept eingeben.');
+    return;
+  }
+
+  const servings = Number(document.getElementById('recipe-manual-servings')?.value || '1');
+  const ingredientCount = ingredientsRaw.split('\n').map((entry) => entry.trim()).filter(Boolean).length;
+  setRecipeCreateStatus(`Manuelles Rezept erfasst: ${title} (${Math.max(1, servings)} Portionen, ${ingredientCount} Zutaten).`);
+  closeRecipeCreateModal();
 }
 
 function bindRecipeItemInteractions() {
