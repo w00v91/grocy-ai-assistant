@@ -14,6 +14,11 @@ All notable changes to this project are documented in this file.
 
 ## 7.1.47
 
+## 7.1.48
+
+- UI (Einkaufsliste): Im Produkt-Popup wurde der Button `Speichern` in eine eigene Zeile unterhalb des Notizfeldes verschoben.
+- Pflege: Add-on-Version auf `7.1.48` erhöht.
+
 - UI (Einkaufsliste): Im Produkt-Popup steht der Button `Speichern` für die Mengenbearbeitung jetzt in einer eigenen Zeile unter dem Mengenfeld.
 - UI (Notify-Tab): Layout der Regeln vollständig auf ein 3-Spalten-Raster umgestellt (`Name | Priorität/Ereignisse/Kanäle/Cooldown | Buttons`) für bessere Struktur und passendere Einbindung ins bestehende Dashboard.
 - UI (Notify-Tab): Metadaten werden nun untereinander mit klaren Labels dargestellt (Priorität, Ereignisse, Kanäle, Cooldown).
