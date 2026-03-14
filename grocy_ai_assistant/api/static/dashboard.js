@@ -16,6 +16,7 @@ let modalScrollLockY = 0;
 let notificationEditingRuleId = null;
 let storageProductsCache = [];
 let storageEditingItem = null;
+let storageEditingTargetId = null;
 
 function normalizeStockProduct(item) {
   const productId = Number(item?.id ?? item?.product_id ?? 0);
@@ -1653,9 +1654,14 @@ async function consumeStorageProduct(stockId) {
 }
 
 function openStorageEditModal(stockId) {
-  const stockItem = storageProductsCache.find((item) => Number(item.stock_id) === Number(stockId));
+  const normalizedStockId = Number(stockId);
+  const stockItem = storageProductsCache.find((item) => {
+    if (Number(item?.stock_id) === normalizedStockId) return true;
+    return Number(item?.id) === normalizedStockId;
+  });
   if (!stockItem) return;
   storageEditingItem = stockItem;
+  storageEditingTargetId = normalizedStockId;
   document.getElementById('storage-edit-modal-title').textContent = `Bestand ändern: ${stockItem.name}`;
   document.getElementById('storage-edit-amount').value = String(stockItem.amount || '0').replace(',', '.');
   document.getElementById('storage-edit-best-before').value = stockItem.best_before_date || '';
@@ -1665,12 +1671,13 @@ function openStorageEditModal(stockId) {
 
 function closeStorageEditModal() {
   storageEditingItem = null;
+  storageEditingTargetId = null;
   document.getElementById('storage-edit-modal').classList.add('hidden');
   syncModalScrollLock();
 }
 
 async function saveStorageEditModal() {
-  if (!storageEditingItem) return;
+  if (!storageEditingItem || !Number.isFinite(storageEditingTargetId) || storageEditingTargetId <= 0) return;
   const status = getStorageStatusElement();
   const amount = Number(document.getElementById('storage-edit-amount').value);
   const bestBeforeDate = document.getElementById('storage-edit-best-before').value || '';
@@ -1681,7 +1688,7 @@ async function saveStorageEditModal() {
   }
 
   try {
-    const res = await fetch(buildApiUrl(`/api/dashboard/stock-products/${encodeURIComponent(storageEditingItem.stock_id)}`), {
+    const res = await fetch(buildApiUrl(`/api/dashboard/stock-products/${encodeURIComponent(storageEditingTargetId)}`), {
       method: 'PUT',
       headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
       body: JSON.stringify({ amount, best_before_date: bestBeforeDate }),
