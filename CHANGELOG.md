@@ -6,6 +6,7 @@ All notable changes to this project are documented in this file.
 
 - UI (Notify-Tab): Regel-Objekte visuell näher an die Produktkarten der Einkaufsliste gebracht (größerer Kartenradius, spacing und badge-ähnliche Meta-Anordnung).
 - UI (Notify-Tab): Aktions-Buttons pro Regel auf pillenförmigen Badge-Look umgestellt und farblich differenziert (Bearbeiten/Rot für Löschen), wie gewünscht weiterhin mit Farbe.
+- UI (Einkaufsliste): MHD-Badge zeigt bei vorhandenem Datum jetzt nur noch das Datum ohne Präfix `MHD:`; ohne Datum bleibt der CTA `MHD wählen` unverändert.
 - Pflege: Add-on-Version auf `7.1.44` erhöht.
 
 ## 7.1.43
