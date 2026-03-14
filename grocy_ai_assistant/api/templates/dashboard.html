@@ -187,6 +187,9 @@
       <div class='shopping-modal-backdrop' onclick='closeRecipeDetails()'></div>
       <section class='shopping-modal-content card'>
         <button class='shopping-modal-close' type='button' onclick='closeRecipeDetails()' aria-label='Rezept schließen'>×</button>
+        <div id='recipe-modal-image-wrapper' class='recipe-modal-image-wrapper hidden' aria-hidden='true'>
+          <img id='recipe-modal-image' class='recipe-modal-image' src='' alt='' loading='lazy' />
+        </div>
         <h3 id='recipe-modal-title'>Rezeptdetails</h3>
         <div id='recipe-modal-reason' class='muted'></div>
         <h4>Zutaten (mit Mengen)</h4>

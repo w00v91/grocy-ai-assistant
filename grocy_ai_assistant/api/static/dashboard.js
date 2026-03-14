@@ -55,6 +55,47 @@ function getSelectedValues(selectElement) {
     .filter(Boolean);
 }
 
+
+const NOTIFICATION_EVENT_LABELS = {
+  item_added: 'Produkt hinzugefügt',
+  item_removed: 'Produkt entfernt',
+  item_checked: 'Produkt abgehakt',
+  item_unchecked: 'Produkt nicht mehr abgehakt',
+  shopping_due: 'Einkauf fällig',
+  low_stock_detected: 'Niedriger Bestand erkannt',
+  recipe_missing_items: 'Rezept hat fehlende Zutaten',
+};
+
+function getEventLabel(eventType) {
+  return NOTIFICATION_EVENT_LABELS[eventType] || eventType;
+}
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
+function renderSelectOptions(selectElement, options, selectedValues = []) {
+  if (!selectElement) return;
+  const selected = new Set((selectedValues || []).map((value) => String(value)));
+  selectElement.innerHTML = options.map((option) => {
+    const value = String(option.value);
+    const isSelected = selected.has(value) ? ' selected' : '';
+    return `<option value="${escapeHtml(value)}"${isSelected}>${escapeHtml(option.label)}</option>`;
+  }).join('');
+}
+
+function getSelectedValues(selectElement) {
+  if (!selectElement) return [];
+  return Array.from(selectElement.selectedOptions || [])
+    .map((option) => option.value.trim())
+    .filter(Boolean);
+}
+
 function lockBodyScroll() {
   if (document.body.classList.contains('modal-open')) return;
   modalScrollLockY = window.scrollY || window.pageYOffset || 0;
@@ -372,8 +413,16 @@ function getSelectedNotificationUserId() {
   return document.documentElement.dataset.haUserId || 'default-user';
 }
 
-function buildNotificationRulePayload() {
-  return {
+async function createNotificationRule() {
+  const status = getNotificationStatusElement();
+  const name = document.getElementById('notify-rule-name').value.trim();
+  if (!name) {
+    status.textContent = 'Bitte Regelname eingeben.';
+    return;
+  }
+  const eventTypes = getSelectedValues(document.getElementById('notify-rule-events'));
+  const targetDevices = getSelectedValues(document.getElementById('notify-rule-devices'));
+  const payload = {
     name: document.getElementById('notify-rule-name').value.trim(),
     enabled: true,
     event_types: getSelectedValues(document.getElementById('notify-rule-events')),
@@ -1414,6 +1463,8 @@ function openRecipeDetails(item) {
   const ingredients = document.getElementById('recipe-modal-ingredients');
   const missingProducts = document.getElementById('recipe-modal-missing-products');
   const addButton = document.getElementById('recipe-add-missing-button');
+  const imageWrapper = document.getElementById('recipe-modal-image-wrapper');
+  const image = document.getElementById('recipe-modal-image');
 
   activeRecipeItem = item;
   title.textContent = item.title || 'Rezeptdetails';
@@ -1434,6 +1485,19 @@ function openRecipeDetails(item) {
     missingProducts.innerHTML = missingItems.map((product) => `<li>${product.name}</li>`).join('');
   }
 
+  const recipeImageSource = toImageSource(item.picture_url || '');
+  if (recipeImageSource && imageWrapper && image) {
+    image.src = recipeImageSource;
+    image.alt = item.title ? `${item.title} Rezeptbild` : 'Rezeptbild';
+    imageWrapper.classList.remove('hidden');
+    imageWrapper.setAttribute('aria-hidden', 'false');
+  } else if (imageWrapper && image) {
+    image.src = '';
+    image.alt = '';
+    imageWrapper.classList.add('hidden');
+    imageWrapper.setAttribute('aria-hidden', 'true');
+  }
+
   addButton.disabled = !(item.source === 'grocy' && Number.isInteger(item.recipe_id));
   modal.classList.remove('hidden');
   syncModalScrollLock();
@@ -1441,7 +1505,15 @@ function openRecipeDetails(item) {
 
 function closeRecipeDetails() {
   const modal = document.getElementById('recipe-modal');
+  const imageWrapper = document.getElementById('recipe-modal-image-wrapper');
+  const image = document.getElementById('recipe-modal-image');
   modal.classList.add('hidden');
+  if (imageWrapper && image) {
+    image.src = '';
+    image.alt = '';
+    imageWrapper.classList.add('hidden');
+    imageWrapper.setAttribute('aria-hidden', 'true');
+  }
   activeRecipeItem = null;
   syncModalScrollLock();
 }
