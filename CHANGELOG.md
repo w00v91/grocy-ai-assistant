@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.31
+
+- Fix (Grocy-Bildupload): Upload versucht je URL zuerst mit `GROCY-API-KEY` und bei `404/405` zusätzlich einen zweiten PUT im curl-kompatiblen Header-Modus ohne API-Key (`Accept: */*`, `Content-Type: application/octet-stream`).
+- Fix (Grocy-Bildupload): URL-Fallback von `/api/files/...` auf `/files/...` bleibt erhalten und nutzt ebenfalls beide Header-Modi.
+- Logging: Fallback-Warnungen enthalten jetzt den verwendeten Header-Modus (`api_key` vs. `curl_compatible`).
+- Test: Unit-Tests für Header-Modus-Fallback und URL-Fallback-Reihenfolge ergänzt/angepasst.
+- Pflege: Add-on-Version auf `7.1.31` erhöht.
+
 ## 7.1.30
 
 - Fix (Grocy-Bildupload): Upload-Request an Grocy-Datei-Endpunkte enthält jetzt zusätzlich `Accept: */*` (entsprechend funktionierendem `curl`-Aufruf).

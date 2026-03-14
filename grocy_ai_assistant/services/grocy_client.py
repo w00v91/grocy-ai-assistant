@@ -291,8 +291,12 @@ class GrocyClient:
         file_name = Path(image_path).name
         image_bytes = Path(image_path).read_bytes()
 
-        upload_headers = {
+        upload_headers_with_key = {
             "GROCY-API-KEY": self.settings.grocy_api_key,
+            "Content-Type": "application/octet-stream",
+            "Accept": "*/*",
+        }
+        upload_headers_curl_compatible = {
             "Content-Type": "application/octet-stream",
             "Accept": "*/*",
         }
@@ -305,15 +309,16 @@ class GrocyClient:
         if stripped_base_url.endswith("/api"):
             upload_urls.append(f"{stripped_base_url[:-4]}/files/productpictures/{file_name}")
 
-        upload_attempts: list[tuple[str, str]] = []
+        upload_attempts: list[tuple[str, dict[str, str], str]] = []
         for upload_url in upload_urls:
-            upload_attempts.append(("PUT", upload_url))
-            upload_attempts.append(("POST", upload_url))
+            upload_attempts.append((upload_url, upload_headers_with_key, "api_key"))
+            upload_attempts.append(
+                (upload_url, upload_headers_curl_compatible, "curl_compatible")
+            )
 
-        for index, (upload_method, upload_url) in enumerate(upload_attempts):
+        for index, (upload_url, upload_headers, header_mode) in enumerate(upload_attempts):
             try:
-                request_fn = requests.put if upload_method == "PUT" else requests.post
-                upload_response = request_fn(
+                upload_response = requests.put(
                     upload_url,
                     headers=upload_headers,
                     data=image_bytes,
@@ -334,10 +339,10 @@ class GrocyClient:
                 if not should_retry:
                     raise
                 logger.warning(
-                    "Produktbild-Upload über %s %s fehlgeschlagen (%s), versuche Fallback",
-                    upload_method,
+                    "Produktbild-Upload über PUT %s fehlgeschlagen (%s, header_mode=%s), versuche Fallback",
                     upload_url,
                     status_code,
+                    header_mode,
                 )
 
         update_response = requests.put(
