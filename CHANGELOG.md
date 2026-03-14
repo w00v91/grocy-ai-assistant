@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.28
+
+- Neu (Startup-Batch): Option `generate_missing_product_images_on_startup` ergänzt, um einmalig nach dem Start Produktbilder für bestehende Produkte ohne Bild zu erzeugen und in Grocy zu hinterlegen.
+- Service: `GrocyClient` um `get_products_without_picture()` erweitert, damit Produkte ohne `picture_file_name` gezielt verarbeitet werden können.
+- Test: API-/Konfigurations-Tests für den neuen Startup-Batch und die neue Add-on-Option ergänzt.
+- Pflege: Add-on-Version auf `7.1.28` erhöht.
+
 ## 7.1.27
 
 - Fix (Bildgenerierung): OpenAI-Image-Erstellung nutzt jetzt ein robustes Modell-Fallback (`openai_image_model` -> `dall-e-3` -> `dall-e-2`), wenn der primäre Modellzugriff mit `403 Forbidden` abgelehnt wird.
