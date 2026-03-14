@@ -7,6 +7,10 @@ All notable changes to this project are documented in this file.
 - UI (Rezepte): Button „Rezept hinzufügen“ im Rezepte-Tab auf volle Breite gesetzt.
 - UI (Rezepte): Grocy- und KI-Rezeptvorschläge auf ein einheitliches Kartenformat vereinheitlicht.
 - UX (Rezepte): Beschreibungstexte in Rezeptvorschlägen vereinheitlicht und auf maximal zwei Zeilen begrenzt, inklusive Fallback-Text bei fehlender Beschreibung.
+- Fix (Produktsuche): Beim Hinzufügen eines bestehenden Produkts über die Produktauswahl wird ein Mengenpräfix im Suchtext (z. B. `2 Apfel`) jetzt ausgewertet und als Einkaufsmenge übernommen.
+- Verhalten: Gilt jetzt konsistent für bestehende und neu angelegte Produkte in der Produktsuche.
+- Test: API-Test ergänzt, der den Mengenpräfix für `/api/dashboard/add-existing-product` absichert.
+- UI (Suche/Einkaufsliste): Produkt-Badges im Such-/Einkaufstab sind jetzt auf maximal ein Drittel der Breite des Produktelements begrenzt, damit die Produktinfos mehr Platz behalten.
 - Pflege: Add-on-Version auf `7.1.35` erhöht.
 
 ## 7.1.34
