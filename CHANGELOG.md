@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.35
+
+- UI (Notify-Tab): Darstellung der Regeleinträge auf ein einheitliches Karten-/Badge-Format umgestellt, angelehnt an Einkaufslisten-Produkte und Lager-Einträge.
+- UI (Notify-Tab): Regeleinträge zeigen jetzt konsistent Ereignisse, Kanäle, Priorität und Cooldown.
+- UX (Notify-Tab): Notification-Kanäle werden in natürlicher Sprache dargestellt (z. B. „Mobile Push-Benachrichtigung“, „Persistente Benachrichtigung“).
+- UI/Texte: Bezeichnungen im Notify-Bereich sprachlich vereinheitlicht (u. a. Tab-Label, Regelverwaltung, Feldbeschriftungen).
+- Pflege: Add-on-Version auf `7.1.35` erhöht.
+
 ## 7.1.34
 
 - KI (lokale Produktanalyse): Prompt für `analyze_product_name` erweitert, damit neben Kalorien/Kohlenhydraten auch weitere bekannte Nährwerte (`fat`, `protein`, `sugar`) zurückgegeben werden.
