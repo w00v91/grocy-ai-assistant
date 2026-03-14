@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.45
+
+- UI (Einkaufsliste): Im Produkt-Popup kann die Einkaufsmenge jetzt direkt bearbeitet und gespeichert werden.
+- API: Neuer Endpoint `PUT /api/dashboard/shopping-list/item/{shopping_list_id}/amount` zum Setzen einer konkreten Menge.
+- Test: API-Test ergänzt, der das Aktualisieren einer konkreten Einkaufslistenmenge absichert.
+- Pflege: Add-on-Version auf `7.1.45` erhöht.
+
 ## 7.1.44
 
 - UI (Lager/Popup „Bestand ändern“): Popup um relevante Produktinfos erweitert (Produktname, Produkt-ID, Bestands-ID, Lagerort) und Produktbild direkt im Dialog ergänzt.
