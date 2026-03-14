@@ -14,6 +14,8 @@ const AI_RECIPE_DISPLAY_LIMIT = 3;
 
 let modalScrollLockY = 0;
 let notificationEditingRuleId = null;
+let storageProductsCache = [];
+let storageEditingItem = null;
 
 const NOTIFICATION_EVENT_LABELS = {
   item_added: 'Produkt hinzugefügt',
@@ -136,25 +138,29 @@ async function withBusyState(callback) {
 
 
 function switchTab(tabName) {
-  const allowedTabs = ['shopping', 'recipes', 'scanner', 'notifications'];
+  const allowedTabs = ['shopping', 'recipes', 'scanner', 'storage', 'notifications'];
   activeTab = allowedTabs.includes(tabName) ? tabName : 'shopping';
 
   const shoppingTab = document.getElementById('tab-shopping');
   const recipesTab = document.getElementById('tab-recipes');
   const scannerTab = document.getElementById('tab-scanner');
+  const storageTab = document.getElementById('tab-storage');
   const notificationsTab = document.getElementById('tab-notifications');
   const shoppingButton = document.getElementById('tab-button-shopping');
   const recipesButton = document.getElementById('tab-button-recipes');
   const scannerButton = document.getElementById('tab-button-scanner');
+  const storageButton = document.getElementById('tab-button-storage');
   const notificationsButton = document.getElementById('tab-button-notifications');
 
   shoppingTab.classList.toggle('hidden', activeTab !== 'shopping');
   recipesTab.classList.toggle('hidden', activeTab !== 'recipes');
   scannerTab.classList.toggle('hidden', activeTab !== 'scanner');
+  storageTab.classList.toggle('hidden', activeTab !== 'storage');
   notificationsTab.classList.toggle('hidden', activeTab !== 'notifications');
   shoppingButton.classList.toggle('active', activeTab === 'shopping');
   recipesButton.classList.toggle('active', activeTab === 'recipes');
   scannerButton.classList.toggle('active', activeTab === 'scanner');
+  storageButton.classList.toggle('active', activeTab === 'storage');
   notificationsButton.classList.toggle('active', activeTab === 'notifications');
 
   if (activeTab === 'recipes' && !recipeState.initialized) {
@@ -162,6 +168,9 @@ function switchTab(tabName) {
   }
   if (activeTab !== 'scanner') {
     stopBarcodeScanner();
+  }
+  if (activeTab === 'storage') {
+    loadStorageProducts();
   }
   if (activeTab === 'notifications') {
     loadNotificationOverview();
@@ -1442,6 +1451,133 @@ async function loadStockProducts() {
   }
 
   });
+}
+
+
+function getStorageStatusElement() {
+  return document.getElementById('status-storage');
+}
+
+function normalizeStorageFilterValue() {
+  const input = document.getElementById('storage-filter-input');
+  return String(input?.value || '').trim().toLowerCase();
+}
+
+function renderStorageProducts() {
+  const list = document.getElementById('storage-products');
+  if (!list) return;
+
+  const filterValue = normalizeStorageFilterValue();
+  const filteredItems = storageProductsCache.filter((item) => {
+    if (!filterValue) return true;
+    const searchable = `${item.name || ''} ${item.location_name || ''}`.toLowerCase();
+    return searchable.includes(filterValue);
+  });
+
+  if (!filteredItems.length) {
+    list.innerHTML = '<li class="muted">Keine Produkte gefunden.</li>';
+    return;
+  }
+
+  list.innerHTML = filteredItems.map((item) => `
+    <li>
+      <div class="storage-item-main">
+        <strong>${escapeHtml(item.name || 'Unbekanntes Produkt')}</strong>
+        <div class="muted">Lager: ${escapeHtml(item.location_name || '-')} · Menge: ${escapeHtml(formatBadgeValue(item.amount, '0'))} · MHD: ${escapeHtml(formatBadgeValue(item.best_before_date, '-'))}</div>
+      </div>
+      <div class="storage-item-actions">
+        <button class="danger-button storage-action-button" type="button" onclick="consumeStorageProduct(${Number(item.stock_id || 0)})">Verbrauchen</button>
+        <button class="ghost-button storage-action-button" type="button" onclick="openStorageEditModal(${Number(item.stock_id || 0)})">Ändern</button>
+      </div>
+    </li>
+  `).join('');
+}
+
+async function loadStorageProducts() {
+  return withBusyState(async () => {
+    const key = ensureApiKey();
+    const status = getStorageStatusElement();
+    if (!key) {
+      status.textContent = 'Kein API-Key angegeben.';
+      return;
+    }
+
+    status.textContent = 'Lade Lagerbestand...';
+    try {
+      const res = await fetch(buildApiUrl('/api/dashboard/stock-products'), { headers: { Authorization: `Bearer ${key}` } });
+      const payload = await parseJsonSafe(res);
+      if (!res.ok) throw new Error(getErrorMessage(payload, 'Bestand konnte nicht geladen werden.'));
+      storageProductsCache = Array.isArray(payload) ? payload.filter((item) => Number(item.stock_id || 0) > 0) : [];
+      renderStorageProducts();
+      status.textContent = 'Lagerbestand geladen.';
+    } catch (error) {
+      status.textContent = `Fehler: ${error.message}`;
+    }
+  });
+}
+
+async function consumeStorageProduct(stockId) {
+  const status = getStorageStatusElement();
+  const key = ensureApiKey();
+  if (!key) return;
+
+  try {
+    const res = await fetch(buildApiUrl(`/api/dashboard/stock-products/${encodeURIComponent(stockId)}/consume`), {
+      method: 'POST',
+      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ amount: 1 }),
+    });
+    const payload = await parseJsonSafe(res);
+    if (!res.ok) throw new Error(getErrorMessage(payload, 'Produkt konnte nicht verbraucht werden.'));
+    status.textContent = 'Produkt wurde verbraucht.';
+    await loadStorageProducts();
+  } catch (error) {
+    status.textContent = `Fehler: ${error.message}`;
+  }
+}
+
+function openStorageEditModal(stockId) {
+  const stockItem = storageProductsCache.find((item) => Number(item.stock_id) === Number(stockId));
+  if (!stockItem) return;
+  storageEditingItem = stockItem;
+  document.getElementById('storage-edit-modal-title').textContent = `Bestand ändern: ${stockItem.name}`;
+  document.getElementById('storage-edit-amount').value = String(stockItem.amount || '0').replace(',', '.');
+  document.getElementById('storage-edit-best-before').value = stockItem.best_before_date || '';
+  document.getElementById('storage-edit-modal').classList.remove('hidden');
+  syncModalScrollLock();
+}
+
+function closeStorageEditModal() {
+  storageEditingItem = null;
+  document.getElementById('storage-edit-modal').classList.add('hidden');
+  syncModalScrollLock();
+}
+
+async function saveStorageEditModal() {
+  if (!storageEditingItem) return;
+  const status = getStorageStatusElement();
+  const amount = Number(document.getElementById('storage-edit-amount').value);
+  const bestBeforeDate = document.getElementById('storage-edit-best-before').value || '';
+
+  if (!Number.isFinite(amount) || amount < 0) {
+    status.textContent = 'Bitte eine gültige Menge eingeben.';
+    return;
+  }
+
+  try {
+    const res = await fetch(buildApiUrl(`/api/dashboard/stock-products/${encodeURIComponent(storageEditingItem.stock_id)}`), {
+      method: 'PUT',
+      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ amount, best_before_date: bestBeforeDate }),
+    });
+    const payload = await parseJsonSafe(res);
+    if (!res.ok) throw new Error(getErrorMessage(payload, 'Bestand konnte nicht aktualisiert werden.'));
+    closeStorageEditModal();
+    status.textContent = 'Bestand wurde aktualisiert.';
+    await loadStorageProducts();
+  } catch (error) {
+    status.textContent = `Fehler: ${error.message}`;
+  }
 }
 
 function preloadRecipeSuggestionsOnStartup() {

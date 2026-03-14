@@ -725,9 +725,7 @@ def test_update_shopping_list_item_note_calls_put_endpoint(monkeypatch):
     )
 
     assert captured["url"].endswith("/objects/shopping_list/23")
-    assert captured["json"] == {
-        "note": "nur bei Angebot [grocy_ai_mhd:2026-12-31]"
-    }
+    assert captured["json"] == {"note": "nur bei Angebot [grocy_ai_mhd:2026-12-31]"}
 
 
 def test_best_before_date_is_extracted_from_shopping_list_note(monkeypatch):
@@ -951,3 +949,100 @@ def test_get_recipe_ingredients_includes_unit_attribution(monkeypatch):
     )
 
     assert client.get_recipe_ingredients(10) == ["2 Stk. Ei", "150 Gramm Mehl"]
+
+
+def test_get_stock_products_returns_stock_id(monkeypatch):
+    def fake_get(url, *args, **kwargs):
+        if url.endswith("/stock"):
+            return FakeResponse(
+                [
+                    {
+                        "id": 77,
+                        "product_id": 10,
+                        "location_id": 1,
+                        "amount": 2,
+                        "best_before_date": "2026-01-01",
+                    }
+                ]
+            )
+        if url.endswith("/objects/products"):
+            return FakeResponse([{"id": 10, "name": "Milch"}])
+        if url.endswith("/objects/locations"):
+            return FakeResponse([{"id": 1, "name": "Keller"}])
+        raise AssertionError(f"Unexpected url: {url}")
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.services.grocy_client.requests.get", fake_get
+    )
+
+    client = GrocyClient(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+        )
+    )
+
+    result = client.get_stock_products()
+    assert result[0]["stock_id"] == 77
+
+
+def test_consume_stock_product_uses_product_and_stock_id(monkeypatch):
+    called = {}
+
+    class FakePostResponse(FakeResponse):
+        pass
+
+    def fake_post(url, *args, **kwargs):
+        called["url"] = url
+        called["json"] = kwargs.get("json")
+        return FakePostResponse({})
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.services.grocy_client.requests.post", fake_post
+    )
+
+    client = GrocyClient(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+        )
+    )
+
+    client.consume_stock_product(product_id=10, amount=1.5, stock_id=77)
+
+    assert called["url"].endswith("/stock/products/10/consume")
+    assert called["json"] == {"amount": 1.5, "stock_entry_id": 77}
+
+
+def test_update_stock_entry_updates_amount_and_best_before(monkeypatch):
+    called = {}
+
+    class FakePutResponse(FakeResponse):
+        pass
+
+    def fake_put(url, *args, **kwargs):
+        called["url"] = url
+        called["json"] = kwargs.get("json")
+        return FakePutResponse({})
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.services.grocy_client.requests.put", fake_put
+    )
+
+    client = GrocyClient(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+        )
+    )
+
+    client.update_stock_entry(stock_id=77, amount=3, best_before_date="2026-01-31")
+
+    assert called["url"].endswith("/objects/stock/77")
+    assert called["json"] == {"amount": 3, "best_before_date": "2026-01-31"}
