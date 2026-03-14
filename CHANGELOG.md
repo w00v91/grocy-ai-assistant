@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.35
+
+- Fix (Produktsuche): Beim Hinzufügen eines bestehenden Produkts über die Produktauswahl wird ein Mengenpräfix im Suchtext (z. B. `2 Apfel`) jetzt ausgewertet und als Einkaufsmenge übernommen.
+- Verhalten: Gilt jetzt konsistent für bestehende und neu angelegte Produkte in der Produktsuche.
+- Test: API-Test ergänzt, der den Mengenpräfix für `/api/dashboard/add-existing-product` absichert.
+- Pflege: Add-on-Version auf `7.1.35` erhöht.
+
 ## 7.1.34
 
 - KI (lokale Produktanalyse): Prompt für `analyze_product_name` erweitert, damit neben Kalorien/Kohlenhydraten auch weitere bekannte Nährwerte (`fat`, `protein`, `sugar`) zurückgegeben werden.
