@@ -299,8 +299,8 @@ function renderNotificationRules(rules) {
         <span class="badge">Cooldown: ${Number(rule.cooldown_seconds || 0)}s</span>
       </div>
       <div class="button-row notification-rule-item-actions">
-        <button class="ghost-button notification-action-button" type="button" onclick="openNotificationRuleModal('${rule.id}')">Regel ändern</button>
-        <button class="danger-button notification-action-button" type="button" onclick="deleteNotificationRule('${rule.id}')">Löschen</button>
+        <button class="notification-action-button notification-action-button-edit" type="button" onclick="openNotificationRuleModal('${rule.id}')">Regel ändern</button>
+        <button class="notification-action-button notification-action-button-delete" type="button" onclick="deleteNotificationRule('${rule.id}')">Löschen</button>
       </div>
     </li>
   `).join('');
@@ -627,6 +627,22 @@ function formatBadgeValue(value, fallback) {
   return text || fallback;
 }
 
+function formatStockCount(value) {
+  const textValue = String(value ?? '').trim();
+  if (!textValue) return '0';
+
+  const normalized = textValue.replace(',', '.');
+  const parsed = Number(normalized);
+  if (!Number.isFinite(parsed) || parsed < 0) return textValue;
+
+  if (Number.isInteger(parsed)) return String(parsed);
+
+  return parsed.toLocaleString('de-DE', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  });
+}
+
 function getShoppingAmount() {
   const amountInput = document.getElementById('amount');
   const amount = Number(amountInput?.value || 1);
@@ -682,10 +698,11 @@ function renderShoppingList(items) {
         <div class="shopping-item-meta">
           <div><strong>${item.product_name}</strong></div>
           <div class="muted">${item.note || 'Keine Notiz'}</div>
+          <div class="shopping-item-stock-tag"><span class="badge">Bestand: ${formatStockCount(item.in_stock)}</span></div>
         </div>
         <div class="shopping-item-badges">
           <button type="button" class="badge amount-increment-button" data-shopping-list-id="${item.id}">Menge: ${formatBadgeValue(item.amount, '-')}</button>
-          <button type="button" class="badge mhd-picker-button" data-mhd-shopping-list-id="${item.id}" data-mhd-product-name="${encodeURIComponent(item.product_name || '')}" data-mhd-current-date="${item.best_before_date || ''}">${item.best_before_date ? `MHD: ${item.best_before_date}` : 'MHD wählen'}</button>
+          <button type="button" class="badge mhd-picker-button" data-mhd-shopping-list-id="${item.id}" data-mhd-product-name="${encodeURIComponent(item.product_name || '')}" data-mhd-current-date="${item.best_before_date || ''}">${item.best_before_date ? item.best_before_date : 'MHD wählen'}</button>
         </div>
       </div>
     </li>

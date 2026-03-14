@@ -9,6 +9,11 @@ All notable changes to this project are documented in this file.
 - API: Neuer Endpoint `DELETE /api/dashboard/stock-products/{stock_id}` zum Löschen eines Bestandseintrags (inkl. `product_id`-Fallback auf den passenden `stock_id`).
 - Service: `GrocyClient.delete_stock_entry(...)` ergänzt, um Bestände über Grocy `objects/stock/{id}` zu löschen.
 - Test: Unit- und API-Tests für das Löschen von Bestandseinträgen ergänzt.
+- UI (Einkaufsliste): Unterhalb der Notiz wird jetzt ein zusätzlicher Bestands-Tag pro Produkt angezeigt (`Bestand: ...`).
+- UI (Einkaufsliste): Der Bestandswert wird aus `in_stock` übernommen und für Dezimalwerte lokalisiert dargestellt (de-DE).
+- UI (Notify-Tab): Regel-Objekte visuell näher an die Produktkarten der Einkaufsliste gebracht (größerer Kartenradius, spacing und badge-ähnliche Meta-Anordnung).
+- UI (Notify-Tab): Aktions-Buttons pro Regel auf pillenförmigen Badge-Look umgestellt und farblich differenziert (Bearbeiten/Rot für Löschen), wie gewünscht weiterhin mit Farbe.
+- UI (Einkaufsliste): MHD-Badge zeigt bei vorhandenem Datum jetzt nur noch das Datum ohne Präfix `MHD:`; ohne Datum bleibt der CTA `MHD wählen` unverändert.
 - Pflege: Add-on-Version auf `7.1.44` erhöht.
 
 ## 7.1.43
