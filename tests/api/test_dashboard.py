@@ -884,7 +884,6 @@ def test_add_missing_recipe_products_adds_to_shopping_list(client, monkeypatch):
     assert captured == [(1, 1), (2, 1)]
 
 
-
 def test_dashboard_contains_recipe_section(client):
     response = client.get("/")
 
@@ -901,7 +900,6 @@ def test_dashboard_contains_recipe_section(client):
         "/api/dashboard/recipe/${activeRecipeItem.recipe_id}/add-missing"
         in js_response.text
     )
-
 
 
 def test_dashboard_contains_complete_button(client):
@@ -1212,7 +1210,7 @@ def test_dashboard_contains_scanner_modal_trigger(client):
     assert response.status_code == 200
     assert "id='tab-scanner'" in response.text
     assert "id='open-scanner-modal-button'" in response.text
-    assert 'openScannerModal()' in response.text
+    assert "openScannerModal()" in response.text
     assert "id='scanner-modal'" in response.text
 
 
@@ -1628,6 +1626,30 @@ def test_dashboard_stock_products_include_stock_id(client, monkeypatch):
 def test_dashboard_can_consume_stock_product(client, monkeypatch):
     def fake_get_stock_entries(self, location_ids=None):
         return [{"id": 99, "product_id": 10}]
+
+    called = {}
+
+    def fake_consume_stock_product(self, product_id, amount=1, stock_id=None):
+        called["args"] = (product_id, amount, stock_id)
+
+    monkeypatch.setattr(routes.GrocyClient, "get_stock_entries", fake_get_stock_entries)
+    monkeypatch.setattr(
+        routes.GrocyClient, "consume_stock_product", fake_consume_stock_product
+    )
+
+    response = client.post(
+        "/api/dashboard/stock-products/99/consume",
+        headers={"Authorization": "Bearer test-api-key"},
+        json={"amount": 1},
+    )
+
+    assert response.status_code == 200
+    assert called["args"] == (10, 1, 99)
+
+
+def test_dashboard_can_consume_stock_product_by_stock_id_field(client, monkeypatch):
+    def fake_get_stock_entries(self, location_ids=None):
+        return [{"stock_id": 99, "product_id": 10}]
 
     called = {}
 

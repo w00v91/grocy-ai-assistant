@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.25
+
+- Fix (Lager-Dashboard/API): Verbrauchen-Aktion findet Bestandseinträge jetzt sowohl über `id` als auch über `stock_id`, damit Einträge mit nur ergänzter Bearbeitungs-ID wieder korrekt verbraucht werden können.
+- Test: API-Test ergänzt, der das Verbrauchen über ein `get_stock_entries`-Ergebnis mit `stock_id` (ohne `id`) absichert.
+- Pflege: Add-on-Version auf `7.1.25` erhöht.
+
 ## 7.1.24
 
 - Neu: Optionale OpenAI-Bildgenerierung für neu erkannte Produkte ergänzt (`image_generation_enabled`, `openai_api_key`, `openai_image_model`).

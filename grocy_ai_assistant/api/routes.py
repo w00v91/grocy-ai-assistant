@@ -1061,7 +1061,11 @@ def dashboard_consume_stock_product(
         grocy_client = GrocyClient(settings)
         stock_entries = grocy_client.get_stock_entries()
         matched_entry = next(
-            (entry for entry in stock_entries if int(entry.get("id") or 0) == stock_id),
+            (
+                entry
+                for entry in stock_entries
+                if int(entry.get("stock_id") or entry.get("id") or 0) == stock_id
+            ),
             None,
         )
         if not matched_entry:
