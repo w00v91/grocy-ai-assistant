@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.42
+
+- Fix (Produktsuche): Produktanlage in Grocy entfernt bei aufeinanderfolgenden `400 Bad Request`-Antworten mit Schemafehlern ("has no column named ...") die jeweils bemängelten Felder schrittweise aus dem Retry-Payload.
+- Stabilität: Retry-Logik bricht weiterhin sauber ab, wenn kein unbekanntes Feld aus der Fehlermeldung extrahiert werden kann.
+- Test: Unit-Test ergänzt, der mehrere `unknown column`-Fehler (`carbohydrates`, danach `qu_factor_purchase_to_stock`) und den erfolgreichen dritten Request absichert.
+- Pflege: Add-on-Version auf `7.1.42` erhöht.
+
 ## 7.1.41
 
 - Fix (Produktsuche): Produktanlage in Grocy erhält bei `400 Bad Request` jetzt automatisch einen Retry mit bereinigtem Payload (nur von Grocy akzeptierte Felder + validierte `location_id`/`quantity_unit` IDs).
