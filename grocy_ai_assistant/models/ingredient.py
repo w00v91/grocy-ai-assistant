@@ -25,6 +25,10 @@ class ShoppingListNoteUpdateRequest(BaseModel):
     note: str = ""
 
 
+class ShoppingListAmountUpdateRequest(BaseModel):
+    amount: float = Field(..., gt=0)
+
+
 class ProductData(BaseModel):
     name: str
     description: str

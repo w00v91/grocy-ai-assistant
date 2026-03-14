@@ -1152,6 +1152,30 @@ img {
   margin-top: 0.45rem;
 }
 
+
+.shopping-modal-inline-editor {
+  margin-top: 0.45rem;
+}
+
+.shopping-modal-inline-editor label {
+  display: block;
+  margin-bottom: 0.3rem;
+}
+
+.shopping-modal-inline-editor-row {
+  display: flex;
+  gap: 0.55rem;
+  align-items: center;
+}
+
+#shopping-item-amount-input {
+  flex: 1;
+}
+
+#shopping-item-amount-save-button {
+  white-space: nowrap;
+}
+
 .shopping-modal-content {
   position: relative;
   margin: min(8vh, 4rem) auto;

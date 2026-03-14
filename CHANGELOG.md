@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.45
+
+- UI (Einkaufsliste): Im Produkt-Popup kann die Einkaufsmenge jetzt direkt bearbeitet und gespeichert werden.
+- API: Neuer Endpoint `PUT /api/dashboard/shopping-list/item/{shopping_list_id}/amount` zum Setzen einer konkreten Menge.
+- Test: API-Test ergänzt, der das Aktualisieren einer konkreten Einkaufslistenmenge absichert.
+- Pflege: Add-on-Version auf `7.1.45` erhöht.
+
 ## 7.1.44
 
 - UI (Einkaufsliste): MHD-Badge zeigt bei vorhandenem Datum jetzt nur noch das Datum ohne Präfix `MHD:`; ohne Datum bleibt der CTA `MHD wählen` unverändert.
