@@ -8,7 +8,12 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.event import async_call_later
 
 from .addon_client import AddonClient
-from .const import DEFAULT_ADDON_BASE_URL, DOMAIN, INTEGRATION_VERSION
+from .const import (
+    CONF_NOTIFICATION_GLOBAL_ENABLED,
+    DEFAULT_ADDON_BASE_URL,
+    DOMAIN,
+    INTEGRATION_VERSION,
+)
 from .services import (
     DATA_NOTIFICATION_MANAGER,
     NotificationManager,
@@ -201,7 +206,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         DOMAIN, "add_product_via_ai", add_product_via_ai_service
     )
 
-    manager = NotificationManager(hass, entry.entry_id)
+    entry_conf = {**entry.data, **entry.options}
+    manager = NotificationManager(
+        hass,
+        entry.entry_id,
+        global_notifications_enabled=bool(
+            entry_conf.get(CONF_NOTIFICATION_GLOBAL_ENABLED, True)
+        ),
+    )
     await manager.async_initialize()
     hass.data[DOMAIN].setdefault(DATA_NOTIFICATION_MANAGER, {})[
         entry.entry_id
