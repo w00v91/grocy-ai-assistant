@@ -667,7 +667,8 @@ img {
   }
 
   .shopping-item-badges {
-    max-width: 100%;
+    width: 100%;
+    max-width: 33.333%;
   }
 }
 .shopping-list-section button { width: 100%; }

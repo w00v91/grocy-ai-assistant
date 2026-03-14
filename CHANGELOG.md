@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.36
+
+- UI (Suche/Einkaufsliste): Badge-Breitenbegrenzung gezielt auf Mobile (`max-width: 33.333%`) angewendet; Desktop-Badge-Breite bleibt beim bisherigen festen Layout.
+- Pflege: Add-on-Version auf `7.1.36` erhöht.
+
 ## 7.1.35
 
 - Dashboard (Tab „Lager“): Einträge visuell an das Kartenformat der Einkaufsliste angepasst (Bild + Name/Attribute + Aktions-Buttons).
