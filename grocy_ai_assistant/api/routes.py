@@ -1532,6 +1532,9 @@ def _load_notification_overview(request: Request) -> NotificationOverviewRespons
             merged_devices.append(discovered)
         overview.devices = merged_devices
         store.save_overview_for_user(user_id, overview)
+
+    # Global activation is controlled by add-on app options (options.json).
+    overview.settings.enabled = bool(get_settings().notification_global_enabled)
     return overview
 
 
@@ -1558,7 +1561,9 @@ def dashboard_notification_update_settings(
     store = _notification_store()
     user_id = _resolve_dashboard_user_id(request)
     overview = _load_notification_overview(request)
-    overview.settings = NotificationSettingsModel(**payload.model_dump())
+    update_payload = payload.model_dump()
+    update_payload["enabled"] = bool(get_settings().notification_global_enabled)
+    overview.settings = NotificationSettingsModel(**update_payload)
     store.save_overview_for_user(user_id, overview)
     return overview.settings
 

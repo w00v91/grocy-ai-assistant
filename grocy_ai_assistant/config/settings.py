@@ -57,6 +57,7 @@ class Settings(BaseModel):
     scanner_barcode_fallback_seconds: int = 5
     scanner_llava_min_confidence: int = 75
     debug_mode: bool = False
+    notification_global_enabled: bool = True
     grocy_base_url: str = "http://homeassistant.local:9192/api"
     grocy_api_key: str = ""
     stable_diffusion_url: str = "http://172.17.0.1:7860/sdapi/v1/txt2img"
