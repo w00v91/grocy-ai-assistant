@@ -2,6 +2,21 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.43
+
+- UI (Dashboard): Alle Box-Shadows im Dashboard-Theme entfernt, inklusive Cards, Buttons, Tabbar, Header, Inputs und Modal-Elementen, für einen flacheren, einheitlichen Stil.
+- UI (Interaktionen): Übergänge bereinigt, damit keine Shadow-Animationen mehr referenziert werden.
+- Pflege: Add-on-Version auf `7.1.43` erhöht.
+
+## 7.1.42
+
+- UI (Dashboard): Einheitliches visuelles Theme für alle Dashboard-Bereiche eingeführt (konsistente Farbpalette, Karten-/Header-Stil und harmonisierte Light-/Dark-Variablen).
+- UI (Navigation): Bottom-Tabbar und aktiver Tab mit neuem Akzent-Gradienten, Glassmorphism-Hintergrund und angepasstem Shadow-Design vereinheitlicht.
+- UI (Interaktionen): Buttons inkl. Hover-/Focus-/Active-States global vereinheitlicht; Primary-, Danger-, Success- und Ghost-Varianten optisch konsistent gemacht.
+- UI (Header): Topbar als konsistenter Card-Container gestaltet und Theme-Switch visuell an das neue Farbsystem angepasst.
+- Fix (CSS): Verweis auf nicht definierte Variable `--accent` im Rezept-Methoden-Switch auf `--accent-primary` korrigiert.
+- Pflege: Add-on-Version auf `7.1.42` erhöht.
+
 ## 7.1.41
 
 - Fix (Produktsuche): Produktanlage in Grocy erhält bei `400 Bad Request` jetzt automatisch einen Retry mit bereinigtem Payload (nur von Grocy akzeptierte Felder + validierte `location_id`/`quantity_unit` IDs).
