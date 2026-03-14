@@ -261,7 +261,7 @@ function renderNotificationRules(rules) {
       <strong>${rule.name}</strong>
       <div class="muted">Events: ${(rule.event_types || []).map((eventType) => getEventLabel(eventType)).join(', ') || '-'}</div>
       <div class="muted">Channels: ${(rule.channels || []).join(', ') || '-'}</div>
-      <div class="button-row">
+      <div class="button-row notification-rule-item-actions">
         <button class="ghost-button" type="button" onclick="openNotificationRuleModal('${rule.id}')">Regel ändern</button>
         <button class="danger-button" type="button" onclick="deleteNotificationRule('${rule.id}')">Löschen</button>
       </div>
