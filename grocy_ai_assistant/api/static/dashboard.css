@@ -895,7 +895,11 @@ img {
 
 #recipe-modal-preparation { white-space: pre-wrap; }
 #recipe-modal-ingredients,
-#recipe-modal-missing-products { margin: 0.4rem 0 0.8rem; padding-left: 1.1rem; }
+#recipe-modal-missing-products {
+  margin: 0.4rem 0 0.8rem;
+  padding-left: 0;
+  width: 100%;
+}
 
 .recipe-modal-image-wrapper {
   margin: -0.25rem -0.25rem 0.9rem;
