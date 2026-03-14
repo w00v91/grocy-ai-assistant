@@ -815,6 +815,12 @@ img {
   backdrop-filter: blur(3px);
   -webkit-backdrop-filter: blur(3px);
 }
+
+#shopping-note-input {
+  width: 100%;
+  margin-top: 0.45rem;
+}
+
 .shopping-modal-content {
   position: relative;
   margin: min(8vh, 4rem) auto;
