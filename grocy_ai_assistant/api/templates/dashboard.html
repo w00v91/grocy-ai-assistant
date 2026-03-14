@@ -127,16 +127,16 @@
           </div>
 
           <section class='notification-options-card'>
-            <h3>Regelverwaltung</h3>
-            <button class='success-button notification-new-rule-button' type='button' onclick='openNotificationRuleModal()'>Neue Regel</button>
+            <h3>Benachrichtigungsregeln</h3>
+            <button class='success-button notification-new-rule-button notification-action-button' type='button' onclick='openNotificationRuleModal()'>Neue Regel</button>
             <ul id='notification-rules' class='notification-list'></ul>
           </section>
 
           <section class='notification-options-card'>
             <h3>Testcenter</h3>
             <div class='button-row'>
-              <button class='primary-button' type='button' onclick='testNotificationAll()'>Test an alle Geräte</button>
-              <button class='primary-button' type='button' onclick='testNotificationPersistent()'>Test als Persistent</button>
+              <button class='primary-button notification-action-button' type='button' onclick='testNotificationAll()'>Test an alle Geräte</button>
+              <button class='primary-button notification-action-button' type='button' onclick='testNotificationPersistent()'>Test als Persistent</button>
             </div>
           </section>
 
@@ -152,7 +152,7 @@
       <button id='tab-button-shopping' class='tab-button active' type='button' onclick='switchTab("shopping")'>🛒 Einkauf</button>
       <button id='tab-button-recipes' class='tab-button' type='button' onclick='switchTab("recipes")'>🍳 Rezepte</button>
       <button id='tab-button-storage' class='tab-button' type='button' onclick='switchTab("storage")'>📦 Lager</button>
-      <button id='tab-button-notifications' class='tab-button' type='button' onclick='switchTab("notifications")'>🔔 Notify</button>
+      <button id='tab-button-notifications' class='tab-button' type='button' onclick='switchTab("notifications")'>🔔 Benachrichtigungen</button>
     </nav>
 
     <div id='shopping-item-modal' class='shopping-modal hidden'>
@@ -254,27 +254,27 @@
         <p class='muted notification-rule-modal-description'>Lege fest, bei welchen Ereignissen welche Geräte benachrichtigt werden.</p>
         <div class='notification-rule-editor'>
           <input id='notify-rule-name' placeholder='Regelname' />
-          <label for='notify-rule-events'>Events
+          <label for='notify-rule-events'>Ereignisse
             <select id='notify-rule-events' multiple></select>
           </label>
           <label for='notify-rule-devices'>Zielgeräte (optional)
             <select id='notify-rule-devices' multiple></select>
           </label>
-          <label>Regel-Severity
+          <label>Priorität
             <select id='notify-rule-severity'>
               <option value='info'>Info</option>
-              <option value='warning'>Warning</option>
-              <option value='critical'>Critical</option>
+              <option value='warning'>Warnung</option>
+              <option value='critical'>Kritisch</option>
             </select>
           </label>
-          <label>Regel-Kanal
+          <label>Kanal
             <select id='notify-rule-channel'>
               <option value='mobile_push'>Mobile Push</option>
-              <option value='persistent_notification'>Persistent Notification</option>
+              <option value='persistent_notification'>Persistente Benachrichtigung</option>
             </select>
           </label>
           <input id='notify-rule-cooldown' type='number' min='0' placeholder='Cooldown in Sekunden' />
-          <textarea id='notify-rule-template' placeholder='Template, z.B. ${message}'></textarea>
+          <textarea id='notify-rule-template' placeholder='Vorlage, z.B. ${message}'></textarea>
           <div class='button-row notification-rule-actions'>
             <button class='success-button' id='notify-rule-submit-button' type='button' onclick='saveNotificationRule()'>Regel anlegen</button>
             <button class='ghost-button' type='button' onclick='closeNotificationRuleModal()'>Abbrechen</button>

@@ -27,8 +27,17 @@ const NOTIFICATION_EVENT_LABELS = {
   recipe_missing_items: 'Rezept hat fehlende Zutaten',
 };
 
+const NOTIFICATION_CHANNEL_LABELS = {
+  mobile_push: 'Mobile Push-Benachrichtigung',
+  persistent_notification: 'Persistente Benachrichtigung',
+};
+
 function getEventLabel(eventType) {
   return NOTIFICATION_EVENT_LABELS[eventType] || eventType;
+}
+
+function getChannelLabel(channelType) {
+  return NOTIFICATION_CHANNEL_LABELS[channelType] || channelType;
 }
 
 function escapeHtml(value) {
@@ -260,13 +269,19 @@ function renderNotificationRules(rules) {
     return;
   }
   list.innerHTML = rules.map((rule) => `
-    <li>
-      <strong>${rule.name}</strong>
-      <div class="muted">Events: ${(rule.event_types || []).map((eventType) => getEventLabel(eventType)).join(', ') || '-'}</div>
-      <div class="muted">Channels: ${(rule.channels || []).join(', ') || '-'}</div>
+    <li class="notification-rule-item">
+      <div class="notification-rule-main">
+        <strong>${rule.name}</strong>
+        <div class="muted">Ereignisse: ${(rule.event_types || []).map((eventType) => getEventLabel(eventType)).join(', ') || '-'}</div>
+      </div>
+      <div class="notification-rule-badges">
+        <span class="badge">Kanäle: ${(rule.channels || []).map((channelType) => getChannelLabel(channelType)).join(', ') || '-'}</span>
+        <span class="badge">Priorität: ${escapeHtml(rule.severity || 'info')}</span>
+        <span class="badge">Cooldown: ${Number(rule.cooldown_seconds || 0)}s</span>
+      </div>
       <div class="button-row notification-rule-item-actions">
-        <button class="ghost-button" type="button" onclick="openNotificationRuleModal('${rule.id}')">Regel ändern</button>
-        <button class="danger-button" type="button" onclick="deleteNotificationRule('${rule.id}')">Löschen</button>
+        <button class="ghost-button notification-action-button" type="button" onclick="openNotificationRuleModal('${rule.id}')">Regel ändern</button>
+        <button class="danger-button notification-action-button" type="button" onclick="deleteNotificationRule('${rule.id}')">Löschen</button>
       </div>
     </li>
   `).join('');
@@ -283,6 +298,7 @@ function renderNotificationHistory(history) {
       <strong>${entry.title}</strong>
       <div>${entry.message}</div>
       <small class="muted">${getEventLabel(entry.event_type)} · ${entry.created_at} · ${entry.delivered ? '✅' : '❌'}</small>
+      <div class="muted">Kanäle: ${(entry.channels || []).map((channelType) => getChannelLabel(channelType)).join(', ') || '-'}</div>
     </li>
   `).join('');
 }
