@@ -927,6 +927,13 @@ def test_dashboard_uses_matching_complete_item_endpoint(client):
     )
 
 
+def test_dashboard_notification_event_labels_declared_once(client):
+    static_response = client.get("/dashboard-static/dashboard.js")
+
+    assert static_response.status_code == 200
+    assert static_response.text.count("const NOTIFICATION_EVENT_LABELS = {") == 1
+
+
 def test_dashboard_swipe_actions_match_labels(client):
     static_response = client.get("/dashboard-static/dashboard.js")
 
