@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.47
+
+- UI (Lager-Tab): Produktbilder in der Lagerliste vereinheitlicht und über dieselbe Bild-Logik wie in den anderen Tabs gerendert (inkl. Proxy/Fallback-Verhalten).
+- UI (Popup „Bestand ändern"): Neuer Button „Produktbild löschen" ergänzt, um das Bild eines Produkts direkt im Bearbeiten-Dialog zu entfernen.
+- API: Neuer Endpoint `DELETE /api/dashboard/products/{product_id}/picture` zum Entfernen des Produktbilds.
+- Service: `GrocyClient.clear_product_picture(...)` ergänzt und per Tests abgesichert.
+- Pflege: Add-on-Version auf `7.1.47` erhöht.
+
 ## 7.1.46
 
 - UI (Notify-Tab): Regelkarten im iOS-inspirierten Stil überarbeitet (abgerundete Card-Flächen, sanfte Verlaufshintergründe, kompakter Header mit Icon und strukturierte Meta-Badges).

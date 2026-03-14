@@ -361,9 +361,7 @@ class GrocyClient:
             return product_payload
 
         return {
-            key: value
-            for key, value in product_payload.items()
-            if key != unknown_field
+            key: value for key, value in product_payload.items() if key != unknown_field
         }
 
     def _build_product_payload_retry(
@@ -896,6 +894,15 @@ class GrocyClient:
         response = requests.delete(
             f"{self.settings.grocy_base_url}/objects/stock/{int(stock_id)}",
             headers=self.headers,
+            timeout=30,
+        )
+        response.raise_for_status()
+
+    def clear_product_picture(self, product_id: int) -> None:
+        response = requests.put(
+            f"{self.settings.grocy_base_url}/objects/products/{int(product_id)}",
+            headers=self.headers,
+            json={"picture_file_name": None},
             timeout=30,
         )
         response.raise_for_status()
