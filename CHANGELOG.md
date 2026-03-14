@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.49
+
+- Fix (Rezepte/"Bald ablaufend"): Filter verarbeitet `product_id` jetzt robust auch als String, sodass ablaufende Produkte nicht fälschlich ausgeschlossen werden.
+- Fix (Rezepte/"Bald ablaufend"): MHD-Werte mit Zeitanteil (z. B. `YYYY-MM-DD HH:MM:SS` oder ISO mit `T`) werden korrekt als Datum erkannt.
+- Test: API-Test ergänzt, der String-IDs und Datumswerte mit Zeitanteil für den "bald ablaufend"-Pfad absichert.
+- Pflege: Add-on-Version auf `7.1.49` erhöht.
+
 ## 7.1.48
 
 - API: Bild-Proxy (`/api/dashboard/product-picture`) um den Query-Parameter `size` erweitert (`thumb`/`full`) und ruft bei Grocy nun unterschiedliche Zielgrößen via `best_fit_width`/`best_fit_height` ab.
