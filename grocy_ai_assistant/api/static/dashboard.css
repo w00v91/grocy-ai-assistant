@@ -278,6 +278,31 @@ body.modal-open {
   padding: 0.65rem 0.75rem;
 }
 
+.notification-rule-item {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.notification-rule-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.notification-rule-badges {
+  margin-left: auto;
+  display: grid;
+  gap: 0.35rem;
+  justify-items: stretch;
+  width: 100%;
+}
+
+.notification-rule-badges .badge {
+  margin-left: 0;
+  width: 100%;
+  box-sizing: border-box;
+  text-align: center;
+}
+
 .notification-rule-item-actions {
   justify-content: flex-end;
 }
@@ -886,17 +911,38 @@ img {
 .storage-item-actions {
   margin-left: auto;
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 0.35rem;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.45rem;
 }
 
 .storage-action-button {
   margin-top: 0;
   width: auto;
-  min-width: 5.8rem;
-  padding: 0.38rem 0.62rem;
+  min-width: 7.4rem;
+  padding: 0.42rem 0.7rem;
   font-size: 0.82rem;
+  border-radius: 999px;
+  font-weight: 600;
+}
+
+.storage-edit-button {
+  border-color: var(--item-border);
+}
+
+.storage-consume-button {
+  border: 1px solid var(--success-border);
+  background: var(--success-bg);
+  color: var(--text-on-accent);
+}
+
+.storage-consume-button:hover {
+  background: var(--success-bg-hover);
+}
+
+.storage-action-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 #shopping-list li.shopping-item {
@@ -1168,4 +1214,17 @@ h1,
 h2,
 h3 {
   overflow-wrap: anywhere;
+}
+
+@media (max-width: 700px) {
+  .storage-item-actions {
+    width: 100%;
+    margin-left: 0;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+
+  .storage-action-button {
+    min-width: 0;
+  }
 }
