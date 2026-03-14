@@ -6,6 +6,7 @@ All notable changes to this project are documented in this file.
 
 - Fix: Barcode-Lookup liefert bei OpenFoodFacts-Timeouts keinen 500-Fehler mehr, sondern fällt robust auf Grocy bzw. "nicht gefunden" zurück.
 - Test: API-Test ergänzt, der Timeout-Verhalten beim Barcode-Lookup absichert.
+- Fix: Syntaxfehler in `GrocyClient.update_shopping_list_item_amount` behoben (fehlender Abschluss des `requests.put`-Aufrufs), sodass der API-Start nicht mehr mit `SyntaxError` abbricht.
 - Pflege: Add-on-Version auf `7.1.15` erhöht.
 
 ## 7.1.14
