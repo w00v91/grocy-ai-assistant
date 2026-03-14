@@ -185,8 +185,10 @@
 
     <div id='recipe-modal' class='shopping-modal hidden'>
       <div class='shopping-modal-backdrop' onclick='closeRecipeDetails()'></div>
-      <section class='shopping-modal-content card'>
-        <button class='shopping-modal-close' type='button' onclick='closeRecipeDetails()' aria-label='Rezept schließen'>×</button>
+      <section class='shopping-modal-content card recipe-modal-content'>
+        <button class='shopping-modal-close recipe-modal-close' type='button' onclick='closeRecipeDetails()' aria-label='Rezept schließen'>
+          <span aria-hidden='true'>✕</span>
+        </button>
         <div id='recipe-modal-image-wrapper' class='recipe-modal-image-wrapper hidden' aria-hidden='true'>
           <img id='recipe-modal-image' class='recipe-modal-image' src='' alt='' loading='lazy' />
         </div>

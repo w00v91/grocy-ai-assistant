@@ -837,6 +837,31 @@ img {
   color: var(--text);
   padding: 0;
 }
+
+.recipe-modal-content {
+  padding-top: 3rem;
+}
+
+.recipe-modal-close {
+  top: 0.9rem;
+  right: 0.9rem;
+  width: 2.35rem;
+  height: 2.35rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--badge-bg) 70%, var(--card-bg));
+  border: 1px solid var(--item-border);
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--modal-backdrop-bg) 28%, transparent);
+  font-size: 1.2rem;
+  line-height: 1;
+  z-index: 3;
+}
+
+.recipe-modal-close:hover {
+  background: color-mix(in srgb, var(--accent-primary) 14%, var(--badge-bg));
+  transform: translateY(-1px);
+}
 .shopping-details-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -878,7 +903,7 @@ img {
 .recipe-modal-image {
   display: block;
   width: 100%;
-  max-height: clamp(180px, 30vh, 300px);
+  max-height: clamp(240px, 42vh, 460px);
   object-fit: cover;
   filter: saturate(1.06) contrast(1.02);
   transform: scale(1.01);
