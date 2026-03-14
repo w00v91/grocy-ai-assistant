@@ -2,8 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.46
+
 ## 7.1.47
 
+- UI (Einkaufsliste): Im Produkt-Popup steht der Button `Speichern` für die Mengenbearbeitung jetzt in einer eigenen Zeile unter dem Mengenfeld.
 - UI (Notify-Tab): Layout der Regeln vollständig auf ein 3-Spalten-Raster umgestellt (`Name | Priorität/Ereignisse/Kanäle/Cooldown | Buttons`) für bessere Struktur und passendere Einbindung ins bestehende Dashboard.
 - UI (Notify-Tab): Metadaten werden nun untereinander mit klaren Labels dargestellt (Priorität, Ereignisse, Kanäle, Cooldown).
 - UI (Notify-Tab): Aktions-Buttons pro Regel werden untereinander angezeigt und konsistent an die Kartenbreite angepasst.

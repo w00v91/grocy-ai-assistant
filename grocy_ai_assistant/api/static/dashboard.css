@@ -1246,18 +1246,19 @@ img {
   margin-bottom: 0.3rem;
 }
 
+#shopping-item-amount-input {
+  width: 100%;
+  flex: 1;
+}
+
 .shopping-modal-inline-editor-row {
   display: flex;
   gap: 0.55rem;
   align-items: center;
 }
 
-#shopping-item-amount-input {
-  flex: 1;
-}
-
 #shopping-item-amount-save-button {
-  white-space: nowrap;
+  margin-top: 0.55rem;
 }
 
 .shopping-modal-content {
