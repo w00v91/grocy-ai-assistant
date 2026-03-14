@@ -540,12 +540,13 @@ def dashboard_search_variants(
 
     try:
         grocy_client = GrocyClient(settings)
-        matches = grocy_client.search_products_by_partial_name(query)
-        return [
-            _variant_from_grocy_product(product, settings)
-            for product in matches
-            if product.get("id")
-        ]
+        detector = IngredientDetector(settings)
+        return _build_fallback_variants(
+            product_name=query,
+            grocy_client=grocy_client,
+            detector=detector,
+            settings=settings,
+        )
     except Exception as error:
         log_api_error(
             logger,
@@ -573,9 +574,11 @@ def dashboard_add_existing_product(
 
     try:
         grocy_client = GrocyClient(settings)
+        _, parsed_amount = _extract_amount_prefixed_product_input(payload.product_name)
+        amount = parsed_amount if parsed_amount is not None else payload.amount
         grocy_client.add_product_to_shopping_list(
             payload.product_id,
-            amount=payload.amount,
+            amount=amount,
             best_before_date=payload.best_before_date,
         )
         return DashboardSearchResponse(
@@ -1032,7 +1035,18 @@ def dashboard_stock_products(
             if selected_location_ids
             else grocy_client.get_stock_products()
         )
-        return [StockProductResponse(**item) for item in stock_products]
+        return [
+            StockProductResponse(
+                **{
+                    **item,
+                    "picture_url": _build_dashboard_picture_proxy_url(
+                        str(item.get("picture_url") or ""),
+                        settings,
+                    ),
+                }
+            )
+            for item in stock_products
+        ]
     except Exception as error:
         log_api_error(
             logger,
