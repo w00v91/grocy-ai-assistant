@@ -171,6 +171,18 @@
       </section>
     </div>
 
+    <div id='shopping-note-modal' class='shopping-modal hidden'>
+      <div class='shopping-modal-backdrop' onclick='closeShoppingNoteEditor()'></div>
+      <section class='shopping-modal-content card'>
+        <button class='shopping-modal-close' type='button' onclick='closeShoppingNoteEditor()' aria-label='Notiz-Dialog schließen'>×</button>
+        <h3 id='shopping-note-modal-title'>Notiz bearbeiten</h3>
+        <label for='shopping-note-input'>Notiz</label>
+        <textarea id='shopping-note-input' rows='4' placeholder='Optionale Einkaufsnotiz'></textarea>
+        <button class='success-button' type='button' onclick='saveShoppingNote()'>Speichern</button>
+      </section>
+    </div>
+
+
     <div id='mhd-modal' class='shopping-modal hidden'>
       <div class='shopping-modal-backdrop' onclick='closeMhdPicker()'></div>
       <section class='shopping-modal-content card'>
@@ -185,8 +197,10 @@
 
     <div id='recipe-modal' class='shopping-modal hidden'>
       <div class='shopping-modal-backdrop' onclick='closeRecipeDetails()'></div>
-      <section class='shopping-modal-content card'>
-        <button class='shopping-modal-close' type='button' onclick='closeRecipeDetails()' aria-label='Rezept schließen'>×</button>
+      <section class='shopping-modal-content card recipe-modal-content'>
+        <button class='shopping-modal-close recipe-modal-close' type='button' onclick='closeRecipeDetails()' aria-label='Rezept schließen'>
+          <span aria-hidden='true'>✕</span>
+        </button>
         <div id='recipe-modal-image-wrapper' class='recipe-modal-image-wrapper hidden' aria-hidden='true'>
           <img id='recipe-modal-image' class='recipe-modal-image' src='' alt='' loading='lazy' />
         </div>
