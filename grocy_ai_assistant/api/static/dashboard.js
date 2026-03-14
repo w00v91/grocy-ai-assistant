@@ -1128,7 +1128,7 @@ function renderRecipeList(elementId, items, emptyText) {
 
   list.innerHTML = items.map((item) => `
     <li class="recipe-item" data-recipe-item="${encodeURIComponent(JSON.stringify(item))}">
-      ${item.picture_url ? `<img class="recipe-thumb" src="${item.picture_url}" alt="${item.title}" loading="lazy" />` : '<div class="recipe-thumb recipe-thumb-fallback">🍽️</div>'}
+      ${item.picture_url ? `<img class="recipe-thumb" src="${toImageSource(item.picture_url)}" alt="${item.title}" loading="lazy" />` : '<div class="recipe-thumb recipe-thumb-fallback">🍽️</div>'}
       <div>
         <div><strong>${item.title}</strong></div>
         <div class="muted">${item.reason || ''}</div>
