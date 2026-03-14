@@ -2,8 +2,19 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.16
+
+- Korrektur: Die globale Notification-Aktivierung wurde aus den Home-Assistant-Integrationsoptionen entfernt und stattdessen in die Add-on/App-Optionen verlagert (gleicher Bereich wie API-Keys).
+- Add-on: Neue Option `notification_global_enabled` in `config.json` (`options` + `schema`) ergänzt.
+- API: Notification-Overview und Settings-Update übernehmen den globalen Enabled-Status jetzt aus den Add-on-Optionen (`options.json`) statt aus der Integration.
+- UI: Hinweistext in der Benachrichtigungs-Ansicht auf Add-on/App-Optionen angepasst.
+- Pflege: Add-on-Version auf `7.1.16` erhöht.
+
 ## 7.1.15
 
+- UI: Die globale Notification-Option „Benachrichtigungen global aktiv" wurde aus dem Dashboard entfernt und als Hinweis in den Bereich „Optionen" übernommen.
+- Integration: Neue Home-Assistant-Option `notification_global_enabled` ergänzt, um Benachrichtigungen global über die Integrations-Optionen zu aktivieren/deaktivieren.
+- Logik: NotificationManager übernimmt den globalen Aktivierungsstatus aus den Integrations-Optionen und setzt damit die globale Notification-Freigabe zentral.
 - Fix: Barcode-Lookup liefert bei OpenFoodFacts-Timeouts keinen 500-Fehler mehr, sondern fällt robust auf Grocy bzw. "nicht gefunden" zurück.
 - Test: API-Test ergänzt, der Timeout-Verhalten beim Barcode-Lookup absichert.
 - Fix: Syntaxfehler in `GrocyClient.update_shopping_list_item_amount` behoben (fehlender Abschluss des `requests.put`-Aufrufs), sodass der API-Start nicht mehr mit `SyntaxError` abbricht.

@@ -250,7 +250,8 @@ function renderNotificationRuleEditorOptions(devices, settings) {
 }
 
 function hydrateNotificationSettings(settings) {
-  document.getElementById('notify-enabled').checked = Boolean(settings.enabled);
+  const globalEnabledToggle = document.getElementById('notify-enabled');
+  if (globalEnabledToggle) globalEnabledToggle.checked = Boolean(settings.enabled);
   const ruleSeverity = document.getElementById('notify-rule-severity');
   const ruleChannel = document.getElementById('notify-rule-channel');
   if (ruleSeverity) ruleSeverity.value = settings.default_severity || 'info';
@@ -308,25 +309,7 @@ function renderNotificationHistory(history) {
 
 async function saveNotificationSettings() {
   const status = getNotificationStatusElement();
-  status.textContent = 'Speichere Einstellungen…';
-  const payload = {
-    enabled: document.getElementById('notify-enabled').checked,
-    enabled_event_types: ['item_added', 'item_removed', 'item_checked', 'item_unchecked', 'shopping_due', 'low_stock_detected', 'recipe_missing_items'],
-    default_channels: ['mobile_push'],
-    default_severity: 'info',
-  };
-  try {
-    const res = await fetch(buildApiUrl('/api/dashboard/notifications/settings'), {
-      method: 'PUT',
-      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-    const responsePayload = await parseJsonSafe(res);
-    if (!res.ok) throw new Error(getErrorMessage(responsePayload, 'Einstellungen konnten nicht gespeichert werden.'));
-    status.textContent = 'Einstellungen gespeichert.';
-  } catch (error) {
-    status.textContent = `Fehler: ${error.message}`;
-  }
+  status.textContent = 'Die globale Benachrichtigungs-Aktivierung wurde in die Home Assistant Integrations-Optionen verschoben.';
 }
 
 async function toggleNotificationDevice(deviceId, isActive) {
