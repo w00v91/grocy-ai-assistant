@@ -291,15 +291,25 @@
 
     <div id='storage-edit-modal' class='shopping-modal hidden'>
       <div class='shopping-modal-backdrop' onclick='closeStorageEditModal()'></div>
-      <section class='shopping-modal-content card'>
+      <section class='shopping-modal-content card storage-edit-modal-content'>
         <button class='shopping-modal-close' type='button' onclick='closeStorageEditModal()' aria-label='Bearbeiten schließen'>×</button>
         <h3 id='storage-edit-modal-title'>Bestand ändern</h3>
+        <div class='storage-edit-media'>
+          <img id='storage-edit-picture' class='storage-edit-picture hidden' alt='Produktbild' />
+        </div>
+        <div class='storage-edit-details'>
+          <p><strong>Produkt:</strong> <span id='storage-edit-name'>-</span></p>
+          <p><strong>Produkt-ID:</strong> <span id='storage-edit-product-id'>-</span></p>
+          <p><strong>Bestands-ID:</strong> <span id='storage-edit-stock-id'>-</span></p>
+          <p><strong>Lagerort:</strong> <span id='storage-edit-location'>-</span></p>
+        </div>
         <label for='storage-edit-amount'>Menge</label>
         <input id='storage-edit-amount' type='number' min='0' step='0.01' />
         <label for='storage-edit-best-before'>MHD</label>
         <input id='storage-edit-best-before' type='date' />
         <div class='button-row'>
           <button class='success-button' type='button' onclick='saveStorageEditModal()'>Speichern</button>
+          <button class='danger-button' type='button' onclick='deleteStorageEditItem()'>Produkt löschen</button>
           <button class='ghost-button' type='button' onclick='closeStorageEditModal()'>Abbrechen</button>
         </div>
       </section>

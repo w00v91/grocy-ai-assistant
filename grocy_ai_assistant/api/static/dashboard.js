@@ -289,18 +289,18 @@ function renderNotificationRules(rules) {
   }
   list.innerHTML = rules.map((rule) => `
     <li class="notification-rule-item">
-      <div class="notification-rule-main">
+      <div class="notification-rule-name" title="${escapeHtml(rule.name || '')}">
         <strong>${rule.name}</strong>
-        <div class="muted">Ereignisse: ${(rule.event_types || []).map((eventType) => getEventLabel(eventType)).join(', ') || '-'}</div>
       </div>
-      <div class="notification-rule-badges">
-        <span class="badge">Kanäle: ${(rule.channels || []).map((channelType) => getChannelLabel(channelType)).join(', ') || '-'}</span>
-        <span class="badge">Priorität: ${escapeHtml(rule.severity || 'info')}</span>
-        <span class="badge">Cooldown: ${Number(rule.cooldown_seconds || 0)}s</span>
+      <div class="notification-rule-meta">
+        <div class="notification-rule-meta-row"><span class="notification-rule-meta-label">Priorität</span><span class="notification-rule-meta-value">${escapeHtml(rule.severity || 'info')}</span></div>
+        <div class="notification-rule-meta-row"><span class="notification-rule-meta-label">Ereignisse</span><span class="notification-rule-meta-value">${(rule.event_types || []).map((eventType) => getEventLabel(eventType)).join(', ') || '-'}</span></div>
+        <div class="notification-rule-meta-row"><span class="notification-rule-meta-label">Kanäle</span><span class="notification-rule-meta-value">${(rule.channels || []).map((channelType) => getChannelLabel(channelType)).join(', ') || '-'}</span></div>
+        <div class="notification-rule-meta-row"><span class="notification-rule-meta-label">Cooldown</span><span class="notification-rule-meta-value">${Number(rule.cooldown_seconds || 0)}s</span></div>
       </div>
-      <div class="button-row notification-rule-item-actions">
-        <button class="ghost-button notification-action-button" type="button" onclick="openNotificationRuleModal('${rule.id}')">Regel ändern</button>
-        <button class="danger-button notification-action-button" type="button" onclick="deleteNotificationRule('${rule.id}')">Löschen</button>
+      <div class="notification-rule-item-actions">
+        <button class="notification-action-button notification-action-button-edit" type="button" onclick="openNotificationRuleModal('${rule.id}')">Regel ändern</button>
+        <button class="notification-action-button notification-action-button-delete" type="button" onclick="deleteNotificationRule('${rule.id}')">Löschen</button>
       </div>
     </li>
   `).join('');
@@ -627,6 +627,22 @@ function formatBadgeValue(value, fallback) {
   return text || fallback;
 }
 
+function formatStockCount(value) {
+  const textValue = String(value ?? '').trim();
+  if (!textValue) return '0';
+
+  const normalized = textValue.replace(',', '.');
+  const parsed = Number(normalized);
+  if (!Number.isFinite(parsed) || parsed < 0) return textValue;
+
+  if (Number.isInteger(parsed)) return String(parsed);
+
+  return parsed.toLocaleString('de-DE', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  });
+}
+
 function getShoppingAmount() {
   const amountInput = document.getElementById('amount');
   const amount = Number(amountInput?.value || 1);
@@ -682,6 +698,7 @@ function renderShoppingList(items) {
         <div class="shopping-item-meta">
           <div><strong>${item.product_name}</strong></div>
           <div class="muted">${item.note || 'Keine Notiz'}</div>
+          <div class="shopping-item-stock-tag"><span class="badge">Bestand: ${formatStockCount(item.in_stock)}</span></div>
         </div>
         <div class="shopping-item-badges">
           <button type="button" class="badge amount-increment-button" data-shopping-list-id="${item.id}">Menge: ${formatBadgeValue(item.amount, '-')}</button>
@@ -1729,8 +1746,25 @@ function openStorageEditModal(stockId) {
   storageEditingItem = stockItem;
   storageEditingTargetId = normalizedStockId;
   document.getElementById('storage-edit-modal-title').textContent = `Bestand ändern: ${stockItem.name}`;
+  document.getElementById('storage-edit-name').textContent = stockItem.name || '-';
+  document.getElementById('storage-edit-product-id').textContent = String(stockItem.id || '-');
+  document.getElementById('storage-edit-stock-id').textContent = String(stockItem.stock_id || '-');
+  document.getElementById('storage-edit-location').textContent = stockItem.location_name || '-';
   document.getElementById('storage-edit-amount').value = String(stockItem.amount || '0').replace(',', '.');
   document.getElementById('storage-edit-best-before').value = stockItem.best_before_date || '';
+
+  const picture = document.getElementById('storage-edit-picture');
+  if (picture) {
+    const pictureUrl = String(stockItem.picture_url || '').trim();
+    if (pictureUrl) {
+      picture.src = pictureUrl;
+      picture.classList.remove('hidden');
+    } else {
+      picture.removeAttribute('src');
+      picture.classList.add('hidden');
+    }
+  }
+
   document.getElementById('storage-edit-modal').classList.remove('hidden');
   syncModalScrollLock();
 }
@@ -1738,6 +1772,11 @@ function openStorageEditModal(stockId) {
 function closeStorageEditModal() {
   storageEditingItem = null;
   storageEditingTargetId = null;
+  const picture = document.getElementById('storage-edit-picture');
+  if (picture) {
+    picture.removeAttribute('src');
+    picture.classList.add('hidden');
+  }
   document.getElementById('storage-edit-modal').classList.add('hidden');
   syncModalScrollLock();
 }
@@ -1763,6 +1802,29 @@ async function saveStorageEditModal() {
     if (!res.ok) throw new Error(getErrorMessage(payload, 'Bestand konnte nicht aktualisiert werden.'));
     closeStorageEditModal();
     status.textContent = 'Bestand wurde aktualisiert.';
+    await loadStorageProducts();
+  } catch (error) {
+    status.textContent = `Fehler: ${error.message}`;
+  }
+}
+
+
+async function deleteStorageEditItem() {
+  if (!storageEditingItem || !Number.isFinite(storageEditingTargetId) || storageEditingTargetId <= 0) return;
+  const status = getStorageStatusElement();
+  const productName = storageEditingItem.name || 'dieses Produkt';
+  const confirmed = window.confirm(`Soll ${productName} wirklich aus dem Bestand gelöscht werden?`);
+  if (!confirmed) return;
+
+  try {
+    const res = await fetch(buildApiUrl(`/api/dashboard/stock-products/${encodeURIComponent(storageEditingTargetId)}`), {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+    const payload = await parseJsonSafe(res);
+    if (!res.ok) throw new Error(getErrorMessage(payload, 'Bestandseintrag konnte nicht gelöscht werden.'));
+    closeStorageEditModal();
+    status.textContent = payload?.message || 'Bestandseintrag wurde gelöscht.';
     await loadStorageProducts();
   } catch (error) {
     status.textContent = `Fehler: ${error.message}`;

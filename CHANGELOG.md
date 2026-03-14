@@ -4,7 +4,19 @@ All notable changes to this project are documented in this file.
 
 ## 7.1.46
 
+## 7.1.47
+
 - UI (Einkaufsliste): Im Produkt-Popup steht der Button `Speichern` für die Mengenbearbeitung jetzt in einer eigenen Zeile unter dem Mengenfeld.
+- UI (Notify-Tab): Layout der Regeln vollständig auf ein 3-Spalten-Raster umgestellt (`Name | Priorität/Ereignisse/Kanäle/Cooldown | Buttons`) für bessere Struktur und passendere Einbindung ins bestehende Dashboard.
+- UI (Notify-Tab): Metadaten werden nun untereinander mit klaren Labels dargestellt (Priorität, Ereignisse, Kanäle, Cooldown).
+- UI (Notify-Tab): Aktions-Buttons pro Regel werden untereinander angezeigt und konsistent an die Kartenbreite angepasst.
+- Pflege: Add-on-Version auf `7.1.47` erhöht.
+
+## 7.1.46
+
+- UI (Notify-Tab): Regelkarten im iOS-inspirierten Stil überarbeitet (abgerundete Card-Flächen, sanfte Verlaufshintergründe, kompakter Header mit Icon und strukturierte Meta-Badges).
+- UI (Notify-Tab): Badges um visuelle Marker ergänzt (Kanäle/Priorität/Cooldown), damit Regeln schneller erfassbar sind.
+- UI (Notify-Tab): Aktions-Buttons weiterhin pillenförmig, aber mit dezentem Lift/Hover für einen app-artigen Touch optimiert.
 - Pflege: Add-on-Version auf `7.1.46` erhöht.
 
 ## 7.1.45
@@ -16,6 +28,15 @@ All notable changes to this project are documented in this file.
 
 ## 7.1.44
 
+- UI (Lager/Popup „Bestand ändern“): Popup um relevante Produktinfos erweitert (Produktname, Produkt-ID, Bestands-ID, Lagerort) und Produktbild direkt im Dialog ergänzt.
+- UI (Lager/Popup „Bestand ändern“): Lösch-Button „Produkt löschen“ im Bearbeiten-Dialog hinzugefügt, inkl. Bestätigungsdialog und aktualisierter Statusmeldung.
+- API: Neuer Endpoint `DELETE /api/dashboard/stock-products/{stock_id}` zum Löschen eines Bestandseintrags (inkl. `product_id`-Fallback auf den passenden `stock_id`).
+- Service: `GrocyClient.delete_stock_entry(...)` ergänzt, um Bestände über Grocy `objects/stock/{id}` zu löschen.
+- Test: Unit- und API-Tests für das Löschen von Bestandseinträgen ergänzt.
+- UI (Einkaufsliste): Unterhalb der Notiz wird jetzt ein zusätzlicher Bestands-Tag pro Produkt angezeigt (`Bestand: ...`).
+- UI (Einkaufsliste): Der Bestandswert wird aus `in_stock` übernommen und für Dezimalwerte lokalisiert dargestellt (de-DE).
+- UI (Notify-Tab): Regel-Objekte visuell näher an die Produktkarten der Einkaufsliste gebracht (größerer Kartenradius, spacing und badge-ähnliche Meta-Anordnung).
+- UI (Notify-Tab): Aktions-Buttons pro Regel auf pillenförmigen Badge-Look umgestellt und farblich differenziert (Bearbeiten/Rot für Löschen), wie gewünscht weiterhin mit Farbe.
 - UI (Einkaufsliste): MHD-Badge zeigt bei vorhandenem Datum jetzt nur noch das Datum ohne Präfix `MHD:`; ohne Datum bleibt der CTA `MHD wählen` unverändert.
 - Pflege: Add-on-Version auf `7.1.44` erhöht.
 
