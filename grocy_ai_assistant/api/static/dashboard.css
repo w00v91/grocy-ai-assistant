@@ -353,8 +353,8 @@ body.modal-open {
 }
 
 .notification-action-button:hover {
-  transform: none;
-  filter: none;
+  transform: translateY(-1px);
+  filter: saturate(1.06);
 }
 
 .notification-action-button-edit {
