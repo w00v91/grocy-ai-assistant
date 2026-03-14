@@ -4,6 +4,9 @@ All notable changes to this project are documented in this file.
 
 ## 7.1.35
 
+- Dashboard (Tab „Lager“): Einträge visuell an das Kartenformat der Einkaufsliste angepasst (Bild + Name/Attribute + Aktions-Buttons).
+- Dashboard (Tab „Lager“): Lager-Objekte in 3 Spalten aufgebaut (Bild, Name/Attributliste, Buttons); Attribute werden nun als Liste unter dem Produktnamen angezeigt.
+- API/Service: Lagerprodukte liefern jetzt zusätzlich `picture_url`, damit Produktbilder auch im Lager-Tab dargestellt werden können.
 - UI (Rezepte): Button „Rezept hinzufügen“ im Rezepte-Tab auf volle Breite gesetzt.
 - UI (Rezepte): Grocy- und KI-Rezeptvorschläge auf ein einheitliches Kartenformat vereinheitlicht.
 - UX (Rezepte): Beschreibungstexte in Rezeptvorschlägen vereinheitlicht und auf maximal zwei Zeilen begrenzt, inklusive Fallback-Text bei fehlender Beschreibung.
