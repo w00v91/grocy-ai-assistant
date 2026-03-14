@@ -2,6 +2,35 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.31
+
+- Fix (Grocy-Bildupload): Upload versucht je URL zuerst mit `GROCY-API-KEY` und bei `404/405` zusätzlich einen zweiten PUT im curl-kompatiblen Header-Modus ohne API-Key (`Accept: */*`, `Content-Type: application/octet-stream`).
+- Fix (Grocy-Bildupload): URL-Fallback von `/api/files/...` auf `/files/...` bleibt erhalten und nutzt ebenfalls beide Header-Modi.
+- Logging: Fallback-Warnungen enthalten jetzt den verwendeten Header-Modus (`api_key` vs. `curl_compatible`).
+- Test: Unit-Tests für Header-Modus-Fallback und URL-Fallback-Reihenfolge ergänzt/angepasst.
+- Pflege: Add-on-Version auf `7.1.31` erhöht.
+
+## 7.1.30
+
+- Fix (Grocy-Bildupload): Upload-Request an Grocy-Datei-Endpunkte enthält jetzt zusätzlich `Accept: */*` (entsprechend funktionierendem `curl`-Aufruf).
+- Fix (Grocy-Bildupload): Bei `405`/`404` wird pro Upload-URL zuerst `PUT`, dann `POST` probiert, bevor zur nächsten Fallback-URL gewechselt wird.
+- Test: Unit-Tests für Header-Setzung sowie Fallback-Reihenfolge (`PUT` -> `POST` -> URL-Fallback) ergänzt.
+- Pflege: Add-on-Version auf `7.1.30` erhöht.
+
+## 7.1.29
+
+- Fix (Grocy-Bildupload): HTTP-Fehlerauswertung beim Upload-Fallback korrigiert, damit auch echte `requests.Response`-Objekte mit Status `>=400` (falsey) den Statuscode korrekt liefern.
+- Fix (Grocy-Bildupload): Fallback von `/api/files/...` auf `/files/...` greift dadurch zuverlässig bei `405`/`404`.
+- Test: Upload-Fallback-Test erweitert, um das falsey-Verhalten von `requests.Response` bei Fehlerstatus abzubilden.
+- Pflege: Add-on-Version auf `7.1.29` erhöht.
+
+## 7.1.28
+
+- Fix (Grocy-Bildupload): Produktbild-Upload versucht bei `404/405` auf `/api/files/...` jetzt automatisch einen Fallback auf `/files/...` ohne `/api`-Präfix.
+- Logging: Beim Fallback wird eine Warnung mit der fehlgeschlagenen Upload-URL protokolliert.
+- Test: Unit-Test ergänzt, der den 405-Fall und den erfolgreichen Fallback-Upload absichert.
+- Pflege: Add-on-Version auf `7.1.28` erhöht.
+
 ## 7.1.27
 
 - Fix (Bildgenerierung): OpenAI-Image-Erstellung nutzt jetzt ein robustes Modell-Fallback (`openai_image_model` -> `dall-e-3` -> `dall-e-2`), wenn der primäre Modellzugriff mit `403 Forbidden` abgelehnt wird.
