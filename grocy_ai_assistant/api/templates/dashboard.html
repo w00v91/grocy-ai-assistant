@@ -23,6 +23,14 @@
         <section class='card hero-card'>
           <div class='section-header'>
             <h2>Grocy AI Suche</h2>
+            <button
+              id='open-scanner-modal-button'
+              class='scanner-popup-button'
+              type='button'
+              aria-label='Barcode-Scanner öffnen'
+              title='Barcode-Scanner öffnen'
+              onclick='openScannerModal()'
+            >📷</button>
           </div>
           <div class='search-row'>
             <div class='search-input-wrapper'>
@@ -48,21 +56,6 @@
             <button class='success-button' onclick='completeShoppingList()'>Einkauf abschließen</button>
             <button class='danger-button' onclick='clearShoppingList()'>Einkaufsliste leeren</button>
           </div>
-        </section>
-      </section>
-
-      <section id='tab-scanner' class='tab-view hidden'>
-        <section class='card'>
-          <h2>Barcode-Scanner</h2>
-          <video id='scanner-video' class='scanner-video hidden' playsinline></video>
-          <canvas id='scanner-canvas' class='hidden'></canvas>
-          <div class='scanner-actions'>
-            <button id='start-scan-button' type='button' onclick='startBarcodeScanner()'>📷 Kamera starten</button>
-            <button id='stop-scan-button' type='button' class='danger-button hidden' onclick='stopBarcodeScanner()'>⏹ Kamera stoppen</button>
-            <button id='llava-scan-button' type='button' onclick='triggerLlavaScan()'>🤖 LLaVA jetzt befragen</button>
-          </div>
-          <p id='status-scanner'>Bereit.</p>
-          <section id='scanner-result' class='scanner-result hidden'></section>
         </section>
       </section>
 
@@ -101,6 +94,19 @@
         </section>
       </section>
 
+
+      <section id='tab-storage' class='tab-view hidden'>
+        <section class='card'>
+          <div class='section-header'>
+            <h2>Lager</h2>
+            <button class='primary-button' type='button' onclick='loadStorageProducts()'>Aktualisieren</button>
+          </div>
+          <input id='storage-filter-input' type='text' placeholder='Produkte filtern...' oninput='renderStorageProducts()' />
+          <p id='status-storage'>Bereit.</p>
+          <ul id='storage-products' class='storage-products-list'></ul>
+        </section>
+      </section>
+
       <section id='tab-notifications' class='tab-view hidden'>
         <section class='card'>
           <div class='section-header'>
@@ -110,13 +116,6 @@
           <p id='status-notifications'>Bereit.</p>
 
           <div class='notification-options-layout'>
-            <section class='notification-options-card'>
-              <h3>Optionen</h3>
-              <p class='muted notification-options-description'>
-                Die globale Benachrichtigungs-Aktivierung findest du jetzt in den Home Assistant Integrations-Optionen von „Grocy AI Assistant".
-              </p>
-            </section>
-
             <section class='notification-options-card'>
               <h3>Geräteverwaltung</h3>
               <p class='muted notification-options-description'>
@@ -151,7 +150,7 @@
     <nav class='bottom-tabbar' aria-label='Navigation'>
       <button id='tab-button-shopping' class='tab-button active' type='button' onclick='switchTab("shopping")'>🛒 Einkauf</button>
       <button id='tab-button-recipes' class='tab-button' type='button' onclick='switchTab("recipes")'>🍳 Rezepte</button>
-      <button id='tab-button-scanner' class='tab-button' type='button' onclick='switchTab("scanner")'>📷 Scanner</button>
+      <button id='tab-button-storage' class='tab-button' type='button' onclick='switchTab("storage")'>📦 Lager</button>
       <button id='tab-button-notifications' class='tab-button' type='button' onclick='switchTab("notifications")'>🔔 Notify</button>
     </nav>
 
@@ -160,18 +159,9 @@
       <section class='shopping-modal-content card'>
         <button class='shopping-modal-close' type='button' onclick='closeShoppingItemDetails()' aria-label='Details schließen'>×</button>
         <h3 id='shopping-item-title'>Produktdetails</h3>
+        <label for='shopping-item-note-input'>Notiz</label>
+        <textarea id='shopping-item-note-input' rows='3' placeholder='Optionale Einkaufsnotiz'></textarea>
         <div id='shopping-item-details' class='shopping-details-grid'></div>
-      </section>
-    </div>
-
-    <div id='shopping-note-modal' class='shopping-modal hidden'>
-      <div class='shopping-modal-backdrop' onclick='closeShoppingNoteEditor()'></div>
-      <section class='shopping-modal-content card'>
-        <button class='shopping-modal-close' type='button' onclick='closeShoppingNoteEditor()' aria-label='Notiz-Dialog schließen'>×</button>
-        <h3 id='shopping-note-modal-title'>Notiz bearbeiten</h3>
-        <label for='shopping-note-input'>Notiz</label>
-        <textarea id='shopping-note-input' rows='4' placeholder='Optionale Einkaufsnotiz'></textarea>
-        <button class='success-button' type='button' onclick='saveShoppingNote()'>Speichern</button>
       </section>
     </div>
 
@@ -243,6 +233,43 @@
             <button class='ghost-button' type='button' onclick='closeNotificationRuleModal()'>Abbrechen</button>
           </div>
         </div>
+      </section>
+    </div>
+
+
+    <div id='storage-edit-modal' class='shopping-modal hidden'>
+      <div class='shopping-modal-backdrop' onclick='closeStorageEditModal()'></div>
+      <section class='shopping-modal-content card'>
+        <button class='shopping-modal-close' type='button' onclick='closeStorageEditModal()' aria-label='Bearbeiten schließen'>×</button>
+        <h3 id='storage-edit-modal-title'>Bestand ändern</h3>
+        <label for='storage-edit-amount'>Menge</label>
+        <input id='storage-edit-amount' type='number' min='0' step='0.01' />
+        <label for='storage-edit-best-before'>MHD</label>
+        <input id='storage-edit-best-before' type='date' />
+        <div class='button-row'>
+          <button class='success-button' type='button' onclick='saveStorageEditModal()'>Speichern</button>
+          <button class='ghost-button' type='button' onclick='closeStorageEditModal()'>Abbrechen</button>
+        </div>
+      </section>
+    </div>
+      
+      
+    <div id='scanner-modal' class='shopping-modal hidden'>
+      <div class='shopping-modal-backdrop' onclick='closeScannerModal()'></div>
+      <section class='shopping-modal-content card scanner-modal-content'>
+        <button class='shopping-modal-close' type='button' onclick='closeScannerModal()' aria-label='Scanner schließen'>×</button>
+        <section id='tab-scanner' class='scanner-popup-card'>
+          <h2>Barcode-Scanner</h2>
+          <video id='scanner-video' class='scanner-video hidden' playsinline></video>
+          <canvas id='scanner-canvas' class='hidden'></canvas>
+          <div class='scanner-actions'>
+            <button id='start-scan-button' type='button' onclick='startBarcodeScanner()'>📷 Kamera starten</button>
+            <button id='stop-scan-button' type='button' class='danger-button hidden' onclick='stopBarcodeScanner()'>⏹ Kamera stoppen</button>
+            <button id='llava-scan-button' type='button' onclick='triggerLlavaScan()'>🤖 LLaVA jetzt befragen</button>
+          </div>
+          <p id='status-scanner'>Bereit.</p>
+          <section id='scanner-result' class='scanner-result hidden'></section>
+        </section>
       </section>
     </div>
 

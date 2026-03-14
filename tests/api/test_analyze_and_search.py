@@ -57,6 +57,33 @@ def test_dashboard_search_reuses_existing_product(client, monkeypatch):
     assert calls == [(7, 1, "")]
 
 
+def test_dashboard_search_uses_amount_prefix_from_name(client, monkeypatch):
+    calls = []
+
+    class FakeGrocyClient:
+        def __init__(self, settings):
+            self.settings = settings
+
+        def find_product_by_name(self, name):
+            assert name == "nudeln"
+            return {"id": 7}
+
+        def add_product_to_shopping_list(self, product_id, amount, best_before_date=""):
+            calls.append((product_id, amount, best_before_date))
+
+    monkeypatch.setattr(routes, "GrocyClient", FakeGrocyClient)
+
+    response = client.post(
+        "/api/dashboard/search",
+        headers={"Authorization": "Bearer test-api-key"},
+        json={"name": "2 nudeln", "amount": 1},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["action"] == "existing_added"
+    assert calls == [(7, 2, "")]
+
+
 def test_dashboard_search_creates_new_product_when_missing(client, monkeypatch):
     calls = {"created": None, "added": None}
 
@@ -153,6 +180,32 @@ def test_dashboard_search_variants_returns_partial_matches(client, monkeypatch):
 
     assert response.status_code == 200
     assert [item["name"] for item in response.json()] == ["Apfel", "Apfelessig"]
+
+
+def test_dashboard_search_variants_ignores_amount_prefix(client, monkeypatch):
+    class FakeGrocyClient:
+        def __init__(self, settings):
+            self.settings = settings
+
+        def search_products_by_partial_name(self, query):
+            assert query == "apf"
+            return [
+                {
+                    "id": 1,
+                    "name": "Apfel",
+                    "picture_url": "files/productpictures/apfel.jpg",
+                }
+            ]
+
+    monkeypatch.setattr(routes, "GrocyClient", FakeGrocyClient)
+
+    response = client.get(
+        "/api/dashboard/search-variants?q=2%20apf",
+        headers={"Authorization": "Bearer test-api-key"},
+    )
+
+    assert response.status_code == 200
+    assert [item["name"] for item in response.json()] == ["Apfel"]
 
 
 def test_dashboard_add_existing_product_adds_to_shopping_list(client, monkeypatch):

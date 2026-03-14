@@ -558,25 +558,65 @@ class GrocyClient:
             if allowed_locations and normalized_location_id not in allowed_locations:
                 continue
 
-            result.append(
-                {
-                    "id": product_id,
-                    "name": product.get("name")
-                    or entry.get("product_name")
-                    or "Unbekanntes Produkt",
-                    "location_id": normalized_location_id,
-                    "location_name": location_name,
-                    "amount": str(entry.get("amount") or ""),
-                    "best_before_date": str(
-                        entry.get("best_before_date")
-                        or entry.get("best_before_date_calculated")
-                        or ""
-                    ),
-                }
-            )
+            item = {
+                "id": product_id,
+                "name": product.get("name")
+                or entry.get("product_name")
+                or "Unbekanntes Produkt",
+                "location_id": normalized_location_id,
+                "location_name": location_name,
+                "amount": str(entry.get("amount") or ""),
+                "best_before_date": str(
+                    entry.get("best_before_date")
+                    or entry.get("best_before_date_calculated")
+                    or ""
+                ),
+            }
+            stock_id = self._safe_int(entry.get("stock_id") or entry.get("id"))
+            if stock_id is not None:
+                item["stock_id"] = stock_id
+            result.append(item)
 
         result.sort(key=lambda item: item["name"].casefold())
         return result
+
+    def consume_stock_product(
+        self,
+        product_id: int,
+        amount: float = 1,
+        stock_id: int | None = None,
+    ) -> None:
+        payload: Dict[str, Any] = {"amount": amount}
+        if stock_id is not None:
+            payload["stock_entry_id"] = int(stock_id)
+
+        response = requests.post(
+            f"{self.settings.grocy_base_url}/stock/products/{int(product_id)}/consume",
+            headers=self.headers,
+            json=payload,
+            timeout=30,
+        )
+        response.raise_for_status()
+
+    def update_stock_entry(
+        self,
+        stock_id: int,
+        amount: float,
+        best_before_date: str = "",
+    ) -> None:
+        payload: Dict[str, Any] = {"amount": amount}
+        normalized_best_before = str(best_before_date or "").strip()
+        payload["best_before_date"] = (
+            normalized_best_before if normalized_best_before else None
+        )
+
+        response = requests.put(
+            f"{self.settings.grocy_base_url}/objects/stock/{int(stock_id)}",
+            headers=self.headers,
+            json=payload,
+            timeout=30,
+        )
+        response.raise_for_status()
 
     def get_recipe_positions(self, recipe_id: int) -> list[Dict[str, Any]]:
         response = requests.get(

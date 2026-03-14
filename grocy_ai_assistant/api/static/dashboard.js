@@ -14,47 +14,8 @@ const AI_RECIPE_DISPLAY_LIMIT = 3;
 
 let modalScrollLockY = 0;
 let notificationEditingRuleId = null;
-
-const NOTIFICATION_EVENT_LABELS = {
-  item_added: 'Produkt hinzugefügt',
-  item_removed: 'Produkt entfernt',
-  item_checked: 'Produkt abgehakt',
-  item_unchecked: 'Produkt nicht mehr abgehakt',
-  shopping_due: 'Einkauf fällig',
-  low_stock_detected: 'Niedriger Bestand erkannt',
-  recipe_missing_items: 'Rezept hat fehlende Zutaten',
-};
-
-function getEventLabel(eventType) {
-  return NOTIFICATION_EVENT_LABELS[eventType] || eventType;
-}
-
-function escapeHtml(value) {
-  return String(value ?? '')
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#39;');
-}
-
-function renderSelectOptions(selectElement, options, selectedValues = []) {
-  if (!selectElement) return;
-  const selected = new Set((selectedValues || []).map((value) => String(value)));
-  selectElement.innerHTML = options.map((option) => {
-    const value = String(option.value);
-    const isSelected = selected.has(value) ? ' selected' : '';
-    return `<option value="${escapeHtml(value)}"${isSelected}>${escapeHtml(option.label)}</option>`;
-  }).join('');
-}
-
-function getSelectedValues(selectElement) {
-  if (!selectElement) return [];
-  return Array.from(selectElement.selectedOptions || [])
-    .map((option) => option.value.trim())
-    .filter(Boolean);
-}
-
+let storageProductsCache = [];
+let storageEditingItem = null;
 
 const NOTIFICATION_EVENT_LABELS = {
   item_added: 'Produkt hinzugefügt',
@@ -177,36 +138,52 @@ async function withBusyState(callback) {
 
 
 function switchTab(tabName) {
-  const allowedTabs = ['shopping', 'recipes', 'scanner', 'notifications'];
+  const allowedTabs = ['shopping', 'recipes', 'storage', 'notifications'];
   activeTab = allowedTabs.includes(tabName) ? tabName : 'shopping';
 
   const shoppingTab = document.getElementById('tab-shopping');
   const recipesTab = document.getElementById('tab-recipes');
-  const scannerTab = document.getElementById('tab-scanner');
+  const storageTab = document.getElementById('tab-storage');
   const notificationsTab = document.getElementById('tab-notifications');
   const shoppingButton = document.getElementById('tab-button-shopping');
   const recipesButton = document.getElementById('tab-button-recipes');
-  const scannerButton = document.getElementById('tab-button-scanner');
+  const storageButton = document.getElementById('tab-button-storage');
   const notificationsButton = document.getElementById('tab-button-notifications');
 
   shoppingTab.classList.toggle('hidden', activeTab !== 'shopping');
   recipesTab.classList.toggle('hidden', activeTab !== 'recipes');
-  scannerTab.classList.toggle('hidden', activeTab !== 'scanner');
+  storageTab.classList.toggle('hidden', activeTab !== 'storage');
   notificationsTab.classList.toggle('hidden', activeTab !== 'notifications');
   shoppingButton.classList.toggle('active', activeTab === 'shopping');
   recipesButton.classList.toggle('active', activeTab === 'recipes');
-  scannerButton.classList.toggle('active', activeTab === 'scanner');
+  storageButton.classList.toggle('active', activeTab === 'storage');
   notificationsButton.classList.toggle('active', activeTab === 'notifications');
 
   if (activeTab === 'recipes' && !recipeState.initialized) {
     loadLocations();
   }
-  if (activeTab !== 'scanner') {
-    stopBarcodeScanner();
+  if (activeTab === 'storage') {
+    loadStorageProducts();
   }
   if (activeTab === 'notifications') {
     loadNotificationOverview();
   }
+}
+
+
+function openScannerModal() {
+  const modal = document.getElementById('scanner-modal');
+  if (!modal) return;
+  modal.classList.remove('hidden');
+  syncModalScrollLock();
+}
+
+function closeScannerModal() {
+  const modal = document.getElementById('scanner-modal');
+  if (!modal) return;
+  modal.classList.add('hidden');
+  stopBarcodeScanner();
+  syncModalScrollLock();
 }
 
 function getNotificationStatusElement() {
@@ -626,6 +603,24 @@ function getShoppingBestBeforeDate() {
   return String(dateInput?.value || '').trim();
 }
 
+function parseAmountPrefixedSearch(rawValue) {
+  const value = String(rawValue || '').trim();
+  const match = value.match(/^(\d+(?:[.,]\d+)?)\s+(.+)$/);
+  if (!match) {
+    return { productName: value, amountFromName: null };
+  }
+
+  const parsedAmount = Number(match[1].replace(',', '.'));
+  if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+    return { productName: value, amountFromName: null };
+  }
+
+  return {
+    productName: match[2].trim(),
+    amountFromName: parsedAmount,
+  };
+}
+
 function renderShoppingList(items) {
   const list = document.getElementById('shopping-list');
   if (!items.length) {
@@ -652,7 +647,6 @@ function renderShoppingList(items) {
         </div>
         <div class="shopping-item-badges">
           <button type="button" class="badge amount-increment-button" data-shopping-list-id="${item.id}">Menge: ${formatBadgeValue(item.amount, '-')}</button>
-          <button type="button" class="badge shopping-note-button" data-note-shopping-list-id="${item.id}" data-note-product-name="${encodeURIComponent(item.product_name || '')}" data-note-current="${encodeURIComponent(item.note || '')}">Notiz bearbeiten</button>
           <button type="button" class="badge mhd-picker-button" data-mhd-shopping-list-id="${item.id}" data-mhd-product-name="${encodeURIComponent(item.product_name || '')}" data-mhd-current-date="${item.best_before_date || ''}">${item.best_before_date ? `MHD: ${item.best_before_date}` : 'MHD wählen'}</button>
         </div>
       </div>
@@ -764,7 +758,8 @@ async function confirmVariant(productId, productName) {
   }
 
   status.textContent = `Füge ${productName} zur Einkaufsliste hinzu...`;
-  const amount = getShoppingAmount();
+  const { amountFromName } = parseAmountPrefixedSearch(document.getElementById('name').value || '');
+  const amount = amountFromName ?? getShoppingAmount();
   const bestBeforeDate = getShoppingBestBeforeDate();
 
   try {
@@ -889,47 +884,38 @@ function showShoppingItemDetails(item) {
       </ul>
     </section>
   `;
+  openShoppingNoteEditor(item.id, item.note || '');
   modal.classList.remove('hidden');
   syncModalScrollLock();
 }
 
 
 let activeShoppingNoteItemId = null;
+let activeShoppingNoteValue = '';
 
-function openShoppingNoteEditor(shoppingListId, productName, currentNote = '') {
-  const modal = document.getElementById('shopping-note-modal');
-  const title = document.getElementById('shopping-note-modal-title');
-  const input = document.getElementById('shopping-note-input');
-
+function openShoppingNoteEditor(shoppingListId, currentNote = '') {
   activeShoppingNoteItemId = shoppingListId;
-  title.textContent = `Notiz bearbeiten: ${productName || 'Produkt'}`;
-  input.value = currentNote || '';
-  modal.classList.remove('hidden');
+  activeShoppingNoteValue = String(currentNote || '').trim();
+  const input = document.getElementById('shopping-item-note-input');
+  if (input) input.value = currentNote || '';
 }
 
-function closeShoppingNoteEditor() {
-  activeShoppingNoteItemId = null;
-  document.getElementById('shopping-note-modal').classList.add('hidden');
-}
-
-async function saveShoppingNote() {
+async function saveShoppingNote(shoppingListId, note) {
   const key = ensureApiKey();
   const status = getShoppingStatusElement();
-  const input = document.getElementById('shopping-note-input');
-  const note = String(input?.value || '').trim();
 
   if (!key) {
     status.textContent = 'Kein API-Key angegeben.';
-    return;
+    return false;
   }
-  if (!activeShoppingNoteItemId) {
+  if (!shoppingListId) {
     status.textContent = 'Einkaufslisten-Eintrag fehlt.';
-    return;
+    return false;
   }
 
   status.textContent = 'Speichere Notiz...';
   try {
-    const res = await fetch(buildApiUrl(`/api/dashboard/shopping-list/item/${activeShoppingNoteItemId}/note`), {
+    const res = await fetch(buildApiUrl(`/api/dashboard/shopping-list/item/${shoppingListId}/note`), {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
       body: JSON.stringify({ note }),
@@ -938,14 +924,15 @@ async function saveShoppingNote() {
 
     if (!res.ok) {
       status.textContent = getErrorMessage(payload, 'Notiz konnte nicht gespeichert werden.');
-      return;
+      return false;
     }
 
     status.textContent = payload.message || 'Notiz gespeichert.';
-    closeShoppingNoteEditor();
-    await loadShoppingList();
+    activeShoppingNoteValue = note;
+    return true;
   } catch (_) {
     status.textContent = 'Notiz konnte nicht gespeichert werden (Netzwerk-/Ingress-Fehler).';
+    return false;
   }
 }
 
@@ -1008,8 +995,21 @@ async function saveMhdPickerDate() {
   }
 }
 
-function closeShoppingItemDetails() {
-  document.getElementById('shopping-item-modal').classList.add('hidden');
+async function closeShoppingItemDetails() {
+  const modal = document.getElementById('shopping-item-modal');
+  const input = document.getElementById('shopping-item-note-input');
+  const note = String(input?.value || '').trim();
+
+  if (activeShoppingNoteItemId && note !== activeShoppingNoteValue) {
+    const saved = await saveShoppingNote(activeShoppingNoteItemId, note);
+    if (saved) {
+      await loadShoppingList();
+    }
+  }
+
+  activeShoppingNoteItemId = null;
+  activeShoppingNoteValue = '';
+  modal.classList.add('hidden');
   syncModalScrollLock();
 }
 
@@ -1035,7 +1035,7 @@ function bindShoppingSwipeInteractions() {
     resetSwipeState(item);
 
     item.addEventListener('pointerdown', (event) => {
-      if (event.target.closest('.mhd-picker-button') || event.target.closest('.shopping-note-button')) {
+      if (event.target.closest('.mhd-picker-button')) {
         return;
       }
 
@@ -1173,17 +1173,18 @@ async function clearShoppingList() {
 
 async function searchProduct() {
   return withBusyState(async () => {
-  const name = document.getElementById('name').value;
+  const rawName = document.getElementById('name').value;
   const status = getShoppingStatusElement();
   const key = ensureApiKey();
-  const amount = getShoppingAmount();
+  const { productName, amountFromName } = parseAmountPrefixedSearch(rawName);
+  const amount = amountFromName ?? getShoppingAmount();
   const bestBeforeDate = getShoppingBestBeforeDate();
 
   if (!key) {
     status.textContent = 'Kein API-Key angegeben.';
     return;
   }
-  if (!name || !name.trim()) {
+  if (!productName) {
     status.textContent = 'Bitte Produktname eingeben.';
     return;
   }
@@ -1194,7 +1195,7 @@ async function searchProduct() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
       body: JSON.stringify({
-        name,
+        name: productName,
         amount,
         best_before_date: bestBeforeDate,
       })
@@ -1259,24 +1260,13 @@ document.getElementById('shopping-list').addEventListener('click', async (event)
     }
     return;
   }
+});
 
-  const target = event.target.closest('.mhd-picker-button');
-  
 document.getElementById('shopping-list').addEventListener('click', (event) => {
-  const target = event.target.closest('.shopping-note-button, .mhd-picker-button');
+  const target = event.target.closest('.mhd-picker-button');
   if (!target) return;
 
   event.stopPropagation();
-
-  if (target.classList.contains('shopping-note-button')) {
-    const shoppingListId = Number(target.dataset.noteShoppingListId || '');
-    if (!Number.isFinite(shoppingListId) || shoppingListId <= 0) return;
-
-    const productName = decodeURIComponent(target.dataset.noteProductName || '');
-    const currentNote = decodeURIComponent(target.dataset.noteCurrent || '');
-    openShoppingNoteEditor(shoppingListId, productName, currentNote);
-    return;
-  }
 
   const shoppingListId = Number(target.dataset.mhdShoppingListId || '');
   if (!Number.isFinite(shoppingListId) || shoppingListId <= 0) return;
@@ -1306,6 +1296,14 @@ applyTheme(savedTheme);
 updateClearButtonVisibility();
 const addMissingButton = document.getElementById('recipe-add-missing-button');
 if (addMissingButton) addMissingButton.addEventListener('click', addMissingRecipeProducts);
+
+document.addEventListener('keydown', (event) => {
+  if (event.key !== 'Escape') return;
+  if (isScannerModalVisible()) {
+    closeScannerModal();
+  }
+});
+
 switchTab('shopping');
 loadShoppingList();
 preloadRecipeSuggestionsOnStartup();
@@ -1470,6 +1468,141 @@ async function loadStockProducts() {
   }
 
   });
+}
+
+
+function getStorageStatusElement() {
+  return document.getElementById('status-storage');
+}
+
+function normalizeStorageFilterValue() {
+  const input = document.getElementById('storage-filter-input');
+  return String(input?.value || '').trim().toLowerCase();
+}
+
+function renderStorageProducts() {
+  const list = document.getElementById('storage-products');
+  if (!list) return;
+
+  const filterValue = normalizeStorageFilterValue();
+  const filteredItems = storageProductsCache.filter((item) => {
+    if (!filterValue) return true;
+    const searchable = `${item.name || ''} ${item.location_name || ''}`.toLowerCase();
+    return searchable.includes(filterValue);
+  });
+
+  if (!filteredItems.length) {
+    list.innerHTML = '<li class="muted">Keine Produkte gefunden.</li>';
+    return;
+  }
+
+  list.innerHTML = filteredItems.map((item) => {
+    const hasStockId = Number(item.stock_id || 0) > 0;
+    const disabledAttr = hasStockId ? '' : ' disabled';
+    const disabledTitle = hasStockId ? '' : ' title="Für diesen Eintrag ist keine Bestand-ID verfügbar"';
+    return `
+    <li>
+      <div class="storage-item-main">
+        <strong>${escapeHtml(item.name || 'Unbekanntes Produkt')}</strong>
+        <div class="muted">Lager: ${escapeHtml(item.location_name || '-')} · Menge: ${escapeHtml(formatBadgeValue(item.amount, '0'))} · MHD: ${escapeHtml(formatBadgeValue(item.best_before_date, '-'))}</div>
+      </div>
+      <div class="storage-item-actions">
+        <button class="danger-button storage-action-button" type="button" onclick="consumeStorageProduct(${Number(item.stock_id || 0)})"${disabledAttr}${disabledTitle}>Verbrauchen</button>
+        <button class="ghost-button storage-action-button" type="button" onclick="openStorageEditModal(${Number(item.stock_id || 0)})"${disabledAttr}${disabledTitle}>Ändern</button>
+      </div>
+    </li>
+  `;
+  }).join('');
+}
+
+async function loadStorageProducts() {
+  return withBusyState(async () => {
+    const key = ensureApiKey();
+    const status = getStorageStatusElement();
+    if (!key) {
+      status.textContent = 'Kein API-Key angegeben.';
+      return;
+    }
+
+    status.textContent = 'Lade Lagerbestand...';
+    try {
+      const res = await fetch(buildApiUrl('/api/dashboard/stock-products'), { headers: { Authorization: `Bearer ${key}` } });
+      const payload = await parseJsonSafe(res);
+      if (!res.ok) throw new Error(getErrorMessage(payload, 'Bestand konnte nicht geladen werden.'));
+      storageProductsCache = Array.isArray(payload) ? payload : [];
+      renderStorageProducts();
+      const missingStockIds = storageProductsCache.filter((item) => Number(item.stock_id || 0) <= 0).length;
+      status.textContent = missingStockIds > 0
+        ? `Lagerbestand geladen (${missingStockIds} Einträge ohne Bearbeitungs-ID).`
+        : 'Lagerbestand geladen.';
+    } catch (error) {
+      status.textContent = `Fehler: ${error.message}`;
+    }
+  });
+}
+
+async function consumeStorageProduct(stockId) {
+  const status = getStorageStatusElement();
+  const key = ensureApiKey();
+  if (!key) return;
+
+  try {
+    const res = await fetch(buildApiUrl(`/api/dashboard/stock-products/${encodeURIComponent(stockId)}/consume`), {
+      method: 'POST',
+      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ amount: 1 }),
+    });
+    const payload = await parseJsonSafe(res);
+    if (!res.ok) throw new Error(getErrorMessage(payload, 'Produkt konnte nicht verbraucht werden.'));
+    status.textContent = 'Produkt wurde verbraucht.';
+    await loadStorageProducts();
+  } catch (error) {
+    status.textContent = `Fehler: ${error.message}`;
+  }
+}
+
+function openStorageEditModal(stockId) {
+  const stockItem = storageProductsCache.find((item) => Number(item.stock_id) === Number(stockId));
+  if (!stockItem) return;
+  storageEditingItem = stockItem;
+  document.getElementById('storage-edit-modal-title').textContent = `Bestand ändern: ${stockItem.name}`;
+  document.getElementById('storage-edit-amount').value = String(stockItem.amount || '0').replace(',', '.');
+  document.getElementById('storage-edit-best-before').value = stockItem.best_before_date || '';
+  document.getElementById('storage-edit-modal').classList.remove('hidden');
+  syncModalScrollLock();
+}
+
+function closeStorageEditModal() {
+  storageEditingItem = null;
+  document.getElementById('storage-edit-modal').classList.add('hidden');
+  syncModalScrollLock();
+}
+
+async function saveStorageEditModal() {
+  if (!storageEditingItem) return;
+  const status = getStorageStatusElement();
+  const amount = Number(document.getElementById('storage-edit-amount').value);
+  const bestBeforeDate = document.getElementById('storage-edit-best-before').value || '';
+
+  if (!Number.isFinite(amount) || amount < 0) {
+    status.textContent = 'Bitte eine gültige Menge eingeben.';
+    return;
+  }
+
+  try {
+    const res = await fetch(buildApiUrl(`/api/dashboard/stock-products/${encodeURIComponent(storageEditingItem.stock_id)}`), {
+      method: 'PUT',
+      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ amount, best_before_date: bestBeforeDate }),
+    });
+    const payload = await parseJsonSafe(res);
+    if (!res.ok) throw new Error(getErrorMessage(payload, 'Bestand konnte nicht aktualisiert werden.'));
+    closeStorageEditModal();
+    status.textContent = 'Bestand wurde aktualisiert.';
+    await loadStorageProducts();
+  } catch (error) {
+    status.textContent = `Fehler: ${error.message}`;
+  }
 }
 
 function preloadRecipeSuggestionsOnStartup() {
@@ -1756,13 +1889,19 @@ async function queryLlavaWithCurrentFrame(reason = 'manual') {
   }
 }
 
+
+function isScannerModalVisible() {
+  const modal = document.getElementById('scanner-modal');
+  return Boolean(modal && !modal.classList.contains('hidden'));
+}
+
 function scheduleLlavaFallback() {
   if (scannerLlavaTimer) {
     clearTimeout(scannerLlavaTimer);
   }
   const waitMs = getScannerLlavaDelaySeconds() * 1000;
   scannerLlavaTimer = setTimeout(() => {
-    if (activeTab !== 'scanner' || !scannerStream) return;
+    if (!isScannerModalVisible() || !scannerStream) return;
     const elapsed = Date.now() - scannerLastBarcodeAt;
     if (elapsed >= waitMs - 100) {
       queryLlavaWithCurrentFrame('timeout');
@@ -1855,7 +1994,7 @@ async function startBarcodeScanner() {
     }
 
     scannerInterval = setInterval(async () => {
-      if (activeTab !== 'scanner') return;
+      if (!isScannerModalVisible()) return;
       if (!video.videoWidth || !video.videoHeight) return;
 
       if (scannerDetector) {
