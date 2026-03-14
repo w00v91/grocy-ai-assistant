@@ -286,49 +286,67 @@ body.modal-open {
 
 .notification-rule-item {
   display: grid;
-  gap: 0.6rem;
+  grid-template-columns: minmax(180px, 1fr) minmax(280px, 1.6fr) minmax(130px, 0.8fr);
+  align-items: start;
+  gap: 0.8rem;
+  border-radius: 14px;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid var(--item-border);
+  background: var(--item-bg);
 }
 
-.notification-rule-main {
-  flex: 1;
+.notification-rule-name {
+  min-width: 0;
+  display: grid;
+  align-items: center;
+  padding-top: 0.15rem;
+}
+
+.notification-rule-name strong {
+  display: block;
+  font-size: 1rem;
+  line-height: 1.28;
+}
+
+.notification-rule-meta {
+  display: grid;
+  gap: 0.38rem;
   min-width: 0;
 }
 
-.notification-rule-main strong {
-  font-size: 1rem;
-  line-height: 1.2;
-}
-
-.notification-rule-badges {
-  margin-left: auto;
+.notification-rule-meta-row {
   display: grid;
-  gap: 0.4rem;
-  justify-items: stretch;
-  width: 100%;
-  max-width: 33.333%;
+  grid-template-columns: minmax(82px, 100px) minmax(0, 1fr);
+  gap: 0.45rem;
+  align-items: start;
 }
 
-.notification-rule-badges .badge {
-  margin-left: 0;
-  width: 100%;
-  box-sizing: border-box;
-  text-align: center;
+.notification-rule-meta-label {
+  color: var(--muted-text);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.notification-rule-meta-value {
+  font-size: 0.88rem;
+  line-height: 1.3;
 }
 
 .notification-rule-item-actions {
-  display: flex;
-  justify-content: flex-start;
-  flex-wrap: wrap;
-  gap: 0.35rem;
+  display: grid;
+  gap: 0.45rem;
+  justify-items: stretch;
 }
 
 .notification-action-button {
   margin-top: 0;
-  width: auto;
+  width: 100%;
   min-width: 0;
   border-radius: var(--radius-pill);
-  padding: 0.3rem 0.62rem;
-  font-size: 0.82rem;
+  padding: 0.4rem 0.78rem;
+  font-size: 0.8rem;
   font-weight: 700;
   border: 1px solid transparent;
   box-shadow: none;
@@ -1407,10 +1425,22 @@ h3 {
   overflow-wrap: anywhere;
 }
 
-@media (max-width: 700px) {
-  .notification-rule-item-actions {
-    flex-wrap: wrap;
+@media (max-width: 900px) {
+  .notification-rule-item {
+    grid-template-columns: 1fr;
   }
+
+  .notification-rule-item-actions {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 700px) {
+  .notification-rule-meta-row {
+    grid-template-columns: 1fr;
+    gap: 0.16rem;
+  }
+
   .storage-item-actions {
     width: 100%;
     margin-left: 0;
