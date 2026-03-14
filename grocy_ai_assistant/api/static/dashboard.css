@@ -286,55 +286,26 @@ body.modal-open {
 
 .notification-rule-item {
   display: grid;
-  gap: 0.7rem;
-  border-radius: 18px;
-  padding: 0.85rem 0.95rem;
-  border: 1px solid color-mix(in srgb, var(--item-border) 72%, transparent);
-  background:
-    linear-gradient(160deg, color-mix(in srgb, var(--item-bg) 82%, transparent), color-mix(in srgb, var(--badge-bg) 68%, transparent));
+  gap: 0.6rem;
 }
 
 .notification-rule-main {
   flex: 1;
   min-width: 0;
-  display: grid;
-  gap: 0.35rem;
-}
-
-.notification-rule-main-header {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.notification-rule-icon {
-  width: 1.7rem;
-  height: 1.7rem;
-  border-radius: 999px;
-  display: inline-grid;
-  place-items: center;
-  font-size: 0.9rem;
-  background: color-mix(in srgb, var(--accent-primary-soft) 72%, var(--badge-bg));
-  border: 1px solid color-mix(in srgb, var(--accent-primary) 35%, transparent);
 }
 
 .notification-rule-main strong {
-  font-size: 1.02rem;
+  font-size: 1rem;
   line-height: 1.2;
-  letter-spacing: -0.01em;
-}
-
-.notification-rule-events {
-  font-size: 0.9rem;
 }
 
 .notification-rule-badges {
   margin-left: auto;
   display: grid;
-  gap: 0.45rem;
+  gap: 0.4rem;
   justify-items: stretch;
   width: 100%;
-  max-width: 40%;
+  max-width: 33.333%;
 }
 
 .notification-rule-badges .badge {
@@ -342,37 +313,30 @@ body.modal-open {
   width: 100%;
   box-sizing: border-box;
   text-align: center;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.35rem;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--badge-bg) 78%, transparent);
-  border: 1px solid color-mix(in srgb, var(--item-border) 70%, transparent);
 }
 
 .notification-rule-item-actions {
   display: flex;
   justify-content: flex-start;
   flex-wrap: wrap;
-  gap: 0.45rem;
+  gap: 0.35rem;
 }
 
 .notification-action-button {
   margin-top: 0;
   width: auto;
   min-width: 0;
-  border-radius: 999px;
-  padding: 0.4rem 0.78rem;
-  font-size: 0.8rem;
+  border-radius: var(--radius-pill);
+  padding: 0.3rem 0.62rem;
+  font-size: 0.82rem;
   font-weight: 700;
   border: 1px solid transparent;
   box-shadow: none;
 }
 
 .notification-action-button:hover {
-  transform: translateY(-1px);
-  filter: saturate(1.06);
+  transform: none;
+  filter: none;
 }
 
 .notification-action-button-edit {
@@ -1444,10 +1408,6 @@ h3 {
 }
 
 @media (max-width: 700px) {
-  .notification-rule-badges {
-    max-width: 100%;
-  }
-
   .notification-rule-item-actions {
     flex-wrap: wrap;
   }
