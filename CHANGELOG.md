@@ -2,6 +2,20 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.30
+
+- Fix (Grocy-Bildupload): Upload-Request an Grocy-Datei-Endpunkte enthält jetzt zusätzlich `Accept: */*` (entsprechend funktionierendem `curl`-Aufruf).
+- Fix (Grocy-Bildupload): Bei `405`/`404` wird pro Upload-URL zuerst `PUT`, dann `POST` probiert, bevor zur nächsten Fallback-URL gewechselt wird.
+- Test: Unit-Tests für Header-Setzung sowie Fallback-Reihenfolge (`PUT` -> `POST` -> URL-Fallback) ergänzt.
+- Pflege: Add-on-Version auf `7.1.30` erhöht.
+
+## 7.1.29
+
+- Fix (Grocy-Bildupload): HTTP-Fehlerauswertung beim Upload-Fallback korrigiert, damit auch echte `requests.Response`-Objekte mit Status `>=400` (falsey) den Statuscode korrekt liefern.
+- Fix (Grocy-Bildupload): Fallback von `/api/files/...` auf `/files/...` greift dadurch zuverlässig bei `405`/`404`.
+- Test: Upload-Fallback-Test erweitert, um das falsey-Verhalten von `requests.Response` bei Fehlerstatus abzubilden.
+- Pflege: Add-on-Version auf `7.1.29` erhöht.
+
 ## 7.1.28
 
 - Fix (Grocy-Bildupload): Produktbild-Upload versucht bei `404/405` auf `/api/files/...` jetzt automatisch einen Fallback auf `/files/...` ohne `/api`-Präfix.

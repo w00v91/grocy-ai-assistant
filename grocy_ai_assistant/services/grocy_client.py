@@ -294,21 +294,26 @@ class GrocyClient:
         upload_headers = {
             "GROCY-API-KEY": self.settings.grocy_api_key,
             "Content-Type": "application/octet-stream",
+            "Accept": "*/*",
         }
         primary_upload_url = (
             f"{self.settings.grocy_base_url}/files/productpictures/{file_name}"
         )
-        upload_candidates = [primary_upload_url]
+        upload_urls = [primary_upload_url]
 
         stripped_base_url = self.settings.grocy_base_url.rstrip("/")
         if stripped_base_url.endswith("/api"):
-            upload_candidates.append(
-                f"{stripped_base_url[:-4]}/files/productpictures/{file_name}"
-            )
+            upload_urls.append(f"{stripped_base_url[:-4]}/files/productpictures/{file_name}")
 
-        for index, upload_url in enumerate(upload_candidates):
+        upload_attempts: list[tuple[str, str]] = []
+        for upload_url in upload_urls:
+            upload_attempts.append(("PUT", upload_url))
+            upload_attempts.append(("POST", upload_url))
+
+        for index, (upload_method, upload_url) in enumerate(upload_attempts):
             try:
-                upload_response = requests.put(
+                request_fn = requests.put if upload_method == "PUT" else requests.post
+                upload_response = request_fn(
                     upload_url,
                     headers=upload_headers,
                     data=image_bytes,
@@ -317,15 +322,20 @@ class GrocyClient:
                 upload_response.raise_for_status()
                 break
             except HTTPError as error:
-                status_code = error.response.status_code if error.response else None
+                status_code = (
+                    error.response.status_code
+                    if error.response is not None
+                    else None
+                )
                 should_retry = (
-                    index < len(upload_candidates) - 1
+                    index < len(upload_attempts) - 1
                     and status_code in {404, 405}
                 )
                 if not should_retry:
                     raise
                 logger.warning(
-                    "Produktbild-Upload über %s fehlgeschlagen (%s), versuche Fallback-URL",
+                    "Produktbild-Upload über %s %s fehlgeschlagen (%s), versuche Fallback",
+                    upload_method,
                     upload_url,
                     status_code,
                 )
