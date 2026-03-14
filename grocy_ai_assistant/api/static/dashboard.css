@@ -270,6 +270,32 @@ body.modal-open {
   padding: 0.65rem 0.75rem;
 }
 
+
+.notification-rule-modal-content {
+  width: min(760px, calc(100% - 1.5rem));
+}
+
+.notification-rule-modal-description {
+  margin-top: 0;
+  margin-bottom: 0.8rem;
+}
+
+.notification-rule-editor label {
+  display: grid;
+  gap: 0.35rem;
+  font-weight: 600;
+}
+
+.notification-rule-editor select[multiple] {
+  min-height: 8rem;
+  padding: 0.45rem;
+}
+
+.notification-rule-actions {
+  margin-top: 0.35rem;
+  justify-content: flex-end;
+}
+
 .tab-button {
   border-radius: 999px;
   border: 1px solid transparent;

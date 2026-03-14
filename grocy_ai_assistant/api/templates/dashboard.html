@@ -204,9 +204,10 @@
 
     <div id='notification-rule-modal' class='shopping-modal hidden'>
       <div class='shopping-modal-backdrop' onclick='closeNotificationRuleModal()'></div>
-      <section class='shopping-modal-content card'>
+      <section class='shopping-modal-content card notification-rule-modal-content'>
         <button class='shopping-modal-close' type='button' onclick='closeNotificationRuleModal()' aria-label='Regel-Dialog schließen'>×</button>
-        <h3>Neue Regel</h3>
+        <h3 id='notification-rule-modal-title'>Neue Regel</h3>
+        <p class='muted notification-rule-modal-description'>Lege fest, bei welchen Ereignissen welche Geräte benachrichtigt werden.</p>
         <div class='notification-rule-editor'>
           <input id='notify-rule-name' placeholder='Regelname' />
           <label for='notify-rule-events'>Events
@@ -230,7 +231,10 @@
           </label>
           <input id='notify-rule-cooldown' type='number' min='0' placeholder='Cooldown in Sekunden' />
           <textarea id='notify-rule-template' placeholder='Template, z.B. ${message}'></textarea>
-          <button class='success-button' type='button' onclick='createNotificationRule()'>Regel anlegen</button>
+          <div class='button-row notification-rule-actions'>
+            <button class='success-button' id='notify-rule-submit-button' type='button' onclick='saveNotificationRule()'>Regel anlegen</button>
+            <button class='ghost-button' type='button' onclick='closeNotificationRuleModal()'>Abbrechen</button>
+          </div>
         </div>
       </section>
     </div>
