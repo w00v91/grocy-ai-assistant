@@ -30,7 +30,13 @@ DATA_NOTIFICATION_MANAGER = "notification_manager"
 class NotificationManager:
     """Entry-scoped notification orchestration service."""
 
-    def __init__(self, hass: HomeAssistant, entry_id: str) -> None:
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        entry_id: str,
+        *,
+        global_notifications_enabled: bool = True,
+    ) -> None:
         self._hass = hass
         self._entry_id = entry_id
         self._store = NotificationStore(hass, entry_id)
@@ -38,6 +44,7 @@ class NotificationManager:
         self._rules = NotificationRuleEngine()
         self._settings = NotificationSettings()
         self._history = []
+        self._global_notifications_enabled = bool(global_notifications_enabled)
 
     @property
     def settings(self) -> NotificationSettings:
@@ -52,6 +59,7 @@ class NotificationManager:
         self._settings = settings
         self._history = history
         await self.async_refresh_targets()
+        self._settings.preferences.enabled = self._global_notifications_enabled
 
         if not self._settings.rules:
             self._settings.rules = [_default_rule()]

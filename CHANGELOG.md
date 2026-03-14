@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.15
+
+- UI: Die globale Notification-Option „Benachrichtigungen global aktiv" wurde aus dem Dashboard entfernt und als Hinweis in den Bereich „Optionen" übernommen.
+- Integration: Neue Home-Assistant-Option `notification_global_enabled` ergänzt, um Benachrichtigungen global über die Integrations-Optionen zu aktivieren/deaktivieren.
+- Logik: NotificationManager übernimmt den globalen Aktivierungsstatus aus den Integrations-Optionen und setzt damit die globale Notification-Freigabe zentral.
+- Pflege: Add-on-Version auf `7.1.15` erhöht.
+
 ## 7.1.14
 
 - UI: Badges in der Einkaufsliste auf eine einheitliche Breite gebracht, damit „Menge“ und „MHD" konsistent groß angezeigt werden.
