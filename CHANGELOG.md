@@ -17,6 +17,13 @@ All notable changes to this project are documented in this file.
 - API: Bild-Proxy (`/api/dashboard/product-picture`) um den Query-Parameter `size` erweitert (`thumb`/`full`) und ruft bei Grocy nun unterschiedliche Zielgrößen via `best_fit_width`/`best_fit_height` ab.
 - UI: Thumbnail-Kontexte (Listen/Karten) bleiben bei `size=thumb`, während Volldarstellungen (Rezept-Modal und Lager-Produktbild im Bearbeiten-Dialog) explizit `size=full` anfordern, damit kleine Vorschauen keine großen Bilder mehr laden.
 - Pflege: Add-on-Version auf `7.1.48` erhöht.
+- UI (Einkaufsliste): Im Produkt-Popup wurde der Button `Speichern` in eine eigene Zeile unterhalb des Notizfeldes verschoben.
+- Pflege: Add-on-Version auf `7.1.48` erhöht.
+- UI (Einkaufsliste): Im Produkt-Popup steht der Button `Speichern` für die Mengenbearbeitung jetzt in einer eigenen Zeile unter dem Mengenfeld.
+- UI (Notify-Tab): Layout der Regeln vollständig auf ein 3-Spalten-Raster umgestellt (`Name | Priorität/Ereignisse/Kanäle/Cooldown | Buttons`) für bessere Struktur und passendere Einbindung ins bestehende Dashboard.
+- UI (Notify-Tab): Metadaten werden nun untereinander mit klaren Labels dargestellt (Priorität, Ereignisse, Kanäle, Cooldown).
+- UI (Notify-Tab): Aktions-Buttons pro Regel werden untereinander angezeigt und konsistent an die Kartenbreite angepasst.
+- Pflege: Add-on-Version auf `7.1.47` erhöht.
 
 ## 7.1.47
 
@@ -24,21 +31,6 @@ All notable changes to this project are documented in this file.
 - UI (Popup „Bestand ändern"): Neuer Button „Produktbild löschen" ergänzt, um das Bild eines Produkts direkt im Bearbeiten-Dialog zu entfernen.
 - API: Neuer Endpoint `DELETE /api/dashboard/products/{product_id}/picture` zum Entfernen des Produktbilds.
 - Service: `GrocyClient.clear_product_picture(...)` ergänzt und per Tests abgesichert.
-- Pflege: Add-on-Version auf `7.1.47` erhöht.
-
-## 7.1.46
-
-## 7.1.47
-
-## 7.1.48
-
-- UI (Einkaufsliste): Im Produkt-Popup wurde der Button `Speichern` in eine eigene Zeile unterhalb des Notizfeldes verschoben.
-- Pflege: Add-on-Version auf `7.1.48` erhöht.
-
-- UI (Einkaufsliste): Im Produkt-Popup steht der Button `Speichern` für die Mengenbearbeitung jetzt in einer eigenen Zeile unter dem Mengenfeld.
-- UI (Notify-Tab): Layout der Regeln vollständig auf ein 3-Spalten-Raster umgestellt (`Name | Priorität/Ereignisse/Kanäle/Cooldown | Buttons`) für bessere Struktur und passendere Einbindung ins bestehende Dashboard.
-- UI (Notify-Tab): Metadaten werden nun untereinander mit klaren Labels dargestellt (Priorität, Ereignisse, Kanäle, Cooldown).
-- UI (Notify-Tab): Aktions-Buttons pro Regel werden untereinander angezeigt und konsistent an die Kartenbreite angepasst.
 - Pflege: Add-on-Version auf `7.1.47` erhöht.
 
 ## 7.1.46
