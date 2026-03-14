@@ -1017,6 +1017,7 @@ function bindShoppingSwipeInteractions() {
   const items = document.querySelectorAll('#shopping-list .shopping-item');
   const commitDistance = 75;
   const maxDistance = 132;
+  const interactiveElementSelector = '.amount-increment-button, .mhd-picker-button';
 
   const resetSwipeState = (item) => {
     item.classList.remove('dragging', 'swipe-commit-left', 'swipe-commit-right');
@@ -1035,7 +1036,7 @@ function bindShoppingSwipeInteractions() {
     resetSwipeState(item);
 
     item.addEventListener('pointerdown', (event) => {
-      if (event.target.closest('.mhd-picker-button')) {
+      if (event.target.closest(interactiveElementSelector)) {
         return;
       }
 

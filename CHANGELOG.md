@@ -4,6 +4,8 @@ All notable changes to this project are documented in this file.
 
 ## 7.1.23
 
+- Fix: Klick auf den Badge „Menge" in der Einkaufsliste öffnet nicht mehr das Produkt-Popup, sondern erhöht zuverlässig die Menge des Eintrags.
+- Fix: Swipe-/Pointer-Interaktion ignoriert jetzt alle interaktiven Badge-Buttons in Listeneinträgen, damit Button-Klicks nicht als Item-Tap verarbeitet werden.
 - Fix (Lager-Dashboard): Produkte ohne `stock_id` werden nicht mehr vollständig ausgeblendet; sie werden jetzt in der Liste angezeigt.
 - UX (Lager-Dashboard): Aktionen „Verbrauchen“ und „Ändern“ sind für Einträge ohne Bearbeitungs-ID deaktiviert und mit Hinweis versehen.
 - UX (Lager-Dashboard): Statusmeldung zeigt an, wenn Einträge ohne Bearbeitungs-ID geladen wurden.
