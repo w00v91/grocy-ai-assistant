@@ -1,3 +1,4 @@
+from datetime import date, timedelta
 import requests
 from grocy_ai_assistant.api import routes
 
@@ -720,6 +721,68 @@ def test_recipe_suggestions_returns_empty_when_no_stock_products(client, monkeyp
         "grocy_recipes": [],
         "ai_recipes": [],
     }
+
+
+def test_recipe_suggestions_soon_expiring_handles_string_ids_and_datetime_dates(
+    client, monkeypatch
+):
+    def fake_get_stock_products(self, location_ids=None):
+        return [
+            {"id": 1, "name": "Tomate", "location_name": "Kühlschrank", "amount": "2"},
+            {"id": 2, "name": "Nudeln", "location_name": "Vorrat", "amount": "1"},
+        ]
+
+    def fake_get_stock_entries(self, location_ids=None):
+        soon_1 = (date.today() + timedelta(days=1)).isoformat()
+        soon_2 = (date.today() + timedelta(days=2)).isoformat()
+        return [
+            {
+                "product_id": "1",
+                "best_before_date": f"{soon_1} 00:00:00",
+            },
+            {
+                "product_id": "2",
+                "best_before_date": f"{soon_2}T12:34:56",
+            },
+        ]
+
+    def fake_get_recipes(self):
+        return [{"id": 10, "name": "Tomaten Pasta", "description": "Pasta kochen"}]
+
+    class FakeDetector:
+        def __init__(self, settings):
+            self.settings = settings
+
+        def generate_recipe_suggestions(
+            self, selected_products, existing_recipe_titles
+        ):
+            assert selected_products == ["Tomate", "Nudeln"]
+            return [{"title": "Tomaten-Nudel-Pfanne", "reason": "Vorrat passt"}]
+
+    monkeypatch.setattr(
+        routes.GrocyClient, "get_stock_products", fake_get_stock_products
+    )
+    monkeypatch.setattr(routes.GrocyClient, "get_stock_entries", fake_get_stock_entries)
+    monkeypatch.setattr(routes.GrocyClient, "get_recipes", fake_get_recipes)
+    monkeypatch.setattr(
+        routes.GrocyClient, "get_missing_recipe_products", lambda self, recipe_id: []
+    )
+    monkeypatch.setattr(
+        routes.GrocyClient,
+        "get_recipe_ingredients",
+        lambda self, recipe_id: ["100 g Tomate"],
+    )
+    monkeypatch.setattr(routes, "IngredientDetector", FakeDetector)
+
+    response = client.post(
+        "/api/dashboard/recipe-suggestions",
+        headers={"Authorization": "Bearer test-api-key"},
+        json={"product_ids": [], "soon_expiring_only": True, "expiring_within_days": 3},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["selected_products"] == ["Tomate", "Nudeln"]
 
 
 def test_recipe_suggestions_generates_fallback_when_ai_returns_nothing(

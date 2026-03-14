@@ -7,6 +7,9 @@ All notable changes to this project are documented in this file.
 - UI (Lager-Tab): Produktkarten im Lager auf ein festes 3-Spalten-Grid umgestellt (`Bild | Name/Beschreibung | Buttons`).
 - UI (Lager-Tab): Name und Beschreibung werden jetzt explizit untereinander dargestellt.
 - UI (Lager-Tab): Aktions-Buttons (`Bearbeiten`, `Verbrauchen`) pro Produkt werden vertikal untereinander angezeigt.
+- Fix (Rezepte/"Bald ablaufend"): Filter verarbeitet `product_id` jetzt robust auch als String, sodass ablaufende Produkte nicht fälschlich ausgeschlossen werden.
+- Fix (Rezepte/"Bald ablaufend"): MHD-Werte mit Zeitanteil (z. B. `YYYY-MM-DD HH:MM:SS` oder ISO mit `T`) werden korrekt als Datum erkannt.
+- Test: API-Test ergänzt, der String-IDs und Datumswerte mit Zeitanteil für den "bald ablaufend"-Pfad absichert.
 - Pflege: Add-on-Version auf `7.1.49` erhöht.
 
 ## 7.1.48
