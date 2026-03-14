@@ -611,7 +611,6 @@ function renderShoppingList(items) {
         </div>
         <div class="shopping-item-badges">
           <button type="button" class="badge amount-increment-button" data-shopping-list-id="${item.id}">Menge: ${formatBadgeValue(item.amount, '-')}</button>
-          <button type="button" class="badge shopping-note-button" data-note-shopping-list-id="${item.id}" data-note-product-name="${encodeURIComponent(item.product_name || '')}" data-note-current="${encodeURIComponent(item.note || '')}">Notiz bearbeiten</button>
           <button type="button" class="badge mhd-picker-button" data-mhd-shopping-list-id="${item.id}" data-mhd-product-name="${encodeURIComponent(item.product_name || '')}" data-mhd-current-date="${item.best_before_date || ''}">${item.best_before_date ? `MHD: ${item.best_before_date}` : 'MHD wählen'}</button>
         </div>
       </div>
@@ -848,47 +847,38 @@ function showShoppingItemDetails(item) {
       </ul>
     </section>
   `;
+  openShoppingNoteEditor(item.id, item.note || '');
   modal.classList.remove('hidden');
   syncModalScrollLock();
 }
 
 
 let activeShoppingNoteItemId = null;
+let activeShoppingNoteValue = '';
 
-function openShoppingNoteEditor(shoppingListId, productName, currentNote = '') {
-  const modal = document.getElementById('shopping-note-modal');
-  const title = document.getElementById('shopping-note-modal-title');
-  const input = document.getElementById('shopping-note-input');
-
+function openShoppingNoteEditor(shoppingListId, currentNote = '') {
   activeShoppingNoteItemId = shoppingListId;
-  title.textContent = `Notiz bearbeiten: ${productName || 'Produkt'}`;
-  input.value = currentNote || '';
-  modal.classList.remove('hidden');
+  activeShoppingNoteValue = String(currentNote || '').trim();
+  const input = document.getElementById('shopping-item-note-input');
+  if (input) input.value = currentNote || '';
 }
 
-function closeShoppingNoteEditor() {
-  activeShoppingNoteItemId = null;
-  document.getElementById('shopping-note-modal').classList.add('hidden');
-}
-
-async function saveShoppingNote() {
+async function saveShoppingNote(shoppingListId, note) {
   const key = ensureApiKey();
   const status = getShoppingStatusElement();
-  const input = document.getElementById('shopping-note-input');
-  const note = String(input?.value || '').trim();
 
   if (!key) {
     status.textContent = 'Kein API-Key angegeben.';
-    return;
+    return false;
   }
-  if (!activeShoppingNoteItemId) {
+  if (!shoppingListId) {
     status.textContent = 'Einkaufslisten-Eintrag fehlt.';
-    return;
+    return false;
   }
 
   status.textContent = 'Speichere Notiz...';
   try {
-    const res = await fetch(buildApiUrl(`/api/dashboard/shopping-list/item/${activeShoppingNoteItemId}/note`), {
+    const res = await fetch(buildApiUrl(`/api/dashboard/shopping-list/item/${shoppingListId}/note`), {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
       body: JSON.stringify({ note }),
@@ -897,14 +887,15 @@ async function saveShoppingNote() {
 
     if (!res.ok) {
       status.textContent = getErrorMessage(payload, 'Notiz konnte nicht gespeichert werden.');
-      return;
+      return false;
     }
 
     status.textContent = payload.message || 'Notiz gespeichert.';
-    closeShoppingNoteEditor();
-    await loadShoppingList();
+    activeShoppingNoteValue = note;
+    return true;
   } catch (_) {
     status.textContent = 'Notiz konnte nicht gespeichert werden (Netzwerk-/Ingress-Fehler).';
+    return false;
   }
 }
 
@@ -967,8 +958,21 @@ async function saveMhdPickerDate() {
   }
 }
 
-function closeShoppingItemDetails() {
-  document.getElementById('shopping-item-modal').classList.add('hidden');
+async function closeShoppingItemDetails() {
+  const modal = document.getElementById('shopping-item-modal');
+  const input = document.getElementById('shopping-item-note-input');
+  const note = String(input?.value || '').trim();
+
+  if (activeShoppingNoteItemId && note !== activeShoppingNoteValue) {
+    const saved = await saveShoppingNote(activeShoppingNoteItemId, note);
+    if (saved) {
+      await loadShoppingList();
+    }
+  }
+
+  activeShoppingNoteItemId = null;
+  activeShoppingNoteValue = '';
+  modal.classList.add('hidden');
   syncModalScrollLock();
 }
 
@@ -994,7 +998,7 @@ function bindShoppingSwipeInteractions() {
     resetSwipeState(item);
 
     item.addEventListener('pointerdown', (event) => {
-      if (event.target.closest('.mhd-picker-button') || event.target.closest('.shopping-note-button')) {
+      if (event.target.closest('.mhd-picker-button')) {
         return;
       }
 
@@ -1221,20 +1225,10 @@ document.getElementById('shopping-list').addEventListener('click', async (event)
 });
 
 document.getElementById('shopping-list').addEventListener('click', (event) => {
-  const target = event.target.closest('.shopping-note-button, .mhd-picker-button');
+  const target = event.target.closest('.mhd-picker-button');
   if (!target) return;
 
   event.stopPropagation();
-
-  if (target.classList.contains('shopping-note-button')) {
-    const shoppingListId = Number(target.dataset.noteShoppingListId || '');
-    if (!Number.isFinite(shoppingListId) || shoppingListId <= 0) return;
-
-    const productName = decodeURIComponent(target.dataset.noteProductName || '');
-    const currentNote = decodeURIComponent(target.dataset.noteCurrent || '');
-    openShoppingNoteEditor(shoppingListId, productName, currentNote);
-    return;
-  }
 
   const shoppingListId = Number(target.dataset.mhdShoppingListId || '');
   if (!Number.isFinite(shoppingListId) || shoppingListId <= 0) return;
