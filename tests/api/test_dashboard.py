@@ -884,6 +884,7 @@ def test_add_missing_recipe_products_adds_to_shopping_list(client, monkeypatch):
     assert captured == [(1, 1), (2, 1)]
 
 
+
 def test_dashboard_contains_recipe_section(client):
     response = client.get("/")
 
@@ -900,6 +901,7 @@ def test_dashboard_contains_recipe_section(client):
         "/api/dashboard/recipe/${activeRecipeItem.recipe_id}/add-missing"
         in js_response.text
     )
+
 
 
 def test_dashboard_contains_complete_button(client):
@@ -1204,12 +1206,14 @@ def test_dashboard_renders_location_dropdown_filters(client):
     assert "Lagerstandorte auswählen" in static_response.text
 
 
-def test_dashboard_contains_scanner_tab(client):
+def test_dashboard_contains_scanner_modal_trigger(client):
     response = client.get("/")
 
     assert response.status_code == 200
     assert "id='tab-scanner'" in response.text
-    assert 'switchTab("scanner")' in response.text
+    assert "id='open-scanner-modal-button'" in response.text
+    assert 'openScannerModal()' in response.text
+    assert "id='scanner-modal'" in response.text
 
 
 def test_dashboard_exposes_scanner_logic_in_js(client):

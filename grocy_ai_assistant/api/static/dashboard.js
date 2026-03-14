@@ -138,36 +138,29 @@ async function withBusyState(callback) {
 
 
 function switchTab(tabName) {
-  const allowedTabs = ['shopping', 'recipes', 'scanner', 'storage', 'notifications'];
+  const allowedTabs = ['shopping', 'recipes', 'storage', 'notifications'];
   activeTab = allowedTabs.includes(tabName) ? tabName : 'shopping';
 
   const shoppingTab = document.getElementById('tab-shopping');
   const recipesTab = document.getElementById('tab-recipes');
-  const scannerTab = document.getElementById('tab-scanner');
   const storageTab = document.getElementById('tab-storage');
   const notificationsTab = document.getElementById('tab-notifications');
   const shoppingButton = document.getElementById('tab-button-shopping');
   const recipesButton = document.getElementById('tab-button-recipes');
-  const scannerButton = document.getElementById('tab-button-scanner');
   const storageButton = document.getElementById('tab-button-storage');
   const notificationsButton = document.getElementById('tab-button-notifications');
 
   shoppingTab.classList.toggle('hidden', activeTab !== 'shopping');
   recipesTab.classList.toggle('hidden', activeTab !== 'recipes');
-  scannerTab.classList.toggle('hidden', activeTab !== 'scanner');
   storageTab.classList.toggle('hidden', activeTab !== 'storage');
   notificationsTab.classList.toggle('hidden', activeTab !== 'notifications');
   shoppingButton.classList.toggle('active', activeTab === 'shopping');
   recipesButton.classList.toggle('active', activeTab === 'recipes');
-  scannerButton.classList.toggle('active', activeTab === 'scanner');
   storageButton.classList.toggle('active', activeTab === 'storage');
   notificationsButton.classList.toggle('active', activeTab === 'notifications');
 
   if (activeTab === 'recipes' && !recipeState.initialized) {
     loadLocations();
-  }
-  if (activeTab !== 'scanner') {
-    stopBarcodeScanner();
   }
   if (activeTab === 'storage') {
     loadStorageProducts();
@@ -175,6 +168,22 @@ function switchTab(tabName) {
   if (activeTab === 'notifications') {
     loadNotificationOverview();
   }
+}
+
+
+function openScannerModal() {
+  const modal = document.getElementById('scanner-modal');
+  if (!modal) return;
+  modal.classList.remove('hidden');
+  syncModalScrollLock();
+}
+
+function closeScannerModal() {
+  const modal = document.getElementById('scanner-modal');
+  if (!modal) return;
+  modal.classList.add('hidden');
+  stopBarcodeScanner();
+  syncModalScrollLock();
 }
 
 function getNotificationStatusElement() {
@@ -1287,6 +1296,14 @@ applyTheme(savedTheme);
 updateClearButtonVisibility();
 const addMissingButton = document.getElementById('recipe-add-missing-button');
 if (addMissingButton) addMissingButton.addEventListener('click', addMissingRecipeProducts);
+
+document.addEventListener('keydown', (event) => {
+  if (event.key !== 'Escape') return;
+  if (isScannerModalVisible()) {
+    closeScannerModal();
+  }
+});
+
 switchTab('shopping');
 loadShoppingList();
 preloadRecipeSuggestionsOnStartup();
@@ -1864,13 +1881,19 @@ async function queryLlavaWithCurrentFrame(reason = 'manual') {
   }
 }
 
+
+function isScannerModalVisible() {
+  const modal = document.getElementById('scanner-modal');
+  return Boolean(modal && !modal.classList.contains('hidden'));
+}
+
 function scheduleLlavaFallback() {
   if (scannerLlavaTimer) {
     clearTimeout(scannerLlavaTimer);
   }
   const waitMs = getScannerLlavaDelaySeconds() * 1000;
   scannerLlavaTimer = setTimeout(() => {
-    if (activeTab !== 'scanner' || !scannerStream) return;
+    if (!isScannerModalVisible() || !scannerStream) return;
     const elapsed = Date.now() - scannerLastBarcodeAt;
     if (elapsed >= waitMs - 100) {
       queryLlavaWithCurrentFrame('timeout');
@@ -1963,7 +1986,7 @@ async function startBarcodeScanner() {
     }
 
     scannerInterval = setInterval(async () => {
-      if (activeTab !== 'scanner') return;
+      if (!isScannerModalVisible()) return;
       if (!video.videoWidth || !video.videoHeight) return;
 
       if (scannerDetector) {

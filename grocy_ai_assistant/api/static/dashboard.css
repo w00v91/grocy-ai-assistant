@@ -180,7 +180,7 @@ body.modal-open {
   border: 1px solid var(--card-border);
   border-radius: var(--radius-pill);
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 0.35rem;
   backdrop-filter: blur(8px);
   z-index: 40;
@@ -336,6 +336,30 @@ h1, h2 { margin: 0 0 0.75rem; }
 .section-header-stacked .ghost-button {
   width: 100%;
 }
+
+
+.scanner-popup-button {
+  margin-left: auto;
+  width: 2.35rem;
+  height: 2.35rem;
+  border: 1px solid var(--item-border);
+  border-radius: 999px;
+  background: var(--item-bg);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.scanner-popup-card {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.scanner-modal-content {
+  width: min(760px, calc(100% - 1.5rem));
+}
+
 
 .activity-spinner {
   width: 1.15rem;
