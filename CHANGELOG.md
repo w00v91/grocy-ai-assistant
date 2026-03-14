@@ -9,6 +9,10 @@ All notable changes to this project are documented in this file.
 
 ## 7.1.18
 
+- Funktion: Produktsuche versteht jetzt Mengenpräfixe wie `2 nudeln` und verwendet die erkannte Menge beim Hinzufügen zur Einkaufsliste.
+- Funktion: Variantensuche ignoriert Mengenpräfixe wie `2 apf`, sodass weiterhin passende Produkte gefunden werden.
+- UI: Bei Auswahl eines Produkts aus der Produktauswahl wird bei Eingaben wie `2 apf` ebenfalls die Menge `2` übernommen.
+- Test: API-Tests für Mengenpräfix in Suche und Variantensuche ergänzt.
 - UI: Rezeptbild im Rezept-Detail-Popup auf Standardgröße zurückgesetzt (keine erzwungene Vergrößerung mehr).
 - UI: Wrapper-Div für Rezeptbilder im Popup um eine `min-height` ergänzt, damit der Bildbereich stabil bleibt.
 - UI: Die Karte/Spalte „Optionen“ wurde aus dem Benachrichtigungs-Dashboard entfernt.

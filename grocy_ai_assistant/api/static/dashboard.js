@@ -585,6 +585,24 @@ function getShoppingBestBeforeDate() {
   return String(dateInput?.value || '').trim();
 }
 
+function parseAmountPrefixedSearch(rawValue) {
+  const value = String(rawValue || '').trim();
+  const match = value.match(/^(\d+(?:[.,]\d+)?)\s+(.+)$/);
+  if (!match) {
+    return { productName: value, amountFromName: null };
+  }
+
+  const parsedAmount = Number(match[1].replace(',', '.'));
+  if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+    return { productName: value, amountFromName: null };
+  }
+
+  return {
+    productName: match[2].trim(),
+    amountFromName: parsedAmount,
+  };
+}
+
 function renderShoppingList(items) {
   const list = document.getElementById('shopping-list');
   if (!items.length) {
@@ -722,7 +740,8 @@ async function confirmVariant(productId, productName) {
   }
 
   status.textContent = `Füge ${productName} zur Einkaufsliste hinzu...`;
-  const amount = getShoppingAmount();
+  const { amountFromName } = parseAmountPrefixedSearch(document.getElementById('name').value || '');
+  const amount = amountFromName ?? getShoppingAmount();
   const bestBeforeDate = getShoppingBestBeforeDate();
 
   try {
@@ -1136,17 +1155,18 @@ async function clearShoppingList() {
 
 async function searchProduct() {
   return withBusyState(async () => {
-  const name = document.getElementById('name').value;
+  const rawName = document.getElementById('name').value;
   const status = getShoppingStatusElement();
   const key = ensureApiKey();
-  const amount = getShoppingAmount();
+  const { productName, amountFromName } = parseAmountPrefixedSearch(rawName);
+  const amount = amountFromName ?? getShoppingAmount();
   const bestBeforeDate = getShoppingBestBeforeDate();
 
   if (!key) {
     status.textContent = 'Kein API-Key angegeben.';
     return;
   }
-  if (!name || !name.trim()) {
+  if (!productName) {
     status.textContent = 'Bitte Produktname eingeben.';
     return;
   }
@@ -1157,7 +1177,7 @@ async function searchProduct() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
       body: JSON.stringify({
-        name,
+        name: productName,
         amount,
         best_before_date: bestBeforeDate,
       })
