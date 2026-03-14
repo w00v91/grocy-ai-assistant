@@ -55,47 +55,6 @@ function getSelectedValues(selectElement) {
     .filter(Boolean);
 }
 
-
-const NOTIFICATION_EVENT_LABELS = {
-  item_added: 'Produkt hinzugefügt',
-  item_removed: 'Produkt entfernt',
-  item_checked: 'Produkt abgehakt',
-  item_unchecked: 'Produkt nicht mehr abgehakt',
-  shopping_due: 'Einkauf fällig',
-  low_stock_detected: 'Niedriger Bestand erkannt',
-  recipe_missing_items: 'Rezept hat fehlende Zutaten',
-};
-
-function getEventLabel(eventType) {
-  return NOTIFICATION_EVENT_LABELS[eventType] || eventType;
-}
-
-function escapeHtml(value) {
-  return String(value ?? '')
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#39;');
-}
-
-function renderSelectOptions(selectElement, options, selectedValues = []) {
-  if (!selectElement) return;
-  const selected = new Set((selectedValues || []).map((value) => String(value)));
-  selectElement.innerHTML = options.map((option) => {
-    const value = String(option.value);
-    const isSelected = selected.has(value) ? ' selected' : '';
-    return `<option value="${escapeHtml(value)}"${isSelected}>${escapeHtml(option.label)}</option>`;
-  }).join('');
-}
-
-function getSelectedValues(selectElement) {
-  if (!selectElement) return [];
-  return Array.from(selectElement.selectedOptions || [])
-    .map((option) => option.value.trim())
-    .filter(Boolean);
-}
-
 function lockBodyScroll() {
   if (document.body.classList.contains('modal-open')) return;
   modalScrollLockY = window.scrollY || window.pageYOffset || 0;
