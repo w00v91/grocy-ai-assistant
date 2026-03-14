@@ -94,6 +94,31 @@ def test_find_product_by_name_returns_none_when_similarity_is_too_low(monkeypatc
     assert client.find_product_by_name("schraubenzieher") is None
 
 
+def test_find_product_by_name_ignores_compound_prefix_match(monkeypatch):
+    def fake_get(*args, **kwargs):
+        return FakeResponse(
+            [
+                {"id": 1, "name": "Olivenöl"},
+                {"id": 2, "name": "Butter"},
+            ]
+        )
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.services.grocy_client.requests.get", fake_get
+    )
+
+    client = GrocyClient(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+        )
+    )
+
+    assert client.find_product_by_name("Oliven") is None
+
+
 def test_get_shopping_list_falls_back_to_objects_endpoint(monkeypatch):
     class FailingStockResponse(FakeResponse):
         status_code = 405
