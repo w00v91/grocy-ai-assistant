@@ -719,7 +719,7 @@ function renderVariants(items) {
   list.innerHTML = items.map((item) => {
     const productId = item.id ?? '';
     const source = item.source || 'grocy';
-    const sourceLabel = source === 'ai' ? 'KI-Vorschlag' : 'Grocy';
+    const sourceLabel = source === 'ai' ? 'KI-Vorschlag' : (source === 'input' ? 'Neu anlegen' : 'Grocy');
     return `
     <div class="variant-card">
       <button type="button" class="variant-select" data-product-id="${productId}" data-product-name="${encodeURIComponent(item.name)}" data-product-source="${source}">
@@ -732,6 +732,8 @@ function renderVariants(items) {
   }).join('');
 }
 
+let variantsRequestToken = 0;
+
 async function loadVariants() {
   return withBusyState(async () => {
   const key = ensureApiKey();
@@ -741,6 +743,7 @@ async function loadVariants() {
   if (!key) return;
 
   const query = name.trim();
+  const requestToken = ++variantsRequestToken;
   if (!query) {
     document.getElementById('variant-list').innerHTML = '';
     document.getElementById('variant-section').classList.add('hidden');
@@ -748,7 +751,7 @@ async function loadVariants() {
   }
 
   try {
-    const res = await fetch(buildApiUrl(`/api/dashboard/search-variants?q=${encodeURIComponent(query)}`), {
+    const res = await fetch(buildApiUrl(`/api/dashboard/search-variants?q=${encodeURIComponent(query)}&include_ai=false`), {
       headers: { 'Authorization': `Bearer ${key}` },
     });
     const payload = await parseJsonSafe(res);
@@ -758,7 +761,21 @@ async function loadVariants() {
       return;
     }
 
+    if (requestToken !== variantsRequestToken) return;
     renderVariants(payload);
+
+    const aiRes = await fetch(buildApiUrl(`/api/dashboard/search-variants?q=${encodeURIComponent(query)}&include_ai=true`), {
+      headers: { 'Authorization': `Bearer ${key}` },
+    });
+    const aiPayload = await parseJsonSafe(aiRes);
+
+    if (!aiRes.ok) {
+      status.textContent = getErrorMessage(aiPayload, 'KI-Varianten konnten nicht geladen werden.');
+      return;
+    }
+
+    if (requestToken !== variantsRequestToken) return;
+    renderVariants(aiPayload);
   } catch (_) {
     status.textContent = 'Varianten konnten nicht geladen werden (Netzwerk-/Ingress-Fehler).';
   }
@@ -1191,7 +1208,7 @@ async function clearShoppingList() {
   });
 }
 
-async function searchProduct() {
+async function searchProduct(options = {}) {
   return withBusyState(async () => {
   const rawName = document.getElementById('name').value;
   const status = getShoppingStatusElement();
@@ -1209,7 +1226,8 @@ async function searchProduct() {
     return;
   }
 
-  status.textContent = 'Prüfe Produkt...';
+  const forceCreate = options.forceCreate === true;
+  status.textContent = forceCreate ? 'Lege Produkt direkt an...' : 'Prüfe Produkt...';
   try {
     const res = await fetch(buildApiUrl('/api/dashboard/search'), {
       method: 'POST',
@@ -1218,6 +1236,7 @@ async function searchProduct() {
         name: productName,
         amount,
         best_before_date: bestBeforeDate,
+        force_create: forceCreate,
       })
     });
 
@@ -1251,6 +1270,11 @@ document.getElementById('variant-list').addEventListener('click', (event) => {
   const productId = Number(productIdRaw);
   const productName = decodeURIComponent(target.dataset.productName || '');
   const source = target.dataset.productSource || 'grocy';
+
+  if (source === 'input') {
+    searchSuggestedProduct(productName, { forceCreate: true });
+    return;
+  }
 
   if (!Number.isFinite(productId) || !productIdRaw) {
     searchSuggestedProduct(productName);
@@ -1334,11 +1358,11 @@ loadShoppingList();
 preloadRecipeSuggestionsOnStartup();
 
 
-async function searchSuggestedProduct(productName) {
+async function searchSuggestedProduct(productName, options = {}) {
   const nameInput = document.getElementById('name');
   nameInput.value = productName;
   updateClearButtonVisibility();
-  await searchProduct();
+  await searchProduct(options);
 }
 
 function getSelectedLocationIds() {

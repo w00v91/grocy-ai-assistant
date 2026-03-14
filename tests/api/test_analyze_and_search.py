@@ -172,14 +172,18 @@ def test_dashboard_search_variants_returns_partial_matches(client, monkeypatch):
             ]
 
     monkeypatch.setattr(routes, "GrocyClient", FakeGrocyClient)
-
     response = client.get(
         "/api/dashboard/search-variants?q=apf",
         headers={"Authorization": "Bearer test-api-key"},
     )
 
     assert response.status_code == 200
-    assert [item["name"] for item in response.json()] == ["Apfel", "Apfelessig"]
+    assert [item["name"] for item in response.json()] == [
+        "apf",
+        "Apfel",
+        "Apfelessig",
+    ]
+    assert response.json()[0]["source"] == "input"
 
 
 def test_dashboard_search_variants_ignores_amount_prefix(client, monkeypatch):
@@ -198,14 +202,77 @@ def test_dashboard_search_variants_ignores_amount_prefix(client, monkeypatch):
             ]
 
     monkeypatch.setattr(routes, "GrocyClient", FakeGrocyClient)
-
     response = client.get(
         "/api/dashboard/search-variants?q=2%20apf",
         headers={"Authorization": "Bearer test-api-key"},
     )
 
     assert response.status_code == 200
-    assert [item["name"] for item in response.json()] == ["Apfel"]
+    assert [item["name"] for item in response.json()] == ["apf", "Apfel"]
+
+
+def test_dashboard_search_variants_without_ai_does_not_call_detector(client, monkeypatch):
+    class FakeDetector:
+        def __init__(self, settings):
+            raise AssertionError("Detector darf ohne include_ai nicht initialisiert werden")
+
+    class FakeGrocyClient:
+        def __init__(self, settings):
+            self.settings = settings
+
+        def search_products_by_partial_name(self, query):
+            assert query == "oliven"
+            return [{"id": 1, "name": "Oliven", "picture_url": ""}]
+
+    monkeypatch.setattr(routes, "GrocyClient", FakeGrocyClient)
+    monkeypatch.setattr(routes, "IngredientDetector", FakeDetector)
+
+    response = client.get(
+        "/api/dashboard/search-variants?q=2%20oliven&include_ai=false",
+        headers={"Authorization": "Bearer test-api-key"},
+    )
+
+    assert response.status_code == 200
+    assert response.json() == [
+        {"id": 1, "name": "Oliven", "picture_url": "", "source": "grocy"}
+    ]
+
+
+def test_dashboard_search_variants_includes_ai_suggestions_not_in_grocy(
+    client, monkeypatch
+):
+    class FakeDetector:
+        def __init__(self, settings):
+            self.settings = settings
+
+        def suggest_similar_products(self, name):
+            assert name == "hafer"
+            return [{"name": "Haferdrink"}, {"name": "Haferjoghurt"}]
+
+    class FakeGrocyClient:
+        def __init__(self, settings):
+            self.settings = settings
+
+        def search_products_by_partial_name(self, query):
+            if query == "hafer":
+                return [{"id": 1, "name": "Haferflocken", "picture_url": ""}]
+            return []
+
+    monkeypatch.setattr(routes, "GrocyClient", FakeGrocyClient)
+    monkeypatch.setattr(routes, "IngredientDetector", FakeDetector)
+
+    response = client.get(
+        "/api/dashboard/search-variants?q=hafer&include_ai=true",
+        headers={"Authorization": "Bearer test-api-key"},
+    )
+
+    assert response.status_code == 200
+    assert response.json() == [
+        {"id": None, "name": "hafer", "picture_url": "", "source": "input"},
+        {"id": 1, "name": "Haferflocken", "picture_url": "", "source": "grocy"},
+        {"id": None, "name": "Haferdrink", "picture_url": "", "source": "ai"},
+        {"id": None, "name": "Haferjoghurt", "picture_url": "", "source": "ai"},
+    ]
 
 
 def test_dashboard_add_existing_product_adds_to_shopping_list(client, monkeypatch):
@@ -307,7 +374,12 @@ def test_dashboard_search_returns_fallback_variants_for_incomplete_query(
     payload = response.json()
     assert payload["success"] is False
     assert payload["action"] == "variant_selection_required"
-    assert [item["name"] for item in payload["variants"]] == ["Apfel", "Apfelessig"]
+    assert [item["name"] for item in payload["variants"]] == [
+        "apf",
+        "Apfel",
+        "Apfelessig",
+    ]
+    assert payload["variants"][0]["source"] == "input"
 
 
 def test_dashboard_search_keeps_ai_variant_without_grocy_match(client, monkeypatch):
@@ -346,8 +418,64 @@ def test_dashboard_search_keeps_ai_variant_without_grocy_match(client, monkeypat
     payload = response.json()
     assert payload["action"] == "variant_selection_required"
     assert payload["variants"] == [
-        {"id": None, "name": "Apfelschale", "picture_url": "", "source": "ai"}
+        {"id": None, "name": "apf", "picture_url": "", "source": "input"},
+        {"id": None, "name": "Apfelschale", "picture_url": "", "source": "ai"},
     ]
+
+
+def test_dashboard_search_force_create_skips_variant_selection(client, monkeypatch):
+    calls = {"created": None, "added": None}
+
+    class FakeDetector:
+        def __init__(self, settings):
+            self.settings = settings
+
+        def suggest_similar_products(self, name):
+            return [{"name": "Olivenöl"}]
+
+        def analyze_product_name(self, name, locations=None):
+            return {
+                "name": name,
+                "description": "neu",
+                "location_id": 1,
+                "qu_id_purchase": 2,
+                "qu_id_stock": 2,
+                "calories": 100,
+            }
+
+    class FakeGrocyClient:
+        def __init__(self, settings):
+            self.settings = settings
+
+        def find_product_by_name(self, name):
+            return None
+
+        def search_products_by_partial_name(self, query):
+            if query == "oliven":
+                return [{"id": 1, "name": "Olivenöl", "picture_url": ""}]
+            return []
+
+        def create_product(self, payload):
+            calls["created"] = payload
+            return 42
+
+        def add_product_to_shopping_list(self, product_id, amount, best_before_date=""):
+            calls["added"] = (product_id, amount, best_before_date)
+
+    monkeypatch.setattr(routes, "IngredientDetector", FakeDetector)
+    monkeypatch.setattr(routes, "GrocyClient", FakeGrocyClient)
+
+    response = client.post(
+        "/api/dashboard/search",
+        headers={"Authorization": "Bearer test-api-key"},
+        json={"name": "2 oliven", "force_create": True},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["action"] == "created_and_added"
+    assert calls["created"]["name"] == "oliven"
+    assert calls["added"] == (42, 2, "")
 
 
 def test_dashboard_search_generates_and_attaches_image_for_new_product(

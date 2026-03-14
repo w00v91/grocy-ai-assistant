@@ -2,6 +2,31 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.39
+
+- Fix (Produktauswahl): Auswahl von `Neu anlegen` in der Variantenliste legt das Produkt jetzt direkt an, statt erneut in die Varianten-Auswahl zurückzuspringen.
+- API: `POST /api/dashboard/search` akzeptiert `force_create`, um die Varianten-Fallback-Auswahl gezielt zu überspringen.
+- UI (Suche): Beim Klick auf `source: input` wird die Suche mit `force_create` ausgelöst und die Statusmeldung auf direkte Anlage angepasst.
+- Test: API-Test ergänzt, der `force_create` mit Mengenpräfix (`2 oliven`) und direkte Anlage (`created_and_added`) absichert.
+- Pflege: Add-on-Version auf `7.1.39` erhöht.
+
+## 7.1.38
+
+- Suche (Produktauswahl): Varianten-Laden im Such-Tab erfolgt jetzt zweistufig: zuerst sofort Grocy-Treffer (`include_ai=false`), anschließend KI-Erweiterung per Lazy-Load (`include_ai=true`).
+- API: `GET /api/dashboard/search-variants` unterstützt den Query-Parameter `include_ai` zur getrennten Steuerung von Grocy-Soforttreffern und KI-Vorschlägen.
+- UX (Produktauswahl): Wenn kein exakter Produktname zur Suche passt, wird an erster Stelle ein Eintrag zum Neu-Anlegen mit dem bereinigten Suchtext (ohne Mengenpräfix) angezeigt.
+- UI (Produktauswahl): Neuer Quellenhinweis `Neu anlegen` für den oben genannten Eingabe-Vorschlag.
+- Test: API-Tests für Lazy-Load-Verhalten (`include_ai=false`) und Input-Vorschlagsreihenfolge ergänzt/angepasst.
+- Pflege: Add-on-Version auf `7.1.38` erhöht.
+
+## 7.1.37
+
+- Suche (Produktauswahl): Varianten-Suche im Such-Tab nutzt jetzt KI-gestützte Vorschläge zusätzlich zu Grocy-Teiltreffern.
+- UX (Produktauswahl): In der Variantenliste werden jetzt auch KI-Vorschläge als auswählbare Einträge angezeigt, selbst wenn diese Produkte noch nicht in Grocy existieren.
+- API: `/api/dashboard/search-variants` verwendet dieselbe Fallback-Logik wie die Produktsuche und liefert dadurch Grocy- und KI-Varianten konsistent.
+- Test: API-Tests für KI-Vorschläge in der Varianten-Suche ergänzt und bestehende Varianten-Tests an den Detector angepasst.
+- Pflege: Add-on-Version auf `7.1.37` erhöht.
+
 ## 7.1.36
 
 - UI (Suche/Einkaufsliste): Badge-Breitenbegrenzung gezielt auf Mobile (`max-width: 33.333%`) angewendet; Desktop-Badge-Breite bleibt beim bisherigen festen Layout.
