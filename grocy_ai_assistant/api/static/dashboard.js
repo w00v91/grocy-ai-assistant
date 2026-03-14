@@ -13,6 +13,47 @@ const GROCY_RECIPE_DISPLAY_LIMIT = 3;
 const AI_RECIPE_DISPLAY_LIMIT = 3;
 
 let modalScrollLockY = 0;
+let notificationEditingRuleId = null;
+
+const NOTIFICATION_EVENT_LABELS = {
+  item_added: 'Produkt hinzugefügt',
+  item_removed: 'Produkt entfernt',
+  item_checked: 'Produkt abgehakt',
+  item_unchecked: 'Produkt nicht mehr abgehakt',
+  shopping_due: 'Einkauf fällig',
+  low_stock_detected: 'Niedriger Bestand erkannt',
+  recipe_missing_items: 'Rezept hat fehlende Zutaten',
+};
+
+function getEventLabel(eventType) {
+  return NOTIFICATION_EVENT_LABELS[eventType] || eventType;
+}
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
+function renderSelectOptions(selectElement, options, selectedValues = []) {
+  if (!selectElement) return;
+  const selected = new Set((selectedValues || []).map((value) => String(value)));
+  selectElement.innerHTML = options.map((option) => {
+    const value = String(option.value);
+    const isSelected = selected.has(value) ? ' selected' : '';
+    return `<option value="${escapeHtml(value)}"${isSelected}>${escapeHtml(option.label)}</option>`;
+  }).join('');
+}
+
+function getSelectedValues(selectElement) {
+  if (!selectElement) return [];
+  return Array.from(selectElement.selectedOptions || [])
+    .map((option) => option.value.trim())
+    .filter(Boolean);
+}
 
 function lockBodyScroll() {
   if (document.body.classList.contains('modal-open')) return;
@@ -140,6 +181,7 @@ async function loadNotificationOverview() {
     if (!res.ok) throw new Error(getErrorMessage(payload, 'Fehler beim Laden der Notification-Daten.'));
 
     renderNotificationDevices(payload.devices || []);
+    renderNotificationRuleEditorOptions(payload.devices || [], payload.settings || {});
     renderNotificationRules(payload.rules || []);
     renderNotificationHistory(payload.history || []);
     hydrateNotificationSettings(payload.settings || {});
@@ -147,6 +189,23 @@ async function loadNotificationOverview() {
   } catch (error) {
     status.textContent = `Fehler: ${error.message}`;
   }
+}
+
+function renderNotificationRuleEditorOptions(devices, settings) {
+  const eventsSelect = document.getElementById('notify-rule-events');
+  const deviceSelect = document.getElementById('notify-rule-devices');
+  const eventOptions = (settings.enabled_event_types || Object.keys(NOTIFICATION_EVENT_LABELS)).map((eventType) => ({
+    value: eventType,
+    label: getEventLabel(eventType),
+  }));
+  const defaultEvents = eventOptions.map((option) => option.value);
+  renderSelectOptions(eventsSelect, eventOptions, defaultEvents);
+
+  const deviceOptions = (Array.isArray(devices) ? devices : []).map((device) => ({
+    value: device.id,
+    label: `${device.display_name} (${device.service} · ${device.platform})`,
+  }));
+  renderSelectOptions(deviceSelect, deviceOptions, []);
 }
 
 function hydrateNotificationSettings(settings) {
@@ -172,6 +231,7 @@ function renderNotificationDevices(devices) {
 }
 
 function renderNotificationRules(rules) {
+  window.__notificationRulesCache = Array.isArray(rules) ? rules : [];
   const list = document.getElementById('notification-rules');
   if (!Array.isArray(rules) || rules.length === 0) {
     list.innerHTML = '<li class="muted">Keine Regeln vorhanden.</li>';
@@ -180,9 +240,12 @@ function renderNotificationRules(rules) {
   list.innerHTML = rules.map((rule) => `
     <li>
       <strong>${rule.name}</strong>
-      <div class="muted">Events: ${(rule.event_types || []).join(', ') || '-'}</div>
+      <div class="muted">Events: ${(rule.event_types || []).map((eventType) => getEventLabel(eventType)).join(', ') || '-'}</div>
       <div class="muted">Channels: ${(rule.channels || []).join(', ') || '-'}</div>
-      <button class="danger-button" type="button" onclick="deleteNotificationRule('${rule.id}')">Löschen</button>
+      <div class="button-row">
+        <button class="ghost-button" type="button" onclick="openNotificationRuleModal('${rule.id}')">Regel ändern</button>
+        <button class="danger-button" type="button" onclick="deleteNotificationRule('${rule.id}')">Löschen</button>
+      </div>
     </li>
   `).join('');
 }
@@ -197,7 +260,7 @@ function renderNotificationHistory(history) {
     <li>
       <strong>${entry.title}</strong>
       <div>${entry.message}</div>
-      <small class="muted">${entry.event_type} · ${entry.created_at} · ${entry.delivered ? '✅' : '❌'}</small>
+      <small class="muted">${getEventLabel(entry.event_type)} · ${entry.created_at} · ${entry.delivered ? '✅' : '❌'}</small>
     </li>
   `).join('');
 }
@@ -242,12 +305,65 @@ async function toggleNotificationDevice(deviceId, isActive) {
 }
 
 
-function openNotificationRuleModal() {
+function resetNotificationRuleModalForm() {
+  document.getElementById('notify-rule-name').value = '';
+  document.getElementById('notify-rule-cooldown').value = '';
+  document.getElementById('notify-rule-template').value = '';
+  document.getElementById('notify-rule-channel').value = 'mobile_push';
+  document.getElementById('notify-rule-severity').value = 'info';
+
+  const eventsSelect = document.getElementById('notify-rule-events');
+  const devicesSelect = document.getElementById('notify-rule-devices');
+  if (eventsSelect) {
+    Array.from(eventsSelect.options).forEach((option) => {
+      option.selected = true;
+    });
+  }
+  if (devicesSelect) {
+    Array.from(devicesSelect.options).forEach((option) => {
+      option.selected = false;
+    });
+  }
+}
+
+function openNotificationRuleModal(ruleId = null) {
+  const title = document.getElementById('notification-rule-modal-title');
+  const submitButton = document.getElementById('notify-rule-submit-button');
+  notificationEditingRuleId = ruleId;
+
+  if (!ruleId) {
+    title.textContent = 'Neue Regel';
+    submitButton.textContent = 'Regel anlegen';
+    resetNotificationRuleModalForm();
+  } else {
+    const selectedRule = window.__notificationRulesCache?.find((rule) => rule.id === ruleId);
+    if (selectedRule) {
+      title.textContent = 'Regel bearbeiten';
+      submitButton.textContent = 'Regel speichern';
+      document.getElementById('notify-rule-name').value = selectedRule.name || '';
+      document.getElementById('notify-rule-cooldown').value = String(selectedRule.cooldown_seconds || 0);
+      document.getElementById('notify-rule-template').value = selectedRule.message_template || '';
+      document.getElementById('notify-rule-channel').value = (selectedRule.channels || ['mobile_push'])[0] || 'mobile_push';
+      document.getElementById('notify-rule-severity').value = selectedRule.severity || 'info';
+      const selectedEventTypes = new Set(selectedRule.event_types || []);
+      Array.from(document.getElementById('notify-rule-events').options).forEach((option) => {
+        option.selected = selectedEventTypes.has(option.value);
+      });
+      const selectedDeviceIds = new Set(selectedRule.target_device_ids || []);
+      Array.from(document.getElementById('notify-rule-devices').options).forEach((option) => {
+        option.selected = selectedDeviceIds.has(option.value);
+      });
+    } else {
+      resetNotificationRuleModalForm();
+    }
+  }
+
   document.getElementById('notification-rule-modal').classList.remove('hidden');
   syncModalScrollLock();
 }
 
 function closeNotificationRuleModal() {
+  notificationEditingRuleId = null;
   document.getElementById('notification-rule-modal').classList.add('hidden');
   syncModalScrollLock();
 }
@@ -256,21 +372,13 @@ function getSelectedNotificationUserId() {
   return document.documentElement.dataset.haUserId || 'default-user';
 }
 
-async function createNotificationRule() {
-  const status = getNotificationStatusElement();
-  const name = document.getElementById('notify-rule-name').value.trim();
-  if (!name) {
-    status.textContent = 'Bitte Regelname eingeben.';
-    return;
-  }
-  const eventTypes = document.getElementById('notify-rule-events').value.split(',').map((value) => value.trim()).filter(Boolean);
-  const targetDevices = document.getElementById('notify-rule-devices').value.split(',').map((value) => value.trim()).filter(Boolean);
-  const payload = {
-    name,
+function buildNotificationRulePayload() {
+  return {
+    name: document.getElementById('notify-rule-name').value.trim(),
     enabled: true,
-    event_types: eventTypes,
+    event_types: getSelectedValues(document.getElementById('notify-rule-events')),
     target_user_ids: [getSelectedNotificationUserId()],
-    target_device_ids: targetDevices,
+    target_device_ids: getSelectedValues(document.getElementById('notify-rule-devices')),
     channels: [document.getElementById('notify-rule-channel').value],
     severity: document.getElementById('notify-rule-severity').value,
     cooldown_seconds: Number(document.getElementById('notify-rule-cooldown').value || '0'),
@@ -279,16 +387,31 @@ async function createNotificationRule() {
     conditions: [],
     message_template: document.getElementById('notify-rule-template').value,
   };
+}
+
+async function saveNotificationRule() {
+  const status = getNotificationStatusElement();
+  const payload = buildNotificationRulePayload();
+  if (!payload.name) {
+    status.textContent = 'Bitte Regelname eingeben.';
+    return;
+  }
+
+  const isEditing = Boolean(notificationEditingRuleId);
+  const endpoint = isEditing
+    ? `/api/dashboard/notifications/rules/${encodeURIComponent(notificationEditingRuleId)}`
+    : '/api/dashboard/notifications/rules';
+  const method = isEditing ? 'PATCH' : 'POST';
 
   try {
-    const res = await fetch(buildApiUrl('/api/dashboard/notifications/rules'), {
-      method: 'POST',
+    const res = await fetch(buildApiUrl(endpoint), {
+      method,
       headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
     const responsePayload = await parseJsonSafe(res);
-    if (!res.ok) throw new Error(getErrorMessage(responsePayload, 'Regel konnte nicht angelegt werden.'));
-    status.textContent = 'Regel angelegt.';
+    if (!res.ok) throw new Error(getErrorMessage(responsePayload, isEditing ? 'Regel konnte nicht gespeichert werden.' : 'Regel konnte nicht angelegt werden.'));
+    status.textContent = isEditing ? 'Regel aktualisiert.' : 'Regel angelegt.';
     closeNotificationRuleModal();
     await loadNotificationOverview();
   } catch (error) {
