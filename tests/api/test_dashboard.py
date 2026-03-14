@@ -1603,6 +1603,7 @@ def test_dashboard_stock_products_include_stock_id(client, monkeypatch):
                 "id": 10,
                 "stock_id": 99,
                 "name": "Milch",
+                "picture_url": "milk.png",
                 "location_id": 1,
                 "location_name": "Küche",
                 "amount": "2",
@@ -1621,6 +1622,8 @@ def test_dashboard_stock_products_include_stock_id(client, monkeypatch):
 
     assert response.status_code == 200
     assert response.json()[0]["stock_id"] == 99
+    assert "/api/dashboard/product-picture?src=" in response.json()[0]["picture_url"]
+    assert "homeassistant.local%3A9192%2Fapi%2Ffiles%2Fproductpictures%2F" in response.json()[0]["picture_url"]
 
 
 def test_dashboard_can_consume_stock_product(client, monkeypatch):
