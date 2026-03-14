@@ -109,29 +109,50 @@
           </div>
           <p id='status-notifications'>Bereit.</p>
 
-          <h3>Geräteverwaltung</h3>
-          <div id='notification-devices' class='notification-grid muted'>Keine Geräte erkannt.</div>
+          <div class='notification-options-layout'>
+            <section class='notification-options-card'>
+              <h3>Optionen</h3>
+              <p class='muted notification-options-description'>
+                Hier steuerst du die globalen Benachrichtigungseinstellungen für die gesamte App.
+              </p>
+              <div class='notification-settings'>
+                <label class='notification-toggle'>
+                  <input id='notify-enabled' type='checkbox' />
+                  <span>Benachrichtigungen global aktiv</span>
+                </label>
+                <button class='success-button' type='button' onclick='saveNotificationSettings()'>Einstellungen speichern</button>
+              </div>
+            </section>
 
-          <h3>Einstellungen</h3>
-          <div class='notification-settings'>
-            <label><input id='notify-enabled' type='checkbox' /> Benachrichtigungen global aktiv</label>
-            <button class='success-button' type='button' onclick='saveNotificationSettings()'>Einstellungen speichern</button>
+            <section class='notification-options-card'>
+              <h3>Geräteverwaltung</h3>
+              <p class='muted notification-options-description'>
+                Zeigt alle erkannten Ziele für Push- und System-Benachrichtigungen.
+              </p>
+              <div id='notification-devices' class='notification-grid muted'>Keine Geräte erkannt.</div>
+            </section>
           </div>
 
-          <h3>Regelverwaltung</h3>
-          <div class='button-row'>
-            <button class='success-button' type='button' onclick='openNotificationRuleModal()'>Neue Regel</button>
-          </div>
-          <ul id='notification-rules' class='notification-list'></ul>
+          <section class='notification-options-card'>
+            <div class='section-header'>
+              <h3>Regelverwaltung</h3>
+              <button class='success-button' type='button' onclick='openNotificationRuleModal()'>Neue Regel</button>
+            </div>
+            <ul id='notification-rules' class='notification-list'></ul>
+          </section>
 
-          <h3>Testcenter</h3>
-          <div class='button-row'>
-            <button class='primary-button' type='button' onclick='testNotificationAll()'>Test an alle Geräte</button>
-            <button class='primary-button' type='button' onclick='testNotificationPersistent()'>Test als Persistent</button>
-          </div>
+          <section class='notification-options-card'>
+            <h3>Testcenter</h3>
+            <div class='button-row'>
+              <button class='primary-button' type='button' onclick='testNotificationAll()'>Test an alle Geräte</button>
+              <button class='primary-button' type='button' onclick='testNotificationPersistent()'>Test als Persistent</button>
+            </div>
+          </section>
 
-          <h3>Historie</h3>
-          <ul id='notification-history' class='notification-list'></ul>
+          <section class='notification-options-card'>
+            <h3>Historie</h3>
+            <ul id='notification-history' class='notification-list'></ul>
+          </section>
         </section>
       </section>
     </main>

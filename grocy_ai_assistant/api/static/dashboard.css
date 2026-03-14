@@ -186,11 +186,47 @@ body.modal-open {
   z-index: 40;
 }
 
+.notification-options-layout {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.8rem;
+  margin-bottom: 1rem;
+}
+
+.notification-options-card {
+  background: var(--item-bg);
+  border: 1px solid var(--item-border);
+  border-radius: 12px;
+  padding: 0.85rem;
+  margin-bottom: 1rem;
+}
+
+.notification-options-card h3 {
+  margin-bottom: 0.45rem;
+}
+
+.notification-options-description {
+  margin-top: 0;
+  margin-bottom: 0.65rem;
+  font-size: 0.92rem;
+}
+
 .notification-settings,
 .notification-rule-editor {
   display: grid;
   gap: 0.6rem;
-  margin-bottom: 1rem;
+}
+
+.notification-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.notification-toggle input[type="checkbox"] {
+  width: auto;
+  min-width: auto;
+  padding: 0;
 }
 
 .notification-settings select,
@@ -204,7 +240,6 @@ body.modal-open {
 .notification-grid {
   display: grid;
   gap: 0.5rem;
-  margin-bottom: 1rem;
 }
 
 .notification-device-item {
@@ -471,6 +506,10 @@ img {
     margin-top: 0.1rem;
   }
   .expiring-search-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .notification-options-layout {
     grid-template-columns: 1fr;
   }
 
