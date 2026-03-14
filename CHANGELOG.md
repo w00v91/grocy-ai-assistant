@@ -2,6 +2,19 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.36
+
+- Fix (Dashboard/Lager): Produktbilder im Lager-Tab werden jetzt wie im Einkaufs-Tab über den Dashboard-Bildproxy ausgeliefert (`/api/dashboard/product-picture?...`) statt mit rohem Dateinamenpfad, wodurch 404-Fehler für reine Dateinamen verhindert werden.
+- Test: API-Test ergänzt/erweitert, der für `/api/dashboard/stock-products` den Proxy-Bildpfad für `picture_url` absichert.
+- Pflege: Add-on-Version auf `7.1.36` erhöht.
+
+## 7.1.35
+
+- Dashboard (Tab „Lager“): Einträge visuell an das Kartenformat der Einkaufsliste angepasst (Bild + Name/Attribute + Aktions-Buttons).
+- Dashboard (Tab „Lager“): Lager-Objekte in 3 Spalten aufgebaut (Bild, Name/Attributliste, Buttons); Attribute werden nun als Liste unter dem Produktnamen angezeigt.
+- API/Service: Lagerprodukte liefern jetzt zusätzlich `picture_url`, damit Produktbilder auch im Lager-Tab dargestellt werden können.
+- Pflege: Add-on-Version auf `7.1.35` erhöht.
+
 ## 7.1.34
 
 - KI (lokale Produktanalyse): Prompt für `analyze_product_name` erweitert, damit neben Kalorien/Kohlenhydraten auch weitere bekannte Nährwerte (`fat`, `protein`, `sugar`) zurückgegeben werden.

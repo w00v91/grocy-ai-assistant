@@ -1509,15 +1509,27 @@ function renderStorageProducts() {
     const hasStockId = Number(item.stock_id || 0) > 0;
     const disabledAttr = hasStockId ? '' : ' disabled';
     const disabledTitle = hasStockId ? '' : ' title="Für diesen Eintrag ist keine Bestand-ID verfügbar"';
+    const productName = escapeHtml(item.name || 'Unbekanntes Produkt');
+    const attributes = [
+      `Lager: ${escapeHtml(formatBadgeValue(item.location_name, '-'))}`,
+      `Menge: ${escapeHtml(formatBadgeValue(item.amount, '0'))}`,
+      `MHD: ${escapeHtml(formatBadgeValue(item.best_before_date, '-'))}`,
+    ];
+
     return `
-    <li>
-      <div class="storage-item-main">
-        <strong>${escapeHtml(item.name || 'Unbekanntes Produkt')}</strong>
-        <div class="muted">Lager: ${escapeHtml(item.location_name || '-')} · Menge: ${escapeHtml(formatBadgeValue(item.amount, '0'))} · MHD: ${escapeHtml(formatBadgeValue(item.best_before_date, '-'))}</div>
-      </div>
-      <div class="storage-item-actions">
-        <button class="danger-button storage-action-button" type="button" onclick="consumeStorageProduct(${Number(item.stock_id || 0)})"${disabledAttr}${disabledTitle}>Verbrauchen</button>
-        <button class="ghost-button storage-action-button" type="button" onclick="openStorageEditModal(${Number(item.stock_id || 0)})"${disabledAttr}${disabledTitle}>Ändern</button>
+    <li class="storage-item">
+      <div class="storage-item-content">
+        <img src="${toImageSource(item.picture_url)}" alt="${productName}" loading="lazy" />
+        <div class="storage-item-main">
+          <strong>${productName}</strong>
+          <ul class="storage-item-attributes">
+            ${attributes.map((attribute) => `<li class="badge">${attribute}</li>`).join('')}
+          </ul>
+        </div>
+        <div class="storage-item-actions">
+          <button class="danger-button storage-action-button" type="button" onclick="consumeStorageProduct(${Number(item.stock_id || 0)})"${disabledAttr}${disabledTitle}>Verbrauchen</button>
+          <button class="ghost-button storage-action-button" type="button" onclick="openStorageEditModal(${Number(item.stock_id || 0)})"${disabledAttr}${disabledTitle}>Ändern</button>
+        </div>
       </div>
     </li>
   `;
