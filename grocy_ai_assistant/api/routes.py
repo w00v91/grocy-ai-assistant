@@ -407,8 +407,9 @@ def _variant_from_grocy_product(
 def _build_fallback_variants(
     product_name: str,
     grocy_client: GrocyClient,
-    detector: IngredientDetector,
     settings: Settings,
+    detector: IngredientDetector | None = None,
+    include_input_variant: bool = False,
 ) -> list[ProductVariantResponse]:
     variants: list[ProductVariantResponse] = []
     seen_names: set[str] = set()
@@ -421,33 +422,57 @@ def _build_fallback_variants(
         variants.append(variant)
         seen_names.add(normalized_name)
 
-    ai_suggestions = detector.suggest_similar_products(product_name)
-    for item in ai_suggestions:
-        suggested_name = str(item.get("name") or "").strip()
-        if not suggested_name:
-            continue
-
-        for product in grocy_client.search_products_by_partial_name(suggested_name):
-            variant = _variant_from_grocy_product(product, settings)
-            normalized_name = variant.name.casefold()
-            if normalized_name in seen_names:
+    if detector is not None:
+        ai_suggestions = detector.suggest_similar_products(product_name)
+        for item in ai_suggestions:
+            suggested_name = str(item.get("name") or "").strip()
+            if not suggested_name:
                 continue
-            variants.append(variant)
-            seen_names.add(normalized_name)
 
-        normalized_suggestion = suggested_name.casefold()
-        if normalized_suggestion not in seen_names:
-            variants.append(
-                ProductVariantResponse(
-                    id=None,
-                    name=suggested_name,
-                    picture_url="",
-                    source="ai",
+            for product in grocy_client.search_products_by_partial_name(suggested_name):
+                variant = _variant_from_grocy_product(product, settings)
+                normalized_name = variant.name.casefold()
+                if normalized_name in seen_names:
+                    continue
+                variants.append(variant)
+                seen_names.add(normalized_name)
+
+            normalized_suggestion = suggested_name.casefold()
+            if normalized_suggestion not in seen_names:
+                variants.append(
+                    ProductVariantResponse(
+                        id=None,
+                        name=suggested_name,
+                        picture_url="",
+                        source="ai",
+                    )
                 )
-            )
-            seen_names.add(normalized_suggestion)
+                seen_names.add(normalized_suggestion)
+
+    if include_input_variant:
+        variants = _prepend_input_variant_if_no_exact(product_name, variants)
 
     return variants[:10]
+
+
+def _prepend_input_variant_if_no_exact(
+    product_name: str, variants: list[ProductVariantResponse]
+) -> list[ProductVariantResponse]:
+    has_exact_match = any(
+        variant.name.casefold() == product_name.casefold() for variant in variants
+    )
+    if has_exact_match:
+        return variants
+
+    return [
+        ProductVariantResponse(
+            id=None,
+            name=product_name,
+            picture_url="",
+            source="input",
+        ),
+        *variants,
+    ]
 
 
 def require_auth(
@@ -528,6 +553,7 @@ def dashboard_search_variants(
     request: Request,
     _: None = Depends(require_auth),
     settings: Settings = Depends(get_settings),
+    include_ai: bool = False,
 ):
     if not settings.grocy_api_key:
         raise HTTPException(
@@ -540,12 +566,13 @@ def dashboard_search_variants(
 
     try:
         grocy_client = GrocyClient(settings)
-        detector = IngredientDetector(settings)
+        detector = IngredientDetector(settings) if include_ai else None
         return _build_fallback_variants(
             product_name=query,
             grocy_client=grocy_client,
-            detector=detector,
             settings=settings,
+            detector=detector,
+            include_input_variant=True,
         )
     except Exception as error:
         log_api_error(
@@ -640,6 +667,9 @@ def dashboard_search(
             settings=settings,
         )
         if fallback_variants:
+            fallback_variants = _prepend_input_variant_if_no_exact(
+                product_name, fallback_variants
+            )
             return DashboardSearchResponse(
                 success=False,
                 action="variant_selection_required",
