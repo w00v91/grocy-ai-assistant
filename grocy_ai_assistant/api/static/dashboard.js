@@ -280,8 +280,8 @@ function renderNotificationRules(rules) {
         <span class="badge">Cooldown: ${Number(rule.cooldown_seconds || 0)}s</span>
       </div>
       <div class="button-row notification-rule-item-actions">
-        <button class="ghost-button" type="button" onclick="openNotificationRuleModal('${rule.id}')">Regel ändern</button>
-        <button class="danger-button" type="button" onclick="deleteNotificationRule('${rule.id}')">Löschen</button>
+        <button class="ghost-button notification-action-button" type="button" onclick="openNotificationRuleModal('${rule.id}')">Regel ändern</button>
+        <button class="danger-button notification-action-button" type="button" onclick="deleteNotificationRule('${rule.id}')">Löschen</button>
       </div>
     </li>
   `).join('');
@@ -1561,19 +1561,14 @@ function renderStorageProducts() {
     ];
 
     return `
-    <li class="storage-item">
-      <div class="storage-item-content">
-        <img src="${toImageSource(item.picture_url)}" alt="${productName}" loading="lazy" />
-        <div class="storage-item-main">
-          <strong>${productName}</strong>
-          <ul class="storage-item-attributes">
-            ${attributes.map((attribute) => `<li class="badge">${attribute}</li>`).join('')}
-          </ul>
-        </div>
-        <div class="storage-item-actions">
-          <button class="danger-button storage-action-button" type="button" onclick="consumeStorageProduct(${Number(item.stock_id || 0)})"${disabledAttr}${disabledTitle}>Verbrauchen</button>
-          <button class="ghost-button storage-action-button" type="button" onclick="openStorageEditModal(${Number(item.stock_id || 0)})"${disabledAttr}${disabledTitle}>Ändern</button>
-        </div>
+    <li>
+      <div class="storage-item-main">
+        <strong>${escapeHtml(item.name || 'Unbekanntes Produkt')}</strong>
+        <div class="muted">Lager: ${escapeHtml(item.location_name || '-')} · Menge: ${escapeHtml(formatBadgeValue(item.amount, '0'))} · MHD: ${escapeHtml(formatBadgeValue(item.best_before_date, '-'))}</div>
+      </div>
+      <div class="storage-item-actions">
+        <button class="ghost-button storage-action-button storage-edit-button" type="button" onclick="openStorageEditModal(${Number(item.stock_id || 0)})"${disabledAttr}${disabledTitle}>✏️ Bearbeiten</button>
+        <button class="storage-action-button storage-consume-button" type="button" onclick="consumeStorageProduct(${Number(item.stock_id || 0)})"${disabledAttr}${disabledTitle}>✅ Verbrauchen</button>
       </div>
     </li>
   `;

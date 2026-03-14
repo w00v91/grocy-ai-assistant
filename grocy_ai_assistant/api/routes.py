@@ -1065,7 +1065,18 @@ def dashboard_stock_products(
             if selected_location_ids
             else grocy_client.get_stock_products()
         )
-        return [StockProductResponse(**item) for item in stock_products]
+        return [
+            StockProductResponse(
+                **{
+                    **item,
+                    "picture_url": _build_dashboard_picture_proxy_url(
+                        str(item.get("picture_url") or ""),
+                        settings,
+                    ),
+                }
+            )
+            for item in stock_products
+        ]
     except Exception as error:
         log_api_error(
             logger,

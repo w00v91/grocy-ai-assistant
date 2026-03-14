@@ -304,7 +304,17 @@ body.modal-open {
 }
 
 .notification-rule-item-actions {
+  display: flex;
   justify-content: flex-end;
+  gap: 0.35rem;
+}
+
+.notification-action-button {
+  margin-top: 0;
+  width: auto;
+  min-width: 5.8rem;
+  padding: 0.38rem 0.62rem;
+  font-size: 0.82rem;
 }
 
 
@@ -970,17 +980,38 @@ img {
 
 .storage-item-actions {
   display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 0.35rem;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.45rem;
 }
 
 .storage-action-button {
   margin-top: 0;
-  width: 100%;
-  min-width: 6.2rem;
-  padding: 0.38rem 0.62rem;
+  width: auto;
+  min-width: 7.4rem;
+  padding: 0.42rem 0.7rem;
   font-size: 0.82rem;
+  border-radius: 999px;
+  font-weight: 600;
+}
+
+.storage-edit-button {
+  border-color: var(--item-border);
+}
+
+.storage-consume-button {
+  border: 1px solid var(--success-border);
+  background: var(--success-bg);
+  color: var(--text-on-accent);
+}
+
+.storage-consume-button:hover {
+  background: var(--success-bg-hover);
+}
+
+.storage-action-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 @media (max-width: 640px) {
@@ -1263,4 +1294,20 @@ h1,
 h2,
 h3 {
   overflow-wrap: anywhere;
+}
+
+@media (max-width: 700px) {
+  .notification-rule-item-actions {
+    flex-wrap: wrap;
+  }
+  .storage-item-actions {
+    width: 100%;
+    margin-left: 0;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+
+  .storage-action-button {
+    min-width: 0;
+  }
 }
