@@ -697,6 +697,39 @@ def test_update_shopping_list_item_best_before_date_calls_put_endpoint(monkeypat
     assert captured["json"] == {"note": "dringend [grocy_ai_mhd:2026-12-31]"}
 
 
+def test_update_shopping_list_item_note_calls_put_endpoint(monkeypatch):
+    captured = {}
+
+    def fake_put(url, *args, **kwargs):
+        captured["url"] = url
+        captured["json"] = kwargs.get("json")
+        return FakeResponse({})
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.services.grocy_client.requests.put", fake_put
+    )
+
+    client = GrocyClient(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+        )
+    )
+
+    client.update_shopping_list_item_note(
+        23,
+        "nur bei Angebot",
+        current_best_before_date="2026-12-31",
+    )
+
+    assert captured["url"].endswith("/objects/shopping_list/23")
+    assert captured["json"] == {
+        "note": "nur bei Angebot [grocy_ai_mhd:2026-12-31]"
+    }
+
+
 def test_best_before_date_is_extracted_from_shopping_list_note(monkeypatch):
     def fake_get(url, *args, **kwargs):
         if url.endswith("/objects/products"):

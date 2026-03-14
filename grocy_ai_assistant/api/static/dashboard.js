@@ -669,6 +669,7 @@ function renderShoppingList(items) {
         </div>
         <div class="shopping-item-badges">
           <button type="button" class="badge amount-increment-button" data-shopping-list-id="${item.id}">Menge: ${formatBadgeValue(item.amount, '-')}</button>
+          <button type="button" class="badge shopping-note-button" data-note-shopping-list-id="${item.id}" data-note-product-name="${encodeURIComponent(item.product_name || '')}" data-note-current="${encodeURIComponent(item.note || '')}">Notiz bearbeiten</button>
           <button type="button" class="badge mhd-picker-button" data-mhd-shopping-list-id="${item.id}" data-mhd-product-name="${encodeURIComponent(item.product_name || '')}" data-mhd-current-date="${item.best_before_date || ''}">${item.best_before_date ? `MHD: ${item.best_before_date}` : 'MHD wählen'}</button>
         </div>
       </div>
@@ -910,6 +911,61 @@ function showShoppingItemDetails(item) {
 }
 
 
+let activeShoppingNoteItemId = null;
+
+function openShoppingNoteEditor(shoppingListId, productName, currentNote = '') {
+  const modal = document.getElementById('shopping-note-modal');
+  const title = document.getElementById('shopping-note-modal-title');
+  const input = document.getElementById('shopping-note-input');
+
+  activeShoppingNoteItemId = shoppingListId;
+  title.textContent = `Notiz bearbeiten: ${productName || 'Produkt'}`;
+  input.value = currentNote || '';
+  modal.classList.remove('hidden');
+}
+
+function closeShoppingNoteEditor() {
+  activeShoppingNoteItemId = null;
+  document.getElementById('shopping-note-modal').classList.add('hidden');
+}
+
+async function saveShoppingNote() {
+  const key = ensureApiKey();
+  const status = getShoppingStatusElement();
+  const input = document.getElementById('shopping-note-input');
+  const note = String(input?.value || '').trim();
+
+  if (!key) {
+    status.textContent = 'Kein API-Key angegeben.';
+    return;
+  }
+  if (!activeShoppingNoteItemId) {
+    status.textContent = 'Einkaufslisten-Eintrag fehlt.';
+    return;
+  }
+
+  status.textContent = 'Speichere Notiz...';
+  try {
+    const res = await fetch(buildApiUrl(`/api/dashboard/shopping-list/item/${activeShoppingNoteItemId}/note`), {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
+      body: JSON.stringify({ note }),
+    });
+    const payload = await parseJsonSafe(res);
+
+    if (!res.ok) {
+      status.textContent = getErrorMessage(payload, 'Notiz konnte nicht gespeichert werden.');
+      return;
+    }
+
+    status.textContent = payload.message || 'Notiz gespeichert.';
+    closeShoppingNoteEditor();
+    await loadShoppingList();
+  } catch (_) {
+    status.textContent = 'Notiz konnte nicht gespeichert werden (Netzwerk-/Ingress-Fehler).';
+  }
+}
+
 let activeMhdShoppingListId = null;
 
 function openMhdPicker(shoppingListId, productName, currentDate = '') {
@@ -996,7 +1052,7 @@ function bindShoppingSwipeInteractions() {
     resetSwipeState(item);
 
     item.addEventListener('pointerdown', (event) => {
-      if (event.target.closest('.mhd-picker-button')) {
+      if (event.target.closest('.mhd-picker-button') || event.target.closest('.shopping-note-button')) {
         return;
       }
 
@@ -1222,9 +1278,23 @@ document.getElementById('shopping-list').addEventListener('click', async (event)
   }
 
   const target = event.target.closest('.mhd-picker-button');
+  
+document.getElementById('shopping-list').addEventListener('click', (event) => {
+  const target = event.target.closest('.shopping-note-button, .mhd-picker-button');
   if (!target) return;
 
   event.stopPropagation();
+
+  if (target.classList.contains('shopping-note-button')) {
+    const shoppingListId = Number(target.dataset.noteShoppingListId || '');
+    if (!Number.isFinite(shoppingListId) || shoppingListId <= 0) return;
+
+    const productName = decodeURIComponent(target.dataset.noteProductName || '');
+    const currentNote = decodeURIComponent(target.dataset.noteCurrent || '');
+    openShoppingNoteEditor(shoppingListId, productName, currentNote);
+    return;
+  }
+
   const shoppingListId = Number(target.dataset.mhdShoppingListId || '');
   if (!Number.isFinite(shoppingListId) || shoppingListId <= 0) return;
 

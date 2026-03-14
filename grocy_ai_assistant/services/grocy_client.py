@@ -319,6 +319,21 @@ class GrocyClient:
             f"{self.settings.grocy_base_url}/objects/shopping_list/{shopping_list_id}",
             headers=self.headers,
             json={"amount": self._safe_str(amount) or "1"},
+          
+    def update_shopping_list_item_note(
+        self,
+        shopping_list_id: int,
+        note: str,
+        current_best_before_date: str = "",
+    ) -> None:
+        note_with_best_before_date = self._embed_best_before_date_in_note(
+            note,
+            current_best_before_date,
+        )
+        response = requests.put(
+            f"{self.settings.grocy_base_url}/objects/shopping_list/{shopping_list_id}",
+            headers=self.headers,
+            json={"note": note_with_best_before_date},
             timeout=30,
         )
         response.raise_for_status()

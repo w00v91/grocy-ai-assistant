@@ -962,6 +962,41 @@ def test_shopping_list_item_can_be_deleted(client, monkeypatch):
     assert captured["amount"] == "2"
 
 
+def test_shopping_list_item_note_can_be_updated(client, monkeypatch):
+    captured = {}
+
+    def fake_get_shopping_list(self):
+        return [{"id": 42, "amount": "2", "best_before_date": "2026-12-31"}]
+
+    def fake_update_shopping_list_item_note(
+        self, shopping_list_id, note, current_best_before_date=""
+    ):
+        captured["shopping_list_id"] = shopping_list_id
+        captured["note"] = note
+        captured["current_best_before_date"] = current_best_before_date
+
+    monkeypatch.setattr(routes.GrocyClient, "get_shopping_list", fake_get_shopping_list)
+    monkeypatch.setattr(
+        routes.GrocyClient,
+        "update_shopping_list_item_note",
+        fake_update_shopping_list_item_note,
+    )
+
+    response = client.put(
+        "/api/dashboard/shopping-list/item/42/note",
+        headers={"Authorization": "Bearer test-api-key"},
+        json={"note": "Nur Bio kaufen"},
+    )
+
+    assert response.status_code == 200
+    assert captured == {
+        "shopping_list_id": 42,
+        "note": "Nur Bio kaufen",
+        "current_best_before_date": "2026-12-31",
+    }
+    assert response.json()["success"] is True
+
+
 def test_shopping_list_item_best_before_date_can_be_updated(client, monkeypatch):
     captured = {}
 
