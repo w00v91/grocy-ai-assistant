@@ -345,32 +345,67 @@ class IngredientDetector:
             return ""
 
         prompt = IMAGE_PROMPT_TEMPLATE.format(product_name=product_name)
-        payload = {
-            "model": self.settings.openai_image_model,
-            "prompt": prompt,
-            "size": "1024x1024",
-        }
-
-        response = requests.post(
-            "https://api.openai.com/v1/images/generations",
-            headers={
-                "Authorization": f"Bearer {self.settings.openai_api_key}",
-                "Content-Type": "application/json",
-            },
-            json=payload,
-            timeout=90,
-        )
-        response.raise_for_status()
-
-        data = response.json().get("data") or []
-        image_payload = data[0] if isinstance(data, list) and data else {}
+        image_payload = self._request_openai_image_payload(prompt)
         image_base64 = str(image_payload.get("b64_json") or "").strip()
-        if not image_base64:
-            raise ValueError("OpenAI Images API lieferte kein b64_json")
+        image_url = str(image_payload.get("url") or "").strip()
+        if not image_base64 and not image_url:
+            raise ValueError("OpenAI Images API lieferte weder b64_json noch url")
 
         safe_name = re.sub(r"[^a-zA-Z0-9_-]+", "_", product_name).strip("_") or "produkt"
         file_name = f"{safe_name}_{uuid4().hex}.png"
         file_path = Path("/data/product_images") / file_name
         file_path.parent.mkdir(parents=True, exist_ok=True)
-        file_path.write_bytes(base64.b64decode(image_base64))
+        if image_base64:
+            file_path.write_bytes(base64.b64decode(image_base64))
+        else:
+            image_response = requests.get(image_url, timeout=90)
+            image_response.raise_for_status()
+            file_path.write_bytes(image_response.content)
         return str(file_path)
+
+    def _request_openai_image_payload(self, prompt: str) -> Dict[str, Any]:
+        configured_model = str(self.settings.openai_image_model or "").strip()
+        candidate_models = [configured_model, "dall-e-3", "dall-e-2"]
+        models = [model for model in dict.fromkeys(candidate_models) if model]
+        last_http_error: requests.HTTPError | None = None
+
+        for index, model in enumerate(models):
+            payload = {
+                "model": model,
+                "prompt": prompt,
+                "size": "1024x1024",
+            }
+
+            response = requests.post(
+                "https://api.openai.com/v1/images/generations",
+                headers={
+                    "Authorization": f"Bearer {self.settings.openai_api_key}",
+                    "Content-Type": "application/json",
+                },
+                json=payload,
+                timeout=90,
+            )
+
+            try:
+                response.raise_for_status()
+            except requests.HTTPError as error:
+                status_code = response.status_code
+                if status_code == 403 and index < len(models) - 1:
+                    logger.warning(
+                        "OpenAI-Bildmodell %s nicht erlaubt (403), versuche Fallbackmodell %s",
+                        model,
+                        models[index + 1],
+                    )
+                    last_http_error = error
+                    continue
+                raise
+
+            data = response.json().get("data") or []
+            image_payload = data[0] if isinstance(data, list) and data else {}
+            if isinstance(image_payload, dict):
+                return image_payload
+
+        if last_http_error is not None:
+            raise last_http_error
+
+        raise ValueError("OpenAI Images API lieferte keine Bilddaten")
