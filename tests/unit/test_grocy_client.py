@@ -639,6 +639,33 @@ def test_delete_shopping_list_item_calls_delete_object_endpoint(monkeypatch):
     assert captured["url"].endswith("/objects/shopping_list/23")
 
 
+def test_update_shopping_list_item_amount_calls_put_endpoint(monkeypatch):
+    captured = {}
+
+    def fake_put(url, *args, **kwargs):
+        captured["url"] = url
+        captured["json"] = kwargs.get("json")
+        return FakeResponse({})
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.services.grocy_client.requests.put", fake_put
+    )
+
+    client = GrocyClient(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+        )
+    )
+
+    client.update_shopping_list_item_amount(23, "4")
+
+    assert captured["url"].endswith("/objects/shopping_list/23")
+    assert captured["json"] == {"amount": "4"}
+
+
 def test_update_shopping_list_item_best_before_date_calls_put_endpoint(monkeypatch):
     captured = {}
 
@@ -887,40 +914,40 @@ def test_find_product_by_barcode_falls_back_on_primary_bad_request(monkeypatch):
 
 def test_get_recipe_ingredients_includes_unit_attribution(monkeypatch):
     def fake_get(url, *args, **kwargs):
-        if url.endswith('/objects/recipes_pos'):
+        if url.endswith("/objects/recipes_pos"):
             return FakeResponse(
                 [
-                    {'recipe_id': 10, 'product_id': 1, 'amount': '2', 'qu_id': 5},
-                    {'recipe_id': 10, 'product_id': 2, 'amount': '150'},
+                    {"recipe_id": 10, "product_id": 1, "amount": "2", "qu_id": 5},
+                    {"recipe_id": 10, "product_id": 2, "amount": "150"},
                 ]
             )
-        if url.endswith('/objects/products'):
+        if url.endswith("/objects/products"):
             return FakeResponse(
                 [
-                    {'id': 1, 'name': 'Ei', 'qu_id_stock': 5},
-                    {'id': 2, 'name': 'Mehl', 'qu_id_stock': 6},
+                    {"id": 1, "name": "Ei", "qu_id_stock": 5},
+                    {"id": 2, "name": "Mehl", "qu_id_stock": 6},
                 ]
             )
-        if url.endswith('/objects/quantity_units'):
+        if url.endswith("/objects/quantity_units"):
             return FakeResponse(
                 [
-                    {'id': 5, 'name': 'Stk.'},
-                    {'id': 6, 'name': 'Gramm'},
+                    {"id": 5, "name": "Stk."},
+                    {"id": 6, "name": "Gramm"},
                 ]
             )
-        raise AssertionError(f'Unexpected url: {url}')
+        raise AssertionError(f"Unexpected url: {url}")
 
     monkeypatch.setattr(
-        'grocy_ai_assistant.services.grocy_client.requests.get', fake_get
+        "grocy_ai_assistant.services.grocy_client.requests.get", fake_get
     )
 
     client = GrocyClient(
         Settings(
-            api_key='x',
-            addon_version='a',
-            required_integration_version='1',
-            grocy_api_key='g',
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
         )
     )
 
-    assert client.get_recipe_ingredients(10) == ['2 Stk. Ei', '150 Gramm Mehl']
+    assert client.get_recipe_ingredients(10) == ["2 Stk. Ei", "150 Gramm Mehl"]

@@ -613,11 +613,19 @@ img {
   margin-left: auto;
   display: grid;
   gap: 0.35rem;
-  justify-items: end;
+  justify-items: stretch;
+  width: 11.5rem;
 }
 
-.mhd-picker-button {
+.shopping-item-badges .badge {
   margin-left: 0;
+  width: 100%;
+  box-sizing: border-box;
+  text-align: center;
+}
+
+.mhd-picker-button,
+.amount-increment-button {
   border: none;
   cursor: pointer;
 }

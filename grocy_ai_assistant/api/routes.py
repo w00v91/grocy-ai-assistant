@@ -79,8 +79,6 @@ def _build_dashboard_picture_proxy_url(raw_picture_url: str, settings: Settings)
     return f"/api/dashboard/product-picture?src={quote(absolute_picture_url, safe='')}"
 
 
-
-
 def _normalize_dashboard_picture_source_url(src: str) -> str:
     parsed_src = urlparse(src)
     if parsed_src.query:
@@ -99,6 +97,7 @@ def _normalize_dashboard_picture_source_url(src: str) -> str:
         query=normalized_query,
         fragment=parsed_src.fragment,
     ).geturl()
+
 
 def _extract_shopping_item_picture_value(item: dict) -> str:
     product = item.get("product") if isinstance(item.get("product"), dict) else {}
@@ -831,7 +830,9 @@ def dashboard_product_picture(
                 details=[{"source": candidate_url}],
                 exc=error,
             )
-            raise HTTPException(status_code=404, detail="Bild nicht gefunden") from error
+            raise HTTPException(
+                status_code=404, detail="Bild nicht gefunden"
+            ) from error
         except requests.RequestException as error:
             log_api_error(
                 logger,
@@ -1260,6 +1261,64 @@ def dashboard_delete_shopping_list_item(
         return {
             "success": True,
             "message": f"Eintrag {shopping_list_id} gelöscht.",
+        }
+    except HTTPException:
+        raise
+    except Exception as error:
+        log_api_error(
+            logger,
+            request=request,
+            status_code=500,
+            message=str(error),
+            exc=error,
+        )
+        raise HTTPException(status_code=500, detail=str(error)) from error
+
+
+@router.post("/api/dashboard/shopping-list/item/{shopping_list_id}/amount/increment")
+def dashboard_increment_shopping_list_item_amount(
+    shopping_list_id: int,
+    request: Request,
+    _: None = Depends(require_auth),
+    settings: Settings = Depends(get_settings),
+):
+    if not settings.grocy_api_key:
+        raise HTTPException(
+            status_code=500, detail="grocy_api_key fehlt in Add-on Optionen"
+        )
+
+    try:
+        grocy_client = GrocyClient(settings)
+        shopping_items = grocy_client.get_shopping_list()
+        selected_item = next(
+            (item for item in shopping_items if item.get("id") == shopping_list_id),
+            None,
+        )
+        if selected_item is None:
+            raise HTTPException(
+                status_code=404, detail="Einkaufslisten-Eintrag nicht gefunden"
+            )
+
+        current_amount_raw = str(selected_item.get("amount") or "1").replace(",", ".")
+        try:
+            current_amount = float(current_amount_raw)
+        except ValueError:
+            current_amount = 1.0
+
+        updated_amount = current_amount + 1
+        if float(updated_amount).is_integer():
+            normalized_amount = str(int(updated_amount))
+        else:
+            normalized_amount = str(updated_amount)
+
+        grocy_client.update_shopping_list_item_amount(
+            shopping_list_id=shopping_list_id,
+            amount=normalized_amount,
+        )
+        return {
+            "success": True,
+            "amount": normalized_amount,
+            "message": f"Menge für Eintrag {shopping_list_id} erhöht.",
         }
     except HTTPException:
         raise

@@ -240,7 +240,10 @@ def test_dashboard_recipes_use_normalized_image_sources(client):
     static_response = client.get("/dashboard-static/dashboard.js")
 
     assert static_response.status_code == 200
-    assert 'class="recipe-thumb" src="${toImageSource(item.picture_url)}"' in static_response.text
+    assert (
+        'class="recipe-thumb" src="${toImageSource(item.picture_url)}"'
+        in static_response.text
+    )
 
 
 def test_dashboard_contains_clear_button(client):
@@ -391,8 +394,6 @@ def test_product_picture_proxy_uses_files_fallback_on_404(client, monkeypatch):
     ]
 
 
-
-
 def test_product_picture_proxy_decodes_encoded_query_in_src_path(client, monkeypatch):
     class FakeResponse:
         content = b"img"
@@ -425,6 +426,7 @@ def test_product_picture_proxy_decodes_encoded_query_in_src_path(client, monkeyp
         captured["url"]
         == "http://homeassistant.local:9192/api/files/recipepictures/test.jpg?force_serve_as=picture"
     )
+
 
 def test_product_picture_proxy_rejects_foreign_hosts(client):
     response = client.get(
@@ -780,8 +782,6 @@ def test_recipe_suggestions_generates_fallback_when_ai_returns_nothing(
     assert payload["ai_recipes"][0]["ingredients"]
 
 
-
-
 def test_recipe_suggestions_fills_up_to_three_ai_recipes_when_ai_returns_only_one(
     client, monkeypatch
 ):
@@ -792,10 +792,22 @@ def test_recipe_suggestions_fills_up_to_three_ai_recipes_when_ai_returns_only_on
 
     def fake_get_recipes(self):
         return [
-            {"id": 10, "name": "Tomaten Pasta", "picture_url": "/img/tomaten-pasta.jpg"},
-            {"id": 11, "name": "Tomaten Suppe", "picture_url": "/img/tomaten-suppe.jpg"},
+            {
+                "id": 10,
+                "name": "Tomaten Pasta",
+                "picture_url": "/img/tomaten-pasta.jpg",
+            },
+            {
+                "id": 11,
+                "name": "Tomaten Suppe",
+                "picture_url": "/img/tomaten-suppe.jpg",
+            },
             {"id": 12, "name": "Tomaten Reis", "picture_url": "/img/tomaten-reis.jpg"},
-            {"id": 13, "name": "Tomaten Auflauf", "picture_url": "/img/tomaten-auflauf.jpg"},
+            {
+                "id": 13,
+                "name": "Tomaten Auflauf",
+                "picture_url": "/img/tomaten-auflauf.jpg",
+            },
         ]
 
     class FakeDetector:
@@ -838,6 +850,7 @@ def test_recipe_suggestions_fills_up_to_three_ai_recipes_when_ai_returns_only_on
     assert len(payload["grocy_recipes"]) == 3
     assert len(payload["ai_recipes"]) == 3
     assert payload["ai_recipes"][0]["title"] == "Tomaten-Curry"
+
 
 def test_add_missing_recipe_products_adds_to_shopping_list(client, monkeypatch):
     captured = []
@@ -907,6 +920,10 @@ def test_dashboard_uses_matching_complete_item_endpoint(client):
     assert (
         "/api/dashboard/shopping-list/${shoppingListId}/complete"
         not in static_response.text
+    )
+    assert (
+        "/api/dashboard/shopping-list/item/${shoppingListId}/amount/increment"
+        in static_response.text
     )
 
 
@@ -1053,6 +1070,36 @@ def test_shopping_list_can_be_completed(client, monkeypatch):
         "completed_items": 5,
         "message": "Einkauf abgeschlossen (5 Einträge als eingekauft markiert).",
     }
+
+
+def test_shopping_list_item_amount_can_be_incremented(client, monkeypatch):
+    captured = {}
+
+    def fake_get_shopping_list(self):
+        return [{"id": 9, "amount": "3"}]
+
+    def fake_update_shopping_list_item_amount(self, shopping_list_id, amount):
+        captured["shopping_list_id"] = shopping_list_id
+        captured["amount"] = amount
+
+    monkeypatch.setattr(routes.GrocyClient, "get_shopping_list", fake_get_shopping_list)
+    monkeypatch.setattr(
+        routes.GrocyClient,
+        "update_shopping_list_item_amount",
+        fake_update_shopping_list_item_amount,
+    )
+
+    response = client.post(
+        "/api/dashboard/shopping-list/item/9/amount/increment",
+        headers={"Authorization": "Bearer test-api-key"},
+    )
+
+    assert response.status_code == 200
+    assert captured == {
+        "shopping_list_id": 9,
+        "amount": "4",
+    }
+    assert response.json()["amount"] == "4"
 
 
 def test_shopping_list_item_can_be_completed(client, monkeypatch):
