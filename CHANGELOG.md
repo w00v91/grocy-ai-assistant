@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.25
+
+- UI: Scanner-Button in der Suche ohne Hintergrund gestaltet und vertikal an die Überschrift ausgerichtet.
+- UI: Zusätzlichen unteren Abstand unter dem Button „Neue Regel“ in der Notify-Ansicht ergänzt.
+- UI: Aktions-Buttons in der Regelverwaltung („Regel ändern“, „Löschen“) nach rechts ausgerichtet.
+- UI (Lager): Buttons „Ändern“ und „Verbrauchen“ verkleinert, untereinander angeordnet und rechtsbündig positioniert.
+- Pflege: Add-on-Version auf `7.1.25` erhöht.
+
 ## 7.1.24
 
 - UI: Swipe-Aktionsfläche in der Einkaufsliste auf `138px` verbreitert (`.shopping-item-action`).
