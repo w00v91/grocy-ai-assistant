@@ -319,7 +319,10 @@ class GrocyClient:
             f"{self.settings.grocy_base_url}/objects/shopping_list/{shopping_list_id}",
             headers=self.headers,
             json={"amount": self._safe_str(amount) or "1"},
-          
+            timeout=30,
+        )
+        response.raise_for_status()
+
     def update_shopping_list_item_note(
         self,
         shopping_list_id: int,
