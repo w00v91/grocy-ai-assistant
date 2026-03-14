@@ -1181,11 +1181,12 @@ def test_attach_product_picture_uploads_file_and_updates_product(monkeypatch, tm
         def raise_for_status(self):
             return None
 
-    def fake_put(url, headers=None, data=None, json=None, timeout=None):
+    def fake_upload(url, headers=None, data=None, json=None, timeout=None):
         calls.append((url, headers, data, json))
         return FakeResponse()
 
-    monkeypatch.setattr("grocy_ai_assistant.services.grocy_client.requests.put", fake_put)
+    monkeypatch.setattr("grocy_ai_assistant.services.grocy_client.requests.put", fake_upload)
+    monkeypatch.setattr("grocy_ai_assistant.services.grocy_client.requests.post", fake_upload)
 
     image_path = tmp_path / "my_product.png"
     image_path.write_bytes(b"img")

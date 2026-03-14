@@ -57,6 +57,7 @@ class Settings(BaseModel):
     scanner_barcode_fallback_seconds: int = 5
     scanner_llava_min_confidence: int = 75
     image_generation_enabled: bool = False
+    generate_missing_product_images_on_startup: bool = False
     openai_api_key: str = ""
     openai_image_model: str = "gpt-image-1"
     debug_mode: bool = False
