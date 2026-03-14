@@ -840,6 +840,24 @@ img {
 #recipe-modal-ingredients,
 #recipe-modal-missing-products { margin: 0.4rem 0 0.8rem; padding-left: 1.1rem; }
 
+.recipe-modal-image-wrapper {
+  margin: -0.25rem -0.25rem 0.9rem;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid var(--item-border);
+  background: linear-gradient(150deg, color-mix(in srgb, var(--item-bg) 82%, transparent), color-mix(in srgb, var(--badge-bg) 78%, transparent));
+  box-shadow: 0 14px 30px color-mix(in srgb, var(--modal-backdrop-bg) 26%, transparent);
+}
+
+.recipe-modal-image {
+  display: block;
+  width: 100%;
+  max-height: clamp(180px, 30vh, 300px);
+  object-fit: cover;
+  filter: saturate(1.06) contrast(1.02);
+  transform: scale(1.01);
+}
+
 
 .scanner-video {
   width: 100%;
