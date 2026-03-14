@@ -55,7 +55,11 @@ class IngredientDetector:
           "location_id": (Waehle aus: {context['locations']}),
           "qu_id_purchase": (Waehle aus: {context['units']}),
           "qu_id_stock": (Waehle aus: {context['units']}),
-          "calories": (Geschaetzte Kalorien pro 100g/ml als Zahl)
+          "calories": (Geschaetzte Kalorien pro 100g/ml als Zahl),
+          "carbohydrates": (Geschaetzte Kohlenhydrate pro 100g/ml in g als Zahl),
+          "fat": (Geschaetztes Fett pro 100g/ml in g als Zahl),
+          "protein": (Geschaetztes Protein pro 100g/ml in g als Zahl),
+          "sugar": (Geschaetzter Zucker pro 100g/ml in g als Zahl)
         }}
         Antworte NUR mit dem JSON, kein Text davor oder danach.
         """
@@ -74,7 +78,53 @@ class IngredientDetector:
         raw_answer = response.json().get("response")
         if self.settings.debug_mode:
             logger.info("KI-Antwort analyze_product_name: %s", raw_answer)
-        return json.loads(raw_answer)
+        parsed = json.loads(raw_answer)
+
+        def _as_number(value: Any) -> float:
+            if value is None:
+                return 0
+            if isinstance(value, (int, float)):
+                return value
+            normalized = str(value).strip().replace(",", ".")
+            try:
+                number = float(normalized)
+            except ValueError:
+                return 0
+            return int(number) if number.is_integer() else number
+
+        if not isinstance(parsed, dict):
+            return {
+                "name": product_name,
+                "description": "",
+                "location_id": 1,
+                "qu_id_purchase": 1,
+                "qu_id_stock": 1,
+                "calories": 0,
+                "carbohydrates": 0,
+                "fat": 0,
+                "protein": 0,
+                "sugar": 0,
+            }
+
+        carbs_candidate = (
+            parsed.get("carbohydrates")
+            if parsed.get("carbohydrates") not in (None, "")
+            else parsed.get("carbs")
+        )
+
+        return {
+            **parsed,
+            "name": str(parsed.get("name") or product_name).strip() or product_name,
+            "description": str(parsed.get("description") or "").strip(),
+            "location_id": int(_as_number(parsed.get("location_id"))) or 1,
+            "qu_id_purchase": int(_as_number(parsed.get("qu_id_purchase"))) or 1,
+            "qu_id_stock": int(_as_number(parsed.get("qu_id_stock"))) or 1,
+            "calories": _as_number(parsed.get("calories")),
+            "carbohydrates": _as_number(carbs_candidate),
+            "fat": _as_number(parsed.get("fat")),
+            "protein": _as_number(parsed.get("protein")),
+            "sugar": _as_number(parsed.get("sugar")),
+        }
 
     def suggest_similar_products(self, product_name: str) -> list[Dict[str, Any]]:
         prompt = f"""

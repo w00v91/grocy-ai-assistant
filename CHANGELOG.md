@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.34
+
+- KI (lokale Produktanalyse): Prompt für `analyze_product_name` erweitert, damit neben Kalorien/Kohlenhydraten auch weitere bekannte Nährwerte (`fat`, `protein`, `sugar`) zurückgegeben werden.
+- KI (Robustheit): Antwortnormalisierung ergänzt, inkl. Zahlen-Normalisierung, Fallbacks und Alias-Mapping von `carbs` -> `carbohydrates`.
+- API-Modell: `ProductData` um zusätzliche Nährwertfelder (`carbohydrates`, `fat`, `protein`, `sugar`) ergänzt.
+- Test: Unit-Tests für erweiterte Nährwertausgabe und Alias-Mapping ergänzt.
+- Pflege: Add-on-Version auf `7.1.34` erhöht.
+
 ## 7.1.33
 
 - Fix (Grocy-Bildupload): Upload berücksichtigt zusätzlich einen Dateinamen-Fallback mit Base64-kodiertem Dateinamen (inkl. Dateiendung), falls Endpunkte den Pfad nur in kodierter Form akzeptieren.

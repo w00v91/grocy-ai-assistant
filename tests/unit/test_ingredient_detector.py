@@ -481,3 +481,71 @@ def test_generate_product_image_downloads_from_url_when_b64_missing(monkeypatch,
     result = detector.generate_product_image("Tomate")
 
     assert Path(result).read_bytes() == b"png-bytes"
+
+
+def test_analyze_product_name_returns_extended_nutrition_values(monkeypatch):
+    def fake_post(*args, **kwargs):
+        return FakeResponse(
+            {
+                "response": (
+                    '{"name":"Haferflocken","description":"Vollkorn",'
+                    '"location_id":2,"qu_id_purchase":1,"qu_id_stock":3,'
+                    '"calories":372,"carbohydrates":"58,7","fat":"7.0",'
+                    '"protein":"13,5","sugar":"0,8"}'
+                )
+            }
+        )
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.ai.ingredient_detector.requests.post", fake_post
+    )
+
+    detector = IngredientDetector(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+        )
+    )
+
+    result = detector.analyze_product_name("Haferflocken")
+
+    assert result["calories"] == 372
+    assert result["carbohydrates"] == 58.7
+    assert result["fat"] == 7
+    assert result["protein"] == 13.5
+    assert result["sugar"] == 0.8
+
+
+def test_analyze_product_name_maps_carbs_alias(monkeypatch):
+    def fake_post(*args, **kwargs):
+        return FakeResponse(
+            {
+                "response": (
+                    '{"name":"Muesli","description":"",'
+                    '"location_id":"2","qu_id_purchase":"1","qu_id_stock":"1",'
+                    '"calories":"410","carbs":"64"}'
+                )
+            }
+        )
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.ai.ingredient_detector.requests.post", fake_post
+    )
+
+    detector = IngredientDetector(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+        )
+    )
+
+    result = detector.analyze_product_name("Muesli")
+
+    assert result["carbohydrates"] == 64
+    assert result["fat"] == 0
+    assert result["protein"] == 0
+    assert result["sugar"] == 0

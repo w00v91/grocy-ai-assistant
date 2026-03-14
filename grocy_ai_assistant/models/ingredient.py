@@ -31,6 +31,10 @@ class ProductData(BaseModel):
     qu_id_purchase: int
     qu_id_stock: int
     calories: int
+    carbohydrates: float | int = 0
+    fat: float | int = 0
+    protein: float | int = 0
+    sugar: float | int = 0
 
 
 class AnalyzeProductResponse(BaseModel):
