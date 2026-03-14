@@ -519,13 +519,7 @@ class GrocyClient:
     def get_stock_entries(
         self, location_ids: list[int] | None = None
     ) -> list[Dict[str, Any]]:
-        response = requests.get(
-            f"{self.settings.grocy_base_url}/stock",
-            headers=self.headers,
-            timeout=30,
-        )
-        response.raise_for_status()
-        stock_entries = response.json()
+        stock_entries = self._merge_missing_stock_ids(self._get_stock_payload())
         if not isinstance(stock_entries, list):
             return []
 
@@ -541,16 +535,84 @@ class GrocyClient:
 
         return filtered_entries
 
-    def get_stock_products(
-        self, location_ids: list[int] | None = None
-    ) -> list[Dict[str, Any]]:
+    def _get_stock_payload(self) -> list[Dict[str, Any]]:
         response = requests.get(
             f"{self.settings.grocy_base_url}/stock",
             headers=self.headers,
             timeout=30,
         )
         response.raise_for_status()
-        stock_entries = response.json()
+        payload = response.json()
+        return payload if isinstance(payload, list) else []
+
+    def _get_stock_object_entries(self) -> list[Dict[str, Any]]:
+        response = requests.get(
+            f"{self.settings.grocy_base_url}/objects/stock",
+            headers=self.headers,
+            timeout=30,
+        )
+        response.raise_for_status()
+        payload = response.json()
+        return payload if isinstance(payload, list) else []
+
+    def _normalize_stock_match_key(self, entry: Dict[str, Any]) -> tuple[Any, ...]:
+        product_id = self._safe_int(entry.get("product_id"))
+        location_id = self._safe_int(entry.get("location_id"))
+
+        amount_raw = entry.get("amount")
+        try:
+            amount = float(str(amount_raw).replace(",", "."))
+        except (TypeError, ValueError):
+            amount = None
+
+        best_before = self._safe_str(
+            entry.get("best_before_date") or entry.get("best_before_date_calculated")
+        )
+        return product_id, location_id, amount, best_before
+
+    def _merge_missing_stock_ids(
+        self, stock_entries: list[Dict[str, Any]]
+    ) -> list[Dict[str, Any]]:
+        if not stock_entries:
+            return stock_entries
+
+        if all(
+            self._safe_int(entry.get("stock_id") or entry.get("id"))
+            for entry in stock_entries
+        ):
+            return stock_entries
+
+        stock_objects = self._get_stock_object_entries()
+        if not stock_objects:
+            return stock_entries
+
+        ids_by_key: dict[tuple[Any, ...], list[int]] = {}
+        for stock_object in stock_objects:
+            stock_id = self._safe_int(stock_object.get("id"))
+            if stock_id is None:
+                continue
+            key = self._normalize_stock_match_key(stock_object)
+            ids_by_key.setdefault(key, []).append(stock_id)
+
+        result: list[Dict[str, Any]] = []
+        for entry in stock_entries:
+            merged_entry = dict(entry)
+            stock_id = self._safe_int(
+                merged_entry.get("stock_id") or merged_entry.get("id")
+            )
+            if stock_id is None:
+                key = self._normalize_stock_match_key(merged_entry)
+                candidates = ids_by_key.get(key, [])
+                if candidates:
+                    merged_entry["stock_id"] = candidates.pop(0)
+            result.append(merged_entry)
+
+        return result
+
+    def get_stock_products(
+        self, location_ids: list[int] | None = None
+    ) -> list[Dict[str, Any]]:
+        stock_entries = self._merge_missing_stock_ids(self._get_stock_payload())
 
         products = {
             int(product.get("id")): product

@@ -108,6 +108,17 @@ def test_get_shopping_list_falls_back_to_objects_endpoint(monkeypatch):
             return FakeResponse(
                 [{"id": 7, "product_id": 10, "amount": 2, "note": "bio"}]
             )
+        if url.endswith("/stock"):
+            return FakeResponse(
+                [
+                    {
+                        "product_id": 10,
+                        "location_id": 1,
+                        "amount": "2",
+                        "best_before_date": "2026-01-01",
+                    }
+                ]
+            )
         if url.endswith("/objects/products"):
             return FakeResponse(
                 [
@@ -115,6 +126,17 @@ def test_get_shopping_list_falls_back_to_objects_endpoint(monkeypatch):
                         "id": 10,
                         "name": "Hafermilch",
                         "picture_url": "/api/files/hafer.jpg",
+                    }
+                ]
+            )
+        if url.endswith("/stock"):
+            return FakeResponse(
+                [
+                    {
+                        "product_id": 10,
+                        "location_id": 1,
+                        "amount": "2",
+                        "best_before_date": "2026-01-01",
                     }
                 ]
             )
@@ -250,6 +272,17 @@ def test_get_shopping_list_sorts_objects_fallback_by_newest_first(monkeypatch):
                         "row_created_timestamp": "2024-01-01 09:00:00",
                     },
                     {"id": 6, "product_id": 10},
+                ]
+            )
+        if url.endswith("/stock"):
+            return FakeResponse(
+                [
+                    {
+                        "product_id": 10,
+                        "location_id": 1,
+                        "amount": "2",
+                        "best_before_date": "2026-01-01",
+                    }
                 ]
             )
         if url.endswith("/objects/products"):
@@ -986,6 +1019,98 @@ def test_get_stock_products_returns_stock_id(monkeypatch):
 
     result = client.get_stock_products()
     assert result[0]["stock_id"] == 77
+
+
+def test_get_stock_products_falls_back_to_objects_stock_ids(monkeypatch):
+    def fake_get(url, *args, **kwargs):
+        if url.endswith("/objects/stock"):
+            return FakeResponse(
+                [
+                    {
+                        "id": 88,
+                        "product_id": 10,
+                        "location_id": 1,
+                        "amount": "2",
+                        "best_before_date": "2026-01-01",
+                    }
+                ]
+            )
+        if url.endswith("/stock"):
+            return FakeResponse(
+                [
+                    {
+                        "product_id": 10,
+                        "location_id": 1,
+                        "amount": "2",
+                        "best_before_date": "2026-01-01",
+                    }
+                ]
+            )
+        if url.endswith("/objects/products"):
+            return FakeResponse([{"id": 10, "name": "Milch"}])
+        if url.endswith("/objects/locations"):
+            return FakeResponse([{"id": 1, "name": "Keller"}])
+        raise AssertionError(f"Unexpected url: {url}")
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.services.grocy_client.requests.get", fake_get
+    )
+
+    client = GrocyClient(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+        )
+    )
+
+    result = client.get_stock_products()
+    assert result[0]["stock_id"] == 88
+
+
+def test_get_stock_entries_falls_back_to_objects_stock_ids(monkeypatch):
+    def fake_get(url, *args, **kwargs):
+        if url.endswith("/objects/stock"):
+            return FakeResponse(
+                [
+                    {
+                        "id": 91,
+                        "product_id": 10,
+                        "location_id": 1,
+                        "amount": "2",
+                        "best_before_date": "2026-01-01",
+                    }
+                ]
+            )
+        if url.endswith("/stock"):
+            return FakeResponse(
+                [
+                    {
+                        "product_id": 10,
+                        "location_id": 1,
+                        "amount": "2",
+                        "best_before_date": "2026-01-01",
+                    }
+                ]
+            )
+        raise AssertionError(f"Unexpected url: {url}")
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.services.grocy_client.requests.get", fake_get
+    )
+
+    client = GrocyClient(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+        )
+    )
+
+    result = client.get_stock_entries()
+    assert result[0]["stock_id"] == 91
 
 
 def test_consume_stock_product_uses_product_and_stock_id(monkeypatch):
