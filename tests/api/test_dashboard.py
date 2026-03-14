@@ -1,3 +1,4 @@
+import requests
 from grocy_ai_assistant.api import routes
 
 
@@ -1573,3 +1574,96 @@ def test_recipe_suggestions_strip_html_from_grocy_and_ai_fields(client, monkeypa
     assert payload["ai_recipes"][0]["reason"] == "Tomate\nist vorhanden"
     assert payload["ai_recipes"][0]["preparation"] == "Tomaten schneiden"
     assert payload["ai_recipes"][0]["ingredients"] == ["2 Tomaten"]
+
+
+def test_dashboard_has_storage_tab_before_notifications(client):
+    response = client.get("/")
+
+    assert response.status_code == 200
+    storage_pos = response.text.index("id='tab-button-storage'")
+    notify_pos = response.text.index("id='tab-button-notifications'")
+
+    assert storage_pos < notify_pos
+    assert 'switchTab("storage")' in response.text
+    assert "<h2>Lager</h2>" in response.text
+
+
+def test_dashboard_static_contains_storage_actions(client):
+    response = client.get("/dashboard-static/dashboard.js")
+
+    assert response.status_code == 200
+    assert "function loadStorageProducts()" in response.text
+    assert "function consumeStorageProduct(stockId)" in response.text
+    assert "function openStorageEditModal(stockId)" in response.text
+    assert "function saveStorageEditModal()" in response.text
+
+
+def test_dashboard_stock_products_include_stock_id(client, monkeypatch):
+    def fake_get_stock_products(self, location_ids=None):
+        return [
+            {
+                "id": 10,
+                "stock_id": 99,
+                "name": "Milch",
+                "location_id": 1,
+                "location_name": "Küche",
+                "amount": "2",
+                "best_before_date": "2026-01-01",
+            }
+        ]
+
+    monkeypatch.setattr(
+        routes.GrocyClient, "get_stock_products", fake_get_stock_products
+    )
+
+    response = client.get(
+        "/api/dashboard/stock-products",
+        headers={"Authorization": "Bearer test-api-key"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()[0]["stock_id"] == 99
+
+
+def test_dashboard_can_consume_stock_product(client, monkeypatch):
+    def fake_get_stock_entries(self, location_ids=None):
+        return [{"id": 99, "product_id": 10}]
+
+    called = {}
+
+    def fake_consume_stock_product(self, product_id, amount=1, stock_id=None):
+        called["args"] = (product_id, amount, stock_id)
+
+    monkeypatch.setattr(routes.GrocyClient, "get_stock_entries", fake_get_stock_entries)
+    monkeypatch.setattr(
+        routes.GrocyClient, "consume_stock_product", fake_consume_stock_product
+    )
+
+    response = client.post(
+        "/api/dashboard/stock-products/99/consume",
+        headers={"Authorization": "Bearer test-api-key"},
+        json={"amount": 1},
+    )
+
+    assert response.status_code == 200
+    assert called["args"] == (10, 1, 99)
+
+
+def test_dashboard_can_update_stock_product(client, monkeypatch):
+    called = {}
+
+    def fake_update_stock_entry(self, stock_id, amount, best_before_date=""):
+        called["args"] = (stock_id, amount, best_before_date)
+
+    monkeypatch.setattr(
+        routes.GrocyClient, "update_stock_entry", fake_update_stock_entry
+    )
+
+    response = client.put(
+        "/api/dashboard/stock-products/99",
+        headers={"Authorization": "Bearer test-api-key"},
+        json={"amount": 5, "best_before_date": "2026-02-01"},
+    )
+
+    assert response.status_code == 200
+    assert called["args"] == (99, 5, "2026-02-01")

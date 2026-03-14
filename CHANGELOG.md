@@ -2,6 +2,7 @@
 
 All notable changes to this project are documented in this file.
 
+
 ## 7.1.21
 
 - Fix/Scope: Mengen-Badge-Funktion fokussiert auf Produkte in der Einkaufsliste (Badge „Menge“ erhöht weiterhin die einzukaufende Menge direkt im Listen-Eintrag).
@@ -10,6 +11,11 @@ All notable changes to this project are documented in this file.
 
 ## 7.1.20
 
+- UI: Neuer Tab „Lager" vor „Notify" ergänzt, inklusive Filterfeld am Anfang der Seite und vollständiger Produktliste aus allen Lagern.
+- UI/Funktion: Im Lager-Tab pro Produkt die Aktionen „Verbrauchen" und „Ändern" ergänzt.
+- UI/Funktion: Neues Bearbeiten-Popup für Lagerprodukte ergänzt (Menge + MHD).
+- API: Neue Endpunkte zum Verbrauchen und Aktualisieren einzelner Lager-Einträge ergänzt.
+- Service: Grocy-Client um Methoden zum Verbrauchen und Aktualisieren von Lager-Einträgen erweitert.
 - UI/Funktion: Der Badge für fehlende Produkte im Rezept-Dialog ist jetzt klickbar und erhöht die Menge der „einzukaufenden“ Produkte direkt in der Einkaufsliste um 1.
 - API: `POST /api/dashboard/recipe/{recipe_id}/add-missing` akzeptiert optional Mengen pro Produkt (`products: [{id, amount}]`) und nutzt bestehenden Codepfad zum Hinzufügen auf die Einkaufsliste.
 - Test: API- und Dashboard-Tests für klickbaren Mengen-Badge bei fehlenden Rezeptprodukten ergänzt.
