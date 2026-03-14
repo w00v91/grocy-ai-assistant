@@ -78,6 +78,7 @@ class StockProductResponse(BaseModel):
     id: int
     stock_id: int | None = None
     name: str
+    picture_url: str = ""
     location_id: int | None = None
     location_name: str = ""
     amount: str = ""
