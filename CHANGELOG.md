@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.24
+
+- Fix (Lager-Dashboard): Fehlende Bearbeitungs-IDs aus `/stock` werden jetzt über `/objects/stock` ergänzt, damit Aktionen „Ändern“ und „Verbrauchen“ wieder für betroffene Einträge funktionieren.
+- Test: Unit-Tests für Fallback der Bearbeitungs-ID in `get_stock_products` und `get_stock_entries` ergänzt.
+- Pflege: Add-on-Version auf `7.1.24` erhöht.
+
 ## 7.1.23
 
 - Fix: Klick auf den Badge „Menge" in der Einkaufsliste öffnet nicht mehr das Produkt-Popup, sondern erhöht zuverlässig die Menge des Eintrags.
