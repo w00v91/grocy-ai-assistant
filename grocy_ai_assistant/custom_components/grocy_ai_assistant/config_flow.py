@@ -9,7 +9,6 @@ from .const import (
     CONF_DEBUG_MODE,
     CONF_GROCY_API_KEY,
     CONF_GROCY_BASE_URL,
-    CONF_NOTIFICATION_GLOBAL_ENABLED,
     DEFAULT_ADDON_INGRESS_PATH,
     DEFAULT_GROCY_BASE_URL,
     DOMAIN,
@@ -126,22 +125,11 @@ class GrocyAIOptionsFlowHandler(config_entries.OptionsFlow):
             return self.async_create_entry(title="", data=self._pending_options)
 
         options = self._config_entry.options or {}
-        data = self._config_entry.data or {}
 
         return self.async_show_form(
             step_id="debug",
             data_schema=vol.Schema(
                 {
-                    vol.Optional(
-                        CONF_NOTIFICATION_GLOBAL_ENABLED,
-                        default=_safe_bool(
-                            options.get(
-                                CONF_NOTIFICATION_GLOBAL_ENABLED,
-                                data.get(CONF_NOTIFICATION_GLOBAL_ENABLED),
-                            ),
-                            True,
-                        ),
-                    ): bool,
                     vol.Optional(
                         CONF_DEBUG_MODE,
                         default=_safe_bool(options.get(CONF_DEBUG_MODE), False),
