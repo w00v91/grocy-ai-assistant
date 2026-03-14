@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.12
+
+- UI: Events in der Benachrichtigungsansicht werden jetzt in normaler Sprache angezeigt (Regelliste und Historie).
+- UI: Beim Erstellen neuer Regeln werden Events und Zielgeräte als Mehrfachauswahl-Dropdowns dargestellt.
+- UI: Der Button „Neue Regel“ wurde unter die Überschrift „Regelverwaltung“ verschoben.
+- Pflege: Add-on-Version auf `7.1.12` erhöht.
+
 ## 7.1.11
 
 - UI: Rezeptbild wird jetzt auch im Rezept-Detail-Popup am oberen Rand angezeigt.
