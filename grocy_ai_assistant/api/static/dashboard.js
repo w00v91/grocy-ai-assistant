@@ -1218,9 +1218,8 @@ document.getElementById('shopping-list').addEventListener('click', async (event)
     }
     return;
   }
+});
 
-  const target = event.target.closest('.mhd-picker-button');
-  
 document.getElementById('shopping-list').addEventListener('click', (event) => {
   const target = event.target.closest('.shopping-note-button, .mhd-picker-button');
   if (!target) return;
