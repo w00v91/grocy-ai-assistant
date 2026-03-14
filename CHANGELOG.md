@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.41
+
+- Fix (Lager-Tab): Der Button „✏️ Bearbeiten“ öffnet das Popup „Bestand ändern“ jetzt wieder zuverlässig auch dann, wenn ein Eintrag nur über `product_id` (Fallback-ID) adressierbar ist.
+- Fix (Lager-Tab): Speichern im Bearbeiten-Popup nutzt nun dieselbe aufgelöste Ziel-ID wie der Button-Aufruf, wodurch Updates konsistent am korrekten Eintrag landen.
+- Pflege: Add-on-Version auf `7.1.41` erhöht.
+
 ## 7.1.39
 
 - Fix (Produktauswahl): Auswahl von `Neu anlegen` in der Variantenliste legt das Produkt jetzt direkt an, statt erneut in die Varianten-Auswahl zurückzuspringen.
