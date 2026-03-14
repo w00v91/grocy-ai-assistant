@@ -23,6 +23,14 @@
         <section class='card hero-card'>
           <div class='section-header'>
             <h2>Grocy AI Suche</h2>
+            <button
+              id='open-scanner-modal-button'
+              class='scanner-popup-button'
+              type='button'
+              aria-label='Barcode-Scanner öffnen'
+              title='Barcode-Scanner öffnen'
+              onclick='openScannerModal()'
+            >📷</button>
           </div>
           <div class='search-row'>
             <div class='search-input-wrapper'>
@@ -48,21 +56,6 @@
             <button class='success-button' onclick='completeShoppingList()'>Einkauf abschließen</button>
             <button class='danger-button' onclick='clearShoppingList()'>Einkaufsliste leeren</button>
           </div>
-        </section>
-      </section>
-
-      <section id='tab-scanner' class='tab-view hidden'>
-        <section class='card'>
-          <h2>Barcode-Scanner</h2>
-          <video id='scanner-video' class='scanner-video hidden' playsinline></video>
-          <canvas id='scanner-canvas' class='hidden'></canvas>
-          <div class='scanner-actions'>
-            <button id='start-scan-button' type='button' onclick='startBarcodeScanner()'>📷 Kamera starten</button>
-            <button id='stop-scan-button' type='button' class='danger-button hidden' onclick='stopBarcodeScanner()'>⏹ Kamera stoppen</button>
-            <button id='llava-scan-button' type='button' onclick='triggerLlavaScan()'>🤖 LLaVA jetzt befragen</button>
-          </div>
-          <p id='status-scanner'>Bereit.</p>
-          <section id='scanner-result' class='scanner-result hidden'></section>
         </section>
       </section>
 
@@ -144,7 +137,6 @@
     <nav class='bottom-tabbar' aria-label='Navigation'>
       <button id='tab-button-shopping' class='tab-button active' type='button' onclick='switchTab("shopping")'>🛒 Einkauf</button>
       <button id='tab-button-recipes' class='tab-button' type='button' onclick='switchTab("recipes")'>🍳 Rezepte</button>
-      <button id='tab-button-scanner' class='tab-button' type='button' onclick='switchTab("scanner")'>📷 Scanner</button>
       <button id='tab-button-notifications' class='tab-button' type='button' onclick='switchTab("notifications")'>🔔 Notify</button>
     </nav>
 
@@ -227,6 +219,25 @@
             <button class='ghost-button' type='button' onclick='closeNotificationRuleModal()'>Abbrechen</button>
           </div>
         </div>
+      </section>
+    </div>
+
+    <div id='scanner-modal' class='shopping-modal hidden'>
+      <div class='shopping-modal-backdrop' onclick='closeScannerModal()'></div>
+      <section class='shopping-modal-content card scanner-modal-content'>
+        <button class='shopping-modal-close' type='button' onclick='closeScannerModal()' aria-label='Scanner schließen'>×</button>
+        <section id='tab-scanner' class='scanner-popup-card'>
+          <h2>Barcode-Scanner</h2>
+          <video id='scanner-video' class='scanner-video hidden' playsinline></video>
+          <canvas id='scanner-canvas' class='hidden'></canvas>
+          <div class='scanner-actions'>
+            <button id='start-scan-button' type='button' onclick='startBarcodeScanner()'>📷 Kamera starten</button>
+            <button id='stop-scan-button' type='button' class='danger-button hidden' onclick='stopBarcodeScanner()'>⏹ Kamera stoppen</button>
+            <button id='llava-scan-button' type='button' onclick='triggerLlavaScan()'>🤖 LLaVA jetzt befragen</button>
+          </div>
+          <p id='status-scanner'>Bereit.</p>
+          <section id='scanner-result' class='scanner-result hidden'></section>
+        </section>
       </section>
     </div>
 
