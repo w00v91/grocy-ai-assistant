@@ -17,6 +17,24 @@ let notificationEditingRuleId = null;
 let storageProductsCache = [];
 let storageEditingItem = null;
 
+function normalizeStockProduct(item) {
+  const productId = Number(item?.id ?? item?.product_id ?? 0);
+  const stockId = Number(item?.stock_id ?? item?.stockId ?? 0);
+  return {
+    ...item,
+    id: Number.isFinite(productId) && productId > 0 ? productId : null,
+    stock_id: Number.isFinite(stockId) && stockId > 0 ? stockId : null,
+  };
+}
+
+function getActionableStorageId(item) {
+  const stockId = Number(item?.stock_id ?? 0);
+  if (Number.isFinite(stockId) && stockId > 0) return stockId;
+  const productId = Number(item?.id ?? 0);
+  if (Number.isFinite(productId) && productId > 0) return productId;
+  return 0;
+}
+
 const NOTIFICATION_EVENT_LABELS = {
   item_added: 'Produkt hinzugefügt',
   item_removed: 'Produkt entfernt',
@@ -1396,13 +1414,14 @@ function renderLocations(items) {
 
 function renderStockProducts(items) {
   const container = document.getElementById('stock-products');
+  const normalizedItems = (Array.isArray(items) ? items : []).map(normalizeStockProduct);
   const selectedProductIds = new Set(recipeState.selectedProductIds);
 
   container.innerHTML = `
     <details class="location-dropdown">
-      <summary>Produkte auswählen (${items.length})</summary>
+      <summary>Produkte auswählen (${normalizedItems.length})</summary>
       <div class="stock-options">
-        ${items.length ? items.map((item) => `
+        ${normalizedItems.length ? normalizedItems.map((item) => `
           <label class="stock-item">
             <input type="checkbox" value="${item.id}" ${selectedProductIds.size === 0 || selectedProductIds.has(item.id) ? 'checked' : ''} />
             <span class="stock-item-name"><strong>${item.name}</strong></span>
@@ -1493,16 +1512,17 @@ async function loadStockProducts() {
       return;
     }
 
-    const availableProductIds = new Set(payload.map((item) => item.id));
+    const normalizedPayload = (Array.isArray(payload) ? payload : []).map(normalizeStockProduct);
+    const availableProductIds = new Set(normalizedPayload.map((item) => item.id));
     recipeState.selectedProductIds = recipeState.selectedProductIds.filter((id) => availableProductIds.has(id));
 
-    const nextStockSignature = buildStockSignature(payload);
+    const nextStockSignature = buildStockSignature(normalizedPayload);
     const hasStockChanged = recipeState.stockSignature !== null
       && recipeState.stockSignature !== nextStockSignature;
 
     recipeState.stockSignature = nextStockSignature;
 
-    renderStockProducts(payload);
+    renderStockProducts(normalizedPayload);
 
     if (recipeState.selectedProductIds.length === 0) {
       recipeState.selectedProductIds = getSelectedProductIds();
@@ -1550,9 +1570,10 @@ function renderStorageProducts() {
   }
 
   list.innerHTML = filteredItems.map((item) => {
-    const hasStockId = Number(item.stock_id || 0) > 0;
-    const disabledAttr = hasStockId ? '' : ' disabled';
-    const disabledTitle = hasStockId ? '' : ' title="Für diesen Eintrag ist keine Bestand-ID verfügbar"';
+    const actionableId = getActionableStorageId(item);
+    const canExecuteAction = actionableId > 0;
+    const disabledAttr = canExecuteAction ? '' : ' disabled';
+    const disabledTitle = canExecuteAction ? '' : ' title="Für diesen Eintrag ist keine nutzbare Produkt-/Bestand-ID verfügbar"';
     const productName = escapeHtml(item.name || 'Unbekanntes Produkt');
     const attributes = [
       `Lager: ${escapeHtml(formatBadgeValue(item.location_name, '-'))}`,
@@ -1567,8 +1588,8 @@ function renderStorageProducts() {
         <div class="muted">Lager: ${escapeHtml(item.location_name || '-')} · Menge: ${escapeHtml(formatBadgeValue(item.amount, '0'))} · MHD: ${escapeHtml(formatBadgeValue(item.best_before_date, '-'))}</div>
       </div>
       <div class="storage-item-actions">
-        <button class="ghost-button storage-action-button storage-edit-button" type="button" onclick="openStorageEditModal(${Number(item.stock_id || 0)})"${disabledAttr}${disabledTitle}>✏️ Bearbeiten</button>
-        <button class="storage-action-button storage-consume-button" type="button" onclick="consumeStorageProduct(${Number(item.stock_id || 0)})"${disabledAttr}${disabledTitle}>✅ Verbrauchen</button>
+        <button class="ghost-button storage-action-button storage-edit-button" type="button" onclick="openStorageEditModal(${actionableId})"${disabledAttr}${disabledTitle}>✏️ Bearbeiten</button>
+        <button class="storage-action-button storage-consume-button" type="button" onclick="consumeStorageProduct(${actionableId})"${disabledAttr}${disabledTitle}>✅ Verbrauchen</button>
       </div>
     </li>
   `;
@@ -1589,11 +1610,14 @@ async function loadStorageProducts() {
       const res = await fetch(buildApiUrl('/api/dashboard/stock-products'), { headers: { Authorization: `Bearer ${key}` } });
       const payload = await parseJsonSafe(res);
       if (!res.ok) throw new Error(getErrorMessage(payload, 'Bestand konnte nicht geladen werden.'));
-      storageProductsCache = Array.isArray(payload) ? payload : [];
+      storageProductsCache = (Array.isArray(payload) ? payload : []).map(normalizeStockProduct);
       renderStorageProducts();
-      const missingStockIds = storageProductsCache.filter((item) => Number(item.stock_id || 0) <= 0).length;
-      status.textContent = missingStockIds > 0
-        ? `Lagerbestand geladen (${missingStockIds} Einträge ohne Bearbeitungs-ID).`
+      const fallbackProductIds = storageProductsCache.filter((item) => Number(item.stock_id || 0) <= 0 && Number(item.id || 0) > 0).length;
+      const missingAllIds = storageProductsCache.filter((item) => Number(item.stock_id || 0) <= 0 && Number(item.id || 0) <= 0).length;
+      status.textContent = missingAllIds > 0
+        ? `Lagerbestand geladen (${fallbackProductIds} Einträge über Produkt-ID, ${missingAllIds} ohne nutzbare ID).`
+        : fallbackProductIds > 0
+          ? `Lagerbestand geladen (${fallbackProductIds} Einträge über Produkt-ID).`
         : 'Lagerbestand geladen.';
     } catch (error) {
       status.textContent = `Fehler: ${error.message}`;

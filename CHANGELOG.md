@@ -4,6 +4,9 @@ All notable changes to this project are documented in this file.
 
 ## 7.1.38
 
+- Fix (Dashboard Lager): Lade- und ID-Normalisierungslogik für Bestandsprodukte zwischen Rezepte-Tab (Produktauswahl) und Lager-Tab vereinheitlicht.
+- Fix (Dashboard Lager): Aktionen im Lager-Tab ("Bearbeiten", "Verbrauchen") nutzen jetzt automatisch `stock_id` und fallen bei fehlender Bestand-ID auf `product_id` zurück.
+- UX (Dashboard Lager): Statusmeldung zeigt jetzt transparent an, wie viele Einträge per Produkt-ID-Fallback laufen bzw. gar keine nutzbare ID haben.
 - Suche (Produktauswahl): Varianten-Laden im Such-Tab erfolgt jetzt zweistufig: zuerst sofort Grocy-Treffer (`include_ai=false`), anschließend KI-Erweiterung per Lazy-Load (`include_ai=true`).
 - API: `GET /api/dashboard/search-variants` unterstützt den Query-Parameter `include_ai` zur getrennten Steuerung von Grocy-Soforttreffern und KI-Vorschlägen.
 - UX (Produktauswahl): Wenn kein exakter Produktname zur Suche passt, wird an erster Stelle ein Eintrag zum Neu-Anlegen mit dem bereinigten Suchtext (ohne Mengenpräfix) angezeigt.
