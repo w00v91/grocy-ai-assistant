@@ -300,14 +300,23 @@ class GrocyClient:
             "Content-Type": "application/octet-stream",
             "Accept": "*/*",
         }
-        primary_upload_url = (
-            f"{self.settings.grocy_base_url}/files/productpictures/{file_name}"
-        )
-        upload_urls = [primary_upload_url]
 
+        encoded_file_name = b64encode(file_name.encode("utf-8")).decode("ascii")
+        candidate_file_names = [file_name]
+        if encoded_file_name != file_name:
+            candidate_file_names.append(encoded_file_name)
+
+        upload_urls: list[str] = []
         stripped_base_url = self.settings.grocy_base_url.rstrip("/")
+        base_urls = [stripped_base_url]
         if stripped_base_url.endswith("/api"):
-            upload_urls.append(f"{stripped_base_url[:-4]}/files/productpictures/{file_name}")
+            base_urls.append(stripped_base_url[:-4])
+
+        for base_url in base_urls:
+            for upload_file_name in candidate_file_names:
+                upload_url = f"{base_url}/files/productpictures/{upload_file_name}"
+                if upload_url not in upload_urls:
+                    upload_urls.append(upload_url)
 
         upload_attempts: list[tuple[str, str, dict[str, str], str]] = []
         for upload_url in upload_urls:

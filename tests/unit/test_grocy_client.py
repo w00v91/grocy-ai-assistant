@@ -1,3 +1,5 @@
+from base64 import b64encode
+
 import pytest
 import requests
 from requests import HTTPError
@@ -1287,9 +1289,12 @@ def test_attach_product_picture_retries_without_api_prefix_on_405(monkeypatch, t
 
     def fake_request(method, url, headers=None, data=None, json=None, timeout=None):
         calls.append((method, url, headers, data, json))
-        if url.endswith("/api/files/productpictures/my_product.png"):
+        if url.startswith("http://grocy.local/api/files/productpictures/"):
             return FakeResponse(status_code=405)
-        if url.endswith("/files/productpictures/my_product.png") and headers.get("GROCY-API-KEY"):
+        if (
+            url.startswith("http://grocy.local/files/productpictures/")
+            and headers.get("GROCY-API-KEY")
+        ):
             return FakeResponse(status_code=405)
         return FakeResponse(status_code=200)
 
@@ -1316,14 +1321,14 @@ def test_attach_product_picture_retries_without_api_prefix_on_405(monkeypatch, t
     result = client.attach_product_picture(10, str(image_path))
 
     assert result == "my_product.png"
-    assert calls[0][1] == "http://grocy.local/api/files/productpictures/my_product.png"
-    assert calls[1][1] == "http://grocy.local/api/files/productpictures/my_product.png"
-    assert calls[2][1] == "http://grocy.local/api/files/productpictures/my_product.png"
-    assert calls[3][1] == "http://grocy.local/api/files/productpictures/my_product.png"
-    assert calls[4][1] == "http://grocy.local/files/productpictures/my_product.png"
-    assert calls[5][1] == "http://grocy.local/files/productpictures/my_product.png"
-    assert calls[6][0] == "PUT"
-    assert calls[6][1] == "http://grocy.local/api/objects/products/10"
+    upload_calls = [call for call in calls if "/files/productpictures/" in call[1]]
+    assert upload_calls[0][1] == "http://grocy.local/api/files/productpictures/my_product.png"
+    assert any(
+        call[1] == "http://grocy.local/files/productpictures/my_product.png"
+        and "GROCY-API-KEY" not in call[2]
+        for call in upload_calls
+    )
+    assert calls[-1][1] == "http://grocy.local/api/objects/products/10"
 
 
 def test_attach_product_picture_retries_with_post_on_put_405(monkeypatch, tmp_path):
@@ -1378,3 +1383,55 @@ def test_attach_product_picture_retries_with_post_on_put_405(monkeypatch, tmp_pa
     assert calls[2][1] == "http://grocy.local/api/files/productpictures/my_product.png"
     assert calls[3][0] == "PUT"
     assert calls[3][1] == "http://grocy.local/api/objects/products/10"
+
+
+def test_attach_product_picture_retries_with_base64_filename(monkeypatch, tmp_path):
+    calls = []
+
+    class FakeResponse:
+        def __init__(self, status_code=200):
+            self.status_code = status_code
+
+        def __bool__(self):
+            return self.status_code < 400
+
+        def raise_for_status(self):
+            if self.status_code >= 400:
+                error = requests.HTTPError(f"{self.status_code} error")
+                error.response = self
+                raise error
+
+    image_path = tmp_path / "my_product.png"
+    image_path.write_bytes(b"img")
+
+    encoded_file_name = b64encode(image_path.name.encode("utf-8")).decode("ascii")
+
+    def fake_request(method, url, headers=None, data=None, json=None, timeout=None):
+        calls.append((method, url, headers, data, json))
+        if url.endswith(f"/productpictures/{encoded_file_name}"):
+            return FakeResponse(status_code=200)
+        return FakeResponse(status_code=404)
+
+    def fake_put(url, headers=None, data=None, json=None, timeout=None):
+        calls.append(("PUT", url, headers, data, json))
+        return FakeResponse(status_code=200)
+
+    monkeypatch.setattr("grocy_ai_assistant.services.grocy_client.requests.request", fake_request)
+    monkeypatch.setattr("grocy_ai_assistant.services.grocy_client.requests.put", fake_put)
+
+    client = GrocyClient(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+            grocy_base_url="http://grocy.local/api",
+        )
+    )
+
+    result = client.attach_product_picture(10, str(image_path))
+
+    assert result == "my_product.png"
+    upload_urls = [call[1] for call in calls if "/files/productpictures/" in call[1]]
+    assert f"http://grocy.local/api/files/productpictures/{encoded_file_name}" in upload_urls
+    assert calls[-1][1] == "http://grocy.local/api/objects/products/10"

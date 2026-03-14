@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.33
+
+- Fix (Grocy-Bildupload): Upload berücksichtigt zusätzlich einen Dateinamen-Fallback mit Base64-kodiertem Dateinamen (inkl. Dateiendung), falls Endpunkte den Pfad nur in kodierter Form akzeptieren.
+- Fix (Grocy-Bildupload): Reihenfolge bleibt robust: pro URL-Variante werden `PUT` und `POST` mit `api_key` und `curl_compatible` Header-Modus probiert.
+- Test: Unit-Test ergänzt, der den erfolgreichen Upload über die Base64-Dateinamen-URL absichert.
+- Pflege: Add-on-Version auf `7.1.33` erhöht.
+
 ## 7.1.32
 
 - Fix (Grocy-Bildupload): Produktbild-Upload versucht bei `405/404` jetzt wieder pro URL den Methoden-Fallback `PUT` -> `POST` (jeweils mit `api_key` und `curl_compatible` Header-Modus), bevor zur nächsten URL gewechselt wird.
