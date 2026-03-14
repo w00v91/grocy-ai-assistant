@@ -2,7 +2,7 @@ import logging
 import re
 from datetime import date, timedelta
 from pathlib import Path
-from urllib.parse import ParseResult, quote, unquote, urlparse
+from urllib.parse import ParseResult, quote, unquote, urlencode, urlparse, urlunparse
 from uuid import uuid4
 
 import requests
@@ -75,12 +75,54 @@ def _build_product_picture_url(raw_picture_url: str, settings: Settings) -> str:
     return rewritten
 
 
-def _build_dashboard_picture_proxy_url(raw_picture_url: str, settings: Settings) -> str:
+def _build_dashboard_picture_proxy_url(
+    raw_picture_url: str, settings: Settings, *, size: str = "thumb"
+) -> str:
     absolute_picture_url = _build_product_picture_url(raw_picture_url, settings)
     if not absolute_picture_url:
         return ""
 
-    return f"/api/dashboard/product-picture?src={quote(absolute_picture_url, safe='')}"
+    return (
+        "/api/dashboard/product-picture"
+        f"?src={quote(absolute_picture_url, safe='')}&size={quote(size, safe='')}"
+    )
+
+
+def _apply_picture_size(url: str, size: str) -> str:
+    normalized_size = str(size or "thumb").strip().lower()
+    dimensions_by_size = {
+        "thumb": (96, 96),
+        "full": (720, 720),
+    }
+    if normalized_size not in dimensions_by_size:
+        raise HTTPException(status_code=400, detail="Ungültige Bildgröße")
+
+    width, height = dimensions_by_size[normalized_size]
+    parsed = urlparse(url)
+    query_values: dict[str, str] = {}
+    if parsed.query:
+        for query_item in parsed.query.split("&"):
+            if not query_item:
+                continue
+            if "=" in query_item:
+                key, value = query_item.split("=", 1)
+            else:
+                key, value = query_item, ""
+            query_values[key] = value
+
+    query_values["best_fit_width"] = str(width)
+    query_values["best_fit_height"] = str(height)
+
+    return urlunparse(
+        (
+            parsed.scheme,
+            parsed.netloc,
+            parsed.path,
+            parsed.params,
+            urlencode(query_values),
+            parsed.fragment,
+        )
+    )
 
 
 def _normalize_dashboard_picture_source_url(src: str) -> str:
@@ -844,6 +886,7 @@ def dashboard_scanner_llava(
 def dashboard_product_picture(
     src: str,
     request: Request,
+    size: str = "thumb",
     settings: Settings = Depends(get_settings),
 ):
     if not settings.grocy_api_key:
@@ -864,14 +907,16 @@ def dashboard_product_picture(
     ):
         raise HTTPException(status_code=400, detail="Ungültige Bildquelle")
 
+    sized_src = _apply_picture_size(src, size)
+
     image_cache = _get_product_image_cache(request)
     if image_cache:
-        cached_content, cached_media_type = image_cache.get_cached_image(src)
+        cached_content, cached_media_type = image_cache.get_cached_image(sized_src)
         if cached_content is not None:
             return Response(content=cached_content, media_type=cached_media_type)
 
-    parsed_src = urlparse(src)
-    candidate_urls = [src]
+    parsed_src = urlparse(sized_src)
+    candidate_urls = [sized_src]
     if parsed_src.path.startswith("/api/files/"):
         candidate_urls.append(
             ParseResult(

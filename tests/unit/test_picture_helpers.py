@@ -50,6 +50,7 @@ def test_build_dashboard_picture_proxy_url_encodes_absolute_url():
 
     assert proxy_url.startswith("/api/dashboard/product-picture?src=")
     assert "files%2Fproductpictures%2FbWlsay5qcGc%3D" in proxy_url
+    assert "size=thumb" in proxy_url
 
 
 def test_shared_picture_helper_matches_route_behavior():

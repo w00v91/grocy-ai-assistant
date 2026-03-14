@@ -577,8 +577,12 @@ function buildApiUrl(path) {
   return normalizedPath.replace(/^\//, '');
 }
 
-function toImageSource(url) {
+function toImageSource(url, options = {}) {
   if (!url) return 'https://placehold.co/80x80?text=Kein+Bild';
+
+  const requestedSize = String(options?.size || '').trim().toLowerCase();
+  const normalizedSize = requestedSize === 'full' ? 'full' : 'thumb';
+
   if (url.startsWith('data:')) return url;
   if (url.startsWith('http://') || url.startsWith('https://')) {
     const isExternal = (() => {
@@ -595,6 +599,12 @@ function toImageSource(url) {
     return url;
   }
   const normalized = '/' + url.replace(/^\/+/, '');
+  if (normalized.startsWith('/api/dashboard/product-picture?')) {
+    const absoluteProxyUrl = new URL(buildApiUrl(normalized), window.location.origin);
+    absoluteProxyUrl.searchParams.set('size', normalizedSize);
+    return absoluteProxyUrl.toString();
+  }
+
   if (normalized.startsWith('/api/')) {
     return buildApiUrl(normalized);
   }
@@ -1754,7 +1764,7 @@ function openStorageEditModal(stockId) {
   if (picture) {
     const pictureUrl = String(stockItem.picture_url || '').trim();
     if (pictureUrl) {
-      picture.src = toImageSource(pictureUrl);
+      picture.src = toImageSource(pictureUrl, { size: 'full' });
       picture.classList.remove('hidden');
     } else {
       picture.removeAttribute('src');
@@ -1955,7 +1965,7 @@ function openRecipeDetails(item) {
     missingProducts.innerHTML = missingItems.map((product) => `<li>${product.name}</li>`).join('');
   }
 
-  const recipeImageSource = toImageSource(item.picture_url || '');
+  const recipeImageSource = toImageSource(item.picture_url || '', { size: 'full' });
   if (recipeImageSource && imageWrapper && image) {
     image.src = recipeImageSource;
     image.alt = item.title ? `${item.title} Rezeptbild` : 'Rezeptbild';
