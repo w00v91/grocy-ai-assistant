@@ -1638,3 +1638,81 @@ def test_create_product_keeps_valid_ids_in_retry_payload(monkeypatch):
     assert posted_payloads[1]["qu_id_purchase"] == 2
     assert posted_payloads[1]["qu_id_stock"] == 1
     assert "fat" not in posted_payloads[1]
+
+
+def test_create_product_retries_by_removing_unknown_columns(monkeypatch):
+    posted_payloads = []
+
+    class BadRequestResponse:
+        def __init__(self, text):
+            self.status_code = 400
+            self.text = text
+
+        def raise_for_status(self):
+            raise HTTPError("Bad Request")
+
+        def json(self):
+            return {}
+
+    class CreatedResponse:
+        status_code = 200
+        text = ""
+
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return {"created_object_id": 33}
+
+    def fake_post(url, *args, **kwargs):
+        posted_payloads.append(kwargs.get("json"))
+        if len(posted_payloads) == 1:
+            return BadRequestResponse(
+                '{"error_message":"table products has no column named carbohydrates"}'
+            )
+        if len(posted_payloads) == 2:
+            return BadRequestResponse(
+                '{"error_message":"table products has no column named qu_factor_purchase_to_stock"}'
+            )
+        return CreatedResponse()
+
+    def fake_get(url, *args, **kwargs):
+        if url.endswith("/objects/locations"):
+            return FakeResponse([{"id": 1, "name": "Kuehlschrank"}])
+        if url.endswith("/objects/quantity_units"):
+            return FakeResponse([{"id": 1, "name": "Stueck"}])
+        raise AssertionError(f"Unexpected url: {url}")
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.services.grocy_client.requests.post", fake_post
+    )
+    monkeypatch.setattr(
+        "grocy_ai_assistant.services.grocy_client.requests.get", fake_get
+    )
+
+    client = GrocyClient(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+        )
+    )
+
+    created_id = client.create_product(
+        {
+            "name": "Oliven",
+            "description": "text",
+            "location_id": 1,
+            "qu_id_purchase": 1,
+            "qu_id_stock": 1,
+            "carbohydrates": 7,
+            "fat": 14,
+        }
+    )
+
+    assert created_id == 33
+    assert len(posted_payloads) == 3
+    assert "carbohydrates" in posted_payloads[0]
+    assert "qu_factor_purchase_to_stock" in posted_payloads[1]
+    assert "qu_factor_purchase_to_stock" not in posted_payloads[2]

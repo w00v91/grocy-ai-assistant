@@ -363,6 +363,7 @@ body.modal-open {
 .tab-button.active {
   background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
   color: var(--text-on-accent);
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--accent-primary) 36%, transparent);
 }
 
 .card {
