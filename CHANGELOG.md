@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.38
+
+- UI (Navigation): Untere Navigationsleiste (Tab-Bar) wieder verkleinert (geringere Gesamtbreite, engeres Innenpadding und kleinerer Abstand zwischen Tabs).
+- UI (Navigation): Tab-Buttons in der Navigationsleiste kompakter gestaltet (kleinere Schrift, reduzierte Mindesthöhe und weniger Innenabstand).
+- Pflege: Add-on-Version auf `7.1.38` erhöht.
+
 ## 7.1.37
 
 - Suche (Produktauswahl): Varianten-Suche im Such-Tab nutzt jetzt KI-gestützte Vorschläge zusätzlich zu Grocy-Teiltreffern.
