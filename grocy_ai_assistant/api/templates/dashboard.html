@@ -134,10 +134,8 @@
           </div>
 
           <section class='notification-options-card'>
-            <div class='section-header'>
-              <h3>Regelverwaltung</h3>
-              <button class='success-button' type='button' onclick='openNotificationRuleModal()'>Neue Regel</button>
-            </div>
+            <h3>Regelverwaltung</h3>
+            <button class='success-button' type='button' onclick='openNotificationRuleModal()'>Neue Regel</button>
             <ul id='notification-rules' class='notification-list'></ul>
           </section>
 
@@ -208,8 +206,12 @@
         <h3>Neue Regel</h3>
         <div class='notification-rule-editor'>
           <input id='notify-rule-name' placeholder='Regelname' />
-          <input id='notify-rule-events' placeholder='Events, z.B. shopping_due,low_stock_detected' />
-          <input id='notify-rule-devices' placeholder='Zielgeräte-IDs (optional, comma-separated)' />
+          <label for='notify-rule-events'>Events
+            <select id='notify-rule-events' multiple></select>
+          </label>
+          <label for='notify-rule-devices'>Zielgeräte (optional)
+            <select id='notify-rule-devices' multiple></select>
+          </label>
           <label>Regel-Severity
             <select id='notify-rule-severity'>
               <option value='info'>Info</option>

@@ -14,6 +14,47 @@ const AI_RECIPE_DISPLAY_LIMIT = 3;
 
 let modalScrollLockY = 0;
 
+
+const NOTIFICATION_EVENT_LABELS = {
+  item_added: 'Produkt hinzugefügt',
+  item_removed: 'Produkt entfernt',
+  item_checked: 'Produkt abgehakt',
+  item_unchecked: 'Produkt nicht mehr abgehakt',
+  shopping_due: 'Einkauf fällig',
+  low_stock_detected: 'Niedriger Bestand erkannt',
+  recipe_missing_items: 'Rezept hat fehlende Zutaten',
+};
+
+function getEventLabel(eventType) {
+  return NOTIFICATION_EVENT_LABELS[eventType] || eventType;
+}
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
+function renderSelectOptions(selectElement, options, selectedValues = []) {
+  if (!selectElement) return;
+  const selected = new Set((selectedValues || []).map((value) => String(value)));
+  selectElement.innerHTML = options.map((option) => {
+    const value = String(option.value);
+    const isSelected = selected.has(value) ? ' selected' : '';
+    return `<option value="${escapeHtml(value)}"${isSelected}>${escapeHtml(option.label)}</option>`;
+  }).join('');
+}
+
+function getSelectedValues(selectElement) {
+  if (!selectElement) return [];
+  return Array.from(selectElement.selectedOptions || [])
+    .map((option) => option.value.trim())
+    .filter(Boolean);
+}
+
 function lockBodyScroll() {
   if (document.body.classList.contains('modal-open')) return;
   modalScrollLockY = window.scrollY || window.pageYOffset || 0;
@@ -140,6 +181,7 @@ async function loadNotificationOverview() {
     if (!res.ok) throw new Error(getErrorMessage(payload, 'Fehler beim Laden der Notification-Daten.'));
 
     renderNotificationDevices(payload.devices || []);
+    renderNotificationRuleEditorOptions(payload.devices || [], payload.settings || {});
     renderNotificationRules(payload.rules || []);
     renderNotificationHistory(payload.history || []);
     hydrateNotificationSettings(payload.settings || {});
@@ -147,6 +189,23 @@ async function loadNotificationOverview() {
   } catch (error) {
     status.textContent = `Fehler: ${error.message}`;
   }
+}
+
+function renderNotificationRuleEditorOptions(devices, settings) {
+  const eventsSelect = document.getElementById('notify-rule-events');
+  const deviceSelect = document.getElementById('notify-rule-devices');
+  const eventOptions = (settings.enabled_event_types || Object.keys(NOTIFICATION_EVENT_LABELS)).map((eventType) => ({
+    value: eventType,
+    label: getEventLabel(eventType),
+  }));
+  const defaultEvents = eventOptions.map((option) => option.value);
+  renderSelectOptions(eventsSelect, eventOptions, defaultEvents);
+
+  const deviceOptions = (Array.isArray(devices) ? devices : []).map((device) => ({
+    value: device.id,
+    label: `${device.display_name} (${device.service} · ${device.platform})`,
+  }));
+  renderSelectOptions(deviceSelect, deviceOptions, []);
 }
 
 function hydrateNotificationSettings(settings) {
@@ -180,7 +239,7 @@ function renderNotificationRules(rules) {
   list.innerHTML = rules.map((rule) => `
     <li>
       <strong>${rule.name}</strong>
-      <div class="muted">Events: ${(rule.event_types || []).join(', ') || '-'}</div>
+      <div class="muted">Events: ${(rule.event_types || []).map((eventType) => getEventLabel(eventType)).join(', ') || '-'}</div>
       <div class="muted">Channels: ${(rule.channels || []).join(', ') || '-'}</div>
       <button class="danger-button" type="button" onclick="deleteNotificationRule('${rule.id}')">Löschen</button>
     </li>
@@ -197,7 +256,7 @@ function renderNotificationHistory(history) {
     <li>
       <strong>${entry.title}</strong>
       <div>${entry.message}</div>
-      <small class="muted">${entry.event_type} · ${entry.created_at} · ${entry.delivered ? '✅' : '❌'}</small>
+      <small class="muted">${getEventLabel(entry.event_type)} · ${entry.created_at} · ${entry.delivered ? '✅' : '❌'}</small>
     </li>
   `).join('');
 }
@@ -263,8 +322,8 @@ async function createNotificationRule() {
     status.textContent = 'Bitte Regelname eingeben.';
     return;
   }
-  const eventTypes = document.getElementById('notify-rule-events').value.split(',').map((value) => value.trim()).filter(Boolean);
-  const targetDevices = document.getElementById('notify-rule-devices').value.split(',').map((value) => value.trim()).filter(Boolean);
+  const eventTypes = getSelectedValues(document.getElementById('notify-rule-events'));
+  const targetDevices = getSelectedValues(document.getElementById('notify-rule-devices'));
   const payload = {
     name,
     enabled: true,
