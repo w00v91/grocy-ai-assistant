@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.15
+
+- Fix: Barcode-Lookup liefert bei OpenFoodFacts-Timeouts keinen 500-Fehler mehr, sondern fällt robust auf Grocy bzw. "nicht gefunden" zurück.
+- Test: API-Test ergänzt, der Timeout-Verhalten beim Barcode-Lookup absichert.
+- Pflege: Add-on-Version auf `7.1.15` erhöht.
+
 ## 7.1.14
 
 - UI: Badges in der Einkaufsliste auf eine einheitliche Breite gebracht, damit „Menge“ und „MHD" konsistent groß angezeigt werden.
