@@ -1,8 +1,10 @@
 import base64
 import json
 import logging
-import os
+import re
+from pathlib import Path
 from typing import Any, Dict
+from uuid import uuid4
 
 import requests
 
@@ -11,10 +13,11 @@ from grocy_ai_assistant.core.text_utils import html_to_plain_text
 
 logger = logging.getLogger(__name__)
 
-IMAGE_PROMPT_TEMPLATE = """
-Professionelles Produktfoto von '{product_name}' auf rein weißem Hintergrund.
-Studiobeleuchtung, scharf, keine Wasserzeichen, fotorealistisch.
-"""
+IMAGE_PROMPT_TEMPLATE = (
+    "Erstelle ein produktbild für \"{product_name}\".\n"
+    "Das Bild soll einen schwarzen leicht glossy hintergrund haben.\n"
+    "Es soll professionell wirken und das Produkt gut in szene setzen."
+)
 
 
 class IngredientDetector:
@@ -331,24 +334,43 @@ class IngredientDetector:
             "hint": str(parsed.get("hint") or "").strip(),
         }
 
-    def generate_product_image(self, product_name: str):
+    def generate_product_image(self, product_name: str) -> str:
+        if not self.settings.image_generation_enabled:
+            return ""
+
+        if not self.settings.openai_api_key:
+            logger.warning(
+                "Bildgenerierung aktiv, aber openai_api_key fehlt in den Add-on Optionen"
+            )
+            return ""
+
         prompt = IMAGE_PROMPT_TEMPLATE.format(product_name=product_name)
         payload = {
+            "model": self.settings.openai_image_model,
             "prompt": prompt,
-            "steps": 20,
-            "width": 512,
-            "height": 512,
-            "cfg_scale": 7,
+            "size": "1024x1024",
         }
 
         response = requests.post(
-            self.settings.stable_diffusion_url, json=payload, timeout=60
+            "https://api.openai.com/v1/images/generations",
+            headers={
+                "Authorization": f"Bearer {self.settings.openai_api_key}",
+                "Content-Type": "application/json",
+            },
+            json=payload,
+            timeout=90,
         )
         response.raise_for_status()
-        image_base64 = response.json()["images"][0]
 
-        file_path = f"/data/product_images/{product_name.replace(' ', '_')}.png"
-        os.makedirs(os.path.dirname(file_path), exist_ok=True)
-        with open(file_path, "wb") as file:
-            file.write(base64.b64decode(image_base64))
-        return file_path
+        data = response.json().get("data") or []
+        image_payload = data[0] if isinstance(data, list) and data else {}
+        image_base64 = str(image_payload.get("b64_json") or "").strip()
+        if not image_base64:
+            raise ValueError("OpenAI Images API lieferte kein b64_json")
+
+        safe_name = re.sub(r"[^a-zA-Z0-9_-]+", "_", product_name).strip("_") or "produkt"
+        file_name = f"{safe_name}_{uuid4().hex}.png"
+        file_path = Path("/data/product_images") / file_name
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+        file_path.write_bytes(base64.b64decode(image_base64))
+        return str(file_path)

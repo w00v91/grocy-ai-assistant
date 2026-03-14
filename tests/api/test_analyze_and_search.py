@@ -320,3 +320,64 @@ def test_dashboard_search_keeps_ai_variant_without_grocy_match(client, monkeypat
     assert payload["variants"] == [
         {"id": None, "name": "Apfelschale", "picture_url": "", "source": "ai"}
     ]
+
+
+def test_dashboard_search_generates_and_attaches_image_for_new_product(
+    client, test_settings, monkeypatch
+):
+    test_settings.image_generation_enabled = True
+    test_settings.openai_api_key = "sk-test"
+
+    calls = {"attached": None}
+
+    class FakeDetector:
+        def __init__(self, settings):
+            self.settings = settings
+
+        def analyze_product_name(self, name, locations=None):
+            return {
+                "name": name,
+                "description": "bio",
+                "location_id": 1,
+                "qu_id_purchase": 2,
+                "qu_id_stock": 2,
+                "calories": 100,
+            }
+
+        def suggest_similar_products(self, name):
+            return []
+
+        def generate_product_image(self, name):
+            return "/tmp/generated/apfel.png"
+
+    class FakeGrocyClient:
+        def __init__(self, settings):
+            self.settings = settings
+
+        def find_product_by_name(self, name):
+            return None
+
+        def search_products_by_partial_name(self, query):
+            return []
+
+        def create_product(self, payload):
+            return 42
+
+        def attach_product_picture(self, product_id, image_path):
+            calls["attached"] = (product_id, image_path)
+
+        def add_product_to_shopping_list(self, product_id, amount, best_before_date=""):
+            return None
+
+    monkeypatch.setattr(routes, "IngredientDetector", FakeDetector)
+    monkeypatch.setattr(routes, "GrocyClient", FakeGrocyClient)
+
+    response = client.post(
+        "/api/dashboard/search",
+        headers={"Authorization": "Bearer test-api-key"},
+        json={"name": "Apfel"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["action"] == "created_and_added"
+    assert calls["attached"] == (42, "/tmp/generated/apfel.png")
