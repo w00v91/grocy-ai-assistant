@@ -32,3 +32,13 @@ def test_addon_config_contains_image_generation_options():
     assert config["schema"]["image_generation_enabled"] == "bool"
     assert config["schema"]["openai_api_key"] == "password"
     assert config["options"]["openai_image_model"] == "gpt-image-1"
+
+
+def test_addon_config_contains_startup_batch_image_option():
+    config_path = (
+        Path(__file__).resolve().parents[2] / "grocy_ai_assistant" / "config.json"
+    )
+    config = json.loads(config_path.read_text())
+
+    assert config["options"]["generate_missing_product_images_on_startup"] is False
+    assert config["schema"]["generate_missing_product_images_on_startup"] == "bool"
