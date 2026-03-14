@@ -57,6 +57,24 @@ class GrocyClient:
 
         return dot_product / (left_norm * right_norm)
 
+    @classmethod
+    def _is_compound_containment_match(cls, left: str, right: str) -> bool:
+        normalized_left = cls._normalize_name(left)
+        normalized_right = cls._normalize_name(right)
+        if not normalized_left or not normalized_right:
+            return False
+
+        if normalized_left == normalized_right:
+            return False
+
+        if normalized_right.startswith(normalized_left):
+            return len(normalized_right) - len(normalized_left) >= 2
+
+        if normalized_left.startswith(normalized_right):
+            return len(normalized_left) - len(normalized_right) >= 2
+
+        return False
+
     @property
     def headers(self) -> Dict[str, str]:
         return {
@@ -215,7 +233,11 @@ class GrocyClient:
                 best_similarity = similarity
                 best_match = product
 
-        if best_similarity >= self.MIN_VECTOR_SIMILARITY:
+        if best_similarity >= self.MIN_VECTOR_SIMILARITY and best_match:
+            if self._is_compound_containment_match(
+                product_name, best_match.get("name", "")
+            ):
+                return None
             return best_match
 
         return None
