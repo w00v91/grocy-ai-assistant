@@ -278,6 +278,31 @@ body.modal-open {
   padding: 0.65rem 0.75rem;
 }
 
+.notification-rule-item {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.notification-rule-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.notification-rule-badges {
+  margin-left: auto;
+  display: grid;
+  gap: 0.35rem;
+  justify-items: stretch;
+  width: 100%;
+}
+
+.notification-rule-badges .badge {
+  margin-left: 0;
+  width: 100%;
+  box-sizing: border-box;
+  text-align: center;
+}
+
 .notification-rule-item-actions {
   justify-content: flex-end;
 }
@@ -665,6 +690,11 @@ img {
   .badge {
     margin-left: 0;
   }
+
+  .shopping-item-badges {
+    width: 100%;
+    max-width: 33.333%;
+  }
 }
 .shopping-list-section button { width: 100%; }
 #shopping-list {
@@ -727,7 +757,8 @@ img {
   display: grid;
   gap: 0.35rem;
   justify-items: stretch;
-  width: 10.75rem;
+  width: 100%;
+  max-width: 33.333%;
 }
 
 .shopping-item-badges .badge {
@@ -754,6 +785,7 @@ img {
 
 .recipe-create-button {
   margin-top: 1rem;
+  width: 100%;
 }
 
 .recipe-create-modal-content {
@@ -835,7 +867,7 @@ img {
 }
 .recipe-item {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.65rem;
   cursor: pointer;
   padding: 0.45rem;
@@ -857,6 +889,24 @@ img {
   align-items: center;
   justify-content: center;
   background: var(--item-bg);
+}
+
+.recipe-item-copy {
+  min-width: 0;
+}
+
+.recipe-item-title {
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.recipe-item-description {
+  margin-top: 0.2rem;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
 }
 
 .success-button {

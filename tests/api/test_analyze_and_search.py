@@ -236,6 +236,34 @@ def test_dashboard_add_existing_product_adds_to_shopping_list(client, monkeypatc
     assert calls == [(11, 2.5, "2026-12-31")]
 
 
+def test_dashboard_add_existing_product_uses_amount_prefix_from_product_name(client, monkeypatch):
+    calls = []
+
+    class FakeGrocyClient:
+        def __init__(self, settings):
+            self.settings = settings
+
+        def add_product_to_shopping_list(self, product_id, amount, best_before_date=""):
+            calls.append((product_id, amount, best_before_date))
+
+    monkeypatch.setattr(routes, "GrocyClient", FakeGrocyClient)
+
+    response = client.post(
+        "/api/dashboard/add-existing-product",
+        headers={"Authorization": "Bearer test-api-key"},
+        json={
+            "product_id": 11,
+            "product_name": "2 Apfel",
+            "amount": 1,
+            "best_before_date": "",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["action"] == "existing_added"
+    assert calls == [(11, 2, "")]
+
+
 def test_dashboard_search_returns_fallback_variants_for_incomplete_query(
     client, monkeypatch
 ):
