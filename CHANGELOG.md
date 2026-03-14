@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.49
+
+- UI (Lager-Tab): Produktkarten im Lager auf ein festes 3-Spalten-Grid umgestellt (`Bild | Name/Beschreibung | Buttons`).
+- UI (Lager-Tab): Name und Beschreibung werden jetzt explizit untereinander dargestellt.
+- UI (Lager-Tab): Aktions-Buttons (`Bearbeiten`, `Verbrauchen`) pro Produkt werden vertikal untereinander angezeigt.
+- Pflege: Add-on-Version auf `7.1.49` erhöht.
+
 ## 7.1.48
 
 - API: Bild-Proxy (`/api/dashboard/product-picture`) um den Query-Parameter `size` erweitert (`thumb`/`full`) und ruft bei Grocy nun unterschiedliche Zielgrößen via `best_fit_width`/`best_fit_height` ab.
