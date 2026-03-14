@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.34
+
+- Fix (Produktsuche): Fuzzy-Match übernimmt keine zusammengesetzten Präfix-Treffer mehr (z. B. `Oliven` -> `Olivenöl`), wenn nur ein längeres Kompositum ähnlich ist.
+- Test: Unit-Test ergänzt, der sicherstellt, dass `Oliven` nicht automatisch als `Olivenöl` übernommen wird.
+- Pflege: Add-on-Version auf `7.1.34` erhöht.
+
 ## 7.1.33
 
 - Fix (Grocy-Bildupload): Upload berücksichtigt zusätzlich einen Dateinamen-Fallback mit Base64-kodiertem Dateinamen (inkl. Dateiendung), falls Endpunkte den Pfad nur in kodierter Form akzeptieren.
