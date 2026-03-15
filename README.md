@@ -84,6 +84,14 @@ Wesentliche Schlüssel:
 - `scanner_barcode_fallback_seconds`
 - `scanner_llava_min_confidence`
 
+## Architektur- und Struktur-Checks
+
+Zur laufenden Qualitätssicherung gelten folgende Leitlinien im Projekt:
+
+- Layering wird über `tests/architecture/test_layering.py` automatisiert geprüft.
+- API-Logik soll Orchestrierung/Helferfunktionen wiederverwenden, statt gleiche Logik mehrfach zu implementieren.
+- Änderungen an Laufzeitverhalten müssen durch API-/Unit-Tests abgesichert sein.
+
 ## Entwicklung
 
 ### Tests
@@ -115,8 +123,8 @@ Zusätzlich nutzt die Integration eine Konstante in `const.py`, die synchron zur
 
 Aktueller Stand:
 
-- **Add-on:** `7.0.33`
-- **Integration:** `7.0.28`
+- **Add-on:** `7.1.65`
+- **Integration:** siehe `manifest.json` der Home-Assistant-Integration
 
 ## Changelog
 
