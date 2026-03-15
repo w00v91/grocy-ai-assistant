@@ -2255,6 +2255,29 @@ async function triggerLlavaScan() {
   await queryLlavaWithCurrentFrame('manual');
 }
 
+function normalizeBarcodeForLookup(barcode) {
+  const digitsOnly = String(barcode || '').replace(/\D/g, '');
+  if (!digitsOnly) return '';
+
+  if (digitsOnly.length >= 16 && digitsOnly.startsWith('01')) {
+    const gtin14 = digitsOnly.slice(2, 16);
+    if (gtin14.startsWith('0')) {
+      return gtin14.slice(1);
+    }
+    return gtin14;
+  }
+
+  if ([8, 12, 13, 14].includes(digitsOnly.length)) {
+    return digitsOnly;
+  }
+
+  if (digitsOnly.length > 14) {
+    return digitsOnly.slice(-13);
+  }
+
+  return digitsOnly;
+}
+
 async function lookupBarcode(barcode) {
   const key = ensureApiKey();
   const status = getScannerStatusElement();
@@ -2263,7 +2286,7 @@ async function lookupBarcode(barcode) {
     return;
   }
 
-  const normalized = String(barcode || '').replace(/\D/g, '');
+  const normalized = normalizeBarcodeForLookup(barcode);
   if (normalized.length < 8) return;
 
   scannerLastBarcode = normalized;
@@ -2365,8 +2388,20 @@ async function optimizeScannerTrack(stream, status) {
   const capabilities = videoTrack.getCapabilities ? videoTrack.getCapabilities() : null;
   const constraints = {};
 
-  if (capabilities?.focusMode?.includes('continuous')) {
+  if (capabilities?.focusMode?.includes('manual')) {
+    constraints.focusMode = 'manual';
+  } else if (capabilities?.focusMode?.includes('single-shot')) {
+    constraints.focusMode = 'single-shot';
+  } else if (capabilities?.focusMode?.includes('continuous')) {
     constraints.focusMode = 'continuous';
+  }
+
+  if (capabilities?.focusDistance && typeof capabilities.focusDistance.max === 'number') {
+    constraints.focusDistance = capabilities.focusDistance.max;
+  }
+
+  if (capabilities?.pointsOfInterest) {
+    constraints.pointsOfInterest = [{ x: 0.5, y: 0.5 }];
   }
 
   if (capabilities?.zoom) {
