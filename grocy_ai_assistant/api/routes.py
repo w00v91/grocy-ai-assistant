@@ -1,5 +1,7 @@
 import logging
 import re
+import threading
+import time
 from datetime import date, timedelta
 from pathlib import Path
 from urllib.parse import ParseResult, quote, unquote, urlencode, urlparse, urlunparse
@@ -63,6 +65,104 @@ bearer_auth = HTTPBearer(auto_error=False)
 
 NOTIFICATION_STORAGE_PATH = Path("/data/notification_dashboard.json")
 
+LLAVA_REQUEST_LOCK = threading.Lock()
+LLAVA_REQUEST_IN_FLIGHT = False
+LLAVA_REQUEST_STARTED_AT = 0.0
+
+
+def _normalize_barcode_for_lookup(raw_barcode: str) -> str:
+    digits_only = "".join(ch for ch in str(raw_barcode or "") if ch.isdigit())
+    if not digits_only:
+        return ""
+
+    if len(digits_only) >= 16 and digits_only.startswith("01"):
+        gtin14 = digits_only[2:16]
+        if gtin14.startswith("0"):
+            return gtin14[1:]
+        return gtin14
+
+    if len(digits_only) in (8, 12, 13, 14):
+        return digits_only
+
+    if len(digits_only) > 14:
+        return digits_only[-13:]
+
+    return digits_only
+
+
+def _build_barcode_lookup_candidates(normalized_barcode: str) -> list[str]:
+    candidates = [normalized_barcode]
+    if len(normalized_barcode) == 12:
+        candidates.append(f"0{normalized_barcode}")
+    elif len(normalized_barcode) == 13 and normalized_barcode.startswith("0"):
+        candidates.append(normalized_barcode[1:])
+
+    unique_candidates: list[str] = []
+    for candidate in candidates:
+        if candidate and candidate not in unique_candidates:
+            unique_candidates.append(candidate)
+    return unique_candidates
+
+
+def _try_openfoodfacts_lookup(
+    barcode_candidates: list[str],
+) -> tuple[str, dict[str, object]]:
+    for candidate in barcode_candidates:
+        response = requests.get(
+            f"https://world.openfoodfacts.org/api/v2/product/{candidate}.json",
+            timeout=8,
+            headers={"User-Agent": "grocy-ai-assistant/scan-tab"},
+        )
+        payload = response.json()
+        if response.status_code == 200 and int(payload.get("status", 0)) == 1:
+            product = payload.get("product") if isinstance(payload, dict) else {}
+            if isinstance(product, dict):
+                return candidate, product
+
+    return "", {}
+
+
+def _acquire_llava_request_slot(timeout_seconds: int) -> bool:
+    global LLAVA_REQUEST_IN_FLIGHT
+    global LLAVA_REQUEST_STARTED_AT
+
+    now = time.monotonic()
+    with LLAVA_REQUEST_LOCK:
+        if LLAVA_REQUEST_IN_FLIGHT:
+            elapsed = now - LLAVA_REQUEST_STARTED_AT
+            if elapsed < timeout_seconds:
+                return False
+        LLAVA_REQUEST_IN_FLIGHT = True
+        LLAVA_REQUEST_STARTED_AT = now
+        return True
+
+
+def _release_llava_request_slot() -> None:
+    global LLAVA_REQUEST_IN_FLIGHT
+
+    with LLAVA_REQUEST_LOCK:
+        LLAVA_REQUEST_IN_FLIGHT = False
+
+
+def _normalize_barcode_for_lookup(raw_barcode: str) -> str:
+    digits_only = "".join(ch for ch in str(raw_barcode or "") if ch.isdigit())
+    if not digits_only:
+        return ""
+
+    if len(digits_only) >= 16 and digits_only.startswith("01"):
+        gtin14 = digits_only[2:16]
+        if gtin14.startswith("0"):
+            return gtin14[1:]
+        return gtin14
+
+    if len(digits_only) in (8, 12, 13, 14):
+        return digits_only
+
+    if len(digits_only) > 14:
+        return digits_only[-13:]
+
+    return digits_only
+
 
 def _build_product_picture_url(raw_picture_url: str, settings: Settings) -> str:
     rewritten = build_product_picture_url(raw_picture_url, settings)
@@ -91,6 +191,7 @@ def _build_dashboard_picture_proxy_url(
 def _apply_picture_size(url: str, size: str) -> str:
     normalized_size = str(size or "thumb").strip().lower()
     dimensions_by_size = {
+        "mobile": (64, 64),
         "thumb": (96, 96),
         "full": (720, 720),
     }
@@ -241,6 +342,41 @@ def _build_stock_signature(
             )
         )
     return tuple(sorted(signature_entries))
+
+
+def _safe_int(value: object) -> int | None:
+    if value is None or isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value
+    if isinstance(value, float):
+        return int(value) if value.is_integer() else None
+
+    text = str(value).strip()
+    if not text:
+        return None
+
+    return int(text) if text.isdigit() else None
+
+
+def _parse_best_before_date(value: object) -> date | None:
+    raw_value = str(value or "").strip()
+    if not raw_value:
+        return None
+
+    for parser in (
+        date.fromisoformat,
+        lambda item: date.fromisoformat(item.split("T", 1)[0]),
+        lambda item: date.fromisoformat(item.split(" ", 1)[0]),
+    ):
+        try:
+            parsed = parser(raw_value)
+            if isinstance(parsed, date):
+                return parsed
+        except ValueError:
+            continue
+
+    return None
 
 
 def _generate_recipe_suggestions(
@@ -769,48 +905,43 @@ def dashboard_barcode_lookup(
     _: None = Depends(require_auth),
     settings: Settings = Depends(get_settings),
 ):
-    normalized_barcode = "".join(ch for ch in barcode if ch.isdigit())
+    normalized_barcode = _normalize_barcode_for_lookup(barcode)
     if len(normalized_barcode) < 8:
         raise HTTPException(status_code=400, detail="Ungültiger Barcode")
 
     grocy_client = GrocyClient(settings)
+    barcode_candidates = _build_barcode_lookup_candidates(normalized_barcode)
 
     try:
-        response = requests.get(
-            f"https://world.openfoodfacts.org/api/v2/product/{normalized_barcode}.json",
-            timeout=8,
-            headers={"User-Agent": "grocy-ai-assistant/scan-tab"},
-        )
-        payload = response.json()
-        product = payload.get("product") if isinstance(payload, dict) else {}
+        off_barcode, product = _try_openfoodfacts_lookup(barcode_candidates)
+        if off_barcode:
+            return BarcodeProductResponse(
+                barcode=off_barcode,
+                found=True,
+                product_name=str(product.get("product_name") or ""),
+                brand=str(product.get("brands") or ""),
+                quantity=str(product.get("quantity") or ""),
+                ingredients_text=str(
+                    product.get("ingredients_text_de")
+                    or product.get("ingredients_text")
+                    or ""
+                ),
+                nutrition_grade=str(product.get("nutrition_grades") or "").upper(),
+            )
 
-        if response.status_code != 200 or int(payload.get("status", 0)) != 1:
-            grocy_product = grocy_client.find_product_by_barcode(normalized_barcode)
+        for barcode_candidate in barcode_candidates:
+            grocy_product = grocy_client.find_product_by_barcode(barcode_candidate)
             if grocy_product:
                 return BarcodeProductResponse(
-                    barcode=normalized_barcode,
+                    barcode=barcode_candidate,
                     found=True,
                     product_name=str(grocy_product.get("name") or ""),
                     source="Grocy",
                 )
 
-            return BarcodeProductResponse(
-                barcode=normalized_barcode,
-                found=False,
-            )
-
         return BarcodeProductResponse(
             barcode=normalized_barcode,
-            found=True,
-            product_name=str(product.get("product_name") or ""),
-            brand=str(product.get("brands") or ""),
-            quantity=str(product.get("quantity") or ""),
-            ingredients_text=str(
-                product.get("ingredients_text_de")
-                or product.get("ingredients_text")
-                or ""
-            ),
-            nutrition_grade=str(product.get("nutrition_grades") or "").upper(),
+            found=False,
         )
     except requests.RequestException as error:
         logger.warning(
@@ -818,14 +949,15 @@ def dashboard_barcode_lookup(
             normalized_barcode,
             error,
         )
-        grocy_product = grocy_client.find_product_by_barcode(normalized_barcode)
-        if grocy_product:
-            return BarcodeProductResponse(
-                barcode=normalized_barcode,
-                found=True,
-                product_name=str(grocy_product.get("name") or ""),
-                source="Grocy",
-            )
+        for barcode_candidate in barcode_candidates:
+            grocy_product = grocy_client.find_product_by_barcode(barcode_candidate)
+            if grocy_product:
+                return BarcodeProductResponse(
+                    barcode=barcode_candidate,
+                    found=True,
+                    product_name=str(grocy_product.get("name") or ""),
+                    source="Grocy",
+                )
         return BarcodeProductResponse(
             barcode=normalized_barcode,
             found=False,
@@ -857,9 +989,20 @@ def dashboard_scanner_llava(
     if not image_base64:
         raise HTTPException(status_code=400, detail="Bilddaten fehlen")
 
+    llava_timeout_seconds = max(
+        10, min(120, int(settings.scanner_llava_timeout_seconds))
+    )
+    if not _acquire_llava_request_slot(llava_timeout_seconds):
+        raise HTTPException(
+            status_code=429,
+            detail="LLaVA-Erkennung läuft bereits. Bitte kurz warten.",
+        )
+
     detector = IngredientDetector(settings)
     try:
-        detection = detector.detect_product_from_image(image_base64)
+        detection = detector.detect_product_from_image(
+            image_base64, timeout_seconds=llava_timeout_seconds
+        )
         if not any(detection.values()):
             return ScannerLlavaResponse(success=False)
 
@@ -880,6 +1023,8 @@ def dashboard_scanner_llava(
         raise HTTPException(
             status_code=500, detail="LLaVA-Erkennung konnte nicht durchgeführt werden"
         ) from error
+    finally:
+        _release_llava_request_slot()
 
 
 @router.get("/api/dashboard/product-picture")
@@ -913,7 +1058,11 @@ def dashboard_product_picture(
     if image_cache:
         cached_content, cached_media_type = image_cache.get_cached_image(sized_src)
         if cached_content is not None:
-            return Response(content=cached_content, media_type=cached_media_type)
+            return Response(
+                content=cached_content,
+                media_type=cached_media_type,
+                headers={"Cache-Control": "public, max-age=86400"},
+            )
 
     parsed_src = urlparse(sized_src)
     candidate_urls = [sized_src]
@@ -992,7 +1141,11 @@ def dashboard_product_picture(
         raise HTTPException(status_code=404, detail="Bild nicht gefunden")
 
     content_type = response.headers.get("Content-Type", "image/jpeg")
-    return Response(content=response.content, media_type=content_type)
+    return Response(
+        content=response.content,
+        media_type=content_type,
+        headers={"Cache-Control": "public, max-age=86400"},
+    )
 
 
 @router.post("/api/dashboard/product-picture-cache/refresh")
@@ -1337,10 +1490,22 @@ def dashboard_update_stock_product(
         if resolved_stock_id <= 0:
             raise HTTPException(status_code=400, detail="Ungültiger Bestandseintrag")
 
+        resolved_product_id = int(matched_entry.get("product_id") or 0)
+        if resolved_product_id <= 0:
+            raise HTTPException(status_code=400, detail="Ungültiger Produkteintrag")
+
         grocy_client.update_stock_entry(
             stock_id=resolved_stock_id,
             amount=payload.amount,
             best_before_date=payload.best_before_date,
+        )
+        grocy_client.update_product_nutrition(
+            product_id=resolved_product_id,
+            calories=payload.calories,
+            carbs=payload.carbs,
+            fat=payload.fat,
+            protein=payload.protein,
+            sugar=payload.sugar,
         )
         return {"success": True, "message": "Bestandseintrag wurde aktualisiert."}
     except HTTPException:
@@ -1388,21 +1553,15 @@ def dashboard_recipe_suggestions(
 
             expiring_product_ids: set[int] = set()
             for entry in grocy_client.get_stock_entries(payload.location_ids):
-                product_id = entry.get("product_id")
-                if not isinstance(product_id, int):
+                product_id = _safe_int(entry.get("product_id"))
+                if product_id is None:
                     continue
 
-                best_before_raw = str(
+                best_before = _parse_best_before_date(
                     entry.get("best_before_date")
                     or entry.get("best_before_date_calculated")
-                    or ""
-                ).strip()
-                if not best_before_raw:
-                    continue
-
-                try:
-                    best_before = date.fromisoformat(best_before_raw)
-                except ValueError:
+                )
+                if best_before is None:
                     continue
 
                 if today <= best_before <= deadline:
@@ -2183,6 +2342,7 @@ def _render_dashboard(settings: Settings, request: Request):
             "api_base_path": api_request_base_path,
             "static_base_path": static_base_path,
             "scanner_llava_fallback_seconds": settings.scanner_barcode_fallback_seconds,
+            "scanner_llava_timeout_seconds": settings.scanner_llava_timeout_seconds,
             "ha_user_id": _resolve_dashboard_user_id(request),
         },
     )

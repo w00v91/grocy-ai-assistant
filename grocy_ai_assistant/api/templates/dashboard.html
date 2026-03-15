@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="de" data-configured-api-key="{{ configured_api_key }}" data-api-base-path="{{ api_base_path }}" data-scanner-llava-fallback-seconds="{{ scanner_llava_fallback_seconds }}" data-ha-user-id="{{ ha_user_id }}">
+<html lang="de" data-configured-api-key="{{ configured_api_key }}" data-api-base-path="{{ api_base_path }}" data-scanner-llava-fallback-seconds="{{ scanner_llava_fallback_seconds }}" data-scanner-llava-timeout-seconds="{{ scanner_llava_timeout_seconds }}" data-ha-user-id="{{ ha_user_id }}">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
@@ -304,11 +304,23 @@
           <p><strong>Produkt-ID:</strong> <span id='storage-edit-product-id'>-</span></p>
           <p><strong>Bestands-ID:</strong> <span id='storage-edit-stock-id'>-</span></p>
           <p><strong>Lagerort:</strong> <span id='storage-edit-location'>-</span></p>
+          <p><strong>Menge:</strong> <span id='storage-edit-current-amount'>-</span></p>
+          <p><strong>MHD:</strong> <span id='storage-edit-current-best-before'>-</span></p>
         </div>
         <label for='storage-edit-amount'>Menge</label>
         <input id='storage-edit-amount' type='number' min='0' step='0.01' />
         <label for='storage-edit-best-before'>MHD</label>
         <input id='storage-edit-best-before' type='date' />
+        <label for='storage-edit-calories'>Kalorien (kcal)</label>
+        <input id='storage-edit-calories' type='number' min='0' step='0.01' />
+        <label for='storage-edit-carbs'>Kohlenhydrate (g)</label>
+        <input id='storage-edit-carbs' type='number' min='0' step='0.01' />
+        <label for='storage-edit-fat'>Fett (g)</label>
+        <input id='storage-edit-fat' type='number' min='0' step='0.01' />
+        <label for='storage-edit-protein'>Eiweiß (g)</label>
+        <input id='storage-edit-protein' type='number' min='0' step='0.01' />
+        <label for='storage-edit-sugar'>Zucker (g)</label>
+        <input id='storage-edit-sugar' type='number' min='0' step='0.01' />
         <div class='button-row'>
           <button class='success-button' type='button' onclick='saveStorageEditModal()'>Speichern</button>
           <button class='danger-button' type='button' onclick='deleteStorageEditPicture()'>Produktbild löschen</button>
@@ -325,8 +337,32 @@
         <button class='shopping-modal-close' type='button' onclick='closeScannerModal()' aria-label='Scanner schließen'>×</button>
         <section id='tab-scanner' class='scanner-popup-card'>
           <h2>Barcode-Scanner</h2>
-          <video id='scanner-video' class='scanner-video hidden' playsinline></video>
+          <div class='scanner-video-shell'>
+            <video id='scanner-video' class='scanner-video hidden' playsinline></video>
+            <div id='scanner-frame-overlay' class='scanner-frame-overlay hidden' aria-hidden='true'>
+              <div class='scanner-frame-box'></div>
+            </div>
+          </div>
           <canvas id='scanner-canvas' class='hidden'></canvas>
+          <p id='scanner-distance-hint' class='scanner-hint'>💡 Etwas weiter weg halten und Barcode im Rahmen zentrieren.</p>
+          <p id='scanner-light-warning' class='scanner-warning hidden'>⚠️ Licht zu schwach erkannt. Bitte heller beleuchten oder Blitz/Taschenlampe nutzen.</p>
+          <div class='scanner-options'>
+            <label for='scanner-camera-select'>Kamera wählen</label>
+            <select id='scanner-camera-select' onchange='onScannerCameraChange()'>
+              <option value=''>Automatisch (Rückkamera)</option>
+            </select>
+            <label for='scanner-rotation-select'>Bilddrehung</label>
+            <select id='scanner-rotation-select' onchange='onScannerRotationChange()'>
+              <option value='0'>0° (Standard)</option>
+              <option value='90'>90°</option>
+              <option value='180'>180°</option>
+              <option value='270'>270°</option>
+            </select>
+          </div>
+          <details class='scanner-capabilities'>
+            <summary>Kamera-Fähigkeiten (Debug)</summary>
+            <pre id='scanner-capabilities-log'>Noch keine Daten.</pre>
+          </details>
           <div class='scanner-actions'>
             <button id='start-scan-button' type='button' onclick='startBarcodeScanner()'>📷 Kamera starten</button>
             <button id='stop-scan-button' type='button' class='danger-button hidden' onclick='stopBarcodeScanner()'>⏹ Kamera stoppen</button>

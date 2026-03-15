@@ -2,6 +2,100 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.63
+
+- UI (Lager-Tab): Aktions-Buttons der Produktkarten in der Desktop-Ansicht explizit an den rechten Rand der Karte ausgerichtet.
+- Add-on (Konfiguration): Übersetzungen für Optionsfelder ergänzt (`translations/de.yaml`, `translations/en.yaml`) mit natürlichen, verständlichen Feldnamen.
+- UX (Konfiguration): Sinnvolle Präfixe (`Allgemein`, `Ollama`, `Scanner`, `Benachrichtigungen`, `Bilder`, `Wartung`) eingeführt, um die Formularreihenfolge klarer zu strukturieren.
+- Pflege: Add-on-Version auf `7.1.63` erhöht.
+
+## 7.1.62
+
+- Add-on (Konfiguration): Reihenfolge der `options`/`schema` in `config.json` überarbeitet, damit der Schalter `debug_mode` im Home-Assistant-Formular weiter unten angezeigt wird.
+- Pflege: Add-on-Version auf `7.1.62` erhöht.
+
+## 7.1.61
+
+- Add-on (Ingress): Externes Port-Mapping (`8000/tcp`) aus `config.json` entfernt, damit der Zugriff standardmäßig ausschließlich über Home-Assistant-Ingress erfolgt.
+- Pflege: Add-on-Version auf `7.1.61` erhöht.
+
+## 7.1.60
+
+- Performance (Thumbnails/Mobil): Dashboard-Bildproxy unterstützt nun die Größe `mobile` (64x64), wodurch auf kleinen Viewports kleinere Produktbilder geladen werden.
+- Performance (Caching): `GET /api/dashboard/product-picture` liefert jetzt `Cache-Control: public, max-age=86400`, damit Mobilbrowser Thumbnails aggressiver zwischenspeichern.
+- UI (Dashboard): Thumbnail-Aufrufe verwenden auf mobilen Viewports automatisch die neue Proxy-Größe `mobile` statt `thumb`.
+- Test: API-Test für `size=mobile` und Cache-Header ergänzt.
+- Fix (Benachrichtigungen): Rule-Engine erzeugt jetzt auch dann `persistent_notification`-Nachrichten, wenn kein mobiles Notify-Target vorhanden ist.
+- Fix (Benachrichtigungen): Regeln mit gemischten Kanälen liefern mobile Push und persistente Benachrichtigung als getrennte Dispatch-Nachrichten aus.
+- Test: Unit-Tests für Persistent-Only- und Mixed-Channel-Regeln ergänzt.
+- Pflege: Add-on-Version auf `7.1.60` erhöht.
+
+## 7.1.59
+
+- Fix (Scanner/WebView): Kamera-Start nutzt nun eine kompatible `getUserMedia`-Abfrage (inkl. Legacy-Fallback) statt ausschließlich `navigator.mediaDevices.getUserMedia`.
+- Fix (Scanner/UX): Fehlermeldungen beim Kamera-Start unterscheiden jetzt klar zwischen fehlender Berechtigung, unsicherem Kontext (HTTPS/WebView) und fehlender Kamera.
+
+## 7.1.58
+
+- Verbessert: Die Barcode-Erkennung rotiert den Scanner-Canvas bei Hochkant-Bildquellen nun automatisch um 90°, wenn die Bilddrehung auf 0° steht. Dadurch werden Barcodes in hochkant aufgenommenen Bildern zuverlässiger erkannt.
+
+## 7.1.57
+
+- Scanner (Ausrichtung): Neue Option „Bilddrehung" (0°/90°/180°/270°) im Scanner-Modal, damit Kamera-Feed bei horizontal/vertikalem Handling passend ausgerichtet werden kann.
+- Scanner (Erkennung): Die Barcode-Analyse übernimmt die gewählte Drehung ebenfalls auf dem Analyse-Canvas (ROI), damit `BarcodeDetector` den Code in der gewählten Orientierung robuster lesen kann.
+- Pflege: Add-on-Version auf `7.1.57` erhöht.
+
+## 7.1.56
+
+- Scanner (Kameraauswahl): Verfügbare Kameras werden gelistet und sind im Scanner testweise auswählbar; Standard bleibt Rückkamera bevorzugt.
+- Scanner (Qualität): Kamera-Streams fordern zuerst höhere Auflösungen (bis 2560x1440) an und fallen stufenweise auf kleinere Profile zurück.
+- Scanner (UX/Erkennung): Barcode-Analyse startet erst nach kurzer Scharfstell-Wartezeit; zusätzlich Hinweis „Etwas weiter weg halten“.
+- Scanner (Erkennungsrahmen): Fester Rahmen in der Bildmitte eingebaut; Barcode-Detektion analysiert nur noch diesen mittigen Bereich.
+- Scanner (Lichtprüfung): Helligkeit wird periodisch geprüft und bei schwachem Licht eine Warnung angezeigt.
+- Scanner (Debug): `getCapabilities()`/`getSettings()` werden geloggt und als Debug-Block im Scanner angezeigt (inkl. focusMode/focusDistance/zoom/torch-Unterstützung).
+- Pflege: Add-on-Version auf `7.1.56` erhöht.
+
+## 7.1.55
+
+- Fix (Scanner/Fokus): Kamera-Fokus wird während des laufenden Scans zyklisch neu angestoßen (alle 2s) für unterstützte Modi (`continuous`/`single-shot`), damit mobile Kameras nicht in unscharfem Zustand „hängen bleiben“.
+- Stabilität (Scanner/Fokus): Beim Scanner-Start wird der bevorzugte Fokusmodus gespeichert und direkt nach dem Setzen der Constraints einmal aktiv nachgezogen.
+- Stabilität (Scanner): Fokus-Refresh-Timer wird beim Stoppen zuverlässig beendet und Fokus-Zustand zurückgesetzt.
+- Pflege: Add-on-Version auf `7.1.55` erhöht.
+
+## 7.1.54
+
+- Fix (Scanner/Fokus): Kamera-Fokus priorisiert jetzt `focusMode=continuous` (statt primär `manual`), damit mobile Geräte während des Scan-Vorgangs fortlaufend nachfokussieren und das Bild nicht dauerhaft unscharf bleibt.
+- Stabilität (Scanner/Barcode): Barcode-Lookup wird erst ausgelöst, wenn derselbe normalisierte Code in mehreren aufeinanderfolgenden Frames erkannt wurde (Debounce/Stabilitätsprüfung), wodurch Fehllesungen und wechselnde Codes deutlich reduziert werden.
+- Stabilität (Scanner): Während ein Barcode-Lookup läuft, werden weitere automatische Lookups kurzzeitig blockiert, um konkurrierende Requests zu vermeiden.
+- Pflege: Add-on-Version auf `7.1.54` erhöht.
+
+## 7.1.53
+
+- Scanner (Browser-Kompatibilität): Kamera-Start nutzt jetzt abgestufte `getUserMedia`-Profile (von bevorzugter Rückkamera bis zu generischem Fallback), damit Scanner in mehr Browsern/Endgeräten startet statt direkt fehlzuschlagen.
+- Scanner (Mobile Browser): Video-Element wird beim Start explizit mit `playsinline`, `autoplay` und `muted` initialisiert, um iOS-/WebKit-Verhalten robuster zu unterstützen.
+- Pflege: Add-on-Version auf `7.1.53` erhöht.
+
+## 7.1.52
+
+- UI (Lager-Tab/Produkt-Popup): Im Bearbeiten-Popup werden aktuelle `Menge` und `MHD` zusätzlich als zwei separate Info-Zeilen angezeigt.
+- Fix (Scanner/LLaVA): LLaVA-Requests werden jetzt mit konfigurierbarem Timeout (`scanner_llava_timeout_seconds`) verarbeitet und frontendseitig nach Ablauf sauber abgebrochen, statt unbegrenzt zu warten.
+- Stabilität (Scanner/LLaVA): Server blockiert parallele LLaVA-Anfragen während ein Lauf aktiv ist (`429` bei gleichzeitigem Request), um Mehrfachabfragen zu vermeiden.
+- Stabilität (Scanner/LLaVA): Auto-Fallback im Frontend respektiert zusätzlich ein Cooldown, damit bei ausbleibendem Barcode nicht dauerhaft neue KI-Calls gestartet werden.
+- Fix (Barcode/OpenFoodFacts): Für 12-stellige UPC-Codes wird zusätzlich die 13-stellige Variante mit führender `0` geprüft (und umgekehrt), um Treffer bei OpenFoodFacts/Grocy zu erhöhen.
+- Test: Dashboard-API-Tests für Barcode-Varianten und LLaVA-Timeout-Weitergabe ergänzt.
+- UI (Lager/Popup „Bestand ändern“): Bearbeiten-Dialog um Nährwertfelder erweitert (Kalorien, Kohlenhydrate, Fett, Eiweiß, Zucker), damit diese direkt im Lager-Tab angepasst werden können.
+- API/Lager: `PUT /api/dashboard/stock-products/{stock_id}` akzeptiert jetzt optional Nährwerte und aktualisiert zusätzlich die Produkt-Nährwerte in Grocy.
+- Service: `GrocyClient.get_stock_products(...)` liefert Nährwerte für den Lager-Tab mit; `GrocyClient.update_product_nutrition(...)` ergänzt.
+- Test: API- und Unit-Tests für Nährwertanzeige/-Update ergänzt.
+- Pflege: Add-on-Version auf `7.1.52` erhöht.
+
+## 7.1.51
+
+- Fix (Barcode-Scanner/OpenFoodFacts): Sehr lange KI-Barcode-Strings (z. B. GS1 mit führendem `01` + Zusatzdaten) werden jetzt vor dem Lookup auf gültige GTIN/EAN-Längen normalisiert, damit OpenFoodFacts die korrekte Produktnummer erhält.
+- Scanner (Kamera): Fokus-Optimierung erweitert – bevorzugt `focusMode=manual` (Fallback auf `single-shot`/`continuous`), setzt wenn verfügbar den Fokuspunkt in die Bildmitte und nutzt bei unterstützten Geräten kurze Fokusdistanz.
+- Test: API-Tests zur Barcode-Normalisierung für lange Scannerwerte ergänzt.
+- Pflege: Add-on-Version auf `7.1.51` erhöht.
+
 ## 7.1.50
 
 - UI (Lager-Tab): Aktions-Buttons der Produktkarten in der Desktop-Ansicht explizit an den rechten Rand der Karte ausgerichtet.
@@ -12,6 +106,9 @@ All notable changes to this project are documented in this file.
 - UI (Lager-Tab): Produktkarten im Lager auf ein festes 3-Spalten-Grid umgestellt (`Bild | Name/Beschreibung | Buttons`).
 - UI (Lager-Tab): Name und Beschreibung werden jetzt explizit untereinander dargestellt.
 - UI (Lager-Tab): Aktions-Buttons (`Bearbeiten`, `Verbrauchen`) pro Produkt werden vertikal untereinander angezeigt.
+- Fix (Rezepte/"Bald ablaufend"): Filter verarbeitet `product_id` jetzt robust auch als String, sodass ablaufende Produkte nicht fälschlich ausgeschlossen werden.
+- Fix (Rezepte/"Bald ablaufend"): MHD-Werte mit Zeitanteil (z. B. `YYYY-MM-DD HH:MM:SS` oder ISO mit `T`) werden korrekt als Datum erkannt.
+- Test: API-Test ergänzt, der String-IDs und Datumswerte mit Zeitanteil für den "bald ablaufend"-Pfad absichert.
 - Pflege: Add-on-Version auf `7.1.49` erhöht.
 
 ## 7.1.48
@@ -19,6 +116,13 @@ All notable changes to this project are documented in this file.
 - API: Bild-Proxy (`/api/dashboard/product-picture`) um den Query-Parameter `size` erweitert (`thumb`/`full`) und ruft bei Grocy nun unterschiedliche Zielgrößen via `best_fit_width`/`best_fit_height` ab.
 - UI: Thumbnail-Kontexte (Listen/Karten) bleiben bei `size=thumb`, während Volldarstellungen (Rezept-Modal und Lager-Produktbild im Bearbeiten-Dialog) explizit `size=full` anfordern, damit kleine Vorschauen keine großen Bilder mehr laden.
 - Pflege: Add-on-Version auf `7.1.48` erhöht.
+- UI (Einkaufsliste): Im Produkt-Popup wurde der Button `Speichern` in eine eigene Zeile unterhalb des Notizfeldes verschoben.
+- Pflege: Add-on-Version auf `7.1.48` erhöht.
+- UI (Einkaufsliste): Im Produkt-Popup steht der Button `Speichern` für die Mengenbearbeitung jetzt in einer eigenen Zeile unter dem Mengenfeld.
+- UI (Notify-Tab): Layout der Regeln vollständig auf ein 3-Spalten-Raster umgestellt (`Name | Priorität/Ereignisse/Kanäle/Cooldown | Buttons`) für bessere Struktur und passendere Einbindung ins bestehende Dashboard.
+- UI (Notify-Tab): Metadaten werden nun untereinander mit klaren Labels dargestellt (Priorität, Ereignisse, Kanäle, Cooldown).
+- UI (Notify-Tab): Aktions-Buttons pro Regel werden untereinander angezeigt und konsistent an die Kartenbreite angepasst.
+- Pflege: Add-on-Version auf `7.1.47` erhöht.
 
 ## 7.1.47
 
@@ -26,21 +130,6 @@ All notable changes to this project are documented in this file.
 - UI (Popup „Bestand ändern"): Neuer Button „Produktbild löschen" ergänzt, um das Bild eines Produkts direkt im Bearbeiten-Dialog zu entfernen.
 - API: Neuer Endpoint `DELETE /api/dashboard/products/{product_id}/picture` zum Entfernen des Produktbilds.
 - Service: `GrocyClient.clear_product_picture(...)` ergänzt und per Tests abgesichert.
-- Pflege: Add-on-Version auf `7.1.47` erhöht.
-
-## 7.1.46
-
-## 7.1.47
-
-## 7.1.48
-
-- UI (Einkaufsliste): Im Produkt-Popup wurde der Button `Speichern` in eine eigene Zeile unterhalb des Notizfeldes verschoben.
-- Pflege: Add-on-Version auf `7.1.48` erhöht.
-
-- UI (Einkaufsliste): Im Produkt-Popup steht der Button `Speichern` für die Mengenbearbeitung jetzt in einer eigenen Zeile unter dem Mengenfeld.
-- UI (Notify-Tab): Layout der Regeln vollständig auf ein 3-Spalten-Raster umgestellt (`Name | Priorität/Ereignisse/Kanäle/Cooldown | Buttons`) für bessere Struktur und passendere Einbindung ins bestehende Dashboard.
-- UI (Notify-Tab): Metadaten werden nun untereinander mit klaren Labels dargestellt (Priorität, Ereignisse, Kanäle, Cooldown).
-- UI (Notify-Tab): Aktions-Buttons pro Regel werden untereinander angezeigt und konsistent an die Kartenbreite angepasst.
 - Pflege: Add-on-Version auf `7.1.47` erhöht.
 
 ## 7.1.46

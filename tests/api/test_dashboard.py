@@ -1,3 +1,4 @@
+from datetime import date, timedelta
 import requests
 from grocy_ai_assistant.api import routes
 
@@ -342,6 +343,42 @@ def test_product_picture_proxy_fetches_with_grocy_api_key(client, monkeypatch):
     assert (
         captured["url"]
         == "http://homeassistant.local:9192/files/productpictures/abc123.jpg?best_fit_width=96&best_fit_height=96"
+    )
+    assert captured["headers"]["GROCY-API-KEY"] == "test-grocy-key"
+
+
+def test_product_picture_proxy_supports_mobile_size(client, monkeypatch):
+    class FakeResponse:
+        content = b"img"
+        headers = {"Content-Type": "image/png"}
+
+        def raise_for_status(self):
+            return None
+
+    captured = {}
+
+    def fake_requests_get(url, headers, timeout):
+        captured["url"] = url
+        captured["headers"] = headers
+        captured["timeout"] = timeout
+        return FakeResponse()
+
+    monkeypatch.setattr(routes.requests, "get", fake_requests_get)
+    client.app.state.product_image_cache = None
+    response = client.get(
+        "/api/dashboard/product-picture",
+        params={
+            "src": "http://homeassistant.local:9192/files/productpictures/abc123.jpg",
+            "size": "mobile",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.content == b"img"
+    assert response.headers["cache-control"] == "public, max-age=86400"
+    assert (
+        captured["url"]
+        == "http://homeassistant.local:9192/files/productpictures/abc123.jpg?best_fit_width=64&best_fit_height=64"
     )
     assert captured["headers"]["GROCY-API-KEY"] == "test-grocy-key"
 
@@ -720,6 +757,68 @@ def test_recipe_suggestions_returns_empty_when_no_stock_products(client, monkeyp
         "grocy_recipes": [],
         "ai_recipes": [],
     }
+
+
+def test_recipe_suggestions_soon_expiring_handles_string_ids_and_datetime_dates(
+    client, monkeypatch
+):
+    def fake_get_stock_products(self, location_ids=None):
+        return [
+            {"id": 1, "name": "Tomate", "location_name": "Kühlschrank", "amount": "2"},
+            {"id": 2, "name": "Nudeln", "location_name": "Vorrat", "amount": "1"},
+        ]
+
+    def fake_get_stock_entries(self, location_ids=None):
+        soon_1 = (date.today() + timedelta(days=1)).isoformat()
+        soon_2 = (date.today() + timedelta(days=2)).isoformat()
+        return [
+            {
+                "product_id": "1",
+                "best_before_date": f"{soon_1} 00:00:00",
+            },
+            {
+                "product_id": "2",
+                "best_before_date": f"{soon_2}T12:34:56",
+            },
+        ]
+
+    def fake_get_recipes(self):
+        return [{"id": 10, "name": "Tomaten Pasta", "description": "Pasta kochen"}]
+
+    class FakeDetector:
+        def __init__(self, settings):
+            self.settings = settings
+
+        def generate_recipe_suggestions(
+            self, selected_products, existing_recipe_titles
+        ):
+            assert selected_products == ["Tomate", "Nudeln"]
+            return [{"title": "Tomaten-Nudel-Pfanne", "reason": "Vorrat passt"}]
+
+    monkeypatch.setattr(
+        routes.GrocyClient, "get_stock_products", fake_get_stock_products
+    )
+    monkeypatch.setattr(routes.GrocyClient, "get_stock_entries", fake_get_stock_entries)
+    monkeypatch.setattr(routes.GrocyClient, "get_recipes", fake_get_recipes)
+    monkeypatch.setattr(
+        routes.GrocyClient, "get_missing_recipe_products", lambda self, recipe_id: []
+    )
+    monkeypatch.setattr(
+        routes.GrocyClient,
+        "get_recipe_ingredients",
+        lambda self, recipe_id: ["100 g Tomate"],
+    )
+    monkeypatch.setattr(routes, "IngredientDetector", FakeDetector)
+
+    response = client.post(
+        "/api/dashboard/recipe-suggestions",
+        headers={"Authorization": "Bearer test-api-key"},
+        json={"product_ids": [], "soon_expiring_only": True, "expiring_within_days": 3},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["selected_products"] == ["Tomate", "Nudeln"]
 
 
 def test_recipe_suggestions_generates_fallback_when_ai_returns_nothing(
@@ -1397,6 +1496,84 @@ def test_dashboard_barcode_lookup_returns_not_found_on_off_timeout(client, monke
     }
 
 
+def test_dashboard_barcode_lookup_normalizes_ai_gtin_for_off(client, monkeypatch):
+    class FakeResponse:
+        status_code = 200
+
+        @staticmethod
+        def json():
+            return {
+                "status": 1,
+                "product": {
+                    "product_name": "Testprodukt",
+                },
+            }
+
+    def fake_requests_get(url, timeout, headers):
+        assert "4008400408400" in url
+        assert "010400840040840017" not in url
+        assert timeout == 8
+        assert headers["User-Agent"] == "grocy-ai-assistant/scan-tab"
+        return FakeResponse()
+
+    monkeypatch.setattr(routes.requests, "get", fake_requests_get)
+
+    response = client.get(
+        "/api/dashboard/barcode/010400840040840017",
+        headers={"Authorization": "Bearer test-api-key"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["barcode"] == "4008400408400"
+    assert response.json()["found"] is True
+
+
+def test_normalize_barcode_for_lookup_prefers_known_lengths():
+    assert (
+        routes._normalize_barcode_for_lookup("01 04008400408400 17") == "4008400408400"
+    )
+    assert routes._normalize_barcode_for_lookup("123456789012") == "123456789012"
+    assert routes._normalize_barcode_for_lookup("00123456789012") == "00123456789012"
+
+
+def test_dashboard_barcode_lookup_tries_upc_and_ean_variant(client, monkeypatch):
+    class FakeResponse:
+        def __init__(self, status):
+            self.status_code = 200
+            self._status = status
+
+        def json(self):
+            if self._status == 1:
+                return {
+                    "status": 1,
+                    "product": {
+                        "product_name": "Cola",
+                        "brands": "Acme",
+                    },
+                }
+            return {"status": 0}
+
+    requested_codes = []
+
+    def fake_requests_get(url, timeout, headers):
+        requested_codes.append(url.split("/product/")[1].split(".json")[0])
+        if requested_codes[-1] == "0049300436133":
+            return FakeResponse(1)
+        return FakeResponse(0)
+
+    monkeypatch.setattr(routes.requests, "get", fake_requests_get)
+
+    response = client.get(
+        "/api/dashboard/barcode/049300436133",
+        headers={"Authorization": "Bearer test-api-key"},
+    )
+
+    assert response.status_code == 200
+    assert requested_codes == ["049300436133", "0049300436133"]
+    assert response.json()["found"] is True
+    assert response.json()["barcode"] == "0049300436133"
+
+
 def test_dashboard_barcode_lookup_rejects_invalid_barcode(client):
     response = client.get(
         "/api/dashboard/barcode/abc",
@@ -1511,11 +1688,13 @@ def test_dashboard_scanner_contains_llava_controls(client):
     assert response.status_code == 200
     assert "id='llava-scan-button'" in response.text
     assert 'data-scanner-llava-fallback-seconds="5"' in response.text
+    assert 'data-scanner-llava-timeout-seconds="45"' in response.text
 
 
 def test_dashboard_scanner_llava_endpoint(client, monkeypatch):
-    def fake_detect_product_from_image(self, image_base64):
+    def fake_detect_product_from_image(self, image_base64, *, timeout_seconds=90):
         assert image_base64 == "abc123"
+        assert timeout_seconds == 45
         return {
             "product_name": "Apfelsaft",
             "brand": "Biohof",
@@ -1542,6 +1721,20 @@ def test_dashboard_scanner_llava_endpoint(client, monkeypatch):
         "hint": "1L Karton",
         "source": "ollama_llava",
     }
+
+
+def test_dashboard_scanner_llava_endpoint_returns_429_when_busy(client, monkeypatch):
+    monkeypatch.setattr(
+        routes, "_acquire_llava_request_slot", lambda timeout_seconds: False
+    )
+
+    response = client.post(
+        "/api/dashboard/scanner/llava",
+        headers={"Authorization": "Bearer test-api-key"},
+        json={"image_base64": "abc123"},
+    )
+
+    assert response.status_code == 429
 
 
 def test_recipe_suggestions_strip_html_from_grocy_and_ai_fields(client, monkeypatch):
@@ -1640,6 +1833,11 @@ def test_dashboard_stock_products_include_stock_id(client, monkeypatch):
                 "location_name": "Küche",
                 "amount": "2",
                 "best_before_date": "2026-01-01",
+                "calories": "120",
+                "carbs": "4.5",
+                "fat": "3.2",
+                "protein": "8",
+                "sugar": "4",
             }
         ]
 
@@ -1654,6 +1852,11 @@ def test_dashboard_stock_products_include_stock_id(client, monkeypatch):
 
     assert response.status_code == 200
     assert response.json()[0]["stock_id"] == 99
+    assert response.json()[0]["calories"] == "120"
+    assert response.json()[0]["carbs"] == "4.5"
+    assert response.json()[0]["fat"] == "3.2"
+    assert response.json()[0]["protein"] == "8"
+    assert response.json()[0]["sugar"] == "4"
     assert "/api/dashboard/product-picture?src=" in response.json()[0]["picture_url"]
     assert (
         "homeassistant.local%3A9192%2Fapi%2Ffiles%2Fproductpictures%2F"
@@ -1763,19 +1966,44 @@ def test_dashboard_can_update_stock_product_by_product_id_fallback(client, monke
     def fake_update_stock_entry(self, stock_id, amount, best_before_date=""):
         called["args"] = (stock_id, amount, best_before_date)
 
+    nutrition_called = {}
+
+    def fake_update_product_nutrition(
+        self,
+        product_id,
+        calories=None,
+        carbs=None,
+        fat=None,
+        protein=None,
+        sugar=None,
+    ):
+        nutrition_called["args"] = (product_id, calories, carbs, fat, protein, sugar)
+
     monkeypatch.setattr(routes.GrocyClient, "get_stock_entries", fake_get_stock_entries)
     monkeypatch.setattr(
         routes.GrocyClient, "update_stock_entry", fake_update_stock_entry
+    )
+    monkeypatch.setattr(
+        routes.GrocyClient, "update_product_nutrition", fake_update_product_nutrition
     )
 
     response = client.put(
         "/api/dashboard/stock-products/99",
         headers={"Authorization": "Bearer test-api-key"},
-        json={"amount": 5, "best_before_date": "2026-02-01"},
+        json={
+            "amount": 5,
+            "best_before_date": "2026-02-01",
+            "calories": 100,
+            "carbs": 12,
+            "fat": 1.5,
+            "protein": 3,
+            "sugar": 7,
+        },
     )
 
     assert response.status_code == 200
     assert called["args"] == (321, 5, "2026-02-01")
+    assert nutrition_called["args"] == (99, 100, 12, 1.5, 3, 7)
 
 
 def test_dashboard_can_delete_stock_product(client, monkeypatch):
@@ -1833,9 +2061,25 @@ def test_dashboard_can_update_stock_product(client, monkeypatch):
     def fake_update_stock_entry(self, stock_id, amount, best_before_date=""):
         called["args"] = (stock_id, amount, best_before_date)
 
+    nutrition_called = {}
+
+    def fake_update_product_nutrition(
+        self,
+        product_id,
+        calories=None,
+        carbs=None,
+        fat=None,
+        protein=None,
+        sugar=None,
+    ):
+        nutrition_called["args"] = (product_id, calories, carbs, fat, protein, sugar)
+
     monkeypatch.setattr(routes.GrocyClient, "get_stock_entries", fake_get_stock_entries)
     monkeypatch.setattr(
         routes.GrocyClient, "update_stock_entry", fake_update_stock_entry
+    )
+    monkeypatch.setattr(
+        routes.GrocyClient, "update_product_nutrition", fake_update_product_nutrition
     )
 
     response = client.put(
@@ -1846,3 +2090,4 @@ def test_dashboard_can_update_stock_product(client, monkeypatch):
 
     assert response.status_code == 200
     assert called["args"] == (99, 5, "2026-02-01")
+    assert nutrition_called["args"] == (10, None, None, None, None, None)
