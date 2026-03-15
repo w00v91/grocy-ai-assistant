@@ -425,6 +425,56 @@ def test_search_products_by_partial_name_returns_all_variants(monkeypatch):
     assert [product["name"] for product in result] == ["Apfel", "Apfelessig"]
 
 
+
+
+def test_get_storage_products_can_include_products_not_in_stock(monkeypatch):
+    def fake_stock_products(self, location_ids=None):
+        return [
+            {
+                "id": 1,
+                "stock_id": 77,
+                "in_stock": True,
+                "name": "Milch",
+                "location_id": 1,
+                "location_name": "Kühlschrank",
+                "amount": "1",
+                "best_before_date": "2026-01-01",
+            }
+        ]
+
+    def fake_get(url, *args, **kwargs):
+        if url.endswith('/objects/products'):
+            return FakeResponse([
+                {"id": 1, "name": "Milch", "location_id": 1},
+                {"id": 2, "name": "Nudeln", "location_id": 2},
+            ])
+        if url.endswith('/objects/locations'):
+            return FakeResponse([
+                {"id": 1, "name": "Kühlschrank"},
+                {"id": 2, "name": "Vorrat"},
+            ])
+        raise AssertionError(f'Unexpected url: {url}')
+
+    monkeypatch.setattr(GrocyClient, 'get_stock_products', fake_stock_products)
+    monkeypatch.setattr(
+        'grocy_ai_assistant.services.grocy_client.requests.get', fake_get
+    )
+
+    client = GrocyClient(
+        Settings(
+            api_key='x',
+            addon_version='a',
+            required_integration_version='1',
+            grocy_api_key='g',
+        )
+    )
+
+    result = client.get_storage_products(include_all_products=True)
+
+    assert [item['name'] for item in result] == ['Milch', 'Nudeln']
+    assert result[1]['in_stock'] is False
+    assert result[1]['amount'] == '0'
+
 def test_get_stock_products_resolves_product_and_location_names(monkeypatch):
     def fake_get(url, *args, **kwargs):
         if url.endswith("/stock"):

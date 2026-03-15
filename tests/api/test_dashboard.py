@@ -607,6 +607,39 @@ def test_stock_products_endpoint_returns_items(client, monkeypatch):
     assert response.json()[0]["best_before_date"] == "2026-01-02"
 
 
+
+
+def test_stock_products_endpoint_supports_include_all_products(client, monkeypatch):
+    called = {}
+
+    def fake_get_storage_products(self, location_ids=None, include_all_products=False):
+        called["location_ids"] = location_ids
+        called["include_all_products"] = include_all_products
+        return [
+            {
+                "id": 1,
+                "name": "Milch",
+                "in_stock": False,
+                "location_name": "Kühlschrank",
+                "amount": "0",
+                "best_before_date": "",
+            }
+        ]
+
+    monkeypatch.setattr(
+        routes.GrocyClient, "get_storage_products", fake_get_storage_products
+    )
+
+    response = client.get(
+        "/api/dashboard/stock-products?include_all_products=true&location_ids=2",
+        headers={"Authorization": "Bearer test-api-key"},
+    )
+
+    assert response.status_code == 200
+    assert called["location_ids"] == [2]
+    assert called["include_all_products"] is True
+    assert response.json()[0]["in_stock"] is False
+
 def test_recipe_suggestions_prioritize_grocy_then_ai(client, monkeypatch):
     def fake_get_stock_products(self):
         return [
@@ -1808,6 +1841,7 @@ def test_dashboard_has_storage_tab_before_notifications(client):
     assert storage_pos < notify_pos
     assert 'switchTab("storage")' in response.text
     assert "<h2>Lager</h2>" in response.text
+    assert "id='storage-include-all-products'" in response.text
 
 
 def test_dashboard_static_contains_storage_actions(client):

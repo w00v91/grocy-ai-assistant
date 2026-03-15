@@ -82,6 +82,7 @@ class ProductVariantResponse(BaseModel):
 class StockProductResponse(BaseModel):
     id: int
     stock_id: int | None = None
+    in_stock: bool = True
     name: str
     picture_url: str = ""
     location_id: int | None = None

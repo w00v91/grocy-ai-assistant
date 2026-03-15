@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.67
+
+- UI (Lager-Tab): Checkbox ergänzt, um optional alle in Grocy verfügbaren Produkte zusätzlich zum aktuellen Lagerbestand zu laden.
+- API/Service (Lager): `GET /api/dashboard/stock-products` unterstützt den Parameter `include_all_products`, der auch nicht auf Lager befindliche Produkte zurückliefert.
+- UX (Lagerliste): Nicht auf Lager befindliche Produkte werden angezeigt, aber Lageraktionen (Bearbeiten/Verbrauchen) bleiben für diese Einträge deaktiviert.
+- Pflege: Add-on-Version auf `7.1.67` erhöht.
+
 ## 7.1.66
 
 - UI (Button-Styles): Aktionsbuttons in Lager- und Benachrichtigungsansicht auf die gleichen Basis-Buttonvarianten wie auf Such- und Rezeptseite vereinheitlicht (Primary/Ghost/Success/Danger).
