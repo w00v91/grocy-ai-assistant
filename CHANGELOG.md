@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.66
+
+- UI (Dashboard/Tabs): Die Statusmeldungen der Tabs werden nun im Header anstelle der Überschrift „Smart Pantry Dashboard" angezeigt.
+- UX (Tab-spezifisch): Beim Tab-Wechsel spiegelt der Header immer die jeweils aktive Statusmeldung (Einkauf, Rezepte, Lager, Benachrichtigungen).
+- Pflege: Add-on-Version auf `7.1.66` erhöht.
+
 ## 7.1.65
 
 - Architektur/Codepflege: Doppelte Implementierung von `_normalize_barcode_for_lookup` in `api/routes.py` entfernt, um widersprüchliche Wartungspfade zu vermeiden.
