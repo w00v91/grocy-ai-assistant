@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.56
+
+- Scanner (Kameraauswahl): Verfügbare Kameras werden gelistet und sind im Scanner testweise auswählbar; Standard bleibt Rückkamera bevorzugt.
+- Scanner (Qualität): Kamera-Streams fordern zuerst höhere Auflösungen (bis 2560x1440) an und fallen stufenweise auf kleinere Profile zurück.
+- Scanner (UX/Erkennung): Barcode-Analyse startet erst nach kurzer Scharfstell-Wartezeit; zusätzlich Hinweis „Etwas weiter weg halten“.
+- Scanner (Erkennungsrahmen): Fester Rahmen in der Bildmitte eingebaut; Barcode-Detektion analysiert nur noch diesen mittigen Bereich.
+- Scanner (Lichtprüfung): Helligkeit wird periodisch geprüft und bei schwachem Licht eine Warnung angezeigt.
+- Scanner (Debug): `getCapabilities()`/`getSettings()` werden geloggt und als Debug-Block im Scanner angezeigt (inkl. focusMode/focusDistance/zoom/torch-Unterstützung).
+- Pflege: Add-on-Version auf `7.1.56` erhöht.
+
 ## 7.1.55
 
 - Fix (Scanner/Fokus): Kamera-Fokus wird während des laufenden Scans zyklisch neu angestoßen (alle 2s) für unterstützte Modi (`continuous`/`single-shot`), damit mobile Kameras nicht in unscharfem Zustand „hängen bleiben“.
