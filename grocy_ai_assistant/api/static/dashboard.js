@@ -122,10 +122,25 @@ let scannerInterval = null;
 let scannerLastBarcode = "";
 let scannerDetector = null;
 let scannerLastBarcodeAt = 0;
+let scannerDetectionInFlight = false;
+let scannerStableCandidate = '';
+let scannerStableCount = 0;
 let scannerLlavaInFlight = false;
 let scannerLlavaTimer = null;
 let scannerLlavaLastRequestAt = 0;
+let scannerFocusRefreshTimer = null;
+let scannerPreferredFocusMode = '';
+let scannerSelectedDeviceId = '';
+let scannerKnownDevices = [];
+let scannerScanStartedAt = 0;
+let scannerLastLightCheckAt = 0;
+let scannerRotationDegrees = 0;
 const scannerDigitalZoomFactor = 1.35;
+const scannerStableDetectionThreshold = 2;
+const scannerFocusRefreshMs = 2000;
+const scannerAnalysisWarmupMs = 1200;
+const scannerLightCheckIntervalMs = 1500;
+const scannerLightWarningThreshold = 72;
 const recipeState = {
   initialized: false,
   hasLoadedInitialSuggestions: false,
@@ -211,11 +226,14 @@ function switchTab(tabName) {
 }
 
 
-function openScannerModal() {
+async function openScannerModal() {
   const modal = document.getElementById('scanner-modal');
   if (!modal) return;
   modal.classList.remove('hidden');
   syncModalScrollLock();
+  await refreshScannerDevices();
+  const rotationSelect = getScannerRotationSelectElement();
+  if (rotationSelect) rotationSelect.value = String(scannerRotationDegrees);
 }
 
 function closeScannerModal() {
@@ -2161,6 +2179,125 @@ function getScannerStatusElement() {
   return document.getElementById('status-scanner');
 }
 
+function getScannerCapabilitiesLogElement() {
+  return document.getElementById('scanner-capabilities-log');
+}
+
+function getScannerLightWarningElement() {
+  return document.getElementById('scanner-light-warning');
+}
+
+function getScannerCameraSelectElement() {
+  return document.getElementById('scanner-camera-select');
+}
+
+function getScannerRotationSelectElement() {
+  return document.getElementById('scanner-rotation-select');
+}
+
+function applyScannerVideoRotation(videoElement) {
+  if (!videoElement) return;
+  videoElement.classList.remove('rotated-90', 'rotated-180', 'rotated-270');
+  if (scannerRotationDegrees === 90) videoElement.classList.add('rotated-90');
+  if (scannerRotationDegrees === 180) videoElement.classList.add('rotated-180');
+  if (scannerRotationDegrees === 270) videoElement.classList.add('rotated-270');
+}
+
+function parseScannerRotationDegrees(value) {
+  const rotation = Number(value);
+  if (![0, 90, 180, 270].includes(rotation)) return 0;
+  return rotation;
+}
+
+function onScannerRotationChange() {
+  const select = getScannerRotationSelectElement();
+  scannerRotationDegrees = parseScannerRotationDegrees(select?.value ?? 0);
+  const video = document.getElementById('scanner-video');
+  applyScannerVideoRotation(video);
+}
+
+function setScannerCapabilitiesLog(capabilities, settings) {
+  const log = getScannerCapabilitiesLogElement();
+  if (!log) return;
+
+  const payload = {
+    selected_device_id: scannerSelectedDeviceId || null,
+    capabilities: capabilities || null,
+    settings: settings || null,
+    support: {
+      focusMode: Boolean(capabilities?.focusMode),
+      focusDistance: Boolean(capabilities?.focusDistance),
+      zoom: Boolean(capabilities?.zoom),
+      torch: Boolean(capabilities?.torch),
+    },
+  };
+
+  log.textContent = JSON.stringify(payload, null, 2);
+  console.info('Scanner camera capabilities', payload);
+}
+
+function setScannerLightWarningVisible(visible) {
+  const warning = getScannerLightWarningElement();
+  if (!warning) return;
+  warning.classList.toggle('hidden', !visible);
+}
+
+async function refreshScannerDevices() {
+  const select = getScannerCameraSelectElement();
+  if (!select || !navigator.mediaDevices?.enumerateDevices) return;
+
+  try {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    scannerKnownDevices = devices.filter((device) => device.kind === 'videoinput');
+
+    const options = ["<option value=''>Automatisch (Rückkamera)</option>"];
+    scannerKnownDevices.forEach((device, index) => {
+      const label = device.label || `Kamera ${index + 1}`;
+      const selected = scannerSelectedDeviceId && scannerSelectedDeviceId === device.deviceId ? ' selected' : '';
+      options.push(`<option value="${escapeHtml(device.deviceId)}"${selected}>${escapeHtml(label)}</option>`);
+    });
+    select.innerHTML = options.join('');
+  } catch (error) {
+    console.warn('Could not enumerate video devices', error);
+  }
+}
+
+async function onScannerCameraChange() {
+  const select = getScannerCameraSelectElement();
+  if (!select) return;
+  scannerSelectedDeviceId = select.value || '';
+  if (!scannerStream) return;
+
+  const status = getScannerStatusElement();
+  status.textContent = 'Kamerawechsel… Scanner startet neu.';
+  await startBarcodeScanner();
+}
+
+function evaluateScannerLight(video, canvas) {
+  if (!video?.videoWidth || !video?.videoHeight || !canvas) return;
+  const now = Date.now();
+  if ((now - scannerLastLightCheckAt) < scannerLightCheckIntervalMs) return;
+  scannerLastLightCheckAt = now;
+
+  const context = canvas.getContext('2d', { willReadFrequently: true });
+  if (!context) return;
+
+  const sampleWidth = 64;
+  const sampleHeight = 36;
+  canvas.width = sampleWidth;
+  canvas.height = sampleHeight;
+  context.drawImage(video, 0, 0, sampleWidth, sampleHeight);
+
+  let brightnessTotal = 0;
+  const pixels = context.getImageData(0, 0, sampleWidth, sampleHeight).data;
+  for (let i = 0; i < pixels.length; i += 4) {
+    brightnessTotal += (pixels[i] + pixels[i + 1] + pixels[i + 2]) / 3;
+  }
+
+  const averageBrightness = brightnessTotal / (pixels.length / 4);
+  setScannerLightWarningVisible(averageBrightness < scannerLightWarningThreshold);
+}
+
 function renderScannerResult(payload) {
   const container = document.getElementById('scanner-result');
   if (!container) return;
@@ -2347,6 +2484,32 @@ function normalizeBarcodeForLookup(barcode) {
   return digitsOnly;
 }
 
+function registerScannerCandidate(rawBarcode) {
+  const normalized = normalizeBarcodeForLookup(rawBarcode);
+  if (!normalized || normalized.length < 8) return '';
+
+  if (normalized === scannerLastBarcode) {
+    scannerStableCandidate = normalized;
+    scannerStableCount = scannerStableDetectionThreshold;
+    return '';
+  }
+
+  if (normalized === scannerStableCandidate) {
+    scannerStableCount += 1;
+  } else {
+    scannerStableCandidate = normalized;
+    scannerStableCount = 1;
+  }
+
+  if (scannerStableCount < scannerStableDetectionThreshold) {
+    return '';
+  }
+
+  scannerStableCount = 0;
+  scannerStableCandidate = '';
+  return normalized;
+}
+
 async function lookupBarcode(barcode) {
   const key = ensureApiKey();
   const status = getScannerStatusElement();
@@ -2401,8 +2564,10 @@ async function startBarcodeScanner() {
     stopBarcodeScanner();
 
     scannerStream = await getCompatibleScannerStream();
+    await refreshScannerDevices();
 
     await optimizeScannerTrack(scannerStream, status);
+    scheduleScannerFocusRefresh(scannerStream);
 
     video.setAttribute('playsinline', 'true');
     video.setAttribute('autoplay', 'true');
@@ -2413,12 +2578,18 @@ async function startBarcodeScanner() {
     video.srcObject = scannerStream;
     await video.play();
     video.classList.remove('hidden');
+    applyScannerVideoRotation(video);
     startButton.classList.add('hidden');
     stopButton.classList.remove('hidden');
     if (!String(status.textContent || '').startsWith('Scanner aktiv')) {
-      status.textContent = 'Scanner aktiv. Barcode vor die Kamera halten...';
+      status.textContent = 'Scanner aktiv. Kamera stellt scharf… danach Barcode im Rahmen halten.';
     }
     scannerLastBarcodeAt = Date.now();
+    scannerScanStartedAt = Date.now();
+    scannerLastLightCheckAt = 0;
+    setScannerLightWarningVisible(false);
+    const overlay = document.getElementById('scanner-frame-overlay');
+    if (overlay) overlay.classList.remove('hidden');
     scheduleLlavaFallback();
 
     if ('BarcodeDetector' in window) {
@@ -2429,14 +2600,31 @@ async function startBarcodeScanner() {
       if (!isScannerModalVisible()) return;
       if (!video.videoWidth || !video.videoHeight) return;
 
+      evaluateScannerLight(video, canvas);
+
+      if (Date.now() - scannerScanStartedAt < scannerAnalysisWarmupMs) {
+        status.textContent = 'Scanner aktiv. Kamera stellt scharf…';
+        return;
+      }
+
+      if (status.textContent.includes('stellt scharf')) {
+        status.textContent = 'Scanner aktiv. Barcode vor die Kamera halten...';
+      }
+
       if (scannerDetector) {
         try {
           const detectionSource = getScannerDetectionSource(video, canvas, scannerDigitalZoomFactor);
           const barcodes = await scannerDetector.detect(detectionSource);
           if (barcodes.length) {
             const value = String(barcodes[0].rawValue || '').trim();
-            if (value && value !== scannerLastBarcode) {
-              await lookupBarcode(value);
+            const stableBarcode = registerScannerCandidate(value);
+            if (stableBarcode && !scannerDetectionInFlight) {
+              scannerDetectionInFlight = true;
+              try {
+                await lookupBarcode(stableBarcode);
+              } finally {
+                scannerDetectionInFlight = false;
+              }
             }
           }
         } catch (_) {
@@ -2450,10 +2638,26 @@ async function startBarcodeScanner() {
 }
 
 async function getCompatibleScannerStream() {
+  const selectedDeviceConstraint = scannerSelectedDeviceId
+    ? { deviceId: { exact: scannerSelectedDeviceId } }
+    : { facingMode: { exact: 'environment' } };
+
+  const fallbackFacingConstraint = scannerSelectedDeviceId
+    ? { deviceId: { exact: scannerSelectedDeviceId } }
+    : { facingMode: { ideal: 'environment' } };
+
   const streamProfiles = [
     {
       video: {
-        facingMode: { ideal: 'environment' },
+        ...selectedDeviceConstraint,
+        width: { ideal: 2560 },
+        height: { ideal: 1440 },
+      },
+      audio: false,
+    },
+    {
+      video: {
+        ...fallbackFacingConstraint,
         width: { ideal: 1920 },
         height: { ideal: 1080 },
       },
@@ -2461,17 +2665,14 @@ async function getCompatibleScannerStream() {
     },
     {
       video: {
-        facingMode: 'environment',
+        ...fallbackFacingConstraint,
         width: { ideal: 1280 },
         height: { ideal: 720 },
       },
       audio: false,
     },
     {
-      video: {
-        width: { ideal: 1280 },
-        height: { ideal: 720 },
-      },
+      video: scannerSelectedDeviceId ? { deviceId: { exact: scannerSelectedDeviceId } } : { facingMode: 'environment' },
       audio: false,
     },
     {
@@ -2492,23 +2693,62 @@ async function getCompatibleScannerStream() {
   throw lastError || new Error('Kamera konnte nicht initialisiert werden.');
 }
 
+async function applyScannerFocusRefresh(track, focusMode) {
+  if (!track || !focusMode || typeof track.applyConstraints !== 'function') return;
+
+  try {
+    await track.applyConstraints({ advanced: [{ focusMode }] });
+  } catch (_) {
+    // Ignore unsupported focus refresh requests.
+  }
+}
+
+function scheduleScannerFocusRefresh(stream) {
+  if (scannerFocusRefreshTimer) {
+    clearInterval(scannerFocusRefreshTimer);
+  }
+
+  if (!stream || !['single-shot', 'continuous'].includes(scannerPreferredFocusMode)) {
+    return;
+  }
+
+  const videoTrack = stream.getVideoTracks?.()[0];
+  if (!videoTrack) return;
+
+  scannerFocusRefreshTimer = setInterval(() => {
+    if (!scannerStream || !isScannerModalVisible()) return;
+    applyScannerFocusRefresh(videoTrack, scannerPreferredFocusMode);
+  }, scannerFocusRefreshMs);
+}
+
 async function optimizeScannerTrack(stream, status) {
   const videoTrack = stream?.getVideoTracks?.()[0];
   if (!videoTrack) return;
 
   const capabilities = videoTrack.getCapabilities ? videoTrack.getCapabilities() : null;
+  const settings = videoTrack.getSettings ? videoTrack.getSettings() : null;
+  setScannerCapabilitiesLog(capabilities, settings);
   const constraints = {};
 
-  if (capabilities?.focusMode?.includes('manual')) {
-    constraints.focusMode = 'manual';
+  if (capabilities?.focusMode?.includes('continuous')) {
+    constraints.focusMode = 'continuous';
   } else if (capabilities?.focusMode?.includes('single-shot')) {
     constraints.focusMode = 'single-shot';
-  } else if (capabilities?.focusMode?.includes('continuous')) {
-    constraints.focusMode = 'continuous';
+  } else if (capabilities?.focusMode?.includes('manual')) {
+    constraints.focusMode = 'manual';
   }
 
-  if (capabilities?.focusDistance && typeof capabilities.focusDistance.max === 'number') {
-    constraints.focusDistance = capabilities.focusDistance.max;
+  scannerPreferredFocusMode = constraints.focusMode || '';
+
+  if (
+    constraints.focusMode === 'manual'
+    && capabilities?.focusDistance
+    && typeof capabilities.focusDistance.min === 'number'
+    && typeof capabilities.focusDistance.max === 'number'
+  ) {
+    const minDistance = Number(capabilities.focusDistance.min);
+    const maxDistance = Number(capabilities.focusDistance.max);
+    constraints.focusDistance = minDistance + ((maxDistance - minDistance) * 0.35);
   }
 
   if (capabilities?.pointsOfInterest) {
@@ -2527,6 +2767,9 @@ async function optimizeScannerTrack(stream, status) {
 
   try {
     await videoTrack.applyConstraints({ advanced: [constraints] });
+    if (scannerPreferredFocusMode) {
+      await applyScannerFocusRefresh(videoTrack, scannerPreferredFocusMode);
+    }
   } catch (_) {
     // Ignore optimization failures and keep default stream settings.
   }
@@ -2540,26 +2783,38 @@ function getScannerDetectionSource(video, canvas, zoomFactor) {
   const context = canvas.getContext('2d', { willReadFrequently: true });
   if (!context) return video;
 
-  const sourceWidth = Math.round(video.videoWidth / zoomFactor);
-  const sourceHeight = Math.round(video.videoHeight / zoomFactor);
+  const frameRatioWidth = 0.72;
+  const frameRatioHeight = 0.38;
+  const sourceWidth = Math.round((video.videoWidth * frameRatioWidth) / zoomFactor);
+  const sourceHeight = Math.round((video.videoHeight * frameRatioHeight) / zoomFactor);
   const sourceX = Math.max(0, Math.round((video.videoWidth - sourceWidth) / 2));
   const sourceY = Math.max(0, Math.round((video.videoHeight - sourceHeight) / 2));
 
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
+  const rotation = scannerRotationDegrees;
+  const isQuarterTurn = rotation === 90 || rotation === 270;
+  canvas.width = isQuarterTurn ? sourceHeight : sourceWidth;
+  canvas.height = isQuarterTurn ? sourceWidth : sourceHeight;
 
-  context.drawImage(
-    video,
-    sourceX,
-    sourceY,
-    sourceWidth,
-    sourceHeight,
-    0,
-    0,
-    canvas.width,
-    canvas.height
-  );
+  context.save();
+  context.clearRect(0, 0, canvas.width, canvas.height);
 
+  if (rotation === 90) {
+    context.translate(canvas.width, 0);
+    context.rotate(Math.PI / 2);
+    context.drawImage(video, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, sourceWidth, sourceHeight);
+  } else if (rotation === 180) {
+    context.translate(canvas.width, canvas.height);
+    context.rotate(Math.PI);
+    context.drawImage(video, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, sourceWidth, sourceHeight);
+  } else if (rotation === 270) {
+    context.translate(0, canvas.height);
+    context.rotate(-Math.PI / 2);
+    context.drawImage(video, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, sourceWidth, sourceHeight);
+  } else {
+    context.drawImage(video, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, sourceWidth, sourceHeight);
+  }
+
+  context.restore();
   return canvas;
 }
 
@@ -2577,8 +2832,16 @@ function stopBarcodeScanner() {
     clearTimeout(scannerLlavaTimer);
     scannerLlavaTimer = null;
   }
+  if (scannerFocusRefreshTimer) {
+    clearInterval(scannerFocusRefreshTimer);
+    scannerFocusRefreshTimer = null;
+  }
+  scannerPreferredFocusMode = '';
   scannerLlavaInFlight = false;
   scannerLlavaLastRequestAt = 0;
+  scannerDetectionInFlight = false;
+  scannerStableCandidate = '';
+  scannerStableCount = 0;
 
   if (scannerStream) {
     scannerStream.getTracks().forEach((track) => track.stop());
@@ -2589,7 +2852,12 @@ function stopBarcodeScanner() {
     video.pause();
     video.srcObject = null;
     video.classList.add('hidden');
+    video.classList.remove('rotated-90', 'rotated-180', 'rotated-270');
   }
+
+  const overlay = document.getElementById('scanner-frame-overlay');
+  if (overlay) overlay.classList.add('hidden');
+  setScannerLightWarningVisible(false);
 
   if (startButton) startButton.classList.remove('hidden');
   if (stopButton) stopButton.classList.add('hidden');

@@ -2,6 +2,36 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.57
+
+- Scanner (Ausrichtung): Neue Option „Bilddrehung" (0°/90°/180°/270°) im Scanner-Modal, damit Kamera-Feed bei horizontal/vertikalem Handling passend ausgerichtet werden kann.
+- Scanner (Erkennung): Die Barcode-Analyse übernimmt die gewählte Drehung ebenfalls auf dem Analyse-Canvas (ROI), damit `BarcodeDetector` den Code in der gewählten Orientierung robuster lesen kann.
+- Pflege: Add-on-Version auf `7.1.57` erhöht.
+
+## 7.1.56
+
+- Scanner (Kameraauswahl): Verfügbare Kameras werden gelistet und sind im Scanner testweise auswählbar; Standard bleibt Rückkamera bevorzugt.
+- Scanner (Qualität): Kamera-Streams fordern zuerst höhere Auflösungen (bis 2560x1440) an und fallen stufenweise auf kleinere Profile zurück.
+- Scanner (UX/Erkennung): Barcode-Analyse startet erst nach kurzer Scharfstell-Wartezeit; zusätzlich Hinweis „Etwas weiter weg halten“.
+- Scanner (Erkennungsrahmen): Fester Rahmen in der Bildmitte eingebaut; Barcode-Detektion analysiert nur noch diesen mittigen Bereich.
+- Scanner (Lichtprüfung): Helligkeit wird periodisch geprüft und bei schwachem Licht eine Warnung angezeigt.
+- Scanner (Debug): `getCapabilities()`/`getSettings()` werden geloggt und als Debug-Block im Scanner angezeigt (inkl. focusMode/focusDistance/zoom/torch-Unterstützung).
+- Pflege: Add-on-Version auf `7.1.56` erhöht.
+
+## 7.1.55
+
+- Fix (Scanner/Fokus): Kamera-Fokus wird während des laufenden Scans zyklisch neu angestoßen (alle 2s) für unterstützte Modi (`continuous`/`single-shot`), damit mobile Kameras nicht in unscharfem Zustand „hängen bleiben“.
+- Stabilität (Scanner/Fokus): Beim Scanner-Start wird der bevorzugte Fokusmodus gespeichert und direkt nach dem Setzen der Constraints einmal aktiv nachgezogen.
+- Stabilität (Scanner): Fokus-Refresh-Timer wird beim Stoppen zuverlässig beendet und Fokus-Zustand zurückgesetzt.
+- Pflege: Add-on-Version auf `7.1.55` erhöht.
+
+## 7.1.54
+
+- Fix (Scanner/Fokus): Kamera-Fokus priorisiert jetzt `focusMode=continuous` (statt primär `manual`), damit mobile Geräte während des Scan-Vorgangs fortlaufend nachfokussieren und das Bild nicht dauerhaft unscharf bleibt.
+- Stabilität (Scanner/Barcode): Barcode-Lookup wird erst ausgelöst, wenn derselbe normalisierte Code in mehreren aufeinanderfolgenden Frames erkannt wurde (Debounce/Stabilitätsprüfung), wodurch Fehllesungen und wechselnde Codes deutlich reduziert werden.
+- Stabilität (Scanner): Während ein Barcode-Lookup läuft, werden weitere automatische Lookups kurzzeitig blockiert, um konkurrierende Requests zu vermeiden.
+- Pflege: Add-on-Version auf `7.1.54` erhöht.
+
 ## 7.1.53
 
 - Scanner (Browser-Kompatibilität): Kamera-Start nutzt jetzt abgestufte `getUserMedia`-Profile (von bevorzugter Rückkamera bis zu generischem Fallback), damit Scanner in mehr Browsern/Endgeräten startet statt direkt fehlzuschlagen.

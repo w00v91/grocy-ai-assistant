@@ -1376,12 +1376,74 @@ img {
 }
 
 
+.scanner-video-shell {
+  position: relative;
+  margin: 0.75rem 0;
+}
+
 .scanner-video {
   width: 100%;
   max-height: 320px;
   border-radius: 12px;
   background: #000;
-  margin: 0.75rem 0;
+  margin: 0;
+  object-fit: contain;
+  transform-origin: center center;
+}
+
+.scanner-video.rotated-90 {
+  transform: rotate(90deg);
+}
+
+.scanner-video.rotated-180 {
+  transform: rotate(180deg);
+}
+
+.scanner-video.rotated-270 {
+  transform: rotate(270deg);
+}
+
+.scanner-frame-overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+.scanner-frame-box {
+  width: min(72%, 420px);
+  height: min(38%, 170px);
+  border: 2px solid color-mix(in srgb, var(--accent-primary) 82%, #fff);
+  border-radius: 12px;
+  box-shadow: 0 0 0 200vmax rgba(0, 0, 0, 0.28);
+}
+
+.scanner-hint {
+  margin: 0.55rem 0 0.25rem;
+  color: var(--text-muted);
+  font-size: 0.92rem;
+}
+
+.scanner-warning {
+  margin: 0.2rem 0 0.6rem;
+  color: #ffb84d;
+  font-size: 0.9rem;
+}
+
+.scanner-capabilities {
+  margin-top: 0.55rem;
+}
+
+.scanner-capabilities pre {
+  margin: 0.45rem 0 0;
+  max-height: 180px;
+  overflow: auto;
+  padding: 0.6rem;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--item-bg) 86%, #000);
+  border: 1px solid var(--item-border);
+  font-size: 0.78rem;
 }
 
 .scanner-actions {
@@ -1406,7 +1468,8 @@ img {
   max-width: 260px;
 }
 
-.scanner-options input {
+.scanner-options input,
+.scanner-options select {
   width: 100%;
 }
 

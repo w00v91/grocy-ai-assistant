@@ -337,8 +337,32 @@
         <button class='shopping-modal-close' type='button' onclick='closeScannerModal()' aria-label='Scanner schließen'>×</button>
         <section id='tab-scanner' class='scanner-popup-card'>
           <h2>Barcode-Scanner</h2>
-          <video id='scanner-video' class='scanner-video hidden' playsinline></video>
+          <div class='scanner-video-shell'>
+            <video id='scanner-video' class='scanner-video hidden' playsinline></video>
+            <div id='scanner-frame-overlay' class='scanner-frame-overlay hidden' aria-hidden='true'>
+              <div class='scanner-frame-box'></div>
+            </div>
+          </div>
           <canvas id='scanner-canvas' class='hidden'></canvas>
+          <p id='scanner-distance-hint' class='scanner-hint'>💡 Etwas weiter weg halten und Barcode im Rahmen zentrieren.</p>
+          <p id='scanner-light-warning' class='scanner-warning hidden'>⚠️ Licht zu schwach erkannt. Bitte heller beleuchten oder Blitz/Taschenlampe nutzen.</p>
+          <div class='scanner-options'>
+            <label for='scanner-camera-select'>Kamera wählen</label>
+            <select id='scanner-camera-select' onchange='onScannerCameraChange()'>
+              <option value=''>Automatisch (Rückkamera)</option>
+            </select>
+            <label for='scanner-rotation-select'>Bilddrehung</label>
+            <select id='scanner-rotation-select' onchange='onScannerRotationChange()'>
+              <option value='0'>0° (Standard)</option>
+              <option value='90'>90°</option>
+              <option value='180'>180°</option>
+              <option value='270'>270°</option>
+            </select>
+          </div>
+          <details class='scanner-capabilities'>
+            <summary>Kamera-Fähigkeiten (Debug)</summary>
+            <pre id='scanner-capabilities-log'>Noch keine Daten.</pre>
+          </details>
           <div class='scanner-actions'>
             <button id='start-scan-button' type='button' onclick='startBarcodeScanner()'>📷 Kamera starten</button>
             <button id='stop-scan-button' type='button' class='danger-button hidden' onclick='stopBarcodeScanner()'>⏹ Kamera stoppen</button>
