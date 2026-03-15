@@ -124,9 +124,15 @@ body {
   color: var(--muted);
 }
 
-.topbar h1 {
+.topbar-status {
   margin: 0.25rem 0 0;
-  font-size: 1.2rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text);
+  min-height: 1.5rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 body.modal-open {
@@ -649,8 +655,9 @@ button:focus-visible {
   outline-offset: 2px;
 }
 .muted { color: var(--muted); font-size: 0.95rem; }
-#status-shopping,
-#status-recipes { margin-top: 0.85rem; font-weight: 600; }
+.tab-status {
+  display: none;
+}
 ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.8rem; }
 li {
   display: flex;
@@ -705,8 +712,8 @@ img {
   .topbar-heading-row {
     row-gap: 0.35rem;
   }
-  .topbar h1 {
-    font-size: 1.1rem;
+  .topbar-status {
+    font-size: 1rem;
   }
   .theme-toggle {
     width: 2.2rem;
@@ -965,11 +972,6 @@ img {
 }
 .success-button:hover { background: var(--success-bg-hover); }
 
-
-#status-storage {
-  margin-top: 0.85rem;
-  font-weight: 600;
-}
 
 .storage-products-list {
   margin-top: 0.8rem;
