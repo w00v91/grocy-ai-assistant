@@ -1,6 +1,6 @@
 {
   "name": "Grocy AI Assistant",
-  "version": "7.1.61",
+  "version": "7.1.62",
   "slug": "grocy_ai_assistant",
   "dependencies": [
     "a0d49513_grocy"
@@ -26,35 +26,35 @@
   "options": {
     "api_key": "DEIN_KI_KEY",
     "grocy_api_key": "DEIN_GROCY_KEY",
+    "grocy_base_url": "http://homeassistant.local:9192/api",
     "ollama_url": "http://76e18fb5_ollama:11434/api/generate",
     "ollama_model": "llama3",
-    "debug_mode": false,
-    "notification_global_enabled": true,
-    "grocy_base_url": "http://homeassistant.local:9192/api",
     "ollama_llava_model": "llava",
     "scanner_barcode_fallback_seconds": 5,
     "scanner_llava_min_confidence": 75,
+    "scanner_llava_timeout_seconds": 45,
+    "notification_global_enabled": true,
     "image_generation_enabled": false,
     "openai_api_key": "DEIN_OPENAI_KEY",
     "openai_image_model": "gpt-image-1",
     "generate_missing_product_images_on_startup": false,
-    "scanner_llava_timeout_seconds": 45
+    "debug_mode": false
   },
   "schema": {
     "api_key": "str",
     "grocy_api_key": "str",
+    "grocy_base_url": "str",
     "ollama_url": "str",
     "ollama_model": "str",
-    "debug_mode": "bool",
-    "notification_global_enabled": "bool",
-    "grocy_base_url": "str",
     "ollama_llava_model": "str",
     "scanner_barcode_fallback_seconds": "int(1,30)",
     "scanner_llava_min_confidence": "int(1,100)",
+    "scanner_llava_timeout_seconds": "int(10,120)",
+    "notification_global_enabled": "bool",
     "image_generation_enabled": "bool",
     "openai_api_key": "password",
     "openai_image_model": "str",
     "generate_missing_product_images_on_startup": "bool",
-    "scanner_llava_timeout_seconds": "int(10,120)"
+    "debug_mode": "bool"
   }
 }

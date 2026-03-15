@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.62
+
+- Add-on (Konfiguration): Reihenfolge der `options`/`schema` in `config.json` überarbeitet, damit der Schalter `debug_mode` im Home-Assistant-Formular weiter unten angezeigt wird.
+- Pflege: Add-on-Version auf `7.1.62` erhöht.
+
 ## 7.1.61
 
 - Add-on (Ingress): Externes Port-Mapping (`8000/tcp`) aus `config.json` entfernt, damit der Zugriff standardmäßig ausschließlich über Home-Assistant-Ingress erfolgt.
