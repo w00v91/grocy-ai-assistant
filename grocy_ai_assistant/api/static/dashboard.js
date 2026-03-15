@@ -1766,6 +1766,8 @@ function openStorageEditModal(stockId) {
   document.getElementById('storage-edit-product-id').textContent = String(stockItem.id || '-');
   document.getElementById('storage-edit-stock-id').textContent = String(stockItem.stock_id || '-');
   document.getElementById('storage-edit-location').textContent = stockItem.location_name || '-';
+  document.getElementById('storage-edit-current-amount').textContent = formatBadgeValue(stockItem.amount, '0');
+  document.getElementById('storage-edit-current-best-before').textContent = formatBadgeValue(stockItem.best_before_date, '-');
   document.getElementById('storage-edit-amount').value = String(stockItem.amount || '0').replace(',', '.');
   document.getElementById('storage-edit-best-before').value = stockItem.best_before_date || '';
   document.getElementById('storage-edit-calories').value = String(stockItem.calories || '').replace(',', '.');
