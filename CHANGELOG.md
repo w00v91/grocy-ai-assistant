@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.64
+
+- UI (Lager/Popup „Bestand ändern“): Zu ändernde Attribute im Bearbeiten-Dialog als eigene, klar getrennte Zeilen dargestellt.
+- Pflege: Add-on-Version auf `7.1.64` erhöht.
+
 ## 7.1.63
 
 - UI (Lager-Tab): Aktions-Buttons der Produktkarten in der Desktop-Ansicht explizit an den rechten Rand der Karte ausgerichtet.
