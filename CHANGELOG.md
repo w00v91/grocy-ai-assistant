@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.60
+
+- Fix (Benachrichtigungen): Rule-Engine erzeugt jetzt auch dann `persistent_notification`-Nachrichten, wenn kein mobiles Notify-Target vorhanden ist.
+- Fix (Benachrichtigungen): Regeln mit gemischten Kanälen liefern mobile Push und persistente Benachrichtigung als getrennte Dispatch-Nachrichten aus.
+- Test: Unit-Tests für Persistent-Only- und Mixed-Channel-Regeln ergänzt.
+- Pflege: Add-on-Version auf `7.1.60` erhöht.
+
 ## 7.1.59
 
 - Fix (Scanner/WebView): Kamera-Start nutzt nun eine kompatible `getUserMedia`-Abfrage (inkl. Legacy-Fallback) statt ausschließlich `navigator.mediaDevices.getUserMedia`.

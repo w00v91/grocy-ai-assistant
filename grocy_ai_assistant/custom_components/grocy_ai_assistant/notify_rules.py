@@ -8,6 +8,7 @@ from typing import Any
 from uuid import uuid4
 
 from .notify_models import (
+    NotificationChannel,
     NotificationEvent,
     NotificationMessage,
     NotificationRule,
@@ -49,12 +50,21 @@ class NotificationRuleEngine:
             if self._is_in_quiet_hours(rule.quiet_hours, event.created_at):
                 continue
 
+            channels = rule.channels or settings.preferences.default_channels
+            mobile_channels = tuple(
+                channel
+                for channel in channels
+                if channel == NotificationChannel.MOBILE_PUSH
+            )
+            persistent_enabled = NotificationChannel.PERSISTENT in channels
+
             targets = self._resolve_targets(rule, settings.targets, default_targets)
-            if not targets:
+            if mobile_channels and not targets:
                 continue
 
-            channels = rule.channels or settings.preferences.default_channels
             for target in targets:
+                if not mobile_channels:
+                    continue
                 dedup_key = f"{rule.id}:{event.event_type}:{target.id}:{','.join(ch.value for ch in channels)}"
                 if self._is_on_cooldown(rule, dedup_key, event.created_at):
                     continue
@@ -64,7 +74,7 @@ class NotificationRuleEngine:
                     event=event,
                     rule_id=rule.id,
                     target=target,
-                    channels=channels,
+                    channels=mobile_channels,
                     title=event.title,
                     body=_render_message(rule, event),
                     severity=rule.severity or event.severity,
@@ -77,6 +87,43 @@ class NotificationRuleEngine:
                     },
                 )
                 messages.append(message)
+                self._last_sent_by_key[dedup_key] = event.created_at
+
+            if persistent_enabled:
+                persistent_target = NotificationTarget(
+                    id="persistent_notification",
+                    service="persistent_notification.create",
+                    display_name="Home Assistant",
+                    platform="ha",
+                    active=True,
+                )
+                dedup_key = f"{rule.id}:{event.event_type}:{persistent_target.id}:{NotificationChannel.PERSISTENT.value}"
+                if self._is_on_cooldown(rule, dedup_key, event.created_at):
+                    continue
+
+                messages.append(
+                    NotificationMessage(
+                        id=str(uuid4()),
+                        event=event,
+                        rule_id=rule.id,
+                        target=persistent_target,
+                        channels=(NotificationChannel.PERSISTENT,),
+                        title=event.title,
+                        body=_render_message(rule, event),
+                        severity=rule.severity or event.severity,
+                        click_url=event.payload.get("click_url"),
+                        dedup_key=dedup_key,
+                        mobile_data={
+                            "tag": event.payload.get(
+                                "tag", f"grocy-{event.event_type}"
+                            ),
+                            "group": event.payload.get("group", "grocy-shopping"),
+                            "url": event.payload.get(
+                                "click_url", "/lovelace/default_view"
+                            ),
+                        },
+                    )
+                )
                 self._last_sent_by_key[dedup_key] = event.created_at
 
         return messages
