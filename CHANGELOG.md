@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.59
+
+- Fix (Scanner/WebView): Kamera-Start nutzt nun eine kompatible `getUserMedia`-Abfrage (inkl. Legacy-Fallback) statt ausschließlich `navigator.mediaDevices.getUserMedia`.
+- Fix (Scanner/UX): Fehlermeldungen beim Kamera-Start unterscheiden jetzt klar zwischen fehlender Berechtigung, unsicherem Kontext (HTTPS/WebView) und fehlender Kamera.
+
+## 7.1.58
+
+- Verbessert: Die Barcode-Erkennung rotiert den Scanner-Canvas bei Hochkant-Bildquellen nun automatisch um 90°, wenn die Bilddrehung auf 0° steht. Dadurch werden Barcodes in hochkant aufgenommenen Bildern zuverlässiger erkannt.
+
 ## 7.1.57
 
 - Scanner (Ausrichtung): Neue Option „Bilddrehung" (0°/90°/180°/270°) im Scanner-Modal, damit Kamera-Feed bei horizontal/vertikalem Handling passend ausgerichtet werden kann.
