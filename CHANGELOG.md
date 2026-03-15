@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.66
+
+- UI (Swipe-Actions): Lagerprodukte im Tab „Lager“ nutzen jetzt dieselbe Swipe-Interaktion wie die Einkaufssuche (links: Bearbeiten, rechts: Verbrauchen) statt fester Aktionsbuttons.
+- UI (Notify-Regeln): Regeln im Benachrichtigungs-Tab wurden auf Swipe-Buttons umgestellt (links: Bearbeiten, rechts: Löschen) für ein konsistentes Bedienmuster.
+- Frontend-Refactoring: Wiederverwendbare Swipe-Logik (`bindSwipeInteractions`) und gemeinsame Swipe-CSS-Klassen eingeführt, damit Shopping-, Lager- und Regel-Listen gleiches Verhalten teilen.
+- Pflege: Add-on-Version auf `7.1.66` erhöht.
+
 ## 7.1.65
 
 - Architektur/Codepflege: Doppelte Implementierung von `_normalize_barcode_for_lookup` in `api/routes.py` entfernt, um widersprüchliche Wartungspfade zu vermeiden.

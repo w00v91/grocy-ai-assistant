@@ -315,22 +315,40 @@ function renderNotificationRules(rules) {
     return;
   }
   list.innerHTML = rules.map((rule) => `
-    <li class="notification-rule-item">
-      <div class="notification-rule-name" title="${escapeHtml(rule.name || '')}">
-        <strong>${rule.name}</strong>
+    <li class="notification-rule-item swipe-item" data-swipe-payload="${encodeURIComponent(JSON.stringify({ id: rule.id }))}">
+      <div class="swipe-item-action swipe-item-action-left" aria-hidden="true">
+        <span class="swipe-chip swipe-chip-edit">✏️ Bearbeiten</span>
       </div>
-      <div class="notification-rule-meta">
-        <div class="notification-rule-meta-row"><span class="notification-rule-meta-label">Priorität</span><span class="notification-rule-meta-value">${escapeHtml(rule.severity || 'info')}</span></div>
-        <div class="notification-rule-meta-row"><span class="notification-rule-meta-label">Ereignisse</span><span class="notification-rule-meta-value">${(rule.event_types || []).map((eventType) => getEventLabel(eventType)).join(', ') || '-'}</span></div>
-        <div class="notification-rule-meta-row"><span class="notification-rule-meta-label">Kanäle</span><span class="notification-rule-meta-value">${(rule.channels || []).map((channelType) => getChannelLabel(channelType)).join(', ') || '-'}</span></div>
-        <div class="notification-rule-meta-row"><span class="notification-rule-meta-label">Cooldown</span><span class="notification-rule-meta-value">${Number(rule.cooldown_seconds || 0)}s</span></div>
+      <div class="swipe-item-action swipe-item-action-right" aria-hidden="true">
+        <span class="swipe-chip swipe-chip-delete">🗑 Löschen</span>
       </div>
-      <div class="notification-rule-item-actions">
-        <button class="notification-action-button notification-action-button-edit" type="button" onclick="openNotificationRuleModal('${rule.id}')">Regel ändern</button>
-        <button class="notification-action-button notification-action-button-delete" type="button" onclick="deleteNotificationRule('${rule.id}')">Löschen</button>
+      <div class="notification-rule-item-content swipe-item-content">
+        <div class="notification-rule-name" title="${escapeHtml(rule.name || '')}">
+          <strong>${rule.name}</strong>
+        </div>
+        <div class="notification-rule-meta">
+          <div class="notification-rule-meta-row"><span class="notification-rule-meta-label">Priorität</span><span class="notification-rule-meta-value">${escapeHtml(rule.severity || 'info')}</span></div>
+          <div class="notification-rule-meta-row"><span class="notification-rule-meta-label">Ereignisse</span><span class="notification-rule-meta-value">${(rule.event_types || []).map((eventType) => getEventLabel(eventType)).join(', ') || '-'}</span></div>
+          <div class="notification-rule-meta-row"><span class="notification-rule-meta-label">Kanäle</span><span class="notification-rule-meta-value">${(rule.channels || []).map((channelType) => getChannelLabel(channelType)).join(', ') || '-'}</span></div>
+          <div class="notification-rule-meta-row"><span class="notification-rule-meta-label">Cooldown</span><span class="notification-rule-meta-value">${Number(rule.cooldown_seconds || 0)}s</span></div>
+        </div>
       </div>
     </li>
   `).join('');
+
+  bindSwipeInteractions({
+    selector: '#notification-rules .notification-rule-item',
+    onSwipeLeft: async (item, payload) => {
+      openNotificationRuleModal(payload.id);
+      resetSwipeVisualState(item);
+    },
+    onSwipeRight: async (_, payload) => {
+      await deleteNotificationRule(payload.id);
+    },
+    onTap: (_, payload) => {
+      openNotificationRuleModal(payload.id);
+    },
+  });
 }
 
 function renderNotificationHistory(history) {
@@ -726,14 +744,14 @@ function renderShoppingList(items) {
   list.classList.remove('hidden');
 
   list.innerHTML = items.map((item) => `
-    <li class="shopping-item" data-shopping-item="${encodeURIComponent(JSON.stringify(item))}">
-      <div class="shopping-item-action shopping-item-action-left" aria-hidden="true">
+    <li class="shopping-item swipe-item" data-shopping-item="${encodeURIComponent(JSON.stringify(item))}">
+      <div class="swipe-item-action swipe-item-action-left" aria-hidden="true">
         <span class="swipe-chip swipe-chip-buy">🛒 Kaufen</span>
       </div>
-      <div class="shopping-item-action shopping-item-action-right" aria-hidden="true">
+      <div class="swipe-item-action swipe-item-action-right" aria-hidden="true">
         <span class="swipe-chip swipe-chip-delete">🗑 Löschen</span>
       </div>
-      <div class="shopping-item-content">
+      <div class="shopping-item-content swipe-item-content">
         <img src="${toImageSource(item.picture_url)}" alt="${item.product_name}" loading="lazy" />
         <div class="shopping-item-meta">
           <div><strong>${item.product_name}</strong></div>
@@ -1191,19 +1209,18 @@ async function closeShoppingItemDetails() {
   syncModalScrollLock();
 }
 
-function bindShoppingSwipeInteractions() {
-  const items = document.querySelectorAll('#shopping-list .shopping-item');
+function resetSwipeVisualState(item) {
+  item.classList.remove('dragging', 'swipe-commit-left', 'swipe-commit-right');
+  item.style.setProperty('--swipe-offset', '0px');
+  item.style.setProperty('--swipe-progress-left', '0');
+  item.style.setProperty('--swipe-progress-right', '0');
+  item.style.setProperty('--swipe-glow', 'transparent');
+}
+
+function bindSwipeInteractions({ selector, onSwipeLeft, onSwipeRight, onTap, interactiveElementSelector = '' }) {
+  const items = document.querySelectorAll(selector);
   const commitDistance = 75;
   const maxDistance = 132;
-  const interactiveElementSelector = '.amount-increment-button, .mhd-picker-button';
-
-  const resetSwipeState = (item) => {
-    item.classList.remove('dragging', 'swipe-commit-left', 'swipe-commit-right');
-    item.style.setProperty('--swipe-offset', '0px');
-    item.style.setProperty('--swipe-progress-left', '0');
-    item.style.setProperty('--swipe-progress-right', '0');
-    item.style.setProperty('--swipe-glow', 'transparent');
-  };
 
   items.forEach((item) => {
     let startX = 0;
@@ -1211,10 +1228,10 @@ function bindShoppingSwipeInteractions() {
     let pointerId = null;
     let isDragging = false;
 
-    resetSwipeState(item);
+    resetSwipeVisualState(item);
 
     item.addEventListener('pointerdown', (event) => {
-      if (event.target.closest(interactiveElementSelector)) {
+      if (interactiveElementSelector && event.target.closest(interactiveElementSelector)) {
         return;
       }
 
@@ -1248,7 +1265,7 @@ function bindShoppingSwipeInteractions() {
 
     item.addEventListener('pointercancel', () => {
       isDragging = false;
-      resetSwipeState(item);
+      resetSwipeVisualState(item);
     });
 
     item.addEventListener('pointerup', async (event) => {
@@ -1263,28 +1280,43 @@ function bindShoppingSwipeInteractions() {
       pointerId = null;
       item.classList.remove('dragging');
 
-      const payloadText = decodeURIComponent(item.dataset.shoppingItem || '');
+      const payloadText = decodeURIComponent(item.dataset.shoppingItem || item.dataset.swipePayload || '');
       const payload = payloadText ? JSON.parse(payloadText) : {};
-      const shoppingListId = payload.id;
 
       if (deltaX <= -commitDistance) {
         item.classList.add('swipe-commit-left');
-        await purchaseShoppingItem(shoppingListId);
+        if (onSwipeLeft) await onSwipeLeft(item, payload);
         return;
       }
 
       if (deltaX >= commitDistance) {
         item.classList.add('swipe-commit-right');
-        await removeShoppingItem(shoppingListId);
+        if (onSwipeRight) await onSwipeRight(item, payload);
         return;
       }
 
-      if (Math.abs(deltaX) < 14) {
-        showShoppingItemDetails(payload);
+      if (Math.abs(deltaX) < 14 && onTap) {
+        onTap(item, payload);
       }
 
-      resetSwipeState(item);
+      resetSwipeVisualState(item);
     });
+  });
+}
+
+function bindShoppingSwipeInteractions() {
+  bindSwipeInteractions({
+    selector: '#shopping-list .shopping-item',
+    interactiveElementSelector: '.amount-increment-button, .mhd-picker-button',
+    onSwipeLeft: async (_, payload) => {
+      await purchaseShoppingItem(payload.id);
+    },
+    onSwipeRight: async (_, payload) => {
+      await removeShoppingItem(payload.id);
+    },
+    onTap: (_, payload) => {
+      showShoppingItemDetails(payload);
+    },
   });
 }
 
@@ -1702,26 +1734,45 @@ function renderStorageProducts() {
 
   list.innerHTML = filteredItems.map((item) => {
     const actionableId = getActionableStorageId(item);
-    const canExecuteAction = actionableId > 0;
-    const disabledAttr = canExecuteAction ? '' : ' disabled';
-    const disabledTitle = canExecuteAction ? '' : ' title="Für diesen Eintrag ist keine nutzbare Produkt-/Bestand-ID verfügbar"';
 
     return `
-    <li class="storage-item">
-      <div class="storage-item-content">
+    <li class="storage-item swipe-item" data-swipe-payload="${encodeURIComponent(JSON.stringify({ id: actionableId }))}">
+      <div class="swipe-item-action swipe-item-action-left" aria-hidden="true">
+        <span class="swipe-chip swipe-chip-edit">✏️ Bearbeiten</span>
+      </div>
+      <div class="swipe-item-action swipe-item-action-right" aria-hidden="true">
+        <span class="swipe-chip swipe-chip-buy">✅ Verbrauchen</span>
+      </div>
+      <div class="storage-item-content swipe-item-content">
         <img src="${toImageSource(item.picture_url)}" alt="${escapeHtml(item.name || 'Unbekanntes Produkt')}" loading="lazy" />
         <div class="storage-item-main">
           <strong class="storage-item-name">${escapeHtml(item.name || 'Unbekanntes Produkt')}</strong>
           <div class="muted storage-item-description">Lager: ${escapeHtml(item.location_name || '-')} · Menge: ${escapeHtml(formatBadgeValue(item.amount, '0'))} · MHD: ${escapeHtml(formatBadgeValue(item.best_before_date, '-'))}</div>
         </div>
-        <div class="storage-item-actions">
-          <button class="ghost-button storage-action-button storage-edit-button" type="button" onclick="openStorageEditModal(${actionableId})"${disabledAttr}${disabledTitle}>✏️ Bearbeiten</button>
-          <button class="storage-action-button storage-consume-button" type="button" onclick="consumeStorageProduct(${actionableId})"${disabledAttr}${disabledTitle}>✅ Verbrauchen</button>
-        </div>
       </div>
     </li>
   `;
   }).join('');
+
+  bindSwipeInteractions({
+    selector: '#storage-products .storage-item',
+    onSwipeLeft: async (item, payload) => {
+      if (payload.id > 0) {
+        openStorageEditModal(payload.id);
+      }
+      resetSwipeVisualState(item);
+    },
+    onSwipeRight: async (_, payload) => {
+      if (payload.id > 0) {
+        await consumeStorageProduct(payload.id);
+      }
+    },
+    onTap: (_, payload) => {
+      if (payload.id > 0) {
+        openStorageEditModal(payload.id);
+      }
+    },
+  });
 }
 
 async function loadStorageProducts() {
