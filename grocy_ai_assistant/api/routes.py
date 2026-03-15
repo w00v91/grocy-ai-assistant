@@ -144,6 +144,26 @@ def _release_llava_request_slot() -> None:
         LLAVA_REQUEST_IN_FLIGHT = False
 
 
+def _normalize_barcode_for_lookup(raw_barcode: str) -> str:
+    digits_only = "".join(ch for ch in str(raw_barcode or "") if ch.isdigit())
+    if not digits_only:
+        return ""
+
+    if len(digits_only) >= 16 and digits_only.startswith("01"):
+        gtin14 = digits_only[2:16]
+        if gtin14.startswith("0"):
+            return gtin14[1:]
+        return gtin14
+
+    if len(digits_only) in (8, 12, 13, 14):
+        return digits_only
+
+    if len(digits_only) > 14:
+        return digits_only[-13:]
+
+    return digits_only
+
+
 def _build_product_picture_url(raw_picture_url: str, settings: Settings) -> str:
     rewritten = build_product_picture_url(raw_picture_url, settings)
     if rewritten and rewritten != (raw_picture_url or ""):
@@ -1461,10 +1481,22 @@ def dashboard_update_stock_product(
         if resolved_stock_id <= 0:
             raise HTTPException(status_code=400, detail="Ungültiger Bestandseintrag")
 
+        resolved_product_id = int(matched_entry.get("product_id") or 0)
+        if resolved_product_id <= 0:
+            raise HTTPException(status_code=400, detail="Ungültiger Produkteintrag")
+
         grocy_client.update_stock_entry(
             stock_id=resolved_stock_id,
             amount=payload.amount,
             best_before_date=payload.best_before_date,
+        )
+        grocy_client.update_product_nutrition(
+            product_id=resolved_product_id,
+            calories=payload.calories,
+            carbs=payload.carbs,
+            fat=payload.fat,
+            protein=payload.protein,
+            sugar=payload.sugar,
         )
         return {"success": True, "message": "Bestandseintrag wurde aktualisiert."}
     except HTTPException:

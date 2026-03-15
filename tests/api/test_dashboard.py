@@ -1797,6 +1797,11 @@ def test_dashboard_stock_products_include_stock_id(client, monkeypatch):
                 "location_name": "Küche",
                 "amount": "2",
                 "best_before_date": "2026-01-01",
+                "calories": "120",
+                "carbs": "4.5",
+                "fat": "3.2",
+                "protein": "8",
+                "sugar": "4",
             }
         ]
 
@@ -1811,6 +1816,11 @@ def test_dashboard_stock_products_include_stock_id(client, monkeypatch):
 
     assert response.status_code == 200
     assert response.json()[0]["stock_id"] == 99
+    assert response.json()[0]["calories"] == "120"
+    assert response.json()[0]["carbs"] == "4.5"
+    assert response.json()[0]["fat"] == "3.2"
+    assert response.json()[0]["protein"] == "8"
+    assert response.json()[0]["sugar"] == "4"
     assert "/api/dashboard/product-picture?src=" in response.json()[0]["picture_url"]
     assert (
         "homeassistant.local%3A9192%2Fapi%2Ffiles%2Fproductpictures%2F"
@@ -1920,19 +1930,44 @@ def test_dashboard_can_update_stock_product_by_product_id_fallback(client, monke
     def fake_update_stock_entry(self, stock_id, amount, best_before_date=""):
         called["args"] = (stock_id, amount, best_before_date)
 
+    nutrition_called = {}
+
+    def fake_update_product_nutrition(
+        self,
+        product_id,
+        calories=None,
+        carbs=None,
+        fat=None,
+        protein=None,
+        sugar=None,
+    ):
+        nutrition_called["args"] = (product_id, calories, carbs, fat, protein, sugar)
+
     monkeypatch.setattr(routes.GrocyClient, "get_stock_entries", fake_get_stock_entries)
     monkeypatch.setattr(
         routes.GrocyClient, "update_stock_entry", fake_update_stock_entry
+    )
+    monkeypatch.setattr(
+        routes.GrocyClient, "update_product_nutrition", fake_update_product_nutrition
     )
 
     response = client.put(
         "/api/dashboard/stock-products/99",
         headers={"Authorization": "Bearer test-api-key"},
-        json={"amount": 5, "best_before_date": "2026-02-01"},
+        json={
+            "amount": 5,
+            "best_before_date": "2026-02-01",
+            "calories": 100,
+            "carbs": 12,
+            "fat": 1.5,
+            "protein": 3,
+            "sugar": 7,
+        },
     )
 
     assert response.status_code == 200
     assert called["args"] == (321, 5, "2026-02-01")
+    assert nutrition_called["args"] == (99, 100, 12, 1.5, 3, 7)
 
 
 def test_dashboard_can_delete_stock_product(client, monkeypatch):
@@ -1990,9 +2025,25 @@ def test_dashboard_can_update_stock_product(client, monkeypatch):
     def fake_update_stock_entry(self, stock_id, amount, best_before_date=""):
         called["args"] = (stock_id, amount, best_before_date)
 
+    nutrition_called = {}
+
+    def fake_update_product_nutrition(
+        self,
+        product_id,
+        calories=None,
+        carbs=None,
+        fat=None,
+        protein=None,
+        sugar=None,
+    ):
+        nutrition_called["args"] = (product_id, calories, carbs, fat, protein, sugar)
+
     monkeypatch.setattr(routes.GrocyClient, "get_stock_entries", fake_get_stock_entries)
     monkeypatch.setattr(
         routes.GrocyClient, "update_stock_entry", fake_update_stock_entry
+    )
+    monkeypatch.setattr(
+        routes.GrocyClient, "update_product_nutrition", fake_update_product_nutrition
     )
 
     response = client.put(
@@ -2003,3 +2054,4 @@ def test_dashboard_can_update_stock_product(client, monkeypatch):
 
     assert response.status_code == 200
     assert called["args"] == (99, 5, "2026-02-01")
+    assert nutrition_called["args"] == (10, None, None, None, None, None)

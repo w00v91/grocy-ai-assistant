@@ -9,6 +9,10 @@ All notable changes to this project are documented in this file.
 - Stabilität (Scanner/LLaVA): Auto-Fallback im Frontend respektiert zusätzlich ein Cooldown, damit bei ausbleibendem Barcode nicht dauerhaft neue KI-Calls gestartet werden.
 - Fix (Barcode/OpenFoodFacts): Für 12-stellige UPC-Codes wird zusätzlich die 13-stellige Variante mit führender `0` geprüft (und umgekehrt), um Treffer bei OpenFoodFacts/Grocy zu erhöhen.
 - Test: Dashboard-API-Tests für Barcode-Varianten und LLaVA-Timeout-Weitergabe ergänzt.
+- UI (Lager/Popup „Bestand ändern“): Bearbeiten-Dialog um Nährwertfelder erweitert (Kalorien, Kohlenhydrate, Fett, Eiweiß, Zucker), damit diese direkt im Lager-Tab angepasst werden können.
+- API/Lager: `PUT /api/dashboard/stock-products/{stock_id}` akzeptiert jetzt optional Nährwerte und aktualisiert zusätzlich die Produkt-Nährwerte in Grocy.
+- Service: `GrocyClient.get_stock_products(...)` liefert Nährwerte für den Lager-Tab mit; `GrocyClient.update_product_nutrition(...)` ergänzt.
+- Test: API- und Unit-Tests für Nährwertanzeige/-Update ergänzt.
 - Pflege: Add-on-Version auf `7.1.52` erhöht.
 
 ## 7.1.51
