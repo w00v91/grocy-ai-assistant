@@ -122,10 +122,17 @@ let scannerInterval = null;
 let scannerLastBarcode = "";
 let scannerDetector = null;
 let scannerLastBarcodeAt = 0;
+let scannerDetectionInFlight = false;
+let scannerStableCandidate = '';
+let scannerStableCount = 0;
 let scannerLlavaInFlight = false;
 let scannerLlavaTimer = null;
 let scannerLlavaLastRequestAt = 0;
+let scannerFocusRefreshTimer = null;
+let scannerPreferredFocusMode = '';
 const scannerDigitalZoomFactor = 1.35;
+const scannerStableDetectionThreshold = 2;
+const scannerFocusRefreshMs = 2000;
 const recipeState = {
   initialized: false,
   hasLoadedInitialSuggestions: false,
@@ -2347,6 +2354,32 @@ function normalizeBarcodeForLookup(barcode) {
   return digitsOnly;
 }
 
+function registerScannerCandidate(rawBarcode) {
+  const normalized = normalizeBarcodeForLookup(rawBarcode);
+  if (!normalized || normalized.length < 8) return '';
+
+  if (normalized === scannerLastBarcode) {
+    scannerStableCandidate = normalized;
+    scannerStableCount = scannerStableDetectionThreshold;
+    return '';
+  }
+
+  if (normalized === scannerStableCandidate) {
+    scannerStableCount += 1;
+  } else {
+    scannerStableCandidate = normalized;
+    scannerStableCount = 1;
+  }
+
+  if (scannerStableCount < scannerStableDetectionThreshold) {
+    return '';
+  }
+
+  scannerStableCount = 0;
+  scannerStableCandidate = '';
+  return normalized;
+}
+
 async function lookupBarcode(barcode) {
   const key = ensureApiKey();
   const status = getScannerStatusElement();
@@ -2403,6 +2436,7 @@ async function startBarcodeScanner() {
     scannerStream = await getCompatibleScannerStream();
 
     await optimizeScannerTrack(scannerStream, status);
+    scheduleScannerFocusRefresh(scannerStream);
 
     video.setAttribute('playsinline', 'true');
     video.setAttribute('autoplay', 'true');
@@ -2435,8 +2469,14 @@ async function startBarcodeScanner() {
           const barcodes = await scannerDetector.detect(detectionSource);
           if (barcodes.length) {
             const value = String(barcodes[0].rawValue || '').trim();
-            if (value && value !== scannerLastBarcode) {
-              await lookupBarcode(value);
+            const stableBarcode = registerScannerCandidate(value);
+            if (stableBarcode && !scannerDetectionInFlight) {
+              scannerDetectionInFlight = true;
+              try {
+                await lookupBarcode(stableBarcode);
+              } finally {
+                scannerDetectionInFlight = false;
+              }
             }
           }
         } catch (_) {
@@ -2492,6 +2532,34 @@ async function getCompatibleScannerStream() {
   throw lastError || new Error('Kamera konnte nicht initialisiert werden.');
 }
 
+async function applyScannerFocusRefresh(track, focusMode) {
+  if (!track || !focusMode || typeof track.applyConstraints !== 'function') return;
+
+  try {
+    await track.applyConstraints({ advanced: [{ focusMode }] });
+  } catch (_) {
+    // Ignore unsupported focus refresh requests.
+  }
+}
+
+function scheduleScannerFocusRefresh(stream) {
+  if (scannerFocusRefreshTimer) {
+    clearInterval(scannerFocusRefreshTimer);
+  }
+
+  if (!stream || !['single-shot', 'continuous'].includes(scannerPreferredFocusMode)) {
+    return;
+  }
+
+  const videoTrack = stream.getVideoTracks?.()[0];
+  if (!videoTrack) return;
+
+  scannerFocusRefreshTimer = setInterval(() => {
+    if (!scannerStream || !isScannerModalVisible()) return;
+    applyScannerFocusRefresh(videoTrack, scannerPreferredFocusMode);
+  }, scannerFocusRefreshMs);
+}
+
 async function optimizeScannerTrack(stream, status) {
   const videoTrack = stream?.getVideoTracks?.()[0];
   if (!videoTrack) return;
@@ -2499,16 +2567,25 @@ async function optimizeScannerTrack(stream, status) {
   const capabilities = videoTrack.getCapabilities ? videoTrack.getCapabilities() : null;
   const constraints = {};
 
-  if (capabilities?.focusMode?.includes('manual')) {
-    constraints.focusMode = 'manual';
+  if (capabilities?.focusMode?.includes('continuous')) {
+    constraints.focusMode = 'continuous';
   } else if (capabilities?.focusMode?.includes('single-shot')) {
     constraints.focusMode = 'single-shot';
-  } else if (capabilities?.focusMode?.includes('continuous')) {
-    constraints.focusMode = 'continuous';
+  } else if (capabilities?.focusMode?.includes('manual')) {
+    constraints.focusMode = 'manual';
   }
 
-  if (capabilities?.focusDistance && typeof capabilities.focusDistance.max === 'number') {
-    constraints.focusDistance = capabilities.focusDistance.max;
+  scannerPreferredFocusMode = constraints.focusMode || '';
+
+  if (
+    constraints.focusMode === 'manual'
+    && capabilities?.focusDistance
+    && typeof capabilities.focusDistance.min === 'number'
+    && typeof capabilities.focusDistance.max === 'number'
+  ) {
+    const minDistance = Number(capabilities.focusDistance.min);
+    const maxDistance = Number(capabilities.focusDistance.max);
+    constraints.focusDistance = minDistance + ((maxDistance - minDistance) * 0.35);
   }
 
   if (capabilities?.pointsOfInterest) {
@@ -2527,6 +2604,9 @@ async function optimizeScannerTrack(stream, status) {
 
   try {
     await videoTrack.applyConstraints({ advanced: [constraints] });
+    if (scannerPreferredFocusMode) {
+      await applyScannerFocusRefresh(videoTrack, scannerPreferredFocusMode);
+    }
   } catch (_) {
     // Ignore optimization failures and keep default stream settings.
   }
@@ -2577,8 +2657,16 @@ function stopBarcodeScanner() {
     clearTimeout(scannerLlavaTimer);
     scannerLlavaTimer = null;
   }
+  if (scannerFocusRefreshTimer) {
+    clearInterval(scannerFocusRefreshTimer);
+    scannerFocusRefreshTimer = null;
+  }
+  scannerPreferredFocusMode = '';
   scannerLlavaInFlight = false;
   scannerLlavaLastRequestAt = 0;
+  scannerDetectionInFlight = false;
+  scannerStableCandidate = '';
+  scannerStableCount = 0;
 
   if (scannerStream) {
     scannerStream.getTracks().forEach((track) => track.stop());
