@@ -350,37 +350,6 @@ body.modal-open {
   margin-top: 0;
   width: 100%;
   min-width: 0;
-  border-radius: var(--radius-pill);
-  padding: 0.4rem 0.78rem;
-  font-size: 0.8rem;
-  font-weight: 700;
-  border: 1px solid transparent;
-  box-shadow: none;
-}
-
-.notification-action-button:hover {
-  transform: translateY(-1px);
-  filter: saturate(1.06);
-}
-
-.notification-action-button-edit {
-  background: color-mix(in srgb, var(--accent-primary) 18%, var(--badge-bg));
-  border-color: color-mix(in srgb, var(--accent-primary) 45%, transparent);
-  color: color-mix(in srgb, var(--accent-primary) 85%, var(--badge-text));
-}
-
-.notification-action-button-edit:hover {
-  background: color-mix(in srgb, var(--accent-primary) 25%, var(--badge-bg));
-}
-
-.notification-action-button-delete {
-  background: color-mix(in srgb, var(--danger-bg) 22%, var(--badge-bg));
-  border-color: color-mix(in srgb, var(--danger-bg) 50%, transparent);
-  color: color-mix(in srgb, var(--danger-bg) 85%, var(--badge-text));
-}
-
-.notification-action-button-delete:hover {
-  background: color-mix(in srgb, var(--danger-bg) 30%, var(--badge-bg));
 }
 
 
@@ -1084,24 +1053,6 @@ img {
   margin-top: 0;
   width: 100%;
   min-width: 0;
-  padding: 0.42rem 0.7rem;
-  font-size: 0.82rem;
-  border-radius: 999px;
-  font-weight: 600;
-}
-
-.storage-edit-button {
-  border-color: var(--item-border);
-}
-
-.storage-consume-button {
-  border: 1px solid var(--success-border);
-  background: var(--success-bg);
-  color: var(--text-on-accent);
-}
-
-.storage-consume-button:hover {
-  background: var(--success-bg-hover);
 }
 
 .storage-action-button:disabled {

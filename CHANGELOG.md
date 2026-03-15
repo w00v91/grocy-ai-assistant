@@ -4,6 +4,8 @@ All notable changes to this project are documented in this file.
 
 ## 7.1.66
 
+- UI (Button-Styles): Aktionsbuttons in Lager- und Benachrichtigungsansicht auf die gleichen Basis-Buttonvarianten wie auf Such- und Rezeptseite vereinheitlicht (Primary/Ghost/Success/Danger).
+- UI (Benachrichtigungen): Dynamisch gerenderte Regelaktionen nutzen jetzt konsistente Klassen (`ghost-button` für Bearbeiten, `danger-button` für Löschen).
 - UI (Dashboard/Tabs): Die Statusmeldungen der Tabs werden nun im Header anstelle der Überschrift „Smart Pantry Dashboard" angezeigt.
 - UX (Tab-spezifisch): Beim Tab-Wechsel spiegelt der Header immer die jeweils aktive Statusmeldung (Einkauf, Rezepte, Lager, Benachrichtigungen).
 - Pflege: Add-on-Version auf `7.1.66` erhöht.

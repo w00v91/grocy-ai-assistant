@@ -328,8 +328,8 @@ function renderNotificationRules(rules) {
         <div class="notification-rule-meta-row"><span class="notification-rule-meta-label">Cooldown</span><span class="notification-rule-meta-value">${Number(rule.cooldown_seconds || 0)}s</span></div>
       </div>
       <div class="notification-rule-item-actions">
-        <button class="notification-action-button notification-action-button-edit" type="button" onclick="openNotificationRuleModal('${rule.id}')">Regel ändern</button>
-        <button class="notification-action-button notification-action-button-delete" type="button" onclick="deleteNotificationRule('${rule.id}')">Löschen</button>
+        <button class="ghost-button notification-action-button" type="button" onclick="openNotificationRuleModal('${rule.id}')">Regel ändern</button>
+        <button class="danger-button notification-action-button" type="button" onclick="deleteNotificationRule('${rule.id}')">Löschen</button>
       </div>
     </li>
   `).join('');
@@ -1757,7 +1757,7 @@ function renderStorageProducts() {
         </div>
         <div class="storage-item-actions">
           <button class="ghost-button storage-action-button storage-edit-button" type="button" onclick="openStorageEditModal(${actionableId})"${disabledAttr}${disabledTitle}>✏️ Bearbeiten</button>
-          <button class="storage-action-button storage-consume-button" type="button" onclick="consumeStorageProduct(${actionableId})"${disabledAttr}${disabledTitle}>✅ Verbrauchen</button>
+          <button class="success-button storage-action-button" type="button" onclick="consumeStorageProduct(${actionableId})"${disabledAttr}${disabledTitle}>✅ Verbrauchen</button>
         </div>
       </div>
     </li>
