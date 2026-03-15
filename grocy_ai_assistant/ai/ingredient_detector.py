@@ -14,7 +14,7 @@ from grocy_ai_assistant.core.text_utils import html_to_plain_text
 logger = logging.getLogger(__name__)
 
 IMAGE_PROMPT_TEMPLATE = (
-    "Erstelle ein produktbild für \"{product_name}\".\n"
+    'Erstelle ein produktbild für "{product_name}".\n'
     "Das Bild soll einen schwarzen leicht glossy hintergrund haben.\n"
     "Es soll professionell wirken und das Produkt gut in szene setzen."
 )
@@ -346,8 +346,12 @@ class IngredientDetector:
             return normalized
         return []
 
-    def detect_product_from_image(self, image_base64: str) -> Dict[str, str]:
-        min_confidence = max(1, min(100, int(self.settings.scanner_llava_min_confidence)))
+    def detect_product_from_image(
+        self, image_base64: str, *, timeout_seconds: int = 90
+    ) -> Dict[str, str]:
+        min_confidence = max(
+            1, min(100, int(self.settings.scanner_llava_min_confidence))
+        )
         prompt = (
             "Erkenne das Hauptprodukt auf dem Bild. "
             f"Antworte NUR wenn du dir zu mindestens {min_confidence} prozent sicher bist "
@@ -363,7 +367,9 @@ class IngredientDetector:
         }
 
         response = requests.post(
-            self.settings.ollama_url, json=ollama_payload, timeout=90
+            self.settings.ollama_url,
+            json=ollama_payload,
+            timeout=max(10, min(120, int(timeout_seconds))),
         )
         response.raise_for_status()
         raw_answer = response.json().get("response")
@@ -401,7 +407,9 @@ class IngredientDetector:
         if not image_base64 and not image_url:
             raise ValueError("OpenAI Images API lieferte weder b64_json noch url")
 
-        safe_name = re.sub(r"[^a-zA-Z0-9_-]+", "_", product_name).strip("_") or "produkt"
+        safe_name = (
+            re.sub(r"[^a-zA-Z0-9_-]+", "_", product_name).strip("_") or "produkt"
+        )
         file_name = f"{safe_name}_{uuid4().hex}.png"
         file_path = Path("/data/product_images") / file_name
         file_path.parent.mkdir(parents=True, exist_ok=True)
