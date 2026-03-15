@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.64
+
+- Fix (Benachrichtigungen): Fallback für `persistent_notification` ergänzt. Wenn der Core-Service `persistent_notification.create` nicht verfügbar ist, wird automatisch `notify.persistent_notification` verwendet.
+- Test: Unit-Tests für Dispatcher-Pfad (Core-Service) und Fallback-Pfad (`notify.persistent_notification`) ergänzt.
+- Pflege: Add-on-Version auf `7.1.64` erhöht.
+
 ## 7.1.63
 
 - UI (Lager-Tab): Aktions-Buttons der Produktkarten in der Desktop-Ansicht explizit an den rechten Rand der Karte ausgerichtet.
