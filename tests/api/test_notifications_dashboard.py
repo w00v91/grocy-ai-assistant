@@ -130,3 +130,62 @@ def test_notification_rule_modal_uses_dropdowns_for_events_and_devices(client):
     assert "<select id='notify-rule-devices' multiple></select>" in response.text
     assert "id='notify-rule-submit-button'" in response.text
     assert "onclick='saveNotificationRule()'" in response.text
+
+
+def test_notification_persistent_test_calls_home_assistant_service(
+    client, monkeypatch, tmp_path
+):
+    monkeypatch.setattr(
+        routes, "NOTIFICATION_STORAGE_PATH", tmp_path / "notification_dashboard.json"
+    )
+    monkeypatch.setenv("SUPERVISOR_TOKEN", "token")
+
+    called = {}
+
+    class _Response:
+        status_code = 200
+
+    def _fake_post(url, headers=None, json=None, timeout=None):
+        called["url"] = url
+        called["headers"] = headers or {}
+        called["json"] = json or {}
+        called["timeout"] = timeout
+        return _Response()
+
+    monkeypatch.setattr(routes.requests, "post", _fake_post)
+
+    response = client.post(
+        "/api/dashboard/notifications/tests/persistent",
+        headers={"Authorization": "Bearer test-api-key"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["success"] is True
+    assert called["url"].endswith("/core/api/services/persistent_notification/create")
+    assert called["json"]["title"] == "Testbenachrichtigung"
+
+
+def test_notification_persistent_test_returns_error_when_supervisor_token_missing(
+    client, monkeypatch, tmp_path
+):
+    monkeypatch.setattr(
+        routes, "NOTIFICATION_STORAGE_PATH", tmp_path / "notification_dashboard.json"
+    )
+    monkeypatch.delenv("SUPERVISOR_TOKEN", raising=False)
+
+    response = client.post(
+        "/api/dashboard/notifications/tests/persistent",
+        headers={"Authorization": "Bearer test-api-key"},
+    )
+
+    assert response.status_code == 502
+    assert "SUPERVISOR_TOKEN fehlt" in response.text
+
+    overview = client.get(
+        "/api/dashboard/notifications/overview",
+        headers={"Authorization": "Bearer test-api-key"},
+    )
+    assert overview.status_code == 200
+    payload = overview.json()
+    assert payload["history"]
+    assert payload["history"][0]["delivered"] is False

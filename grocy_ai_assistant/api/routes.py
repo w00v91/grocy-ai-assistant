@@ -1,4 +1,5 @@
 import logging
+import os
 import re
 import threading
 import time
@@ -68,6 +69,74 @@ NOTIFICATION_STORAGE_PATH = Path("/data/notification_dashboard.json")
 LLAVA_REQUEST_LOCK = threading.Lock()
 LLAVA_REQUEST_IN_FLIGHT = False
 LLAVA_REQUEST_STARTED_AT = 0.0
+
+
+def _call_homeassistant_service(
+    domain: str,
+    service: str,
+    service_data: dict,
+) -> tuple[bool, str | None, int | None]:
+    supervisor_token = (os.getenv("SUPERVISOR_TOKEN") or "").strip()
+    if not supervisor_token:
+        return False, "SUPERVISOR_TOKEN fehlt", None
+
+    supervisor_url = (os.getenv("SUPERVISOR_URL") or "http://supervisor").rstrip("/")
+    endpoint = f"{supervisor_url}/core/api/services/{domain}/{service}"
+    headers = {
+        "Authorization": f"Bearer {supervisor_token}",
+        "Content-Type": "application/json",
+    }
+
+    try:
+        response = requests.post(
+            endpoint,
+            headers=headers,
+            json=service_data,
+            timeout=10,
+        )
+    except requests.RequestException as err:
+        return False, f"Home-Assistant-Service nicht erreichbar: {err}", None
+
+    if response.status_code in {200, 201}:
+        return True, None, response.status_code
+
+    return (
+        False,
+        f"Service-Aufruf {domain}.{service} fehlgeschlagen ({response.status_code})",
+        response.status_code,
+    )
+
+
+def _send_persistent_notification_to_homeassistant(
+    *,
+    title: str,
+    message: str,
+    notification_id: str,
+) -> tuple[bool, str | None]:
+    service_data = {
+        "title": title,
+        "message": message,
+        "notification_id": notification_id,
+    }
+    delivered, error, status_code = _call_homeassistant_service(
+        "persistent_notification",
+        "create",
+        service_data,
+    )
+    if delivered:
+        return True, None
+
+    if status_code not in {404, 405}:
+        return False, error
+
+    fallback_delivered, fallback_error, _ = _call_homeassistant_service(
+        "notify",
+        "persistent_notification",
+        service_data,
+    )
+    if fallback_delivered:
+        return True, None
+    return False, fallback_error or error
 
 
 def _normalize_barcode_for_lookup(raw_barcode: str) -> str:
@@ -2262,18 +2331,32 @@ def dashboard_notification_test_persistent(
     store = _notification_store()
     user_id = _resolve_dashboard_user_id(request)
     overview = _load_notification_overview(request)
+
+    delivered, error = _send_persistent_notification_to_homeassistant(
+        title="Testbenachrichtigung",
+        message="Test als persistent_notification",
+        notification_id=f"dashboard-test:{user_id}",
+    )
     overview.history.insert(
         0,
         create_history_entry(
             event_type="shopping_due",
             title="Testbenachrichtigung",
             message="Test als persistent_notification",
-            delivered=True,
+            delivered=delivered,
             target_id="persistent_notification",
             channels=["persistent_notification"],
+            error=error or "",
         ),
     )
     store.save_overview_for_user(user_id, overview)
+
+    if not delivered:
+        raise HTTPException(
+            status_code=502,
+            detail=error or "persistent_notification konnte nicht versendet werden",
+        )
+
     return {"success": True}
 
 
