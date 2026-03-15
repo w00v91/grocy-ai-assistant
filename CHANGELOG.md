@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.68
+
+- UI (Benachrichtigungen/Swipe): Swipe-Aktionsflächen der Regelkarten im Notify-Tab vergrößert, damit Chip-Inhalt und Buttonfläche optisch konsistent wirken.
+- Pflege: Add-on-Version auf `7.1.68` erhöht.
+
 ## 7.1.67
 
 - UI (Lager-Tab): Checkbox ergänzt, um optional alle in Grocy verfügbaren Produkte zusätzlich zum aktuellen Lagerbestand zu laden.

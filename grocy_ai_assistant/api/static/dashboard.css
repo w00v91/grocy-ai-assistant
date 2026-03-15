@@ -308,6 +308,18 @@ body.modal-open {
   padding: 0;
 }
 
+.notification-rule-item .swipe-item-action {
+  width: 144px;
+}
+
+.notification-rule-item .swipe-chip {
+  min-width: 118px;
+  min-height: 36px;
+  justify-content: center;
+  padding: 0.5rem 0.8rem;
+  font-size: 0.88rem;
+}
+
 .notification-rule-item-content {
   display: grid;
   grid-template-columns: minmax(180px, 1fr) minmax(280px, 1.6fr);
