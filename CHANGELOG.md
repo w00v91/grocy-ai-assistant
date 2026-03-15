@@ -6,6 +6,7 @@ All notable changes to this project are documented in this file.
 
 - Fix (Benachrichtigungen): Fallback für `persistent_notification` ergänzt. Wenn der Core-Service `persistent_notification.create` nicht verfügbar ist, wird automatisch `notify.persistent_notification` verwendet.
 - Test: Unit-Tests für Dispatcher-Pfad (Core-Service) und Fallback-Pfad (`notify.persistent_notification`) ergänzt.
+- UI (Lager/Popup „Bestand ändern“): Zu ändernde Attribute im Bearbeiten-Dialog als eigene, klar getrennte Zeilen dargestellt.
 - Pflege: Add-on-Version auf `7.1.64` erhöht.
 
 ## 7.1.63
