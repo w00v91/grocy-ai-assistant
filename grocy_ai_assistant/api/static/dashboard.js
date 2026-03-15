@@ -122,10 +122,14 @@ let scannerInterval = null;
 let scannerLastBarcode = "";
 let scannerDetector = null;
 let scannerLastBarcodeAt = 0;
+let scannerDetectionInFlight = false;
+let scannerStableCandidate = '';
+let scannerStableCount = 0;
 let scannerLlavaInFlight = false;
 let scannerLlavaTimer = null;
 let scannerLlavaLastRequestAt = 0;
 const scannerDigitalZoomFactor = 1.35;
+const scannerStableDetectionThreshold = 2;
 const recipeState = {
   initialized: false,
   hasLoadedInitialSuggestions: false,
@@ -2347,6 +2351,32 @@ function normalizeBarcodeForLookup(barcode) {
   return digitsOnly;
 }
 
+function registerScannerCandidate(rawBarcode) {
+  const normalized = normalizeBarcodeForLookup(rawBarcode);
+  if (!normalized || normalized.length < 8) return '';
+
+  if (normalized === scannerLastBarcode) {
+    scannerStableCandidate = normalized;
+    scannerStableCount = scannerStableDetectionThreshold;
+    return '';
+  }
+
+  if (normalized === scannerStableCandidate) {
+    scannerStableCount += 1;
+  } else {
+    scannerStableCandidate = normalized;
+    scannerStableCount = 1;
+  }
+
+  if (scannerStableCount < scannerStableDetectionThreshold) {
+    return '';
+  }
+
+  scannerStableCount = 0;
+  scannerStableCandidate = '';
+  return normalized;
+}
+
 async function lookupBarcode(barcode) {
   const key = ensureApiKey();
   const status = getScannerStatusElement();
@@ -2435,8 +2465,14 @@ async function startBarcodeScanner() {
           const barcodes = await scannerDetector.detect(detectionSource);
           if (barcodes.length) {
             const value = String(barcodes[0].rawValue || '').trim();
-            if (value && value !== scannerLastBarcode) {
-              await lookupBarcode(value);
+            const stableBarcode = registerScannerCandidate(value);
+            if (stableBarcode && !scannerDetectionInFlight) {
+              scannerDetectionInFlight = true;
+              try {
+                await lookupBarcode(stableBarcode);
+              } finally {
+                scannerDetectionInFlight = false;
+              }
             }
           }
         } catch (_) {
@@ -2499,16 +2535,23 @@ async function optimizeScannerTrack(stream, status) {
   const capabilities = videoTrack.getCapabilities ? videoTrack.getCapabilities() : null;
   const constraints = {};
 
-  if (capabilities?.focusMode?.includes('manual')) {
-    constraints.focusMode = 'manual';
+  if (capabilities?.focusMode?.includes('continuous')) {
+    constraints.focusMode = 'continuous';
   } else if (capabilities?.focusMode?.includes('single-shot')) {
     constraints.focusMode = 'single-shot';
-  } else if (capabilities?.focusMode?.includes('continuous')) {
-    constraints.focusMode = 'continuous';
+  } else if (capabilities?.focusMode?.includes('manual')) {
+    constraints.focusMode = 'manual';
   }
 
-  if (capabilities?.focusDistance && typeof capabilities.focusDistance.max === 'number') {
-    constraints.focusDistance = capabilities.focusDistance.max;
+  if (
+    constraints.focusMode === 'manual'
+    && capabilities?.focusDistance
+    && typeof capabilities.focusDistance.min === 'number'
+    && typeof capabilities.focusDistance.max === 'number'
+  ) {
+    const minDistance = Number(capabilities.focusDistance.min);
+    const maxDistance = Number(capabilities.focusDistance.max);
+    constraints.focusDistance = minDistance + ((maxDistance - minDistance) * 0.35);
   }
 
   if (capabilities?.pointsOfInterest) {
@@ -2579,6 +2622,9 @@ function stopBarcodeScanner() {
   }
   scannerLlavaInFlight = false;
   scannerLlavaLastRequestAt = 0;
+  scannerDetectionInFlight = false;
+  scannerStableCandidate = '';
+  scannerStableCount = 0;
 
   if (scannerStream) {
     scannerStream.getTracks().forEach((track) => track.stop());
