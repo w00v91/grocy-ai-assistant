@@ -843,6 +843,11 @@ class GrocyClient:
                     or entry.get("best_before_date_calculated")
                     or ""
                 ),
+                "calories": str(product.get("calories") or ""),
+                "carbs": str(product.get("carbohydrates") or ""),
+                "fat": str(product.get("fat") or ""),
+                "protein": str(product.get("protein") or ""),
+                "sugar": str(product.get("sugar") or ""),
             }
             stock_id = self._safe_int(entry.get("stock_id") or entry.get("id"))
             if stock_id is not None:
@@ -894,6 +899,31 @@ class GrocyClient:
         response = requests.delete(
             f"{self.settings.grocy_base_url}/objects/stock/{int(stock_id)}",
             headers=self.headers,
+            timeout=30,
+        )
+        response.raise_for_status()
+
+    def update_product_nutrition(
+        self,
+        product_id: int,
+        calories: float | None = None,
+        carbs: float | None = None,
+        fat: float | None = None,
+        protein: float | None = None,
+        sugar: float | None = None,
+    ) -> None:
+        payload: Dict[str, Any] = {
+            "calories": calories,
+            "carbohydrates": carbs,
+            "fat": fat,
+            "protein": protein,
+            "sugar": sugar,
+        }
+
+        response = requests.put(
+            f"{self.settings.grocy_base_url}/objects/products/{int(product_id)}",
+            headers=self.headers,
+            json=payload,
             timeout=30,
         )
         response.raise_for_status()
