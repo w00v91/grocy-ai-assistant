@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.53
+
+- Scanner (Browser-Kompatibilität): Kamera-Start nutzt jetzt abgestufte `getUserMedia`-Profile (von bevorzugter Rückkamera bis zu generischem Fallback), damit Scanner in mehr Browsern/Endgeräten startet statt direkt fehlzuschlagen.
+- Scanner (Mobile Browser): Video-Element wird beim Start explizit mit `playsinline`, `autoplay` und `muted` initialisiert, um iOS-/WebKit-Verhalten robuster zu unterstützen.
+- Pflege: Add-on-Version auf `7.1.53` erhöht.
+
 ## 7.1.52
 
 - UI (Lager-Tab/Produkt-Popup): Im Bearbeiten-Popup werden aktuelle `Menge` und `MHD` zusätzlich als zwei separate Info-Zeilen angezeigt.
