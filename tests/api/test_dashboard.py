@@ -1460,6 +1460,84 @@ def test_dashboard_barcode_lookup_returns_not_found_on_off_timeout(client, monke
     }
 
 
+def test_dashboard_barcode_lookup_normalizes_ai_gtin_for_off(client, monkeypatch):
+    class FakeResponse:
+        status_code = 200
+
+        @staticmethod
+        def json():
+            return {
+                "status": 1,
+                "product": {
+                    "product_name": "Testprodukt",
+                },
+            }
+
+    def fake_requests_get(url, timeout, headers):
+        assert "4008400408400" in url
+        assert "010400840040840017" not in url
+        assert timeout == 8
+        assert headers["User-Agent"] == "grocy-ai-assistant/scan-tab"
+        return FakeResponse()
+
+    monkeypatch.setattr(routes.requests, "get", fake_requests_get)
+
+    response = client.get(
+        "/api/dashboard/barcode/010400840040840017",
+        headers={"Authorization": "Bearer test-api-key"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["barcode"] == "4008400408400"
+    assert response.json()["found"] is True
+
+
+def test_normalize_barcode_for_lookup_prefers_known_lengths():
+    assert (
+        routes._normalize_barcode_for_lookup("01 04008400408400 17") == "4008400408400"
+    )
+    assert routes._normalize_barcode_for_lookup("123456789012") == "123456789012"
+    assert routes._normalize_barcode_for_lookup("00123456789012") == "00123456789012"
+
+
+def test_dashboard_barcode_lookup_tries_upc_and_ean_variant(client, monkeypatch):
+    class FakeResponse:
+        def __init__(self, status):
+            self.status_code = 200
+            self._status = status
+
+        def json(self):
+            if self._status == 1:
+                return {
+                    "status": 1,
+                    "product": {
+                        "product_name": "Cola",
+                        "brands": "Acme",
+                    },
+                }
+            return {"status": 0}
+
+    requested_codes = []
+
+    def fake_requests_get(url, timeout, headers):
+        requested_codes.append(url.split("/product/")[1].split(".json")[0])
+        if requested_codes[-1] == "0049300436133":
+            return FakeResponse(1)
+        return FakeResponse(0)
+
+    monkeypatch.setattr(routes.requests, "get", fake_requests_get)
+
+    response = client.get(
+        "/api/dashboard/barcode/049300436133",
+        headers={"Authorization": "Bearer test-api-key"},
+    )
+
+    assert response.status_code == 200
+    assert requested_codes == ["049300436133", "0049300436133"]
+    assert response.json()["found"] is True
+    assert response.json()["barcode"] == "0049300436133"
+
+
 def test_dashboard_barcode_lookup_rejects_invalid_barcode(client):
     response = client.get(
         "/api/dashboard/barcode/abc",
@@ -1574,11 +1652,13 @@ def test_dashboard_scanner_contains_llava_controls(client):
     assert response.status_code == 200
     assert "id='llava-scan-button'" in response.text
     assert 'data-scanner-llava-fallback-seconds="5"' in response.text
+    assert 'data-scanner-llava-timeout-seconds="45"' in response.text
 
 
 def test_dashboard_scanner_llava_endpoint(client, monkeypatch):
-    def fake_detect_product_from_image(self, image_base64):
+    def fake_detect_product_from_image(self, image_base64, *, timeout_seconds=90):
         assert image_base64 == "abc123"
+        assert timeout_seconds == 45
         return {
             "product_name": "Apfelsaft",
             "brand": "Biohof",
@@ -1605,6 +1685,20 @@ def test_dashboard_scanner_llava_endpoint(client, monkeypatch):
         "hint": "1L Karton",
         "source": "ollama_llava",
     }
+
+
+def test_dashboard_scanner_llava_endpoint_returns_429_when_busy(client, monkeypatch):
+    monkeypatch.setattr(
+        routes, "_acquire_llava_request_slot", lambda timeout_seconds: False
+    )
+
+    response = client.post(
+        "/api/dashboard/scanner/llava",
+        headers={"Authorization": "Bearer test-api-key"},
+        json={"image_base64": "abc123"},
+    )
+
+    assert response.status_code == 429
 
 
 def test_recipe_suggestions_strip_html_from_grocy_and_ai_fields(client, monkeypatch):

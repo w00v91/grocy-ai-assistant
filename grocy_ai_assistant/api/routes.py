@@ -1,5 +1,7 @@
 import logging
 import re
+import threading
+import time
 from datetime import date, timedelta
 from pathlib import Path
 from urllib.parse import ParseResult, quote, unquote, urlencode, urlparse, urlunparse
@@ -62,6 +64,84 @@ templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
 bearer_auth = HTTPBearer(auto_error=False)
 
 NOTIFICATION_STORAGE_PATH = Path("/data/notification_dashboard.json")
+
+LLAVA_REQUEST_LOCK = threading.Lock()
+LLAVA_REQUEST_IN_FLIGHT = False
+LLAVA_REQUEST_STARTED_AT = 0.0
+
+
+def _normalize_barcode_for_lookup(raw_barcode: str) -> str:
+    digits_only = "".join(ch for ch in str(raw_barcode or "") if ch.isdigit())
+    if not digits_only:
+        return ""
+
+    if len(digits_only) >= 16 and digits_only.startswith("01"):
+        gtin14 = digits_only[2:16]
+        if gtin14.startswith("0"):
+            return gtin14[1:]
+        return gtin14
+
+    if len(digits_only) in (8, 12, 13, 14):
+        return digits_only
+
+    if len(digits_only) > 14:
+        return digits_only[-13:]
+
+    return digits_only
+
+
+def _build_barcode_lookup_candidates(normalized_barcode: str) -> list[str]:
+    candidates = [normalized_barcode]
+    if len(normalized_barcode) == 12:
+        candidates.append(f"0{normalized_barcode}")
+    elif len(normalized_barcode) == 13 and normalized_barcode.startswith("0"):
+        candidates.append(normalized_barcode[1:])
+
+    unique_candidates: list[str] = []
+    for candidate in candidates:
+        if candidate and candidate not in unique_candidates:
+            unique_candidates.append(candidate)
+    return unique_candidates
+
+
+def _try_openfoodfacts_lookup(
+    barcode_candidates: list[str],
+) -> tuple[str, dict[str, object]]:
+    for candidate in barcode_candidates:
+        response = requests.get(
+            f"https://world.openfoodfacts.org/api/v2/product/{candidate}.json",
+            timeout=8,
+            headers={"User-Agent": "grocy-ai-assistant/scan-tab"},
+        )
+        payload = response.json()
+        if response.status_code == 200 and int(payload.get("status", 0)) == 1:
+            product = payload.get("product") if isinstance(payload, dict) else {}
+            if isinstance(product, dict):
+                return candidate, product
+
+    return "", {}
+
+
+def _acquire_llava_request_slot(timeout_seconds: int) -> bool:
+    global LLAVA_REQUEST_IN_FLIGHT
+    global LLAVA_REQUEST_STARTED_AT
+
+    now = time.monotonic()
+    with LLAVA_REQUEST_LOCK:
+        if LLAVA_REQUEST_IN_FLIGHT:
+            elapsed = now - LLAVA_REQUEST_STARTED_AT
+            if elapsed < timeout_seconds:
+                return False
+        LLAVA_REQUEST_IN_FLIGHT = True
+        LLAVA_REQUEST_STARTED_AT = now
+        return True
+
+
+def _release_llava_request_slot() -> None:
+    global LLAVA_REQUEST_IN_FLIGHT
+
+    with LLAVA_REQUEST_LOCK:
+        LLAVA_REQUEST_IN_FLIGHT = False
 
 
 def _build_product_picture_url(raw_picture_url: str, settings: Settings) -> str:
@@ -804,48 +884,43 @@ def dashboard_barcode_lookup(
     _: None = Depends(require_auth),
     settings: Settings = Depends(get_settings),
 ):
-    normalized_barcode = "".join(ch for ch in barcode if ch.isdigit())
+    normalized_barcode = _normalize_barcode_for_lookup(barcode)
     if len(normalized_barcode) < 8:
         raise HTTPException(status_code=400, detail="Ungültiger Barcode")
 
     grocy_client = GrocyClient(settings)
+    barcode_candidates = _build_barcode_lookup_candidates(normalized_barcode)
 
     try:
-        response = requests.get(
-            f"https://world.openfoodfacts.org/api/v2/product/{normalized_barcode}.json",
-            timeout=8,
-            headers={"User-Agent": "grocy-ai-assistant/scan-tab"},
-        )
-        payload = response.json()
-        product = payload.get("product") if isinstance(payload, dict) else {}
+        off_barcode, product = _try_openfoodfacts_lookup(barcode_candidates)
+        if off_barcode:
+            return BarcodeProductResponse(
+                barcode=off_barcode,
+                found=True,
+                product_name=str(product.get("product_name") or ""),
+                brand=str(product.get("brands") or ""),
+                quantity=str(product.get("quantity") or ""),
+                ingredients_text=str(
+                    product.get("ingredients_text_de")
+                    or product.get("ingredients_text")
+                    or ""
+                ),
+                nutrition_grade=str(product.get("nutrition_grades") or "").upper(),
+            )
 
-        if response.status_code != 200 or int(payload.get("status", 0)) != 1:
-            grocy_product = grocy_client.find_product_by_barcode(normalized_barcode)
+        for barcode_candidate in barcode_candidates:
+            grocy_product = grocy_client.find_product_by_barcode(barcode_candidate)
             if grocy_product:
                 return BarcodeProductResponse(
-                    barcode=normalized_barcode,
+                    barcode=barcode_candidate,
                     found=True,
                     product_name=str(grocy_product.get("name") or ""),
                     source="Grocy",
                 )
 
-            return BarcodeProductResponse(
-                barcode=normalized_barcode,
-                found=False,
-            )
-
         return BarcodeProductResponse(
             barcode=normalized_barcode,
-            found=True,
-            product_name=str(product.get("product_name") or ""),
-            brand=str(product.get("brands") or ""),
-            quantity=str(product.get("quantity") or ""),
-            ingredients_text=str(
-                product.get("ingredients_text_de")
-                or product.get("ingredients_text")
-                or ""
-            ),
-            nutrition_grade=str(product.get("nutrition_grades") or "").upper(),
+            found=False,
         )
     except requests.RequestException as error:
         logger.warning(
@@ -853,14 +928,15 @@ def dashboard_barcode_lookup(
             normalized_barcode,
             error,
         )
-        grocy_product = grocy_client.find_product_by_barcode(normalized_barcode)
-        if grocy_product:
-            return BarcodeProductResponse(
-                barcode=normalized_barcode,
-                found=True,
-                product_name=str(grocy_product.get("name") or ""),
-                source="Grocy",
-            )
+        for barcode_candidate in barcode_candidates:
+            grocy_product = grocy_client.find_product_by_barcode(barcode_candidate)
+            if grocy_product:
+                return BarcodeProductResponse(
+                    barcode=barcode_candidate,
+                    found=True,
+                    product_name=str(grocy_product.get("name") or ""),
+                    source="Grocy",
+                )
         return BarcodeProductResponse(
             barcode=normalized_barcode,
             found=False,
@@ -892,9 +968,20 @@ def dashboard_scanner_llava(
     if not image_base64:
         raise HTTPException(status_code=400, detail="Bilddaten fehlen")
 
+    llava_timeout_seconds = max(
+        10, min(120, int(settings.scanner_llava_timeout_seconds))
+    )
+    if not _acquire_llava_request_slot(llava_timeout_seconds):
+        raise HTTPException(
+            status_code=429,
+            detail="LLaVA-Erkennung läuft bereits. Bitte kurz warten.",
+        )
+
     detector = IngredientDetector(settings)
     try:
-        detection = detector.detect_product_from_image(image_base64)
+        detection = detector.detect_product_from_image(
+            image_base64, timeout_seconds=llava_timeout_seconds
+        )
         if not any(detection.values()):
             return ScannerLlavaResponse(success=False)
 
@@ -915,6 +1002,8 @@ def dashboard_scanner_llava(
         raise HTTPException(
             status_code=500, detail="LLaVA-Erkennung konnte nicht durchgeführt werden"
         ) from error
+    finally:
+        _release_llava_request_slot()
 
 
 @router.get("/api/dashboard/product-picture")
@@ -2212,6 +2301,7 @@ def _render_dashboard(settings: Settings, request: Request):
             "api_base_path": api_request_base_path,
             "static_base_path": static_base_path,
             "scanner_llava_fallback_seconds": settings.scanner_barcode_fallback_seconds,
+            "scanner_llava_timeout_seconds": settings.scanner_llava_timeout_seconds,
             "ha_user_id": _resolve_dashboard_user_id(request),
         },
     )

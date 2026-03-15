@@ -2,6 +2,22 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.52
+
+- Fix (Scanner/LLaVA): LLaVA-Requests werden jetzt mit konfigurierbarem Timeout (`scanner_llava_timeout_seconds`) verarbeitet und frontendseitig nach Ablauf sauber abgebrochen, statt unbegrenzt zu warten.
+- Stabilität (Scanner/LLaVA): Server blockiert parallele LLaVA-Anfragen während ein Lauf aktiv ist (`429` bei gleichzeitigem Request), um Mehrfachabfragen zu vermeiden.
+- Stabilität (Scanner/LLaVA): Auto-Fallback im Frontend respektiert zusätzlich ein Cooldown, damit bei ausbleibendem Barcode nicht dauerhaft neue KI-Calls gestartet werden.
+- Fix (Barcode/OpenFoodFacts): Für 12-stellige UPC-Codes wird zusätzlich die 13-stellige Variante mit führender `0` geprüft (und umgekehrt), um Treffer bei OpenFoodFacts/Grocy zu erhöhen.
+- Test: Dashboard-API-Tests für Barcode-Varianten und LLaVA-Timeout-Weitergabe ergänzt.
+- Pflege: Add-on-Version auf `7.1.52` erhöht.
+
+## 7.1.51
+
+- Fix (Barcode-Scanner/OpenFoodFacts): Sehr lange KI-Barcode-Strings (z. B. GS1 mit führendem `01` + Zusatzdaten) werden jetzt vor dem Lookup auf gültige GTIN/EAN-Längen normalisiert, damit OpenFoodFacts die korrekte Produktnummer erhält.
+- Scanner (Kamera): Fokus-Optimierung erweitert – bevorzugt `focusMode=manual` (Fallback auf `single-shot`/`continuous`), setzt wenn verfügbar den Fokuspunkt in die Bildmitte und nutzt bei unterstützten Geräten kurze Fokusdistanz.
+- Test: API-Tests zur Barcode-Normalisierung für lange Scannerwerte ergänzt.
+- Pflege: Add-on-Version auf `7.1.51` erhöht.
+
 ## 7.1.50
 
 - UI (Lager-Tab): Aktions-Buttons der Produktkarten in der Desktop-Ansicht explizit an den rechten Rand der Karte ausgerichtet.
