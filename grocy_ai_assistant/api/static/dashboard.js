@@ -2400,17 +2400,16 @@ async function startBarcodeScanner() {
   try {
     stopBarcodeScanner();
 
-    scannerStream = await navigator.mediaDevices.getUserMedia({
-      video: {
-        facingMode: { ideal: 'environment' },
-        width: { ideal: 1920 },
-        height: { ideal: 1080 },
-      },
-      audio: false,
-    });
+    scannerStream = await getCompatibleScannerStream();
 
     await optimizeScannerTrack(scannerStream, status);
 
+    video.setAttribute('playsinline', 'true');
+    video.setAttribute('autoplay', 'true');
+    video.setAttribute('muted', 'true');
+    video.playsInline = true;
+    video.autoplay = true;
+    video.muted = true;
     video.srcObject = scannerStream;
     await video.play();
     video.classList.remove('hidden');
@@ -2448,6 +2447,49 @@ async function startBarcodeScanner() {
   } catch (_) {
     status.textContent = 'Kamera konnte nicht gestartet werden. Bitte Berechtigung prüfen.';
   }
+}
+
+async function getCompatibleScannerStream() {
+  const streamProfiles = [
+    {
+      video: {
+        facingMode: { ideal: 'environment' },
+        width: { ideal: 1920 },
+        height: { ideal: 1080 },
+      },
+      audio: false,
+    },
+    {
+      video: {
+        facingMode: 'environment',
+        width: { ideal: 1280 },
+        height: { ideal: 720 },
+      },
+      audio: false,
+    },
+    {
+      video: {
+        width: { ideal: 1280 },
+        height: { ideal: 720 },
+      },
+      audio: false,
+    },
+    {
+      video: true,
+      audio: false,
+    },
+  ];
+
+  let lastError = null;
+  for (const constraints of streamProfiles) {
+    try {
+      return await navigator.mediaDevices.getUserMedia(constraints);
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw lastError || new Error('Kamera konnte nicht initialisiert werden.');
 }
 
 async function optimizeScannerTrack(stream, status) {
