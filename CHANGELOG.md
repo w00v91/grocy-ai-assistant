@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.52
+
+- UI (Lager-Tab/Produkt-Popup): Im Bearbeiten-Popup werden aktuelle `Menge` und `MHD` zusätzlich als zwei separate Info-Zeilen angezeigt.
+- Pflege: Add-on-Version auf `7.1.52` erhöht.
+
 ## 7.1.51
 
 - Fix (Barcode-Scanner/OpenFoodFacts): Sehr lange KI-Barcode-Strings (z. B. GS1 mit führendem `01` + Zusatzdaten) werden jetzt vor dem Lookup auf gültige GTIN/EAN-Längen normalisiert, damit OpenFoodFacts die korrekte Produktnummer erhält.
