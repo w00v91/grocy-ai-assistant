@@ -4,6 +4,7 @@ All notable changes to this project are documented in this file.
 
 ## 7.1.68
 
+- UI (Benachrichtigungen/Swipe): Swipe-Aktionsflächen der Regelkarten im Notify-Tab vergrößert, damit Chip-Inhalt und Buttonfläche optisch konsistent wirken.
 - Fix (Benachrichtigungen/Dashboard): Der Endpoint `POST /api/dashboard/notifications/tests/persistent` sendet die Testnachricht jetzt wirklich an Home Assistant (`persistent_notification.create`) statt nur einen Verlaufseintrag zu speichern.
 - Fix (Benachrichtigungen/Dashboard): Fallback auf `notify.persistent_notification` ergänzt, falls `persistent_notification.create` im Zielsystem nicht verfügbar ist.
 - Test: API-Tests für erfolgreichen Service-Call und Fehlerfall ohne `SUPERVISOR_TOKEN` ergänzt.
