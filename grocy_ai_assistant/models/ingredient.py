@@ -88,6 +88,11 @@ class StockProductResponse(BaseModel):
     location_name: str = ""
     amount: str = ""
     best_before_date: str = ""
+    calories: str = ""
+    carbs: str = ""
+    fat: str = ""
+    protein: str = ""
+    sugar: str = ""
 
 
 class StockProductConsumeRequest(BaseModel):
@@ -97,6 +102,11 @@ class StockProductConsumeRequest(BaseModel):
 class StockProductUpdateRequest(BaseModel):
     amount: float = Field(..., ge=0)
     best_before_date: str = ""
+    calories: float | None = Field(default=None, ge=0)
+    carbs: float | None = Field(default=None, ge=0)
+    fat: float | None = Field(default=None, ge=0)
+    protein: float | None = Field(default=None, ge=0)
+    sugar: float | None = Field(default=None, ge=0)
 
 
 class LocationResponse(BaseModel):

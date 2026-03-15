@@ -473,18 +473,30 @@ def test_get_stock_products_resolves_product_and_location_names(monkeypatch):
         {
             "id": 1,
             "name": "Apfel",
+            "picture_url": "",
             "location_id": 4,
             "location_name": "Obstkorb",
             "amount": "1",
             "best_before_date": "2026-01-02",
+            "calories": "",
+            "carbs": "",
+            "fat": "",
+            "protein": "",
+            "sugar": "",
         },
         {
             "id": 2,
             "name": "Milch",
+            "picture_url": "",
             "location_id": 1,
             "location_name": "Kühlschrank",
             "amount": "3",
             "best_before_date": "2026-01-03",
+            "calories": "",
+            "carbs": "",
+            "fat": "",
+            "protein": "",
+            "sugar": "",
         },
     ]
 
@@ -610,10 +622,16 @@ def test_get_stock_products_filters_by_locations(monkeypatch):
         {
             "id": 2,
             "name": "Milch",
+            "picture_url": "",
             "location_id": 1,
             "location_name": "Kühlschrank",
             "amount": "3",
             "best_before_date": "2026-01-03",
+            "calories": "",
+            "carbs": "",
+            "fat": "",
+            "protein": "",
+            "sugar": "",
         },
     ]
 
@@ -667,10 +685,16 @@ def test_get_stock_products_uses_stock_location_for_filter_and_display(monkeypat
         {
             "id": 2,
             "name": "Milch",
+            "picture_url": "",
             "location_id": 4,
             "location_name": "Vorrat",
             "amount": "1",
             "best_before_date": "2026-01-10",
+            "calories": "",
+            "carbs": "",
+            "fat": "",
+            "protein": "",
+            "sugar": "",
         }
     ]
 
@@ -1012,6 +1036,59 @@ def test_get_recipe_ingredients_includes_unit_attribution(monkeypatch):
     assert client.get_recipe_ingredients(10) == ["2 Stk. Ei", "150 Gramm Mehl"]
 
 
+def test_get_stock_products_includes_nutrition_values(monkeypatch):
+    def fake_get(url, *args, **kwargs):
+        if url.endswith("/stock"):
+            return FakeResponse(
+                [
+                    {
+                        "id": 77,
+                        "product_id": 10,
+                        "location_id": 1,
+                        "amount": 2,
+                        "best_before_date": "2026-01-01",
+                    }
+                ]
+            )
+        if url.endswith("/objects/products"):
+            return FakeResponse(
+                [
+                    {
+                        "id": 10,
+                        "name": "Milch",
+                        "calories": 120,
+                        "carbohydrates": 4.5,
+                        "fat": 3.2,
+                        "protein": 8,
+                        "sugar": 4,
+                    }
+                ]
+            )
+        if url.endswith("/objects/locations"):
+            return FakeResponse([{"id": 1, "name": "Keller"}])
+        raise AssertionError(f"Unexpected url: {url}")
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.services.grocy_client.requests.get", fake_get
+    )
+
+    client = GrocyClient(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+        )
+    )
+
+    result = client.get_stock_products()
+    assert result[0]["calories"] == "120"
+    assert result[0]["carbs"] == "4.5"
+    assert result[0]["fat"] == "3.2"
+    assert result[0]["protein"] == "8"
+    assert result[0]["sugar"] == "4"
+
+
 def test_get_stock_products_returns_stock_id(monkeypatch):
     def fake_get(url, *args, **kwargs):
         if url.endswith("/stock"):
@@ -1227,6 +1304,46 @@ def test_delete_stock_entry_deletes_objects_stock(monkeypatch):
     client.delete_stock_entry(stock_id=77)
 
     assert called["url"].endswith("/objects/stock/77")
+
+
+def test_update_product_nutrition_updates_product_object(monkeypatch):
+    captured = {}
+
+    def fake_put(url, headers, json, timeout):
+        captured["url"] = url
+        captured["json"] = json
+        return FakeResponse({"ok": True})
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.services.grocy_client.requests.put", fake_put
+    )
+
+    client = GrocyClient(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+        )
+    )
+
+    client.update_product_nutrition(
+        product_id=42,
+        calories=123,
+        carbs=4.5,
+        fat=6,
+        protein=7,
+        sugar=8,
+    )
+
+    assert captured["url"].endswith("/objects/products/42")
+    assert captured["json"] == {
+        "calories": 123,
+        "carbohydrates": 4.5,
+        "fat": 6,
+        "protein": 7,
+        "sugar": 8,
+    }
 
 
 def test_clear_product_picture_sets_picture_file_name_to_none(monkeypatch):
