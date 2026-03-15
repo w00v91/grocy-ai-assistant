@@ -191,6 +191,7 @@ def _build_dashboard_picture_proxy_url(
 def _apply_picture_size(url: str, size: str) -> str:
     normalized_size = str(size or "thumb").strip().lower()
     dimensions_by_size = {
+        "mobile": (64, 64),
         "thumb": (96, 96),
         "full": (720, 720),
     }
@@ -1057,7 +1058,11 @@ def dashboard_product_picture(
     if image_cache:
         cached_content, cached_media_type = image_cache.get_cached_image(sized_src)
         if cached_content is not None:
-            return Response(content=cached_content, media_type=cached_media_type)
+            return Response(
+                content=cached_content,
+                media_type=cached_media_type,
+                headers={"Cache-Control": "public, max-age=86400"},
+            )
 
     parsed_src = urlparse(sized_src)
     candidate_urls = [sized_src]
@@ -1136,7 +1141,11 @@ def dashboard_product_picture(
         raise HTTPException(status_code=404, detail="Bild nicht gefunden")
 
     content_type = response.headers.get("Content-Type", "image/jpeg")
-    return Response(content=response.content, media_type=content_type)
+    return Response(
+        content=response.content,
+        media_type=content_type,
+        headers={"Cache-Control": "public, max-age=86400"},
+    )
 
 
 @router.post("/api/dashboard/product-picture-cache/refresh")

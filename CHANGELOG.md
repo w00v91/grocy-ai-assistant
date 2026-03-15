@@ -4,6 +4,10 @@ All notable changes to this project are documented in this file.
 
 ## 7.1.60
 
+- Performance (Thumbnails/Mobil): Dashboard-Bildproxy unterstützt nun die Größe `mobile` (64x64), wodurch auf kleinen Viewports kleinere Produktbilder geladen werden.
+- Performance (Caching): `GET /api/dashboard/product-picture` liefert jetzt `Cache-Control: public, max-age=86400`, damit Mobilbrowser Thumbnails aggressiver zwischenspeichern.
+- UI (Dashboard): Thumbnail-Aufrufe verwenden auf mobilen Viewports automatisch die neue Proxy-Größe `mobile` statt `thumb`.
+- Test: API-Test für `size=mobile` und Cache-Header ergänzt.
 - Fix (Benachrichtigungen): Rule-Engine erzeugt jetzt auch dann `persistent_notification`-Nachrichten, wenn kein mobiles Notify-Target vorhanden ist.
 - Fix (Benachrichtigungen): Regeln mit gemischten Kanälen liefern mobile Push und persistente Benachrichtigung als getrennte Dispatch-Nachrichten aus.
 - Test: Unit-Tests für Persistent-Only- und Mixed-Channel-Regeln ergänzt.

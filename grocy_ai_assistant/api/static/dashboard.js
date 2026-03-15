@@ -608,7 +608,10 @@ function toImageSource(url, options = {}) {
   if (!url) return 'https://placehold.co/80x80?text=Kein+Bild';
 
   const requestedSize = String(options?.size || '').trim().toLowerCase();
-  const normalizedSize = requestedSize === 'full' ? 'full' : 'thumb';
+  const isMobileViewport = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(max-width: 768px)').matches;
+  const normalizedSize = requestedSize === 'full'
+    ? 'full'
+    : (requestedSize === 'mobile' || isMobileViewport ? 'mobile' : 'thumb');
 
   if (url.startsWith('data:')) return url;
   if (url.startsWith('http://') || url.startsWith('https://')) {

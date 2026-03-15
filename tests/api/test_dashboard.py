@@ -347,6 +347,42 @@ def test_product_picture_proxy_fetches_with_grocy_api_key(client, monkeypatch):
     assert captured["headers"]["GROCY-API-KEY"] == "test-grocy-key"
 
 
+def test_product_picture_proxy_supports_mobile_size(client, monkeypatch):
+    class FakeResponse:
+        content = b"img"
+        headers = {"Content-Type": "image/png"}
+
+        def raise_for_status(self):
+            return None
+
+    captured = {}
+
+    def fake_requests_get(url, headers, timeout):
+        captured["url"] = url
+        captured["headers"] = headers
+        captured["timeout"] = timeout
+        return FakeResponse()
+
+    monkeypatch.setattr(routes.requests, "get", fake_requests_get)
+    client.app.state.product_image_cache = None
+    response = client.get(
+        "/api/dashboard/product-picture",
+        params={
+            "src": "http://homeassistant.local:9192/files/productpictures/abc123.jpg",
+            "size": "mobile",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.content == b"img"
+    assert response.headers["cache-control"] == "public, max-age=86400"
+    assert (
+        captured["url"]
+        == "http://homeassistant.local:9192/files/productpictures/abc123.jpg?best_fit_width=64&best_fit_height=64"
+    )
+    assert captured["headers"]["GROCY-API-KEY"] == "test-grocy-key"
+
+
 def test_product_picture_proxy_uses_files_fallback_on_404(client, monkeypatch):
     class NotFoundResponse:
         status_code = 404
