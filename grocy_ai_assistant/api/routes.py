@@ -76,35 +76,66 @@ def _call_homeassistant_service(
     service: str,
     service_data: dict,
 ) -> tuple[bool, str | None, int | None]:
-    supervisor_token = (os.getenv("SUPERVISOR_TOKEN") or "").strip()
-    if not supervisor_token:
-        return False, "SUPERVISOR_TOKEN fehlt", None
-
     supervisor_url = (os.getenv("SUPERVISOR_URL") or "http://supervisor").rstrip("/")
     endpoint = f"{supervisor_url}/core/api/services/{domain}/{service}"
-    headers = {
-        "Authorization": f"Bearer {supervisor_token}",
-        "Content-Type": "application/json",
-    }
+    token_candidates = [
+        (os.getenv("SUPERVISOR_TOKEN") or "").strip(),
+        (os.getenv("HASSIO_TOKEN") or "").strip(),
+    ]
+    unique_tokens: list[str] = []
+    for token_candidate in token_candidates:
+        if token_candidate and token_candidate not in unique_tokens:
+            unique_tokens.append(token_candidate)
 
-    try:
-        response = requests.post(
-            endpoint,
-            headers=headers,
-            json=service_data,
-            timeout=10,
+    header_candidates: list[dict[str, str]] = []
+    for token in unique_tokens:
+        header_candidates.append(
+            {
+                "Authorization": f"Bearer {token}",
+                "Content-Type": "application/json",
+            }
         )
-    except requests.RequestException as err:
-        return False, f"Home-Assistant-Service nicht erreichbar: {err}", None
+        header_candidates.append(
+            {
+                "X-Supervisor-Token": token,
+                "Content-Type": "application/json",
+            }
+        )
 
-    if response.status_code in {200, 201}:
-        return True, None, response.status_code
+    header_candidates.append({"Content-Type": "application/json"})
 
-    return (
-        False,
-        f"Service-Aufruf {domain}.{service} fehlgeschlagen ({response.status_code})",
-        response.status_code,
-    )
+    last_status_code: int | None = None
+    errors: list[str] = []
+    for headers in header_candidates:
+        try:
+            response = requests.post(
+                endpoint,
+                headers=headers,
+                json=service_data,
+                timeout=10,
+            )
+        except requests.RequestException as err:
+            errors.append(f"Home-Assistant-Service nicht erreichbar: {err}")
+            continue
+
+        last_status_code = response.status_code
+        if response.status_code in {200, 201}:
+            return True, None, response.status_code
+
+        response_excerpt = (response.text or "").strip()
+        if len(response_excerpt) > 180:
+            response_excerpt = f"{response_excerpt[:180]}…"
+        error_text = (
+            f"Service-Aufruf {domain}.{service} fehlgeschlagen ({response.status_code})"
+        )
+        if response_excerpt:
+            error_text = f"{error_text}: {response_excerpt}"
+        errors.append(error_text)
+
+    if not errors:
+        errors.append(f"Service-Aufruf {domain}.{service} fehlgeschlagen")
+
+    return False, " | ".join(errors), last_status_code
 
 
 def _send_persistent_notification_to_homeassistant(

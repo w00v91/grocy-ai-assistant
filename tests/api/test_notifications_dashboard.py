@@ -172,6 +172,16 @@ def test_notification_persistent_test_returns_error_when_supervisor_token_missin
         routes, "NOTIFICATION_STORAGE_PATH", tmp_path / "notification_dashboard.json"
     )
     monkeypatch.delenv("SUPERVISOR_TOKEN", raising=False)
+    monkeypatch.delenv("HASSIO_TOKEN", raising=False)
+
+    class _Response:
+        status_code = 401
+        text = "Unauthorized"
+
+    def _fake_post(url, headers=None, json=None, timeout=None):
+        return _Response()
+
+    monkeypatch.setattr(routes.requests, "post", _fake_post)
 
     response = client.post(
         "/api/dashboard/notifications/tests/persistent",
@@ -179,7 +189,7 @@ def test_notification_persistent_test_returns_error_when_supervisor_token_missin
     )
 
     assert response.status_code == 502
-    assert "SUPERVISOR_TOKEN fehlt" in response.text
+    assert "fehlgeschlagen (401)" in response.text
 
     overview = client.get(
         "/api/dashboard/notifications/overview",
@@ -189,3 +199,33 @@ def test_notification_persistent_test_returns_error_when_supervisor_token_missin
     payload = overview.json()
     assert payload["history"]
     assert payload["history"][0]["delivered"] is False
+
+
+def test_notification_persistent_test_uses_hassio_token_when_supervisor_missing(
+    client, monkeypatch, tmp_path
+):
+    monkeypatch.setattr(
+        routes, "NOTIFICATION_STORAGE_PATH", tmp_path / "notification_dashboard.json"
+    )
+    monkeypatch.delenv("SUPERVISOR_TOKEN", raising=False)
+    monkeypatch.setenv("HASSIO_TOKEN", "hassio-token")
+
+    called = {}
+
+    class _Response:
+        status_code = 200
+        text = ""
+
+    def _fake_post(url, headers=None, json=None, timeout=None):
+        called["headers"] = headers or {}
+        return _Response()
+
+    monkeypatch.setattr(routes.requests, "post", _fake_post)
+
+    response = client.post(
+        "/api/dashboard/notifications/tests/persistent",
+        headers={"Authorization": "Bearer test-api-key"},
+    )
+
+    assert response.status_code == 200
+    assert called["headers"]["Authorization"] == "Bearer hassio-token"
