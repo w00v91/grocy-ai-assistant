@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.61
+
+- Add-on (Ingress): Externes Port-Mapping (`8000/tcp`) aus `config.json` entfernt, damit der Zugriff standardmäßig ausschließlich über Home-Assistant-Ingress erfolgt.
+- Pflege: Add-on-Version auf `7.1.61` erhöht.
+
 ## 7.1.60
 
 - Performance (Thumbnails/Mobil): Dashboard-Bildproxy unterstützt nun die Größe `mobile` (64x64), wodurch auf kleinen Viewports kleinere Produktbilder geladen werden.
