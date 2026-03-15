@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.52
+
+- UI (Lager/Popup „Bestand ändern“): Bearbeiten-Dialog um Nährwertfelder erweitert (Kalorien, Kohlenhydrate, Fett, Eiweiß, Zucker), damit diese direkt im Lager-Tab angepasst werden können.
+- API/Lager: `PUT /api/dashboard/stock-products/{stock_id}` akzeptiert jetzt optional Nährwerte und aktualisiert zusätzlich die Produkt-Nährwerte in Grocy.
+- Service: `GrocyClient.get_stock_products(...)` liefert Nährwerte für den Lager-Tab mit; `GrocyClient.update_product_nutrition(...)` ergänzt.
+- Test: API- und Unit-Tests für Nährwertanzeige/-Update ergänzt.
+- Pflege: Add-on-Version auf `7.1.52` erhöht.
+
 ## 7.1.51
 
 - Fix (Barcode-Scanner/OpenFoodFacts): Sehr lange KI-Barcode-Strings (z. B. GS1 mit führendem `01` + Zusatzdaten) werden jetzt vor dem Lookup auf gültige GTIN/EAN-Längen normalisiert, damit OpenFoodFacts die korrekte Produktnummer erhält.

@@ -36,6 +36,14 @@ function getActionableStorageId(item) {
   return 0;
 }
 
+function normalizeNutritionInputValue(value) {
+  const normalized = String(value ?? '').trim().replace(',', '.');
+  if (!normalized) return null;
+  const parsed = Number(normalized);
+  if (!Number.isFinite(parsed) || parsed < 0) return Number.NaN;
+  return parsed;
+}
+
 const NOTIFICATION_EVENT_LABELS = {
   item_added: 'Produkt hinzugefügt',
   item_removed: 'Produkt entfernt',
@@ -1759,6 +1767,11 @@ function openStorageEditModal(stockId) {
   document.getElementById('storage-edit-location').textContent = stockItem.location_name || '-';
   document.getElementById('storage-edit-amount').value = String(stockItem.amount || '0').replace(',', '.');
   document.getElementById('storage-edit-best-before').value = stockItem.best_before_date || '';
+  document.getElementById('storage-edit-calories').value = String(stockItem.calories || '').replace(',', '.');
+  document.getElementById('storage-edit-carbs').value = String(stockItem.carbs || '').replace(',', '.');
+  document.getElementById('storage-edit-fat').value = String(stockItem.fat || '').replace(',', '.');
+  document.getElementById('storage-edit-protein').value = String(stockItem.protein || '').replace(',', '.');
+  document.getElementById('storage-edit-sugar').value = String(stockItem.sugar || '').replace(',', '.');
 
   const picture = document.getElementById('storage-edit-picture');
   if (picture) {
@@ -1784,6 +1797,11 @@ function closeStorageEditModal() {
     picture.removeAttribute('src');
     picture.classList.add('hidden');
   }
+  document.getElementById('storage-edit-calories').value = '';
+  document.getElementById('storage-edit-carbs').value = '';
+  document.getElementById('storage-edit-fat').value = '';
+  document.getElementById('storage-edit-protein').value = '';
+  document.getElementById('storage-edit-sugar').value = '';
   document.getElementById('storage-edit-modal').classList.add('hidden');
   syncModalScrollLock();
 }
@@ -1793,9 +1811,18 @@ async function saveStorageEditModal() {
   const status = getStorageStatusElement();
   const amount = Number(document.getElementById('storage-edit-amount').value);
   const bestBeforeDate = document.getElementById('storage-edit-best-before').value || '';
+  const calories = normalizeNutritionInputValue(document.getElementById('storage-edit-calories').value);
+  const carbs = normalizeNutritionInputValue(document.getElementById('storage-edit-carbs').value);
+  const fat = normalizeNutritionInputValue(document.getElementById('storage-edit-fat').value);
+  const protein = normalizeNutritionInputValue(document.getElementById('storage-edit-protein').value);
+  const sugar = normalizeNutritionInputValue(document.getElementById('storage-edit-sugar').value);
 
   if (!Number.isFinite(amount) || amount < 0) {
     status.textContent = 'Bitte eine gültige Menge eingeben.';
+    return;
+  }
+  if ([calories, carbs, fat, protein, sugar].some((value) => Number.isNaN(value))) {
+    status.textContent = 'Bitte gültige Nährwerte (>= 0) eingeben.';
     return;
   }
 
@@ -1803,7 +1830,15 @@ async function saveStorageEditModal() {
     const res = await fetch(buildApiUrl(`/api/dashboard/stock-products/${encodeURIComponent(storageEditingTargetId)}`), {
       method: 'PUT',
       headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
-      body: JSON.stringify({ amount, best_before_date: bestBeforeDate }),
+      body: JSON.stringify({
+        amount,
+        best_before_date: bestBeforeDate,
+        calories,
+        carbs,
+        fat,
+        protein,
+        sugar,
+      }),
     });
     const payload = await parseJsonSafe(res);
     if (!res.ok) throw new Error(getErrorMessage(payload, 'Bestand konnte nicht aktualisiert werden.'));
