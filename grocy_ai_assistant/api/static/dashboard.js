@@ -2549,14 +2549,43 @@ async function lookupBarcode(barcode) {
   }
 }
 
+function hasCompatibleGetUserMedia() {
+  return Boolean(
+    navigator?.mediaDevices?.getUserMedia
+    || navigator?.getUserMedia
+    || navigator?.webkitGetUserMedia
+    || navigator?.mozGetUserMedia
+    || navigator?.msGetUserMedia,
+  );
+}
+
+async function requestCompatibleUserMedia(constraints) {
+  if (navigator?.mediaDevices?.getUserMedia) {
+    return navigator.mediaDevices.getUserMedia(constraints);
+  }
+
+  const legacyGetUserMedia = navigator?.getUserMedia
+    || navigator?.webkitGetUserMedia
+    || navigator?.mozGetUserMedia
+    || navigator?.msGetUserMedia;
+
+  if (!legacyGetUserMedia) {
+    throw new Error('getUserMedia wird nicht unterstützt');
+  }
+
+  return new Promise((resolve, reject) => {
+    legacyGetUserMedia.call(navigator, constraints, resolve, reject);
+  });
+}
+
 async function startBarcodeScanner() {
   const status = getScannerStatusElement();
   const video = document.getElementById('scanner-video');
   const canvas = document.getElementById('scanner-canvas');
   const startButton = document.getElementById('start-scan-button');
   const stopButton = document.getElementById('stop-scan-button');
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    status.textContent = 'Kamera wird von diesem Browser nicht unterstützt.';
+  if (!hasCompatibleGetUserMedia()) {
+    status.textContent = 'Kamera wird von diesem Browser/WebView nicht unterstützt.';
     return;
   }
 
@@ -2632,8 +2661,17 @@ async function startBarcodeScanner() {
         }
       }
     }, 900);
-  } catch (_) {
-    status.textContent = 'Kamera konnte nicht gestartet werden. Bitte Berechtigung prüfen.';
+  } catch (error) {
+    const errorName = String(error?.name || '');
+    if (!window.isSecureContext) {
+      status.textContent = 'Kamerazugriff benötigt eine sichere Verbindung (HTTPS/Home-Assistant-App).';
+    } else if (errorName === 'NotAllowedError' || errorName === 'SecurityError') {
+      status.textContent = 'Kamera-Berechtigung wurde verweigert. Bitte Browser/App-Berechtigungen prüfen.';
+    } else if (errorName === 'NotFoundError' || errorName === 'DevicesNotFoundError') {
+      status.textContent = 'Keine Kamera gefunden.';
+    } else {
+      status.textContent = 'Kamera konnte nicht gestartet werden. Bitte Berechtigung prüfen.';
+    }
   }
 }
 
@@ -2684,7 +2722,7 @@ async function getCompatibleScannerStream() {
   let lastError = null;
   for (const constraints of streamProfiles) {
     try {
-      return await navigator.mediaDevices.getUserMedia(constraints);
+      return await requestCompatibleUserMedia(constraints);
     } catch (error) {
       lastError = error;
     }
