@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.66
+
+- UI (Button-Styles): Aktionsbuttons in Lager- und Benachrichtigungsansicht auf die gleichen Basis-Buttonvarianten wie auf Such- und Rezeptseite vereinheitlicht (Primary/Ghost/Success/Danger).
+- UI (Benachrichtigungen): Dynamisch gerenderte Regelaktionen nutzen jetzt konsistente Klassen (`ghost-button` für Bearbeiten, `danger-button` für Löschen).
+- Pflege: Add-on-Version auf `7.1.66` erhöht.
+
 ## 7.1.65
 
 - Architektur/Codepflege: Doppelte Implementierung von `_normalize_barcode_for_lookup` in `api/routes.py` entfernt, um widersprüchliche Wartungspfade zu vermeiden.
