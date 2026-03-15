@@ -291,7 +291,7 @@ def test_dashboard_search_variants_includes_ai_suggestions_not_in_grocy(
     ]
 
 
-def test_dashboard_search_variants_includes_ai_suggestions_not_in_grocy(
+def test_dashboard_search_variants_without_include_ai_returns_grocy_only(
     client, monkeypatch
 ):
     class FakeDetector:
@@ -321,9 +321,8 @@ def test_dashboard_search_variants_includes_ai_suggestions_not_in_grocy(
 
     assert response.status_code == 200
     assert response.json() == [
+        {"id": None, "name": "hafer", "picture_url": "", "source": "input"},
         {"id": 1, "name": "Haferflocken", "picture_url": "", "source": "grocy"},
-        {"id": None, "name": "Haferdrink", "picture_url": "", "source": "ai"},
-        {"id": None, "name": "Haferjoghurt", "picture_url": "", "source": "ai"},
     ]
 
 

@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.65
+
+- Architektur/Codepflege: Doppelte Implementierung von `_normalize_barcode_for_lookup` in `api/routes.py` entfernt, um widersprüchliche Wartungspfade zu vermeiden.
+- Testqualität: Doppelten API-Testfall für `search-variants` bereinigt und Erwartungswerte an das tatsächliche Verhalten ohne `include_ai=true` angepasst (nur Input+Grocy statt KI-Vorschläge).
+- Dokumentation: `README.md` inhaltlich aktualisiert (aktueller Versionsstand, klare API-/Architektur-Hinweise, konsolidierte Entwicklungsbefehle).
+- Pflege: Add-on-Version auf `7.1.65` erhöht.
+
 ## 7.1.64
 
 - Fix (Benachrichtigungen): Fallback für `persistent_notification` ergänzt. Wenn der Core-Service `persistent_notification.create` nicht verfügbar ist, wird automatisch `notify.persistent_notification` verwendet.

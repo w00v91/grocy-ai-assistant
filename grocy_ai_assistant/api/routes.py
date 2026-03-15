@@ -144,26 +144,6 @@ def _release_llava_request_slot() -> None:
         LLAVA_REQUEST_IN_FLIGHT = False
 
 
-def _normalize_barcode_for_lookup(raw_barcode: str) -> str:
-    digits_only = "".join(ch for ch in str(raw_barcode or "") if ch.isdigit())
-    if not digits_only:
-        return ""
-
-    if len(digits_only) >= 16 and digits_only.startswith("01"):
-        gtin14 = digits_only[2:16]
-        if gtin14.startswith("0"):
-            return gtin14[1:]
-        return gtin14
-
-    if len(digits_only) in (8, 12, 13, 14):
-        return digits_only
-
-    if len(digits_only) > 14:
-        return digits_only[-13:]
-
-    return digits_only
-
-
 def _build_product_picture_url(raw_picture_url: str, settings: Settings) -> str:
     rewritten = build_product_picture_url(raw_picture_url, settings)
     if rewritten and rewritten != (raw_picture_url or ""):

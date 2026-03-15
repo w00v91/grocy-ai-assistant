@@ -63,3 +63,10 @@ Datei: `tests/architecture/test_layering.py`
 3. Externe Calls als Adapter in `services/` kapseln.
 4. Für KI-Features ausschließlich `ai/` erweitern.
 5. Für jede neue Schichtgrenze einen Test ergänzen.
+
+## Wartungsprinzipien
+
+- Utility-Funktionen mit zentraler Bedeutung (z. B. Barcode-Normalisierung) dürfen nur einmal pro Modul definiert werden.
+- Gleichartige Endpoint-Flows (`/api/dashboard/search` und `/api/dashboard/search-variants`) sollen gemeinsame Helper (`_build_fallback_variants`, `_extract_amount_prefixed_product_input`) nutzen.
+- Bei Verhaltensänderungen in Query-Parametern (z. B. `include_ai`) müssen API-Tests explizit beide Modi abdecken.
+
