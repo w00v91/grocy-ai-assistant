@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.55
+
+- Fix (Scanner/Fokus): Kamera-Fokus wird während des laufenden Scans zyklisch neu angestoßen (alle 2s) für unterstützte Modi (`continuous`/`single-shot`), damit mobile Kameras nicht in unscharfem Zustand „hängen bleiben“.
+- Stabilität (Scanner/Fokus): Beim Scanner-Start wird der bevorzugte Fokusmodus gespeichert und direkt nach dem Setzen der Constraints einmal aktiv nachgezogen.
+- Stabilität (Scanner): Fokus-Refresh-Timer wird beim Stoppen zuverlässig beendet und Fokus-Zustand zurückgesetzt.
+- Pflege: Add-on-Version auf `7.1.55` erhöht.
+
 ## 7.1.54
 
 - Fix (Scanner/Fokus): Kamera-Fokus priorisiert jetzt `focusMode=continuous` (statt primär `manual`), damit mobile Geräte während des Scan-Vorgangs fortlaufend nachfokussieren und das Bild nicht dauerhaft unscharf bleibt.

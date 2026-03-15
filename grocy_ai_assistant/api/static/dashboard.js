@@ -128,8 +128,11 @@ let scannerStableCount = 0;
 let scannerLlavaInFlight = false;
 let scannerLlavaTimer = null;
 let scannerLlavaLastRequestAt = 0;
+let scannerFocusRefreshTimer = null;
+let scannerPreferredFocusMode = '';
 const scannerDigitalZoomFactor = 1.35;
 const scannerStableDetectionThreshold = 2;
+const scannerFocusRefreshMs = 2000;
 const recipeState = {
   initialized: false,
   hasLoadedInitialSuggestions: false,
@@ -2433,6 +2436,7 @@ async function startBarcodeScanner() {
     scannerStream = await getCompatibleScannerStream();
 
     await optimizeScannerTrack(scannerStream, status);
+    scheduleScannerFocusRefresh(scannerStream);
 
     video.setAttribute('playsinline', 'true');
     video.setAttribute('autoplay', 'true');
@@ -2528,6 +2532,34 @@ async function getCompatibleScannerStream() {
   throw lastError || new Error('Kamera konnte nicht initialisiert werden.');
 }
 
+async function applyScannerFocusRefresh(track, focusMode) {
+  if (!track || !focusMode || typeof track.applyConstraints !== 'function') return;
+
+  try {
+    await track.applyConstraints({ advanced: [{ focusMode }] });
+  } catch (_) {
+    // Ignore unsupported focus refresh requests.
+  }
+}
+
+function scheduleScannerFocusRefresh(stream) {
+  if (scannerFocusRefreshTimer) {
+    clearInterval(scannerFocusRefreshTimer);
+  }
+
+  if (!stream || !['single-shot', 'continuous'].includes(scannerPreferredFocusMode)) {
+    return;
+  }
+
+  const videoTrack = stream.getVideoTracks?.()[0];
+  if (!videoTrack) return;
+
+  scannerFocusRefreshTimer = setInterval(() => {
+    if (!scannerStream || !isScannerModalVisible()) return;
+    applyScannerFocusRefresh(videoTrack, scannerPreferredFocusMode);
+  }, scannerFocusRefreshMs);
+}
+
 async function optimizeScannerTrack(stream, status) {
   const videoTrack = stream?.getVideoTracks?.()[0];
   if (!videoTrack) return;
@@ -2542,6 +2574,8 @@ async function optimizeScannerTrack(stream, status) {
   } else if (capabilities?.focusMode?.includes('manual')) {
     constraints.focusMode = 'manual';
   }
+
+  scannerPreferredFocusMode = constraints.focusMode || '';
 
   if (
     constraints.focusMode === 'manual'
@@ -2570,6 +2604,9 @@ async function optimizeScannerTrack(stream, status) {
 
   try {
     await videoTrack.applyConstraints({ advanced: [constraints] });
+    if (scannerPreferredFocusMode) {
+      await applyScannerFocusRefresh(videoTrack, scannerPreferredFocusMode);
+    }
   } catch (_) {
     // Ignore optimization failures and keep default stream settings.
   }
@@ -2620,6 +2657,11 @@ function stopBarcodeScanner() {
     clearTimeout(scannerLlavaTimer);
     scannerLlavaTimer = null;
   }
+  if (scannerFocusRefreshTimer) {
+    clearInterval(scannerFocusRefreshTimer);
+    scannerFocusRefreshTimer = null;
+  }
+  scannerPreferredFocusMode = '';
   scannerLlavaInFlight = false;
   scannerLlavaLastRequestAt = 0;
   scannerDetectionInFlight = false;
