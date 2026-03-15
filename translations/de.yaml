@@ -1,0 +1,46 @@
+configuration:
+  api_key:
+    name: "01 · Allgemein · KI API-Key"
+    description: "API-Schlüssel für die primäre KI-Verarbeitung (Text/Erkennung)."
+  grocy_api_key:
+    name: "01 · Allgemein · Grocy API-Key"
+    description: "API-Schlüssel deiner Grocy-Instanz."
+  grocy_base_url:
+    name: "01 · Allgemein · Grocy Basis-URL"
+    description: "Basis-URL der Grocy-API, z. B. http://homeassistant.local:9192/api."
+  ollama_url:
+    name: "02 · Ollama · Generate-Endpoint"
+    description: "URL zum Ollama-Generate-Endpunkt für KI-Anfragen."
+  ollama_model:
+    name: "02 · Ollama · Standardmodell"
+    description: "Ollama-Modell für die allgemeine Erkennung."
+  ollama_llava_model:
+    name: "02 · Ollama · Vision-Modell (LLaVA)"
+    description: "Ollama-LLaVA-Modell für bildbasierte Erkennung."
+  scanner_barcode_fallback_seconds:
+    name: "03 · Scanner · Barcode-Fallback (Sek.)"
+    description: "Wartezeit in Sekunden, bevor auf alternative Scanner-Logik gewechselt wird."
+  scanner_llava_min_confidence:
+    name: "03 · Scanner · LLaVA Mindestvertrauen (%)"
+    description: "Mindest-Konfidenz in Prozent für LLaVA-Scannerergebnisse."
+  scanner_llava_timeout_seconds:
+    name: "03 · Scanner · LLaVA Timeout (Sek.)"
+    description: "Maximale Wartezeit in Sekunden für LLaVA-Scanneranfragen."
+  notification_global_enabled:
+    name: "04 · Benachrichtigungen · Global aktiv"
+    description: "Aktiviert/deaktiviert Benachrichtigungen global für das Add-on."
+  image_generation_enabled:
+    name: "05 · Bilder · Bildgenerierung aktiv"
+    description: "Aktiviert die KI-gestützte Generierung fehlender Produktbilder."
+  openai_api_key:
+    name: "05 · Bilder · OpenAI API-Key"
+    description: "OpenAI API-Schlüssel für die Bildgenerierung."
+  openai_image_model:
+    name: "05 · Bilder · OpenAI Bildmodell"
+    description: "OpenAI-Modellname für die Bildgenerierung (z. B. gpt-image-1)."
+  generate_missing_product_images_on_startup:
+    name: "05 · Bilder · Fehlende Bilder beim Start erzeugen"
+    description: "Erzeugt beim Add-on-Start automatisch fehlende Produktbilder."
+  debug_mode:
+    name: "06 · Wartung · Debug-Modus"
+    description: "Aktiviert ausführliche Debug-Logs zur Fehlersuche."

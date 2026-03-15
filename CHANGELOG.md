@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.63
+
+- Add-on (Konfiguration): Übersetzungen für Optionsfelder ergänzt (`translations/de.yaml`, `translations/en.yaml`) mit natürlichen, verständlichen Feldnamen.
+- UX (Konfiguration): Sinnvolle Präfixe (`Allgemein`, `Ollama`, `Scanner`, `Benachrichtigungen`, `Bilder`, `Wartung`) eingeführt, um die Formularreihenfolge klarer zu strukturieren.
+- Pflege: Add-on-Version auf `7.1.63` erhöht.
+
 ## 7.1.62
 
 - Add-on (Konfiguration): Reihenfolge der `options`/`schema` in `config.json` überarbeitet, damit der Schalter `debug_mode` im Home-Assistant-Formular weiter unten angezeigt wird.
