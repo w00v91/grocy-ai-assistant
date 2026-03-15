@@ -1231,6 +1231,34 @@ img {
   margin: 0.18rem 0;
 }
 
+.storage-edit-attributes {
+  display: grid;
+  gap: 0.6rem;
+  margin-bottom: 0.85rem;
+}
+
+.storage-edit-attribute-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 180px) minmax(0, 1fr);
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.storage-edit-attribute-row label {
+  margin: 0;
+}
+
+.storage-edit-attribute-row input {
+  width: 100%;
+}
+
+@media (max-width: 640px) {
+  .storage-edit-attribute-row {
+    grid-template-columns: 1fr;
+    gap: 0.35rem;
+  }
+}
+
 .shopping-modal {
   position: fixed;
   inset: 0;
