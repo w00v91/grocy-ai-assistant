@@ -4,6 +4,7 @@ All notable changes to this project are documented in this file.
 
 ## 7.1.63
 
+- UI (Lager-Tab): Aktions-Buttons der Produktkarten in der Desktop-Ansicht explizit an den rechten Rand der Karte ausgerichtet.
 - Add-on (Konfiguration): Übersetzungen für Optionsfelder ergänzt (`translations/de.yaml`, `translations/en.yaml`) mit natürlichen, verständlichen Feldnamen.
 - UX (Konfiguration): Sinnvolle Präfixe (`Allgemein`, `Ollama`, `Scanner`, `Benachrichtigungen`, `Bilder`, `Wartung`) eingeführt, um die Formularreihenfolge klarer zu strukturieren.
 - Pflege: Add-on-Version auf `7.1.63` erhöht.
