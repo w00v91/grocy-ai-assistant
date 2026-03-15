@@ -102,6 +102,10 @@
             <h2>Lager</h2>
             <button class='primary-button' type='button' onclick='loadStorageProducts()'>Aktualisieren</button>
           </div>
+          <label class='storage-toggle' for='storage-include-all-products'>
+            <input id='storage-include-all-products' type='checkbox' onchange='loadStorageProducts()' />
+            Alle in Grocy verfügbaren Produkte laden
+          </label>
           <input id='storage-filter-input' type='text' placeholder='Produkte filtern...' oninput='renderStorageProducts()' />
           <p id='status-storage' class='tab-status'>Bereit.</p>
           <ul id='storage-products' class='storage-products-list'></ul>

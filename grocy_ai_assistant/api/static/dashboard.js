@@ -25,6 +25,7 @@ function normalizeStockProduct(item) {
     ...item,
     id: Number.isFinite(productId) && productId > 0 ? productId : null,
     stock_id: Number.isFinite(stockId) && stockId > 0 ? stockId : null,
+    in_stock: Boolean(item?.in_stock ?? true),
   };
 }
 
@@ -1775,6 +1776,9 @@ function renderStorageProducts() {
 
   list.innerHTML = filteredItems.map((item) => {
     const actionableId = getActionableStorageId(item);
+    const canExecuteAction = actionableId > 0 && item.in_stock;
+    const disabledAttr = canExecuteAction ? '' : ' disabled';
+    const disabledTitle = canExecuteAction ? '' : ' title="Für diesen Eintrag ist keine nutzbare Produkt-/Bestand-ID verfügbar"';
 
     return `
     <li class="storage-item swipe-item" data-swipe-payload="${encodeURIComponent(JSON.stringify({ id: actionableId }))}">
@@ -1825,20 +1829,28 @@ async function loadStorageProducts() {
       return;
     }
 
-    status.textContent = 'Lade Lagerbestand...';
+    const includeAllProductsInput = document.getElementById('storage-include-all-products');
+    const includeAllProducts = Boolean(includeAllProductsInput?.checked);
+    status.textContent = includeAllProducts ? 'Lade Lagerbestand und alle Produkte...' : 'Lade Lagerbestand...';
     try {
-      const res = await fetch(buildApiUrl('/api/dashboard/stock-products'), { headers: { Authorization: `Bearer ${key}` } });
+      const endpoint = includeAllProducts
+        ? '/api/dashboard/stock-products?include_all_products=true'
+        : '/api/dashboard/stock-products';
+      const res = await fetch(buildApiUrl(endpoint), { headers: { Authorization: `Bearer ${key}` } });
       const payload = await parseJsonSafe(res);
       if (!res.ok) throw new Error(getErrorMessage(payload, 'Bestand konnte nicht geladen werden.'));
       storageProductsCache = (Array.isArray(payload) ? payload : []).map(normalizeStockProduct);
       renderStorageProducts();
       const fallbackProductIds = storageProductsCache.filter((item) => Number(item.stock_id || 0) <= 0 && Number(item.id || 0) > 0).length;
       const missingAllIds = storageProductsCache.filter((item) => Number(item.stock_id || 0) <= 0 && Number(item.id || 0) <= 0).length;
+      const outOfStockProducts = storageProductsCache.filter((item) => !item.in_stock).length;
       status.textContent = missingAllIds > 0
-        ? `Lagerbestand geladen (${fallbackProductIds} Einträge über Produkt-ID, ${missingAllIds} ohne nutzbare ID).`
+        ? `Lagerbestand geladen (${fallbackProductIds} Einträge über Produkt-ID, ${missingAllIds} ohne nutzbare ID${outOfStockProducts > 0 ? `, ${outOfStockProducts} nicht auf Lager` : ''}).`
         : fallbackProductIds > 0
-          ? `Lagerbestand geladen (${fallbackProductIds} Einträge über Produkt-ID).`
-        : 'Lagerbestand geladen.';
+          ? `Lagerbestand geladen (${fallbackProductIds} Einträge über Produkt-ID${outOfStockProducts > 0 ? `, ${outOfStockProducts} nicht auf Lager` : ''}).`
+          : outOfStockProducts > 0
+            ? `Lagerbestand geladen (${outOfStockProducts} nicht auf Lager).`
+            : 'Lagerbestand geladen.';
     } catch (error) {
       status.textContent = `Fehler: ${error.message}`;
     }

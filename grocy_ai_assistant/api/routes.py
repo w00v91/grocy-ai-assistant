@@ -1224,6 +1224,7 @@ def dashboard_locations(
 def dashboard_stock_products(
     request: Request,
     location_ids: str = "",
+    include_all_products: bool = False,
     _: None = Depends(require_auth),
     settings: Settings = Depends(get_settings),
 ):
@@ -1239,10 +1240,9 @@ def dashboard_stock_products(
             if value.strip().isdigit()
         ]
         grocy_client = GrocyClient(settings)
-        stock_products = (
-            grocy_client.get_stock_products(selected_location_ids)
-            if selected_location_ids
-            else grocy_client.get_stock_products()
+        stock_products = grocy_client.get_storage_products(
+            selected_location_ids if selected_location_ids else None,
+            include_all_products=include_all_products,
         )
         return [
             StockProductResponse(
