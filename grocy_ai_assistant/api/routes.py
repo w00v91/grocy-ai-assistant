@@ -1,4 +1,5 @@
 import logging
+import os
 import re
 import threading
 import time
@@ -68,6 +69,105 @@ NOTIFICATION_STORAGE_PATH = Path("/data/notification_dashboard.json")
 LLAVA_REQUEST_LOCK = threading.Lock()
 LLAVA_REQUEST_IN_FLIGHT = False
 LLAVA_REQUEST_STARTED_AT = 0.0
+
+
+def _call_homeassistant_service(
+    domain: str,
+    service: str,
+    service_data: dict,
+) -> tuple[bool, str | None, int | None]:
+    supervisor_url = (os.getenv("SUPERVISOR_URL") or "http://supervisor").rstrip("/")
+    endpoint = f"{supervisor_url}/core/api/services/{domain}/{service}"
+    token_candidates = [
+        (os.getenv("SUPERVISOR_TOKEN") or "").strip(),
+        (os.getenv("HASSIO_TOKEN") or "").strip(),
+    ]
+    unique_tokens: list[str] = []
+    for token_candidate in token_candidates:
+        if token_candidate and token_candidate not in unique_tokens:
+            unique_tokens.append(token_candidate)
+
+    header_candidates: list[dict[str, str]] = []
+    for token in unique_tokens:
+        header_candidates.append(
+            {
+                "Authorization": f"Bearer {token}",
+                "Content-Type": "application/json",
+            }
+        )
+        header_candidates.append(
+            {
+                "X-Supervisor-Token": token,
+                "Content-Type": "application/json",
+            }
+        )
+
+    header_candidates.append({"Content-Type": "application/json"})
+
+    last_status_code: int | None = None
+    errors: list[str] = []
+    for headers in header_candidates:
+        try:
+            response = requests.post(
+                endpoint,
+                headers=headers,
+                json=service_data,
+                timeout=10,
+            )
+        except requests.RequestException as err:
+            errors.append(f"Home-Assistant-Service nicht erreichbar: {err}")
+            continue
+
+        last_status_code = response.status_code
+        if response.status_code in {200, 201}:
+            return True, None, response.status_code
+
+        response_excerpt = (response.text or "").strip()
+        if len(response_excerpt) > 180:
+            response_excerpt = f"{response_excerpt[:180]}…"
+        error_text = (
+            f"Service-Aufruf {domain}.{service} fehlgeschlagen ({response.status_code})"
+        )
+        if response_excerpt:
+            error_text = f"{error_text}: {response_excerpt}"
+        errors.append(error_text)
+
+    if not errors:
+        errors.append(f"Service-Aufruf {domain}.{service} fehlgeschlagen")
+
+    return False, " | ".join(errors), last_status_code
+
+
+def _send_persistent_notification_to_homeassistant(
+    *,
+    title: str,
+    message: str,
+    notification_id: str,
+) -> tuple[bool, str | None]:
+    service_data = {
+        "title": title,
+        "message": message,
+        "notification_id": notification_id,
+    }
+    delivered, error, status_code = _call_homeassistant_service(
+        "persistent_notification",
+        "create",
+        service_data,
+    )
+    if delivered:
+        return True, None
+
+    if status_code not in {404, 405}:
+        return False, error
+
+    fallback_delivered, fallback_error, _ = _call_homeassistant_service(
+        "notify",
+        "persistent_notification",
+        service_data,
+    )
+    if fallback_delivered:
+        return True, None
+    return False, fallback_error or error
 
 
 def _normalize_barcode_for_lookup(raw_barcode: str) -> str:
@@ -2262,18 +2362,32 @@ def dashboard_notification_test_persistent(
     store = _notification_store()
     user_id = _resolve_dashboard_user_id(request)
     overview = _load_notification_overview(request)
+
+    delivered, error = _send_persistent_notification_to_homeassistant(
+        title="Testbenachrichtigung",
+        message="Test als persistent_notification",
+        notification_id=f"dashboard-test:{user_id}",
+    )
     overview.history.insert(
         0,
         create_history_entry(
             event_type="shopping_due",
             title="Testbenachrichtigung",
             message="Test als persistent_notification",
-            delivered=True,
+            delivered=delivered,
             target_id="persistent_notification",
             channels=["persistent_notification"],
+            error=error or "",
         ),
     )
     store.save_overview_for_user(user_id, overview)
+
+    if not delivered:
+        raise HTTPException(
+            status_code=502,
+            detail=error or "persistent_notification konnte nicht versendet werden",
+        )
+
     return {"success": True}
 
 
