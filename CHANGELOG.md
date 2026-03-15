@@ -2,6 +2,10 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.58
+
+- Verbessert: Die Barcode-Erkennung rotiert den Scanner-Canvas bei Hochkant-Bildquellen nun automatisch um 90°, wenn die Bilddrehung auf 0° steht. Dadurch werden Barcodes in hochkant aufgenommenen Bildern zuverlässiger erkannt.
+
 ## 7.1.57
 
 - Scanner (Ausrichtung): Neue Option „Bilddrehung" (0°/90°/180°/270°) im Scanner-Modal, damit Kamera-Feed bei horizontal/vertikalem Handling passend ausgerichtet werden kann.

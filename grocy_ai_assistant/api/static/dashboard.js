@@ -2790,7 +2790,9 @@ function getScannerDetectionSource(video, canvas, zoomFactor) {
   const sourceX = Math.max(0, Math.round((video.videoWidth - sourceWidth) / 2));
   const sourceY = Math.max(0, Math.round((video.videoHeight - sourceHeight) / 2));
 
-  const rotation = scannerRotationDegrees;
+  // For upright portrait frames, a 90° canvas turn improves barcode detector reliability.
+  const autoPortraitQuarterTurn = scannerRotationDegrees === 0 && sourceHeight > sourceWidth;
+  const rotation = autoPortraitQuarterTurn ? 90 : scannerRotationDegrees;
   const isQuarterTurn = rotation === 90 || rotation === 270;
   canvas.width = isQuarterTurn ? sourceHeight : sourceWidth;
   canvas.height = isQuarterTurn ? sourceWidth : sourceHeight;
