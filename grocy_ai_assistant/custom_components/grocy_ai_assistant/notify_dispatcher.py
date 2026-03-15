@@ -76,14 +76,29 @@ class NotificationDispatcher:
         )
 
     async def _send_persistent_notification(self, message: NotificationMessage) -> None:
+        service_data = {
+            "title": message.title,
+            "message": message.body,
+            "notification_id": message.dedup_key or message.id,
+        }
+
+        services = self._hass.services.async_services()
+        persistent_available = "create" in services.get("persistent_notification", {})
+
+        if persistent_available:
+            await self._hass.services.async_call(
+                "persistent_notification",
+                "create",
+                service_data,
+                blocking=True,
+            )
+            return
+
+        # Fallback for setups exposing persistent notifications via notify service.
         await self._hass.services.async_call(
+            "notify",
             "persistent_notification",
-            "create",
-            {
-                "title": message.title,
-                "message": message.body,
-                "notification_id": message.dedup_key or message.id,
-            },
+            service_data,
             blocking=True,
         )
 
