@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.57
+
+- Scanner (Ausrichtung): Neue Option „Bilddrehung" (0°/90°/180°/270°) im Scanner-Modal, damit Kamera-Feed bei horizontal/vertikalem Handling passend ausgerichtet werden kann.
+- Scanner (Erkennung): Die Barcode-Analyse übernimmt die gewählte Drehung ebenfalls auf dem Analyse-Canvas (ROI), damit `BarcodeDetector` den Code in der gewählten Orientierung robuster lesen kann.
+- Pflege: Add-on-Version auf `7.1.57` erhöht.
+
 ## 7.1.56
 
 - Scanner (Kameraauswahl): Verfügbare Kameras werden gelistet und sind im Scanner testweise auswählbar; Standard bleibt Rückkamera bevorzugt.

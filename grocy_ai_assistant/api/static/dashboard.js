@@ -134,6 +134,7 @@ let scannerSelectedDeviceId = '';
 let scannerKnownDevices = [];
 let scannerScanStartedAt = 0;
 let scannerLastLightCheckAt = 0;
+let scannerRotationDegrees = 0;
 const scannerDigitalZoomFactor = 1.35;
 const scannerStableDetectionThreshold = 2;
 const scannerFocusRefreshMs = 2000;
@@ -231,6 +232,8 @@ async function openScannerModal() {
   modal.classList.remove('hidden');
   syncModalScrollLock();
   await refreshScannerDevices();
+  const rotationSelect = getScannerRotationSelectElement();
+  if (rotationSelect) rotationSelect.value = String(scannerRotationDegrees);
 }
 
 function closeScannerModal() {
@@ -2188,6 +2191,31 @@ function getScannerCameraSelectElement() {
   return document.getElementById('scanner-camera-select');
 }
 
+function getScannerRotationSelectElement() {
+  return document.getElementById('scanner-rotation-select');
+}
+
+function applyScannerVideoRotation(videoElement) {
+  if (!videoElement) return;
+  videoElement.classList.remove('rotated-90', 'rotated-180', 'rotated-270');
+  if (scannerRotationDegrees === 90) videoElement.classList.add('rotated-90');
+  if (scannerRotationDegrees === 180) videoElement.classList.add('rotated-180');
+  if (scannerRotationDegrees === 270) videoElement.classList.add('rotated-270');
+}
+
+function parseScannerRotationDegrees(value) {
+  const rotation = Number(value);
+  if (![0, 90, 180, 270].includes(rotation)) return 0;
+  return rotation;
+}
+
+function onScannerRotationChange() {
+  const select = getScannerRotationSelectElement();
+  scannerRotationDegrees = parseScannerRotationDegrees(select?.value ?? 0);
+  const video = document.getElementById('scanner-video');
+  applyScannerVideoRotation(video);
+}
+
 function setScannerCapabilitiesLog(capabilities, settings) {
   const log = getScannerCapabilitiesLogElement();
   if (!log) return;
@@ -2550,6 +2578,7 @@ async function startBarcodeScanner() {
     video.srcObject = scannerStream;
     await video.play();
     video.classList.remove('hidden');
+    applyScannerVideoRotation(video);
     startButton.classList.add('hidden');
     stopButton.classList.remove('hidden');
     if (!String(status.textContent || '').startsWith('Scanner aktiv')) {
@@ -2761,21 +2790,31 @@ function getScannerDetectionSource(video, canvas, zoomFactor) {
   const sourceX = Math.max(0, Math.round((video.videoWidth - sourceWidth) / 2));
   const sourceY = Math.max(0, Math.round((video.videoHeight - sourceHeight) / 2));
 
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
+  const rotation = scannerRotationDegrees;
+  const isQuarterTurn = rotation === 90 || rotation === 270;
+  canvas.width = isQuarterTurn ? sourceHeight : sourceWidth;
+  canvas.height = isQuarterTurn ? sourceWidth : sourceHeight;
 
-  context.drawImage(
-    video,
-    sourceX,
-    sourceY,
-    sourceWidth,
-    sourceHeight,
-    0,
-    0,
-    canvas.width,
-    canvas.height
-  );
+  context.save();
+  context.clearRect(0, 0, canvas.width, canvas.height);
 
+  if (rotation === 90) {
+    context.translate(canvas.width, 0);
+    context.rotate(Math.PI / 2);
+    context.drawImage(video, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, sourceWidth, sourceHeight);
+  } else if (rotation === 180) {
+    context.translate(canvas.width, canvas.height);
+    context.rotate(Math.PI);
+    context.drawImage(video, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, sourceWidth, sourceHeight);
+  } else if (rotation === 270) {
+    context.translate(0, canvas.height);
+    context.rotate(-Math.PI / 2);
+    context.drawImage(video, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, sourceWidth, sourceHeight);
+  } else {
+    context.drawImage(video, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, sourceWidth, sourceHeight);
+  }
+
+  context.restore();
   return canvas;
 }
 
@@ -2813,6 +2852,7 @@ function stopBarcodeScanner() {
     video.pause();
     video.srcObject = null;
     video.classList.add('hidden');
+    video.classList.remove('rotated-90', 'rotated-180', 'rotated-270');
   }
 
   const overlay = document.getElementById('scanner-frame-overlay');

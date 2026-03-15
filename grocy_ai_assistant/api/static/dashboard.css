@@ -1387,6 +1387,20 @@ img {
   border-radius: 12px;
   background: #000;
   margin: 0;
+  object-fit: contain;
+  transform-origin: center center;
+}
+
+.scanner-video.rotated-90 {
+  transform: rotate(90deg);
+}
+
+.scanner-video.rotated-180 {
+  transform: rotate(180deg);
+}
+
+.scanner-video.rotated-270 {
+  transform: rotate(270deg);
 }
 
 .scanner-frame-overlay {

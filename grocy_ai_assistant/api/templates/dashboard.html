@@ -351,6 +351,13 @@
             <select id='scanner-camera-select' onchange='onScannerCameraChange()'>
               <option value=''>Automatisch (Rückkamera)</option>
             </select>
+            <label for='scanner-rotation-select'>Bilddrehung</label>
+            <select id='scanner-rotation-select' onchange='onScannerRotationChange()'>
+              <option value='0'>0° (Standard)</option>
+              <option value='90'>90°</option>
+              <option value='180'>180°</option>
+              <option value='270'>270°</option>
+            </select>
           </div>
           <details class='scanner-capabilities'>
             <summary>Kamera-Fähigkeiten (Debug)</summary>
