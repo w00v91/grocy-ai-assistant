@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.51
+
+- Fix (Barcode-Scanner/OpenFoodFacts): Sehr lange KI-Barcode-Strings (z. B. GS1 mit führendem `01` + Zusatzdaten) werden jetzt vor dem Lookup auf gültige GTIN/EAN-Längen normalisiert, damit OpenFoodFacts die korrekte Produktnummer erhält.
+- Scanner (Kamera): Fokus-Optimierung erweitert – bevorzugt `focusMode=manual` (Fallback auf `single-shot`/`continuous`), setzt wenn verfügbar den Fokuspunkt in die Bildmitte und nutzt bei unterstützten Geräten kurze Fokusdistanz.
+- Test: API-Tests zur Barcode-Normalisierung für lange Scannerwerte ergänzt.
+- Pflege: Add-on-Version auf `7.1.51` erhöht.
+
 ## 7.1.50
 
 - UI (Lager-Tab): Aktions-Buttons der Produktkarten in der Desktop-Ansicht explizit an den rechten Rand der Karte ausgerichtet.

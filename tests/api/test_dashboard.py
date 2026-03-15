@@ -1460,6 +1460,46 @@ def test_dashboard_barcode_lookup_returns_not_found_on_off_timeout(client, monke
     }
 
 
+def test_dashboard_barcode_lookup_normalizes_ai_gtin_for_off(client, monkeypatch):
+    class FakeResponse:
+        status_code = 200
+
+        @staticmethod
+        def json():
+            return {
+                "status": 1,
+                "product": {
+                    "product_name": "Testprodukt",
+                },
+            }
+
+    def fake_requests_get(url, timeout, headers):
+        assert "4008400408400" in url
+        assert "010400840040840017" not in url
+        assert timeout == 8
+        assert headers["User-Agent"] == "grocy-ai-assistant/scan-tab"
+        return FakeResponse()
+
+    monkeypatch.setattr(routes.requests, "get", fake_requests_get)
+
+    response = client.get(
+        "/api/dashboard/barcode/010400840040840017",
+        headers={"Authorization": "Bearer test-api-key"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["barcode"] == "4008400408400"
+    assert response.json()["found"] is True
+
+
+def test_normalize_barcode_for_lookup_prefers_known_lengths():
+    assert (
+        routes._normalize_barcode_for_lookup("01 04008400408400 17") == "4008400408400"
+    )
+    assert routes._normalize_barcode_for_lookup("123456789012") == "123456789012"
+    assert routes._normalize_barcode_for_lookup("00123456789012") == "00123456789012"
+
+
 def test_dashboard_barcode_lookup_rejects_invalid_barcode(client):
     response = client.get(
         "/api/dashboard/barcode/abc",
