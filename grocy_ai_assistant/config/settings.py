@@ -56,6 +56,7 @@ class Settings(BaseModel):
     ollama_llava_model: str = "llava"
     scanner_barcode_fallback_seconds: int = 5
     scanner_llava_min_confidence: int = 75
+    scanner_llava_timeout_seconds: int = 45
     image_generation_enabled: bool = False
     generate_missing_product_images_on_startup: bool = False
     openai_api_key: str = ""

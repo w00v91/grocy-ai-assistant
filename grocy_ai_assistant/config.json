@@ -40,7 +40,8 @@
     "image_generation_enabled": false,
     "openai_api_key": "DEIN_OPENAI_KEY",
     "openai_image_model": "gpt-image-1",
-    "generate_missing_product_images_on_startup": false
+    "generate_missing_product_images_on_startup": false,
+    "scanner_llava_timeout_seconds": 45
   },
   "schema": {
     "api_key": "str",
@@ -56,6 +57,7 @@
     "image_generation_enabled": "bool",
     "openai_api_key": "password",
     "openai_image_model": "str",
-    "generate_missing_product_images_on_startup": "bool"
+    "generate_missing_product_images_on_startup": "bool",
+    "scanner_llava_timeout_seconds": "int(10,120)"
   }
 }

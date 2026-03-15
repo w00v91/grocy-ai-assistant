@@ -124,6 +124,7 @@ let scannerDetector = null;
 let scannerLastBarcodeAt = 0;
 let scannerLlavaInFlight = false;
 let scannerLlavaTimer = null;
+let scannerLlavaLastRequestAt = 0;
 const scannerDigitalZoomFactor = 1.35;
 const recipeState = {
   initialized: false,
@@ -2188,6 +2189,17 @@ function getScannerLlavaDelaySeconds() {
   return Math.max(1, Math.min(30, Math.round(configuredFallback)));
 }
 
+
+function getScannerLlavaTimeoutSeconds() {
+  const configuredTimeout = Number(rootElement.dataset.scannerLlavaTimeoutSeconds || 45);
+  if (!Number.isFinite(configuredTimeout)) return 45;
+  return Math.max(10, Math.min(120, Math.round(configuredTimeout)));
+}
+
+function getScannerLlavaAutoCooldownMs() {
+  return Math.max(getScannerLlavaDelaySeconds() * 1000, 15000);
+}
+
 function captureScannerFrameBase64() {
   const video = document.getElementById('scanner-video');
   const canvas = document.getElementById('scanner-canvas');
@@ -2214,6 +2226,7 @@ async function queryLlavaWithCurrentFrame(reason = 'manual') {
 
   if (scannerLlavaInFlight) return;
   scannerLlavaInFlight = true;
+  scannerLlavaLastRequestAt = Date.now();
 
   if (reason === 'timeout') {
     status.textContent = 'Kein Barcode gefunden. Starte KI-Produkterkennung mit LLaVA...';
@@ -2228,14 +2241,25 @@ async function queryLlavaWithCurrentFrame(reason = 'manual') {
       return;
     }
 
-    const res = await fetch(buildApiUrl('/api/dashboard/scanner/llava'), {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${key}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ image_base64: imageBase64 }),
-    });
+    const llavaTimeoutMs = getScannerLlavaTimeoutSeconds() * 1000;
+    const abortController = new AbortController();
+    const timeoutHandle = setTimeout(() => abortController.abort(), llavaTimeoutMs);
+
+    let res;
+    try {
+      res = await fetch(buildApiUrl('/api/dashboard/scanner/llava'), {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${key}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ image_base64: imageBase64 }),
+        signal: abortController.signal,
+      });
+    } finally {
+      clearTimeout(timeoutHandle);
+    }
+
     const payload = await parseJsonSafe(res);
 
     if (!res.ok) {
@@ -2258,8 +2282,12 @@ async function queryLlavaWithCurrentFrame(reason = 'manual') {
       ingredients_text: payload.hint || '-',
       nutrition_grade: payload.source || 'LLaVA',
     });
-  } catch (_) {
-    status.textContent = 'LLaVA konnte nicht abgefragt werden (Netzwerk-/Ingress-Fehler).';
+  } catch (error) {
+    if (error?.name === 'AbortError') {
+      status.textContent = `LLaVA-Anfrage dauerte länger als ${getScannerLlavaTimeoutSeconds()}s und wurde beendet.`;
+    } else {
+      status.textContent = 'LLaVA konnte nicht abgefragt werden (Netzwerk-/Ingress-Fehler).';
+    }
   } finally {
     scannerLlavaInFlight = false;
   }
@@ -2280,7 +2308,11 @@ function scheduleLlavaFallback() {
     if (!isScannerModalVisible() || !scannerStream) return;
     const elapsed = Date.now() - scannerLastBarcodeAt;
     if (elapsed >= waitMs - 100) {
-      queryLlavaWithCurrentFrame('timeout');
+      const autoCooldownMs = getScannerLlavaAutoCooldownMs();
+      const sinceLastLlavaMs = Date.now() - scannerLlavaLastRequestAt;
+      if (sinceLastLlavaMs >= autoCooldownMs) {
+        queryLlavaWithCurrentFrame('timeout');
+      }
     }
     scheduleLlavaFallback();
   }, waitMs);
@@ -2502,6 +2534,7 @@ function stopBarcodeScanner() {
     scannerLlavaTimer = null;
   }
   scannerLlavaInFlight = false;
+  scannerLlavaLastRequestAt = 0;
 
   if (scannerStream) {
     scannerStream.getTracks().forEach((track) => track.stop());
