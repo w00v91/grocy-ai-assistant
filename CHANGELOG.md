@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.60
+
+- Performance (Thumbnails/Mobil): Dashboard-Bildproxy unterstützt nun die Größe `mobile` (64x64), wodurch auf kleinen Viewports kleinere Produktbilder geladen werden.
+- Performance (Caching): `GET /api/dashboard/product-picture` liefert jetzt `Cache-Control: public, max-age=86400`, damit Mobilbrowser Thumbnails aggressiver zwischenspeichern.
+- UI (Dashboard): Thumbnail-Aufrufe verwenden auf mobilen Viewports automatisch die neue Proxy-Größe `mobile` statt `thumb`.
+- Test: API-Test für `size=mobile` und Cache-Header ergänzt.
+
 ## 7.1.59
 
 - Fix (Scanner/WebView): Kamera-Start nutzt nun eine kompatible `getUserMedia`-Abfrage (inkl. Legacy-Fallback) statt ausschließlich `navigator.mediaDevices.getUserMedia`.
