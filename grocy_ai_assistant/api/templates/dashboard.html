@@ -11,7 +11,7 @@
       <div class="topbar-content">
         <p class="eyebrow">Grocy AI Assistant</p>
         <div class="topbar-heading-row">
-          <h1>Smart Pantry Dashboard</h1>
+          <p id='topbar-status' class='topbar-status' aria-live='polite'>Bereit.</p>
           <span id='activity-spinner' class='activity-spinner hidden' aria-label='Lädt' title='Lädt'></span>
           <button id='theme-toggle' class='theme-toggle' type='button' aria-label='Zu Darkmode wechseln' title='Zu Darkmode wechseln' onclick='toggleTheme()'>☾</button>
         </div>
@@ -51,7 +51,7 @@
             <button class="primary-button" onclick='loadShoppingList()'>Aktualisieren</button>
           </div>
           <ul id='shopping-list'></ul>
-          <p id='status-shopping'>Bereit.</p>
+          <p id='status-shopping' class='tab-status'>Bereit.</p>
           <div class="button-row">
             <button class='success-button' onclick='completeShoppingList()'>Einkauf abschließen</button>
             <button class='danger-button' onclick='clearShoppingList()'>Einkaufsliste leeren</button>
@@ -90,7 +90,7 @@
             </div>
             <button class='recipe-load-button' type='button' onclick='loadRecipeSuggestions()'>Rezeptvorschläge laden</button>
           </div>
-          <p id='status-recipes'>Bereit.</p>
+          <p id='status-recipes' class='tab-status'>Bereit.</p>
           <button id='open-recipe-create-modal-button' class='primary-button recipe-create-button' type='button' onclick='openRecipeCreateModal()'>Rezept hinzufügen</button>
         </section>
       </section>
@@ -103,7 +103,7 @@
             <button class='primary-button' type='button' onclick='loadStorageProducts()'>Aktualisieren</button>
           </div>
           <input id='storage-filter-input' type='text' placeholder='Produkte filtern...' oninput='renderStorageProducts()' />
-          <p id='status-storage'>Bereit.</p>
+          <p id='status-storage' class='tab-status'>Bereit.</p>
           <ul id='storage-products' class='storage-products-list'></ul>
         </section>
       </section>
@@ -114,7 +114,7 @@
             <h2>Benachrichtigungen</h2>
             <button class='primary-button' type='button' onclick='loadNotificationOverview()'>Aktualisieren</button>
           </div>
-          <p id='status-notifications'>Bereit.</p>
+          <p id='status-notifications' class='tab-status'>Bereit.</p>
 
           <div class='notification-options-layout'>
             <section class='notification-options-card'>

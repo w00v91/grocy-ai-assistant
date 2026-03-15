@@ -223,6 +223,8 @@ function switchTab(tabName) {
   if (activeTab === 'notifications') {
     loadNotificationOverview();
   }
+
+  syncTopbarStatusFromActiveTab();
 }
 
 
@@ -1496,6 +1498,7 @@ document.addEventListener('keydown', (event) => {
 });
 
 switchTab('shopping');
+initializeTopbarStatusSync();
 loadShoppingList();
 preloadRecipeSuggestionsOnStartup();
 
@@ -1675,8 +1678,46 @@ async function loadStockProducts() {
 }
 
 
+
 function getStorageStatusElement() {
   return document.getElementById('status-storage');
+}
+
+function getTopbarStatusElement() {
+  return document.getElementById('topbar-status');
+}
+
+function getStatusElementByTab(tabName) {
+  if (tabName === 'recipes') return getRecipeStatusElement();
+  if (tabName === 'storage') return getStorageStatusElement();
+  if (tabName === 'notifications') return getNotificationStatusElement();
+  return getShoppingStatusElement();
+}
+
+function syncTopbarStatusFromActiveTab() {
+  const topbarStatus = getTopbarStatusElement();
+  if (!topbarStatus) return;
+  const activeStatusElement = getStatusElementByTab(activeTab);
+  const nextStatus = String(activeStatusElement?.textContent || '').trim() || 'Bereit.';
+  topbarStatus.textContent = nextStatus;
+}
+
+function initializeTopbarStatusSync() {
+  const statusElements = [
+    getShoppingStatusElement(),
+    getRecipeStatusElement(),
+    getStorageStatusElement(),
+    getNotificationStatusElement(),
+  ].filter(Boolean);
+
+  statusElements.forEach((statusElement) => {
+    const observer = new MutationObserver(() => {
+      syncTopbarStatusFromActiveTab();
+    });
+    observer.observe(statusElement, { childList: true, characterData: true, subtree: true });
+  });
+
+  syncTopbarStatusFromActiveTab();
 }
 
 function normalizeStorageFilterValue() {
