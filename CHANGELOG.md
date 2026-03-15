@@ -4,6 +4,7 @@ All notable changes to this project are documented in this file.
 
 ## 7.1.69
 
+- UI (Benachrichtigungen): `padding` bei `.notification-list li` entfernt, damit die Listen-/Swipe-Darstellung den gewünschten Abständen entspricht.
 - Fix (Benachrichtigungen/Dashboard): Persistente Testbenachrichtigungen akzeptieren nun sowohl `SUPERVISOR_TOKEN` als auch `HASSIO_TOKEN` und unterstützen zusätzlich den Header `X-Supervisor-Token`, damit Service-Calls im Add-on-Umfeld zuverlässiger autorisiert werden.
 - Fix (Benachrichtigungen/Dashboard): Fehlerantworten des Home-Assistant-Service werden im API-Fehlertext mitgeführt, um 502-Ursachen im Dashboard besser nachvollziehen zu können.
 - Test: API-Tests für Fallback auf `HASSIO_TOKEN` und für den 401-Fehlerpfad ergänzt.

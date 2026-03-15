@@ -301,7 +301,6 @@ body.modal-open {
   background: var(--item-bg);
   border: 1px solid var(--item-border);
   border-radius: 14px;
-  padding: 0.7rem 0.8rem;
 }
 
 .notification-rule-item {
