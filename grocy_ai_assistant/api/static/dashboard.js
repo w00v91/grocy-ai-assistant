@@ -1,6 +1,7 @@
 const rootElement = document.documentElement;
 const configuredApiKey = rootElement.dataset.configuredApiKey || '';
 const apiBasePath = rootElement.dataset.apiBasePath || '';
+const dashboardPollingIntervalSeconds = Number.parseInt(rootElement.dataset.dashboardPollingIntervalSeconds || '5', 10);
 const themeStorageKey = 'grocy-dashboard-theme';
 let apiKey = configuredApiKey || '';
 const ingressPrefixMatch = window.location.pathname.match(/^\/api\/hassio_ingress\/[^\/]+/);
@@ -177,6 +178,8 @@ function syncModalScrollLock() {
 let activeTab = "shopping";
 let shoppingListRefreshTimer = null;
 let shoppingListRefreshInFlight = false;
+let storageRefreshTimer = null;
+let storageRefreshInFlight = false;
 let storageFilterDebounce = null;
 let shoppingListSignature = '';
 let scannerStream = null;
@@ -203,7 +206,7 @@ const scannerFocusRefreshMs = 2000;
 const scannerAnalysisWarmupMs = 1200;
 const scannerLightCheckIntervalMs = 1500;
 const scannerLightWarningThreshold = 72;
-const shoppingListRefreshMs = 5000;
+const shoppingListRefreshMs = Math.max(1000, (Number.isFinite(dashboardPollingIntervalSeconds) ? dashboardPollingIntervalSeconds : 5) * 1000);
 const recipeState = {
   initialized: false,
   hasLoadedInitialSuggestions: false,
@@ -281,7 +284,7 @@ function switchTab(tabName) {
     loadLocations();
   }
   if (activeTab === 'storage') {
-    loadStorageProducts();
+    refreshStorageInBackground();
   }
   if (activeTab === 'notifications') {
     loadNotificationOverview();
@@ -1707,8 +1710,12 @@ document.addEventListener('keydown', (event) => {
 });
 
 document.addEventListener('visibilitychange', () => {
-  if (!document.hidden && activeTab === 'shopping') {
+  if (document.hidden) return;
+  if (activeTab === 'shopping') {
     refreshShoppingListInBackground();
+  }
+  if (activeTab === 'storage') {
+    refreshStorageInBackground();
   }
 });
 
@@ -1716,6 +1723,7 @@ switchTab('shopping');
 initializeTopbarStatusSync();
 loadShoppingList();
 startShoppingListAutoRefresh();
+startStorageAutoRefresh();
 preloadRecipeSuggestionsOnStartup();
 
 
@@ -1999,8 +2007,9 @@ function renderStorageProducts() {
   });
 }
 
-async function loadStorageProducts() {
-  return withBusyState(async () => {
+async function loadStorageProducts(options = {}) {
+  const { background = false } = options;
+  const load = async () => {
     const key = ensureApiKey();
     const status = getStorageStatusElement();
     if (!key) {
@@ -2011,7 +2020,9 @@ async function loadStorageProducts() {
     const includeAllProductsInput = document.getElementById('storage-include-all-products');
     const includeAllProducts = Boolean(includeAllProductsInput?.checked);
     const filterValue = String(document.getElementById('storage-filter-input')?.value || '').trim();
-    status.textContent = includeAllProducts ? 'Lade Lagerbestand und alle Produkte...' : 'Lade Lagerbestand...';
+    if (!background) {
+      status.textContent = includeAllProducts ? 'Lade Lagerbestand und alle Produkte...' : 'Lade Lagerbestand...';
+    }
     try {
       const params = new URLSearchParams();
       if (includeAllProducts) {
@@ -2031,17 +2042,49 @@ async function loadStorageProducts() {
       const fallbackProductIds = storageProductsCache.filter((item) => Number(item.stock_id || 0) <= 0 && Number(item.id || 0) > 0).length;
       const missingAllIds = storageProductsCache.filter((item) => Number(item.stock_id || 0) <= 0 && Number(item.id || 0) <= 0).length;
       const outOfStockProducts = storageProductsCache.filter((item) => !item.in_stock).length;
-      status.textContent = missingAllIds > 0
+      if (!background) {
+        status.textContent = missingAllIds > 0
         ? `Lagerbestand geladen (${fallbackProductIds} Einträge über Produkt-ID, ${missingAllIds} ohne nutzbare ID${outOfStockProducts > 0 ? `, ${outOfStockProducts} nicht auf Lager` : ''}).`
         : fallbackProductIds > 0
           ? `Lagerbestand geladen (${fallbackProductIds} Einträge über Produkt-ID${outOfStockProducts > 0 ? `, ${outOfStockProducts} nicht auf Lager` : ''}).`
           : outOfStockProducts > 0
             ? `Lagerbestand geladen (${outOfStockProducts} nicht auf Lager).`
             : 'Lagerbestand geladen.';
+      }
     } catch (error) {
-      status.textContent = `Fehler: ${error.message}`;
+      if (!background) {
+        status.textContent = `Fehler: ${error.message}`;
+      }
     }
-  });
+  };
+
+  if (background) {
+    return load();
+  }
+
+  return withBusyState(load);
+}
+
+async function refreshStorageInBackground() {
+  if (storageRefreshInFlight) return;
+  if (document.hidden || activeTab !== 'storage') return;
+
+  storageRefreshInFlight = true;
+  try {
+    await loadStorageProducts({ background: true });
+  } finally {
+    storageRefreshInFlight = false;
+  }
+}
+
+function startStorageAutoRefresh() {
+  if (storageRefreshTimer) {
+    clearInterval(storageRefreshTimer);
+  }
+
+  storageRefreshTimer = setInterval(() => {
+    refreshStorageInBackground();
+  }, shoppingListRefreshMs);
 }
 
 async function consumeStorageProduct(stockId) {

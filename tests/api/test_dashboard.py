@@ -1724,6 +1724,7 @@ def test_dashboard_scanner_contains_llava_controls(client):
     assert "id='llava-scan-button'" in response.text
     assert 'data-scanner-llava-fallback-seconds="5"' in response.text
     assert 'data-scanner-llava-timeout-seconds="45"' in response.text
+    assert 'data-dashboard-polling-interval-seconds="5"' in response.text
 
 
 def test_dashboard_scanner_llava_endpoint(client, monkeypatch):

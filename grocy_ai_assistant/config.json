@@ -1,6 +1,6 @@
 {
   "name": "Grocy AI Assistant",
-  "version": "7.1.82",
+  "version": "7.1.84",
   "slug": "grocy_ai_assistant",
   "dependencies": [
     "a0d49513_grocy"
@@ -35,6 +35,7 @@
     "scanner_barcode_fallback_seconds": 5,
     "scanner_llava_min_confidence": 75,
     "scanner_llava_timeout_seconds": 45,
+    "dashboard_polling_interval_seconds": 5,
     "notification_global_enabled": true,
     "image_generation_enabled": false,
     "openai_api_key": "DEIN_OPENAI_KEY",
@@ -52,6 +53,7 @@
     "scanner_barcode_fallback_seconds": "int(1,30)",
     "scanner_llava_min_confidence": "int(1,100)",
     "scanner_llava_timeout_seconds": "int(10,120)",
+    "dashboard_polling_interval_seconds": "int(1,60)",
     "notification_global_enabled": "bool",
     "image_generation_enabled": "bool",
     "openai_api_key": "password",

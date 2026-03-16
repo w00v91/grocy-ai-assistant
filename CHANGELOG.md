@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.84
+
+- UI (Lager-Tab): Das konfigurierbare Dashboard-Polling-Intervall steuert jetzt auch das Auto-Refresh im Lager-Tab (nur aktiver Tab, pausiert bei inaktivem Browser-Tab).
+- UX (Lager-Tab): Hintergrund-Refresh aktualisiert die Lagerliste ohne störende Lade-/Fehlerstatusmeldungen.
+- Pflege: Add-on-Version auf `7.1.84` erhöht.
+
+## 7.1.83
+
+- UI/Config: Dashboard-Polling-Intervall für die Einkaufsliste als konfigurierbare Option (`dashboard_polling_interval_seconds`) ergänzt und im Frontend an die Auto-Refresh-Logik angebunden.
+- Home-Assistant-Integration: Options-Flow um `dashboard_polling_interval_seconds` (1-60 Sekunden) erweitert.
+- Pflege: Add-on-Version auf `7.1.83` erhöht.
+
 ## 7.1.82
 
 - Verbesserung (KI/MHD): Die KI kann jetzt beim Anlegen neuer Produkte eine geschätzte Standard-Haltbarkeit (`default_best_before_days`) liefern.
