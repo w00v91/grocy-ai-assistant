@@ -77,7 +77,14 @@ def _call_homeassistant_service(
     service_data: dict,
 ) -> tuple[bool, str | None, int | None]:
     supervisor_url = (os.getenv("SUPERVISOR_URL") or "http://supervisor").rstrip("/")
-    endpoint = f"{supervisor_url}/core/api/services/{domain}/{service}"
+    endpoint_candidates: list[str] = []
+    for endpoint in (
+        f"{supervisor_url}/core/api/services/{domain}/{service}",
+        f"{supervisor_url}/api/services/{domain}/{service}",
+    ):
+        if endpoint not in endpoint_candidates:
+            endpoint_candidates.append(endpoint)
+
     token_candidates = [
         (os.getenv("SUPERVISOR_TOKEN") or "").strip(),
         (os.getenv("HASSIO_TOKEN") or "").strip(),
@@ -97,7 +104,27 @@ def _call_homeassistant_service(
         )
         header_candidates.append(
             {
+                "Authorization": f"Bearer {token}",
                 "X-Supervisor-Token": token,
+                "Content-Type": "application/json",
+            }
+        )
+        header_candidates.append(
+            {
+                "Authorization": f"Bearer {token}",
+                "X-Hassio-Key": token,
+                "Content-Type": "application/json",
+            }
+        )
+        header_candidates.append(
+            {
+                "X-Supervisor-Token": token,
+                "Content-Type": "application/json",
+            }
+        )
+        header_candidates.append(
+            {
+                "X-Hassio-Key": token,
                 "Content-Type": "application/json",
             }
         )
@@ -106,31 +133,32 @@ def _call_homeassistant_service(
 
     last_status_code: int | None = None
     errors: list[str] = []
-    for headers in header_candidates:
-        try:
-            response = requests.post(
-                endpoint,
-                headers=headers,
-                json=service_data,
-                timeout=10,
+    for endpoint in endpoint_candidates:
+        for headers in header_candidates:
+            try:
+                response = requests.post(
+                    endpoint,
+                    headers=headers,
+                    json=service_data,
+                    timeout=10,
+                )
+            except requests.RequestException as err:
+                errors.append(f"Home-Assistant-Service nicht erreichbar: {err}")
+                continue
+
+            last_status_code = response.status_code
+            if response.status_code in {200, 201}:
+                return True, None, response.status_code
+
+            response_excerpt = (response.text or "").strip()
+            if len(response_excerpt) > 180:
+                response_excerpt = f"{response_excerpt[:180]}…"
+            error_text = (
+                f"Service-Aufruf {domain}.{service} fehlgeschlagen ({response.status_code})"
             )
-        except requests.RequestException as err:
-            errors.append(f"Home-Assistant-Service nicht erreichbar: {err}")
-            continue
-
-        last_status_code = response.status_code
-        if response.status_code in {200, 201}:
-            return True, None, response.status_code
-
-        response_excerpt = (response.text or "").strip()
-        if len(response_excerpt) > 180:
-            response_excerpt = f"{response_excerpt[:180]}…"
-        error_text = (
-            f"Service-Aufruf {domain}.{service} fehlgeschlagen ({response.status_code})"
-        )
-        if response_excerpt:
-            error_text = f"{error_text}: {response_excerpt}"
-        errors.append(error_text)
+            if response_excerpt:
+                error_text = f"{error_text}: {response_excerpt}"
+            errors.append(error_text)
 
     if not errors:
         errors.append(f"Service-Aufruf {domain}.{service} fehlgeschlagen")

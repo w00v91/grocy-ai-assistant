@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.72
+
+- Fix (Benachrichtigungen/Dashboard): Home-Assistant-Serviceaufrufe probieren jetzt zusätzliche Auth-Header-Kombinationen (`Authorization`, `X-Supervisor-Token`, `X-Hassio-Key`), damit Supervisor-/Ingress-Varianten zuverlässiger autorisiert werden.
+- Fix (Benachrichtigungen/Dashboard): Serviceaufrufe testen neben `/core/api/services/...` auch `/api/services/...`, um Installationen mit abweichendem Supervisor-Proxy robuster zu unterstützen.
+- Test: API-Test ergänzt, der den Erfolgsfall über `X-Hassio-Key` absichert.
+- Pflege: Add-on-Version auf `7.1.72` erhöht.
+
 ## 7.1.71
 
 - Fix (Benachrichtigungen/Dashboard): Bei Fehlern von `persistent_notification.create` wird jetzt immer zusätzlich der Fallback `notify.persistent_notification` versucht, statt nur bei 404/405. Dadurch schlagen Systeme mit 400-Fehlermeldungen (z. B. "service not found") nicht mehr mit 502 fehl.
