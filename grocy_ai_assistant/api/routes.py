@@ -1141,6 +1141,22 @@ def dashboard_search(
         else:
             product_data = detector.analyze_product_name(product_name)
         created_object_id = grocy_client.create_product(product_data)
+        grocy_client.update_product_nutrition(
+            product_id=created_object_id,
+            calories=product_data.get("calories"),
+            carbs=product_data.get("carbohydrates"),
+            fat=product_data.get("fat"),
+            protein=product_data.get("protein"),
+            sugar=product_data.get("sugar"),
+        )
+        existing_default_best_before_days = (
+            grocy_client.get_product_default_best_before_days(created_object_id)
+        )
+        if not existing_default_best_before_days:
+            grocy_client.set_product_default_best_before_days(
+                created_object_id,
+                product_data.get("default_best_before_days"),
+            )
         _generate_and_attach_product_picture(
             product_name=product_name,
             product_id=created_object_id,
@@ -1784,18 +1800,36 @@ def dashboard_update_stock_product(
         resolved_stock_id = int(
             matched_entry.get("stock_id") or matched_entry.get("id") or 0
         )
-        if resolved_stock_id <= 0:
-            raise HTTPException(status_code=400, detail="Ungültiger Bestandseintrag")
-
         resolved_product_id = int(matched_entry.get("product_id") or 0)
         if resolved_product_id <= 0:
             raise HTTPException(status_code=400, detail="Ungültiger Produkteintrag")
 
-        grocy_client.update_stock_entry(
-            stock_id=resolved_stock_id,
-            amount=payload.amount,
-            best_before_date=payload.best_before_date,
-        )
+        if resolved_stock_id <= 0:
+            resolved_stock_id = (
+                grocy_client.resolve_stock_entry_id_for_product(
+                    product_id=resolved_product_id,
+                    location_id=int(matched_entry.get("location_id") or 0) or None,
+                )
+                or 0
+            )
+
+        if resolved_stock_id > 0:
+            grocy_client.update_stock_entry(
+                stock_id=resolved_stock_id,
+                amount=payload.amount,
+                best_before_date=payload.best_before_date,
+            )
+        else:
+            if payload.amount <= 0:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Kein vorhandener Bestandseintrag für dieses Produkt.",
+                )
+            grocy_client.add_product_to_stock(
+                product_id=resolved_product_id,
+                amount=payload.amount,
+                best_before_date=payload.best_before_date,
+            )
         grocy_client.update_product_nutrition(
             product_id=resolved_product_id,
             calories=payload.calories,

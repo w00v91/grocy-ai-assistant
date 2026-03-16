@@ -1376,6 +1376,62 @@ def test_consume_stock_product_uses_product_and_stock_id(monkeypatch):
     assert called["json"] == {"amount": 1.5, "stock_entry_id": 77}
 
 
+
+
+
+
+def test_resolve_stock_entry_id_for_product_prefers_location_match(monkeypatch):
+    def fake_get(url, headers, timeout, params=None):
+        if url.endswith('/objects/stock'):
+            return FakeResponse(
+                [
+                    {"id": 11, "product_id": 42, "location_id": 1},
+                    {"id": 12, "product_id": 42, "location_id": 2},
+                ]
+            )
+        raise AssertionError(f"Unexpected URL: {url}")
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.services.grocy_client.requests.get", fake_get
+    )
+
+    client = GrocyClient(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+        )
+    )
+
+    assert client.resolve_stock_entry_id_for_product(product_id=42, location_id=2) == 12
+    assert client.resolve_stock_entry_id_for_product(product_id=42, location_id=999) == 11
+    assert client.resolve_stock_entry_id_for_product(product_id=999, location_id=2) is None
+def test_add_product_to_stock_posts_stock_add(monkeypatch):
+    captured = {}
+
+    def fake_post(url, headers, json, timeout):
+        captured["url"] = url
+        captured["json"] = json
+        return FakeResponse({"ok": True})
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.services.grocy_client.requests.post", fake_post
+    )
+
+    client = GrocyClient(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+        )
+    )
+
+    client.add_product_to_stock(product_id=42, amount=3.5, best_before_date="2026-01-31")
+
+    assert captured["url"].endswith("/stock/products/42/add")
+    assert captured["json"] == {"amount": 3.5, "best_before_date": "2026-01-31"}
 def test_update_stock_entry_updates_amount_and_best_before(monkeypatch):
     called = {}
 

@@ -1011,6 +1011,53 @@ class GrocyClient:
         )
         response.raise_for_status()
 
+
+    def add_product_to_stock(
+        self,
+        product_id: int,
+        amount: float,
+        best_before_date: str = "",
+    ) -> None:
+        payload: Dict[str, Any] = {"amount": amount}
+        normalized_best_before = str(best_before_date or "").strip()
+        if normalized_best_before:
+            payload["best_before_date"] = normalized_best_before
+
+        response = requests.post(
+            f"{self.settings.grocy_base_url}/stock/products/{int(product_id)}/add",
+            headers=self.headers,
+            json=payload,
+            timeout=30,
+        )
+        response.raise_for_status()
+
+
+    def resolve_stock_entry_id_for_product(
+        self,
+        product_id: int,
+        location_id: int | None = None,
+    ) -> int | None:
+        stock_objects = self._get_stock_object_entries()
+        product_matches = [
+            entry
+            for entry in stock_objects
+            if self._safe_int(entry.get("product_id")) == int(product_id)
+        ]
+        if location_id is not None:
+            location_matches = [
+                entry
+                for entry in product_matches
+                if self._safe_int(entry.get("location_id")) == int(location_id)
+            ]
+            if location_matches:
+                product_matches = location_matches
+
+        for entry in product_matches:
+            stock_id = self._safe_int(entry.get("id"))
+            if stock_id is not None and stock_id > 0:
+                return stock_id
+        return None
+
     def update_stock_entry(
         self,
         stock_id: int,
