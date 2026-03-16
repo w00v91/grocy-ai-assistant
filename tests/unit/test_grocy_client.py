@@ -1941,3 +1941,28 @@ def test_create_product_retries_by_removing_unknown_columns(monkeypatch):
     assert "carbohydrates" in posted_payloads[0]
     assert "qu_factor_purchase_to_stock" in posted_payloads[1]
     assert "qu_factor_purchase_to_stock" not in posted_payloads[2]
+
+
+def test_get_storage_products_filters_by_search_query(monkeypatch):
+    client = GrocyClient(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+        )
+    )
+
+    monkeypatch.setattr(
+        client,
+        "get_stock_products",
+        lambda location_ids=None: [
+            {"id": 1, "name": "Milch", "location_name": "Kühlschrank", "amount": "1"},
+            {"id": 2, "name": "Brot", "location_name": "Vorrat", "amount": "1"},
+        ],
+    )
+
+    result = client.get_storage_products(search_query="kühl")
+
+    assert len(result) == 1
+    assert result[0]["name"] == "Milch"

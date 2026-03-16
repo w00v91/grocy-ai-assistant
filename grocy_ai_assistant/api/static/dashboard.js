@@ -137,6 +137,7 @@ function syncModalScrollLock() {
 let activeTab = "shopping";
 let shoppingListRefreshTimer = null;
 let shoppingListRefreshInFlight = false;
+let storageFilterDebounce = null;
 let shoppingListSignature = '';
 let scannerStream = null;
 let scannerInterval = null;
@@ -1610,6 +1611,14 @@ document.addEventListener('change', (event) => {
   }
 });
 
+
+document.getElementById('storage-filter-input')?.addEventListener('input', () => {
+  clearTimeout(storageFilterDebounce);
+  storageFilterDebounce = setTimeout(() => {
+    loadStorageProducts();
+  }, 250);
+});
+
 document.getElementById('name').addEventListener('input', () => {
   updateClearButtonVisibility();
   clearTimeout(variantsDebounce);
@@ -1876,12 +1885,7 @@ function renderStorageProducts() {
   const list = document.getElementById('storage-products');
   if (!list) return;
 
-  const filterValue = normalizeStorageFilterValue();
-  const filteredItems = storageProductsCache.filter((item) => {
-    if (!filterValue) return true;
-    const searchable = `${item.name || ''} ${item.location_name || ''}`.toLowerCase();
-    return searchable.includes(filterValue);
-  });
+  const filteredItems = storageProductsCache;
 
   if (!filteredItems.length) {
     list.innerHTML = '<li class="muted">Keine Produkte gefunden.</li>';
@@ -1946,10 +1950,18 @@ async function loadStorageProducts() {
 
     const includeAllProductsInput = document.getElementById('storage-include-all-products');
     const includeAllProducts = Boolean(includeAllProductsInput?.checked);
+    const filterValue = String(document.getElementById('storage-filter-input')?.value || '').trim();
     status.textContent = includeAllProducts ? 'Lade Lagerbestand und alle Produkte...' : 'Lade Lagerbestand...';
     try {
-      const endpoint = includeAllProducts
-        ? '/api/dashboard/stock-products?include_all_products=true'
+      const params = new URLSearchParams();
+      if (includeAllProducts) {
+        params.set('include_all_products', 'true');
+      }
+      if (filterValue) {
+        params.set('q', filterValue);
+      }
+      const endpoint = params.size
+        ? `/api/dashboard/stock-products?${params.toString()}`
         : '/api/dashboard/stock-products';
       const res = await fetch(buildApiUrl(endpoint), { headers: { Authorization: `Bearer ${key}` } });
       const payload = await parseJsonSafe(res);

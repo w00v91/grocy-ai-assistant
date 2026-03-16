@@ -4,6 +4,9 @@ All notable changes to this project are documented in this file.
 
 ## 7.1.80
 
+- UI (Lager-Tab): Dynamisches Laden beim Tippen im Filterfeld ergänzt (debounced Requests wie in der Such-Tab-Logik), damit große Bestände serverseitig gefiltert geladen werden.
+- API/Service (Lager): `GET /api/dashboard/stock-products` unterstützt nun den Query-Parameter `q` und gibt gefilterte Ergebnisse über Name/Lagerort zurück.
+- Test: API- und Unit-Tests für den neuen Suchfilter im Lager-Endpoint und in der Grocy-Client-Filterlogik ergänzt.
 - Verbesserung (Benachrichtigungen/Mobile Styling): Mobile Testbenachrichtigungen enthalten jetzt zusätzliche Styling-Metadaten wie `icon`, `notification_icon`, `group` und `color`, um auf mobilen Geräten konsistenter dargestellt zu werden.
 - Verbesserung (Benachrichtigungen/iOS): iOS-Payload ergänzt um `push.interruption-level`, damit Hinweise sichtbar, aber nicht überaggressiv zugestellt werden.
 - Verbesserung (Benachrichtigungen/Android): Android-Payload ergänzt um `importance` und `sticky`, zusätzlich zu bestehenden `priority`-/`channel`-Feldern.
