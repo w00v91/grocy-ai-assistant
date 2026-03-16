@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.81
+
+- Fix (UI/Einkaufsliste): Swipe-Aktionen im Produkt-Tab korrigiert – die auslösenden Aktionen sind nicht mehr vertauscht (links löscht, rechts markiert als gekauft), passend zur dargestellten Aktionsfläche.
+- Pflege: Add-on-Version auf `7.1.81` erhöht.
+
 ## 7.1.80
 
 - Verbesserung (Benachrichtigungen/Mobile Styling): Mobile Testbenachrichtigungen enthalten jetzt zusätzliche Styling-Metadaten wie `icon`, `notification_icon`, `group` und `color`, um auf mobilen Geräten konsistenter dargestellt zu werden.

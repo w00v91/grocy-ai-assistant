@@ -1418,11 +1418,11 @@ function bindShoppingSwipeInteractions() {
     interactiveElementSelector: '.amount-increment-button, .mhd-picker-button',
     onSwipeLeft: async (_, payload) => {
       const shoppingListId = payload.id;
-      await purchaseShoppingItem(shoppingListId);
+      await removeShoppingItem(shoppingListId);
     },
     onSwipeRight: async (_, payload) => {
       const shoppingListId = payload.id;
-      await removeShoppingItem(shoppingListId);
+      await purchaseShoppingItem(shoppingListId);
     },
     onTap: (_, payload) => {
       showShoppingItemDetails(payload);
