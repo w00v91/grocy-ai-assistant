@@ -3,6 +3,13 @@
 All notable changes to this project are documented in this file.
 
 
+## 7.1.87
+
+- Fix (API/Lager-Tab): Wenn ein Produkt über die Produkt-ID gefunden wird, aber kein nutzbarer `stock_id` vorhanden ist, wird beim Speichern nun automatisch ein Bestandseintrag über Grocy erstellt statt mit „Ungültiger Bestandseintrag" abzubrechen.
+- Fix (API/Lager-Tab): Für Produkte ohne bestehenden Bestandseintrag wird Menge `0` beim Speichern mit klarer 400-Fehlermeldung abgewiesen.
+- Test: API- und Unit-Tests für den neuen Fallback-Pfad ergänzt.
+- Pflege: Add-on-Version auf `7.1.87` erhöht.
+
 ## 7.1.86
 
 - Fix (UI/Lager-Tab): Mengenänderungen im Produkt-Popup akzeptieren wieder Kommawerte (z. B. `1,5`) und werden korrekt gespeichert.

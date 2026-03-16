@@ -1376,6 +1376,33 @@ def test_consume_stock_product_uses_product_and_stock_id(monkeypatch):
     assert called["json"] == {"amount": 1.5, "stock_entry_id": 77}
 
 
+
+
+def test_add_product_to_stock_posts_stock_add(monkeypatch):
+    captured = {}
+
+    def fake_post(url, headers, json, timeout):
+        captured["url"] = url
+        captured["json"] = json
+        return FakeResponse({"ok": True})
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.services.grocy_client.requests.post", fake_post
+    )
+
+    client = GrocyClient(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+        )
+    )
+
+    client.add_product_to_stock(product_id=42, amount=3.5, best_before_date="2026-01-31")
+
+    assert captured["url"].endswith("/stock/products/42/add")
+    assert captured["json"] == {"amount": 3.5, "best_before_date": "2026-01-31"}
 def test_update_stock_entry_updates_amount_and_best_before(monkeypatch):
     called = {}
 
