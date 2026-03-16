@@ -109,9 +109,7 @@ def _call_homeassistant_service(
             response_excerpt = (response.text or "").strip()
             if len(response_excerpt) > 180:
                 response_excerpt = f"{response_excerpt[:180]}…"
-            error_text = (
-                f"Service-Aufruf {domain}.{service} fehlgeschlagen ({response.status_code})"
-            )
+            error_text = f"Service-Aufruf {domain}.{service} fehlgeschlagen ({response.status_code})"
             if response_excerpt:
                 error_text = f"{error_text}: {response_excerpt}"
             errors.append(error_text)
@@ -165,7 +163,6 @@ def _build_homeassistant_auth_headers() -> list[dict[str, str]]:
     return header_candidates
 
 
-
 def _build_persistent_notification_user_error(raw_error: str | None) -> str:
     error_text = (raw_error or "").lower()
     if "(401)" in error_text or "unauthorized" in error_text or "(403)" in error_text:
@@ -185,6 +182,7 @@ def _build_persistent_notification_user_error(raw_error: str | None) -> str:
             "Home Assistant ist derzeit nicht erreichbar."
         )
     return "Persistente Benachrichtigung konnte nicht zugestellt werden. Bitte Add-on-Log prüfen."
+
 
 def _send_persistent_notification_to_homeassistant(
     *,
@@ -232,6 +230,52 @@ def _send_persistent_notification_to_homeassistant(
     if status_code in {404, 405}:
         return False, fallback_error or error
     return False, error or fallback_error
+
+
+def _build_mobile_notification_user_error(raw_error: str | None) -> str:
+    error_text = (raw_error or "").lower()
+    if "(401)" in error_text or "unauthorized" in error_text or "(403)" in error_text:
+        return (
+            "Mobile Benachrichtigung konnte nicht zugestellt werden: "
+            "Home-Assistant-Autorisierung fehlgeschlagen (401/403). "
+            "Bitte Add-on neu starten und Supervisor-/Home-Assistant-API-Berechtigungen prüfen."
+        )
+    if "(404)" in error_text or "service not found" in error_text:
+        return (
+            "Mobile Benachrichtigung konnte nicht zugestellt werden: "
+            "Der gewählte Notify-Service wurde in Home Assistant nicht gefunden."
+        )
+    if "nicht erreichbar" in error_text:
+        return (
+            "Mobile Benachrichtigung konnte nicht zugestellt werden: "
+            "Home Assistant ist derzeit nicht erreichbar."
+        )
+    return "Mobile Benachrichtigung konnte nicht zugestellt werden. Bitte Add-on-Log prüfen."
+
+
+def _send_mobile_notification_to_homeassistant(
+    *,
+    service_id: str,
+    title: str,
+    message: str,
+) -> tuple[bool, str | None]:
+    normalized_service = (service_id or "").strip()
+    if not normalized_service.startswith("notify."):
+        return False, "Ungültiger Notify-Service"
+
+    service = normalized_service.split(".", 1)[1]
+    if not service:
+        return False, "Ungültiger Notify-Service"
+
+    delivered, error, _ = _call_homeassistant_service(
+        "notify",
+        service,
+        {
+            "title": title,
+            "message": message,
+        },
+    )
+    return delivered, error
 
 
 def _normalize_barcode_for_lookup(raw_barcode: str) -> str:
@@ -2242,7 +2286,9 @@ def _discover_notification_targets_from_env() -> list[NotificationTargetModel]:
     return targets
 
 
-def _discover_notification_targets_from_homeassistant() -> list[NotificationTargetModel]:
+def _discover_notification_targets_from_homeassistant() -> (
+    list[NotificationTargetModel]
+):
     supervisor_url = (os.getenv("SUPERVISOR_URL") or "http://supervisor").rstrip("/")
     endpoint_candidates: list[str] = []
     for endpoint in (
@@ -2452,20 +2498,52 @@ def dashboard_notification_test_device(
     user_id = _resolve_dashboard_user_id(request)
     overview = _load_notification_overview(request)
     target_id = payload.target_id
-    if target_id and not any(device.id == target_id for device in overview.devices):
-        raise HTTPException(status_code=404, detail="Device not found")
 
-    entry = create_history_entry(
-        event_type="shopping_due",
+    selected_device = None
+    if target_id:
+        selected_device = next(
+            (device for device in overview.devices if device.id == target_id),
+            None,
+        )
+        if not selected_device:
+            raise HTTPException(status_code=404, detail="Device not found")
+    else:
+        selected_device = next(
+            (device for device in overview.devices if device.active), None
+        )
+
+    if not selected_device:
+        raise HTTPException(status_code=400, detail="No active device found")
+
+    delivered, error = _send_mobile_notification_to_homeassistant(
+        service_id=selected_device.service,
         title="Testbenachrichtigung",
-        message=f"Test an {target_id or 'aktives Gerät'}",
-        delivered=True,
-        target_id=target_id,
-        channels=["mobile_push"],
+        message=f"Test an {selected_device.display_name}",
     )
-    overview.history.insert(0, entry)
+    user_error = _build_mobile_notification_user_error(error)
+
+    overview.history.insert(
+        0,
+        create_history_entry(
+            event_type="shopping_due",
+            title="Testbenachrichtigung",
+            message=f"Test an {selected_device.display_name}",
+            delivered=delivered,
+            target_id=selected_device.id,
+            channels=["mobile_push"],
+            error="" if delivered else user_error,
+        ),
+    )
     store.save_overview_for_user(user_id, overview)
-    return {"success": True, "message": "Testbenachrichtigung protokolliert."}
+
+    if not delivered:
+        logger.warning(
+            "Mobile Testbenachrichtigung fehlgeschlagen (technisch): %s",
+            error or "notify-Service konnte nicht versendet werden",
+        )
+        raise HTTPException(status_code=502, detail=user_error)
+
+    return {"success": True, "message": "Testbenachrichtigung gesendet."}
 
 
 @router.post("/api/dashboard/notifications/tests/all")
@@ -2477,20 +2555,53 @@ def dashboard_notification_test_all(
     user_id = _resolve_dashboard_user_id(request)
     overview = _load_notification_overview(request)
     active_devices = [device for device in overview.devices if device.active]
+
+    if not active_devices:
+        raise HTTPException(status_code=400, detail="No active device found")
+
+    sent_to = 0
+    failed_to = 0
+    last_error = ""
     for device in active_devices:
+        delivered, error = _send_mobile_notification_to_homeassistant(
+            service_id=device.service,
+            title="Testbenachrichtigung",
+            message=f"Test an {device.display_name}",
+        )
+        if delivered:
+            sent_to += 1
+            user_error = ""
+        else:
+            failed_to += 1
+            last_error = error or last_error
+            user_error = _build_mobile_notification_user_error(error)
+
         overview.history.insert(
             0,
             create_history_entry(
                 event_type="shopping_due",
                 title="Testbenachrichtigung",
                 message=f"Test an {device.display_name}",
-                delivered=True,
+                delivered=delivered,
                 target_id=device.id,
                 channels=["mobile_push"],
+                error=user_error,
             ),
         )
+
     store.save_overview_for_user(user_id, overview)
-    return {"success": True, "sent_to": len(active_devices)}
+
+    if sent_to == 0 and failed_to > 0:
+        logger.warning(
+            "Mobile Testbenachrichtigung an alle Geräte fehlgeschlagen (technisch): %s",
+            last_error or "notify-Services konnten nicht versendet werden",
+        )
+        raise HTTPException(
+            status_code=502,
+            detail=_build_mobile_notification_user_error(last_error),
+        )
+
+    return {"success": True, "sent_to": sent_to, "failed_to": failed_to}
 
 
 @router.post("/api/dashboard/notifications/tests/persistent")
