@@ -10,6 +10,8 @@ All notable changes to this project are documented in this file.
 
 ## 7.1.83
 
+- Fix (Lager-Tab): Das Speichern einer Bestandsmenge von `0` bleibt nun erhalten und wird nicht mehr als leerer Wert zurückgegeben.
+- Test: Unit-Test ergänzt, der sicherstellt, dass `0` als Bestandsmenge als String `"0"` im Storage-Listing erhalten bleibt.
 - UI/Config: Dashboard-Polling-Intervall für die Einkaufsliste als konfigurierbare Option (`dashboard_polling_interval_seconds`) ergänzt und im Frontend an die Auto-Refresh-Logik angebunden.
 - Home-Assistant-Integration: Options-Flow um `dashboard_polling_interval_seconds` (1-60 Sekunden) erweitert.
 - Pflege: Add-on-Version auf `7.1.83` erhöht.
