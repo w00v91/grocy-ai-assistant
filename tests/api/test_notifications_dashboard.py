@@ -368,7 +368,9 @@ def test_notification_persistent_test_falls_back_to_notify_on_core_400(
 
     assert response.status_code == 200
     assert any("/persistent_notification/create" in url for url, _ in calls)
-    fallback_calls = [payload for url, payload in calls if "/notify/persistent_notification" in url]
+    fallback_calls = [
+        payload for url, payload in calls if "/notify/persistent_notification" in url
+    ]
     assert fallback_calls
     assert "notification_id" not in fallback_calls[0]
 
@@ -404,3 +406,196 @@ def test_notification_persistent_test_uses_x_hassio_key_header_when_required(
 
     assert response.status_code == 200
     assert any(h.get("X-Hassio-Key") == "token" for h in called_headers)
+
+
+def test_notification_mobile_test_all_calls_notify_services(
+    client, monkeypatch, tmp_path
+):
+    monkeypatch.setattr(
+        routes, "NOTIFICATION_STORAGE_PATH", tmp_path / "notification_dashboard.json"
+    )
+    monkeypatch.setenv("SUPERVISOR_TOKEN", "token")
+
+    class _GetResponse:
+        status_code = 200
+
+        @staticmethod
+        def json():
+            return [
+                {
+                    "domain": "notify",
+                    "services": {
+                        "mobile_app_samsung_s23": {},
+                    },
+                }
+            ]
+
+    called_posts = []
+
+    class _PostResponse:
+        status_code = 200
+        text = ""
+
+    def _fake_get(url, headers=None, timeout=None):
+        return _GetResponse()
+
+    def _fake_post(url, headers=None, json=None, timeout=None):
+        called_posts.append((url, json or {}))
+        return _PostResponse()
+
+    monkeypatch.setattr(routes.requests, "get", _fake_get)
+    monkeypatch.setattr(routes.requests, "post", _fake_post)
+
+    response = client.post(
+        "/api/dashboard/notifications/tests/all",
+        headers={"Authorization": "Bearer test-api-key"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["sent_to"] == 1
+    assert any(
+        "/api/services/notify/mobile_app_samsung_s23" in url for url, _ in called_posts
+    )
+
+
+def test_notification_mobile_test_device_returns_error_on_service_failure(
+    client, monkeypatch, tmp_path
+):
+    monkeypatch.setattr(
+        routes, "NOTIFICATION_STORAGE_PATH", tmp_path / "notification_dashboard.json"
+    )
+    monkeypatch.setenv("SUPERVISOR_TOKEN", "token")
+
+    class _GetResponse:
+        status_code = 200
+
+        @staticmethod
+        def json():
+            return [
+                {
+                    "domain": "notify",
+                    "services": {
+                        "mobile_app_samsung_s23": {},
+                    },
+                }
+            ]
+
+    class _PostResponse:
+        status_code = 404
+        text = "Service not found"
+
+    def _fake_get(url, headers=None, timeout=None):
+        return _GetResponse()
+
+    def _fake_post(url, headers=None, json=None, timeout=None):
+        return _PostResponse()
+
+    monkeypatch.setattr(routes.requests, "get", _fake_get)
+    monkeypatch.setattr(routes.requests, "post", _fake_post)
+
+    response = client.post(
+        "/api/dashboard/notifications/tests/device",
+        headers={"Authorization": "Bearer test-api-key"},
+        json={"target_id": "notify.mobile_app_samsung_s23"},
+    )
+
+    assert response.status_code == 502
+    assert "Notify-Service" in response.text
+
+
+def test_notification_mobile_test_device_uses_ios_payload_when_platform_is_ios(
+    client, monkeypatch, tmp_path
+):
+    monkeypatch.setattr(
+        routes, "NOTIFICATION_STORAGE_PATH", tmp_path / "notification_dashboard.json"
+    )
+    monkeypatch.setenv("SUPERVISOR_TOKEN", "token")
+
+    class _GetResponse:
+        status_code = 200
+
+        @staticmethod
+        def json():
+            return [
+                {
+                    "domain": "notify",
+                    "services": {
+                        "mobile_app_iphone_15": {},
+                    },
+                }
+            ]
+
+    captured_payload = {}
+
+    class _PostResponse:
+        status_code = 200
+        text = ""
+
+    def _fake_get(url, headers=None, timeout=None):
+        return _GetResponse()
+
+    def _fake_post(url, headers=None, json=None, timeout=None):
+        captured_payload.update(json or {})
+        return _PostResponse()
+
+    monkeypatch.setattr(routes.requests, "get", _fake_get)
+    monkeypatch.setattr(routes.requests, "post", _fake_post)
+
+    response = client.post(
+        "/api/dashboard/notifications/tests/device",
+        headers={"Authorization": "Bearer test-api-key"},
+        json={"target_id": "notify.mobile_app_iphone_15"},
+    )
+
+    assert response.status_code == 200
+    assert captured_payload["data"]["url"] == "/lovelace/default_view"
+    assert "push" in captured_payload["data"]
+
+
+def test_notification_mobile_test_device_uses_android_payload_when_platform_is_android(
+    client, monkeypatch, tmp_path
+):
+    monkeypatch.setattr(
+        routes, "NOTIFICATION_STORAGE_PATH", tmp_path / "notification_dashboard.json"
+    )
+    monkeypatch.setenv("SUPERVISOR_TOKEN", "token")
+
+    class _GetResponse:
+        status_code = 200
+
+        @staticmethod
+        def json():
+            return [
+                {
+                    "domain": "notify",
+                    "services": {
+                        "mobile_app_samsung_s23": {},
+                    },
+                }
+            ]
+
+    captured_payload = {}
+
+    class _PostResponse:
+        status_code = 200
+        text = ""
+
+    def _fake_get(url, headers=None, timeout=None):
+        return _GetResponse()
+
+    def _fake_post(url, headers=None, json=None, timeout=None):
+        captured_payload.update(json or {})
+        return _PostResponse()
+
+    monkeypatch.setattr(routes.requests, "get", _fake_get)
+    monkeypatch.setattr(routes.requests, "post", _fake_post)
+
+    response = client.post(
+        "/api/dashboard/notifications/tests/device",
+        headers={"Authorization": "Bearer test-api-key"},
+        json={"target_id": "notify.mobile_app_samsung_s23"},
+    )
+
+    assert response.status_code == 200
+    assert captured_payload["data"]["clickAction"] == "/lovelace/default_view"
+    assert captured_payload["data"]["priority"] == "high"

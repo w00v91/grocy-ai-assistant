@@ -278,16 +278,55 @@ body.modal-open {
 
 .notification-device-item {
   display: flex;
-  gap: 0.55rem;
+  gap: 0.65rem;
   align-items: flex-start;
-  padding: 0.55rem 0.7rem;
-  background: var(--item-bg);
+  padding: 0.7rem 0.8rem;
+  background: linear-gradient(160deg, color-mix(in srgb, var(--item-bg) 85%, transparent), var(--item-bg));
   border: 1px solid var(--item-border);
-  border-radius: 10px;
+  border-radius: 14px;
+  box-shadow: 0 8px 24px color-mix(in srgb, #0f172a 8%, transparent);
+}
+
+.notification-device-item.platform-android {
+  border-left: 4px solid #22c55e;
+}
+
+.notification-device-item.platform-ios {
+  border-left: 4px solid #60a5fa;
+}
+
+.notification-device-content {
+  min-width: 0;
+  display: grid;
+  gap: 0.2rem;
+}
+
+.notification-device-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+}
+
+.notification-platform-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  border-radius: 999px;
+  border: 1px solid var(--item-border);
+  background: color-mix(in srgb, var(--item-bg) 70%, var(--card-bg));
+  padding: 0.15rem 0.55rem;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.notification-payload-hint {
+  opacity: 0.85;
 }
 
 .notification-device-item small {
   display: block;
+  overflow-wrap: anywhere;
 }
 
 .notification-list {
@@ -366,6 +405,42 @@ body.modal-open {
   line-height: 1.3;
 }
 
+
+
+.notification-history-item {
+  padding: 0.72rem 0.82rem;
+  display: grid;
+  gap: 0.3rem;
+}
+
+.notification-history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.notification-delivery-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.12rem 0.55rem;
+  font-size: 0.76rem;
+  font-weight: 700;
+  border: 1px solid transparent;
+}
+
+.notification-history-item.is-delivered .notification-delivery-badge {
+  color: #166534;
+  background: color-mix(in srgb, #22c55e 20%, transparent);
+  border-color: color-mix(in srgb, #22c55e 45%, transparent);
+}
+
+.notification-history-item.is-failed .notification-delivery-badge {
+  color: #b91c1c;
+  background: color-mix(in srgb, #ef4444 20%, transparent);
+  border-color: color-mix(in srgb, #ef4444 45%, transparent);
+}
 
 .notification-rule-modal-content {
   width: min(760px, calc(100% - 1.5rem));
