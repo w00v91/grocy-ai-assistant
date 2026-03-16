@@ -27,6 +27,31 @@ All notable changes to this project are documented in this file.
 - Fix (Produktanlage/Nährwerte): KI-Nährwerte (inkl. Kalorien/Energie) werden nach dem Erstellen neuer Produkte jetzt zuverlässig auf das Grocy-Produkt geschrieben.
 - Pflege: Add-on-Version auf `7.1.86` erhöht.
 
+## 7.1.89
+
+- Fix (API/Grocy): `PUT /objects/stock/{id}` sendet `best_before_date` nur noch, wenn tatsächlich ein Datum gesetzt ist; leere Werte werden nicht mehr als `null` übertragen, um 400-Fehler beim Speichern im Produkt-Popup zu vermeiden.
+- Test: Unit-Test ergänzt, der sicherstellt, dass bei leerem MHD nur `{"amount": ...}` gesendet wird.
+- Pflege: Add-on-Version auf `7.1.89` erhöht.
+
+## 7.1.88
+
+- Fix (API/Lager-Tab): Speichern im Produkt-Popup verwendet bei fehlender `stock_id` nun zuerst eine serverseitige Auflösung über `product_id` + `location_id`, damit die Menge als absoluter Wert aktualisiert wird (statt unbeabsichtigt `+1` über den Add-Endpoint).
+- Fix (API/Lager-Tab): Nur wenn kein Bestandseintrag auflösbar ist, wird weiterhin ein neuer Eintrag erstellt.
+- Test: API- und Unit-Tests für die neue Stock-ID-Auflösung ergänzt.
+- Pflege: Add-on-Version auf `7.1.88` erhöht.
+
+## 7.1.87
+
+- Fix (API/Lager-Tab): Wenn ein Produkt über die Produkt-ID gefunden wird, aber kein nutzbarer `stock_id` vorhanden ist, wird beim Speichern nun automatisch ein Bestandseintrag über Grocy erstellt statt mit „Ungültiger Bestandseintrag" abzubrechen.
+- Fix (API/Lager-Tab): Für Produkte ohne bestehenden Bestandseintrag wird Menge `0` beim Speichern mit klarer 400-Fehlermeldung abgewiesen.
+- Test: API- und Unit-Tests für den neuen Fallback-Pfad ergänzt.
+- Pflege: Add-on-Version auf `7.1.87` erhöht.
+
+## 7.1.86
+
+- Fix (UI/Lager-Tab): Mengenänderungen im Produkt-Popup akzeptieren wieder Kommawerte (z. B. `1,5`) und werden korrekt gespeichert.
+- Pflege: Add-on-Version auf `7.1.86` erhöht.
+
 ## 7.1.85
 
 - Fix (UI/Lager-Tab): Swipe-Aktionen bei Produkten korrigiert – links wird jetzt wie angezeigt „Verbrauchen" ausgelöst, rechts „Bearbeiten".

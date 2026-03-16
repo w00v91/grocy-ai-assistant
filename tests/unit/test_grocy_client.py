@@ -1462,6 +1462,36 @@ def test_update_stock_entry_updates_amount_and_best_before(monkeypatch):
     assert called["json"] == {"amount": 3, "best_before_date": "2026-01-31"}
 
 
+def test_update_stock_entry_omits_empty_best_before_date(monkeypatch):
+    called = {}
+
+    class FakePutResponse(FakeResponse):
+        pass
+
+    def fake_put(url, *args, **kwargs):
+        called["url"] = url
+        called["json"] = kwargs.get("json")
+        return FakePutResponse({})
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.services.grocy_client.requests.put", fake_put
+    )
+
+    client = GrocyClient(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+        )
+    )
+
+    client.update_stock_entry(stock_id=77, amount=3, best_before_date="")
+
+    assert called["url"].endswith("/objects/stock/77")
+    assert called["json"] == {"amount": 3}
+
+
 def test_delete_stock_entry_deletes_objects_stock(monkeypatch):
     called = {}
 

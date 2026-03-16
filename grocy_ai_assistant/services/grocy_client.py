@@ -1066,9 +1066,8 @@ class GrocyClient:
     ) -> None:
         payload: Dict[str, Any] = {"amount": amount}
         normalized_best_before = str(best_before_date or "").strip()
-        payload["best_before_date"] = (
-            normalized_best_before if normalized_best_before else None
-        )
+        if normalized_best_before:
+            payload["best_before_date"] = normalized_best_before
 
         response = requests.put(
             f"{self.settings.grocy_base_url}/objects/stock/{int(stock_id)}",
