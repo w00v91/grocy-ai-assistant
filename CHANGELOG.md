@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.77
+
+- Fix (Benachrichtigungen/Testversand): Die Endpunkte `POST /api/dashboard/notifications/tests/device` und `POST /api/dashboard/notifications/tests/all` senden mobile Testbenachrichtigungen jetzt tatsächlich an Home Assistant (`notify.mobile_app_*`) statt nur einen Verlaufseintrag zu speichern.
+- Fix (Benachrichtigungen/Fehlerhandling): Fehlgeschlagene mobile Testsendungen liefern nun nutzerfreundliche 502-Fehlermeldungen und werden im Verlauf als fehlgeschlagen markiert.
+- Test: API-Tests ergänzt, die den echten Service-Call für mobile Tests sowie den Fehlerpfad bei fehlendem Notify-Service absichern.
+- Pflege: Add-on-Version auf `7.1.77` erhöht.
+
 ## 7.1.76
 
 - UI (Lager-Tab): Produktkarten im Lager verwenden jetzt denselben HTML-Aufbau wie Produkte im Such-Tab (gemeinsame Card-/Content-Struktur für Bild, Meta-Bereich und Badge-Spalte).
