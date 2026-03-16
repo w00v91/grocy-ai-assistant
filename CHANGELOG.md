@@ -2,6 +2,20 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.91
+
+- Fix (API/Grocy/Nährwerte): Beim Nährwert-Update wird `carbs` jetzt zusätzlich zu `carbohydrates` gesendet (analog zu `calories` + `energy`), um unterschiedliche Grocy-Schemata besser zu unterstützen.
+- Fix (API/Grocy/Anzeige): Beim Lesen von Produktdaten wird für Kohlenhydrate nun erst `carbohydrates` und fallback auf `carbs` verwendet.
+- Test: Unit-Tests für `carbs`-Fallback beim Lesen und erweitertes Nährwert-Payload ergänzt.
+- Pflege: Add-on-Version auf `7.1.91` erhöht.
+
+## 7.1.90
+
+- Fix (API/Grocy/Nährwerte): Wenn Grocy ein Nährwert-Update mit 400 ablehnt und keine unbekannte Spalte aus der Fehlermeldung extrahiert werden kann, wird das Update nun defensiv übersprungen statt den gesamten Request mit 500 abzubrechen.
+- Verbesserung (Logging): Für diesen Fall wird eine klare Warnung mit Response-Body protokolliert.
+- Test: Unit-Test ergänzt, der den 400-Fehler ohne extrahierbare Spalte absichert.
+- Pflege: Add-on-Version auf `7.1.90` erhöht.
+
 ## 7.1.88
 
 - Fix (Produktanlage/Nährwerte): Das Nährwert-Update nach der Produktanlage ist jetzt abwärtskompatibel. Bei Grocy-Instanzen ohne einzelne Spalten (z. B. `calories`, `carbohydrates`) werden unbekannte Felder schrittweise entfernt statt den gesamten Request mit 500 scheitern zu lassen.

@@ -712,7 +712,11 @@ class GrocyClient:
                         product.get("default_best_before_days") or ""
                     ),
                     "calories": str(product.get("calories") or ""),
-                    "carbs": str(product.get("carbohydrates") or ""),
+                    "carbs": str(
+                        product.get("carbohydrates")
+                        or product.get("carbs")
+                        or ""
+                    ),
                     "fat": str(product.get("fat") or ""),
                     "protein": str(product.get("protein") or ""),
                 }
@@ -903,7 +907,11 @@ class GrocyClient:
                     or ""
                 ),
                 "calories": str(product.get("calories") or ""),
-                "carbs": str(product.get("carbohydrates") or ""),
+                "carbs": str(
+                    product.get("carbohydrates")
+                    or product.get("carbs")
+                    or ""
+                ),
                 "fat": str(product.get("fat") or ""),
                 "protein": str(product.get("protein") or ""),
                 "sugar": str(product.get("sugar") or ""),
@@ -973,7 +981,11 @@ class GrocyClient:
                         "amount": "0",
                         "best_before_date": "",
                         "calories": str(product.get("calories") or ""),
-                        "carbs": str(product.get("carbohydrates") or ""),
+                        "carbs": str(
+                            product.get("carbohydrates")
+                            or product.get("carbs")
+                            or ""
+                        ),
                         "fat": str(product.get("fat") or ""),
                         "protein": str(product.get("protein") or ""),
                         "sugar": str(product.get("sugar") or ""),
@@ -1098,6 +1110,7 @@ class GrocyClient:
             "calories": calories,
             "energy": calories,
             "carbohydrates": carbs,
+            "carbs": carbs,
             "fat": fat,
             "protein": protein,
             "sugar": sugar,
@@ -1131,7 +1144,12 @@ class GrocyClient:
                     getattr(response, "text", ""),
                 )
                 if next_payload == retry_payload:
-                    raise
+                    logger.warning(
+                        "Grocy rejected nutrition payload with 400 and no removable unknown column. "
+                        "Skipping nutrition update to avoid failing the request. response_body=%s",
+                        response.text,
+                    )
+                    return
 
                 logger.warning(
                     "Grocy rejected nutrition payload with 400. Retrying without unknown column. "
