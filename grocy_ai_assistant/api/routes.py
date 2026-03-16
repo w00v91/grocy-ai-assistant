@@ -166,6 +166,27 @@ def _call_homeassistant_service(
     return False, " | ".join(errors), last_status_code
 
 
+
+def _build_persistent_notification_user_error(raw_error: str | None) -> str:
+    error_text = (raw_error or "").lower()
+    if "(401)" in error_text or "unauthorized" in error_text or "(403)" in error_text:
+        return (
+            "Persistente Benachrichtigung konnte nicht zugestellt werden: "
+            "Home-Assistant-Autorisierung fehlgeschlagen (401/403). "
+            "Bitte Add-on neu starten und Supervisor-/Home-Assistant-API-Berechtigungen prüfen."
+        )
+    if "(404)" in error_text or "service not found" in error_text:
+        return (
+            "Persistente Benachrichtigung konnte nicht zugestellt werden: "
+            "Der benötigte Home-Assistant-Service wurde nicht gefunden."
+        )
+    if "nicht erreichbar" in error_text:
+        return (
+            "Persistente Benachrichtigung konnte nicht zugestellt werden: "
+            "Home Assistant ist derzeit nicht erreichbar."
+        )
+    return "Persistente Benachrichtigung konnte nicht zugestellt werden. Bitte Add-on-Log prüfen."
+
 def _send_persistent_notification_to_homeassistant(
     *,
     title: str,
@@ -2420,6 +2441,7 @@ def dashboard_notification_test_persistent(
         message="Test als persistent_notification",
         notification_id=_safe_notification_id(user_id),
     )
+    user_error = _build_persistent_notification_user_error(error)
     overview.history.insert(
         0,
         create_history_entry(
@@ -2429,15 +2451,19 @@ def dashboard_notification_test_persistent(
             delivered=delivered,
             target_id="persistent_notification",
             channels=["persistent_notification"],
-            error=error or "",
+            error="" if delivered else user_error,
         ),
     )
     store.save_overview_for_user(user_id, overview)
 
     if not delivered:
+        logger.warning(
+            "Persistente Testbenachrichtigung fehlgeschlagen (technisch): %s",
+            error or "persistent_notification konnte nicht versendet werden",
+        )
         raise HTTPException(
             status_code=502,
-            detail=error or "persistent_notification konnte nicht versendet werden",
+            detail=user_error,
         )
 
     return {"success": True}

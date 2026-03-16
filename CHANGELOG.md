@@ -2,11 +2,22 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.74
+
+- Fix (Benachrichtigungen/Fehlertexte): Technische Mehrfachfehler aus Supervisor-Header- und Endpoint-Retries werden nicht mehr 1:1 als UI-Statusmeldung ausgegeben. Stattdessen liefert die API jetzt eine kurze, verständliche Fehlermeldung (z. B. Autorisierungsfehler 401/403).
+- Verbesserung (Logging): Die vollständige technische Fehlerkette bleibt weiterhin im Add-on-Log erhalten, damit die Ursachenanalyse möglich bleibt.
+- Verbesserung (Benachrichtigungsverlauf): Der History-Eintrag für fehlgeschlagene persistente Tests enthält nun ebenfalls die nutzerfreundliche Fehlermeldung statt der langen technischen Retry-Kette.
+- Test: API-Test für den 401-Pfad auf die neue nutzerfreundliche Fehlermeldung erweitert.
+- Pflege: Add-on-Version auf `7.1.74` erhöht.
+
 ## 7.1.73
 
 - UI (Lager-Tab): Attributdarstellung der Lagerprodukte an das Such-Layout angepasst; `Lager` bleibt als Zeile unter dem Produktnamen.
 - UI (Lager-Tab): `Menge` und `MHD` werden rechts als Badge-Spalte dargestellt, analog zur Produktsuche.
 - UI (Lager/Swipe): Swipe-Aktionsflächen im Lager zeigen Bearbeiten/Verbrauchen jetzt ebenfalls als Badge-Chips wie im Such-Tab.
+- Fix (Add-on/Home Assistant OS): `config.json` aktiviert jetzt `homeassistant_api` und `hassio_api`, damit Supervisor-Token/HA-API im Add-on zuverlässig verfügbar sind und Service-Calls für persistente Benachrichtigungen nicht mehr an fehlenden Berechtigungen scheitern.
+- Verbesserung (Logging): Bei fehlgeschlagenem Versand persistenter Testbenachrichtigungen wird die genaue Fehlerursache jetzt zusätzlich ins Add-on-Log geschrieben.
+- Test: Unit-Test ergänzt, der die API-Flags in `config.json` absichert.
 - Pflege: Add-on-Version auf `7.1.73` erhöht.
 
 ## 7.1.72
