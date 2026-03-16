@@ -2754,6 +2754,7 @@ def _render_dashboard(settings: Settings, request: Request):
             "scanner_llava_fallback_seconds": settings.scanner_barcode_fallback_seconds,
             "scanner_llava_timeout_seconds": settings.scanner_llava_timeout_seconds,
             "ha_user_id": _resolve_dashboard_user_id(request),
+            "dashboard_polling_interval_seconds": settings.dashboard_polling_interval_seconds,
         },
     )
 
