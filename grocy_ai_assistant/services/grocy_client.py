@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 class GrocyClient:
+    FALLBACK_BEST_BEFORE_DAYS = 4
     MIN_VECTOR_SIMILARITY = 0.55
     SHOPPING_LIST_MHD_NOTE_PREFIX = "[grocy_ai_mhd:"
     SHOPPING_LIST_MHD_NOTE_PATTERN = re.compile(r"\[grocy_ai_mhd:(\d{4}-\d{2}-\d{2})\]")
@@ -160,7 +161,7 @@ class GrocyClient:
             days = self._get_product_default_best_before_days(product_id)
 
         if days is None or days <= 0:
-            return ""
+            days = self.FALLBACK_BEST_BEFORE_DAYS
 
         return (datetime.now().date() + timedelta(days=days)).isoformat()
 
@@ -675,12 +676,7 @@ class GrocyClient:
                     "location_name": locations.get(location_id, ""),
                     "in_stock": self._to_string_or_empty(stock_entry.get("amount")),
                     "note": clean_note,
-                    "best_before_date": best_before_date_from_note
-                    or str(
-                        stock_entry.get("best_before_date")
-                        or stock_entry.get("best_before_date_calculated")
-                        or ""
-                    ),
+                    "best_before_date": best_before_date_from_note,
                     "default_amount": str(
                         product.get("default_best_before_days") or ""
                     ),

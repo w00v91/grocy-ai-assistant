@@ -2,6 +2,7 @@
 
 All notable changes to this project are documented in this file.
 
+
 ## 7.1.84
 
 - UI (Lager-Tab): Das konfigurierbare Dashboard-Polling-Intervall steuert jetzt auch das Auto-Refresh im Lager-Tab (nur aktiver Tab, pausiert bei inaktivem Browser-Tab).
@@ -10,6 +11,9 @@ All notable changes to this project are documented in this file.
 
 ## 7.1.83
 
+- Fix (Einkaufsliste/MHD): Beim Laden der Einkaufsliste wird ein MHD jetzt nur noch aus der Einkaufslisten-Notiz (`[grocy_ai_mhd:...]`) übernommen. Leere MHDs werden nicht mehr automatisch mit Lager-/Grocy-Werten überschrieben.
+- Verbesserung (MHD-Fallback): Wenn beim "Einkaufen" weder ein explizites MHD noch `default_best_before_days` (aus KI oder Produktstandard) vorhanden ist, wird als Fallback automatisch `heute + 4 Tage` gesetzt.
+- Test: Unit-Tests für den neuen Einkaufslisten-MHD-Import und den globalen `+4 Tage`-Fallback ergänzt.
 - Fix (Lager-Tab): Das Speichern einer Bestandsmenge von `0` bleibt nun erhalten und wird nicht mehr als leerer Wert zurückgegeben.
 - Test: Unit-Test ergänzt, der sicherstellt, dass `0` als Bestandsmenge als String `"0"` im Storage-Listing erhalten bleibt.
 - UI/Config: Dashboard-Polling-Intervall für die Einkaufsliste als konfigurierbare Option (`dashboard_polling_interval_seconds`) ergänzt und im Frontend an die Auto-Refresh-Logik angebunden.
