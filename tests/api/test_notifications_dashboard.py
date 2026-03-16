@@ -548,8 +548,12 @@ def test_notification_mobile_test_device_uses_ios_payload_when_platform_is_ios(
     )
 
     assert response.status_code == 200
+    assert captured_payload["data"]["icon"] == "mdi:fridge-outline"
+    assert captured_payload["data"]["notification_icon"] == "mdi:fridge-outline"
+    assert captured_payload["data"]["group"] == "grocy-assistant"
     assert captured_payload["data"]["url"] == "/lovelace/default_view"
     assert "push" in captured_payload["data"]
+    assert captured_payload["data"]["push"]["interruption-level"] == "active"
 
 
 def test_notification_mobile_test_device_uses_android_payload_when_platform_is_android(
@@ -597,5 +601,9 @@ def test_notification_mobile_test_device_uses_android_payload_when_platform_is_a
     )
 
     assert response.status_code == 200
+    assert captured_payload["data"]["icon"] == "mdi:fridge-outline"
+    assert captured_payload["data"]["notification_icon"] == "mdi:fridge-outline"
+    assert captured_payload["data"]["color"] == "#4F46E5"
     assert captured_payload["data"]["clickAction"] == "/lovelace/default_view"
     assert captured_payload["data"]["priority"] == "high"
+    assert captured_payload["data"]["importance"] == "high"
