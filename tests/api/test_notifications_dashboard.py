@@ -501,3 +501,101 @@ def test_notification_mobile_test_device_returns_error_on_service_failure(
 
     assert response.status_code == 502
     assert "Notify-Service" in response.text
+
+
+def test_notification_mobile_test_device_uses_ios_payload_when_platform_is_ios(
+    client, monkeypatch, tmp_path
+):
+    monkeypatch.setattr(
+        routes, "NOTIFICATION_STORAGE_PATH", tmp_path / "notification_dashboard.json"
+    )
+    monkeypatch.setenv("SUPERVISOR_TOKEN", "token")
+
+    class _GetResponse:
+        status_code = 200
+
+        @staticmethod
+        def json():
+            return [
+                {
+                    "domain": "notify",
+                    "services": {
+                        "mobile_app_iphone_15": {},
+                    },
+                }
+            ]
+
+    captured_payload = {}
+
+    class _PostResponse:
+        status_code = 200
+        text = ""
+
+    def _fake_get(url, headers=None, timeout=None):
+        return _GetResponse()
+
+    def _fake_post(url, headers=None, json=None, timeout=None):
+        captured_payload.update(json or {})
+        return _PostResponse()
+
+    monkeypatch.setattr(routes.requests, "get", _fake_get)
+    monkeypatch.setattr(routes.requests, "post", _fake_post)
+
+    response = client.post(
+        "/api/dashboard/notifications/tests/device",
+        headers={"Authorization": "Bearer test-api-key"},
+        json={"target_id": "notify.mobile_app_iphone_15"},
+    )
+
+    assert response.status_code == 200
+    assert captured_payload["data"]["url"] == "/lovelace/default_view"
+    assert "push" in captured_payload["data"]
+
+
+def test_notification_mobile_test_device_uses_android_payload_when_platform_is_android(
+    client, monkeypatch, tmp_path
+):
+    monkeypatch.setattr(
+        routes, "NOTIFICATION_STORAGE_PATH", tmp_path / "notification_dashboard.json"
+    )
+    monkeypatch.setenv("SUPERVISOR_TOKEN", "token")
+
+    class _GetResponse:
+        status_code = 200
+
+        @staticmethod
+        def json():
+            return [
+                {
+                    "domain": "notify",
+                    "services": {
+                        "mobile_app_samsung_s23": {},
+                    },
+                }
+            ]
+
+    captured_payload = {}
+
+    class _PostResponse:
+        status_code = 200
+        text = ""
+
+    def _fake_get(url, headers=None, timeout=None):
+        return _GetResponse()
+
+    def _fake_post(url, headers=None, json=None, timeout=None):
+        captured_payload.update(json or {})
+        return _PostResponse()
+
+    monkeypatch.setattr(routes.requests, "get", _fake_get)
+    monkeypatch.setattr(routes.requests, "post", _fake_post)
+
+    response = client.post(
+        "/api/dashboard/notifications/tests/device",
+        headers={"Authorization": "Bearer test-api-key"},
+        json={"target_id": "notify.mobile_app_samsung_s23"},
+    )
+
+    assert response.status_code == 200
+    assert captured_payload["data"]["clickAction"] == "/lovelace/default_view"
+    assert captured_payload["data"]["priority"] == "high"

@@ -253,11 +253,54 @@ def _build_mobile_notification_user_error(raw_error: str | None) -> str:
     return "Mobile Benachrichtigung konnte nicht zugestellt werden. Bitte Add-on-Log prüfen."
 
 
+def _infer_mobile_platform(service_id: str, platform_hint: str = "") -> str:
+    normalized_hint = (platform_hint or "").strip().lower()
+    if normalized_hint in {"android", "ios"}:
+        return normalized_hint
+
+    service_name = (service_id or "").strip().lower()
+    ios_markers = ("iphone", "ipad", "ios", "watch")
+    if any(marker in service_name for marker in ios_markers):
+        return "ios"
+    return "android"
+
+
+def _build_mobile_notification_payload(
+    *,
+    title: str,
+    message: str,
+    platform: str,
+) -> dict:
+    payload = {
+        "title": title,
+        "message": message,
+    }
+
+    if platform == "ios":
+        payload["data"] = {
+            "url": "/lovelace/default_view",
+            "push": {
+                "sound": "default",
+                "thread-id": "grocy-assistant",
+            },
+        }
+    else:
+        payload["data"] = {
+            "clickAction": "/lovelace/default_view",
+            "channel": "Grocy Assistant",
+            "ttl": 300,
+            "priority": "high",
+        }
+
+    return payload
+
+
 def _send_mobile_notification_to_homeassistant(
     *,
     service_id: str,
     title: str,
     message: str,
+    platform_hint: str = "",
 ) -> tuple[bool, str | None]:
     normalized_service = (service_id or "").strip()
     if not normalized_service.startswith("notify."):
@@ -267,14 +310,12 @@ def _send_mobile_notification_to_homeassistant(
     if not service:
         return False, "Ungültiger Notify-Service"
 
-    delivered, error, _ = _call_homeassistant_service(
-        "notify",
-        service,
-        {
-            "title": title,
-            "message": message,
-        },
+    payload = _build_mobile_notification_payload(
+        title=title,
+        message=message,
+        platform=_infer_mobile_platform(service_id, platform_hint),
     )
+    delivered, error, _ = _call_homeassistant_service("notify", service, payload)
     return delivered, error
 
 
@@ -2519,6 +2560,7 @@ def dashboard_notification_test_device(
         service_id=selected_device.service,
         title="Testbenachrichtigung",
         message=f"Test an {selected_device.display_name}",
+        platform_hint=selected_device.platform,
     )
     user_error = _build_mobile_notification_user_error(error)
 
@@ -2567,6 +2609,7 @@ def dashboard_notification_test_all(
             service_id=device.service,
             title="Testbenachrichtigung",
             message=f"Test an {device.display_name}",
+            platform_hint=device.platform,
         )
         if delivered:
             sent_to += 1

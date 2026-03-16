@@ -68,6 +68,23 @@ function getChannelLabel(channelType) {
   return NOTIFICATION_CHANNEL_LABELS[channelType] || channelType;
 }
 
+
+function inferMobilePlatform(device) {
+  const hint = String(device?.platform || '').trim().toLowerCase();
+  if (hint === 'android' || hint === 'ios') return hint;
+  const raw = `${device?.service || ''} ${device?.display_name || ''}`.toLowerCase();
+  if (raw.includes('iphone') || raw.includes('ipad') || raw.includes('ios') || raw.includes('watch')) return 'ios';
+  return 'android';
+}
+
+function getPlatformIcon(platform) {
+  return platform === 'ios' ? '🍎' : '🤖';
+}
+
+function getPlatformLabel(platform) {
+  return platform === 'ios' ? 'iOS' : 'Android';
+}
+
 function escapeHtml(value) {
   return String(value ?? '')
     .replaceAll('&', '&amp;')
@@ -302,12 +319,27 @@ function renderNotificationDevices(devices) {
     container.innerHTML = '<p class="muted">Keine mobilen Notify-Targets gefunden.</p>';
     return;
   }
-  container.innerHTML = devices.map((device) => `
-    <label class="notification-device-item">
-      <input type="checkbox" ${device.active ? 'checked' : ''} onchange="toggleNotificationDevice('${device.id}', this.checked)" />
-      <span><strong>${device.display_name}</strong><small>${device.service} · ${device.platform}</small></span>
-    </label>
-  `).join('');
+  container.innerHTML = devices.map((device) => {
+    const platform = inferMobilePlatform(device);
+    const platformLabel = getPlatformLabel(platform);
+    const platformIcon = getPlatformIcon(platform);
+    const payloadHint = platform === 'ios'
+      ? 'Verwendet iOS-Parameter: data.url + push.sound'
+      : 'Verwendet Android-Parameter: data.clickAction + priority + ttl';
+    return `
+      <label class="notification-device-item platform-${platform}">
+        <input type="checkbox" ${device.active ? 'checked' : ''} onchange="toggleNotificationDevice('${device.id}', this.checked)" />
+        <span class="notification-device-content">
+          <span class="notification-device-title-row">
+            <strong>${escapeHtml(device.display_name)}</strong>
+            <span class="notification-platform-badge">${platformIcon} ${platformLabel}</span>
+          </span>
+          <small>${escapeHtml(device.service)}</small>
+          <small class="notification-payload-hint">${payloadHint}</small>
+        </span>
+      </label>
+    `;
+  }).join('');
 }
 
 function renderNotificationRules(rules) {
@@ -360,14 +392,21 @@ function renderNotificationHistory(history) {
     list.innerHTML = '<li class="muted">Keine Einträge.</li>';
     return;
   }
-  list.innerHTML = history.slice(0, 30).map((entry) => `
-    <li>
-      <strong>${entry.title}</strong>
-      <div>${entry.message}</div>
-      <small class="muted">${getEventLabel(entry.event_type)} · ${entry.created_at} · ${entry.delivered ? '✅' : '❌'}</small>
-      <div class="muted">Kanäle: ${(entry.channels || []).map((channelType) => getChannelLabel(channelType)).join(', ') || '-'}</div>
-    </li>
-  `).join('');
+  list.innerHTML = history.slice(0, 30).map((entry) => {
+    const stateClass = entry.delivered ? 'is-delivered' : 'is-failed';
+    const stateLabel = entry.delivered ? 'Zugestellt' : 'Fehlgeschlagen';
+    return `
+      <li class="notification-history-item ${stateClass}">
+        <div class="notification-history-header">
+          <strong>${escapeHtml(entry.title)}</strong>
+          <span class="notification-delivery-badge">${stateLabel}</span>
+        </div>
+        <div>${escapeHtml(entry.message)}</div>
+        <small class="muted">${escapeHtml(getEventLabel(entry.event_type))} · ${escapeHtml(entry.created_at || '')}</small>
+        <div class="muted">Kanäle: ${escapeHtml((entry.channels || []).map((channelType) => getChannelLabel(channelType)).join(', ') || '-')}</div>
+      </li>
+    `;
+  }).join('');
 }
 
 async function saveNotificationSettings() {
