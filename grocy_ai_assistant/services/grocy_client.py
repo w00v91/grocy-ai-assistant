@@ -146,6 +146,37 @@ class GrocyClient:
             return default_days if default_days and default_days > 0 else None
         return None
 
+    def get_product_default_best_before_days(self, product_id: int) -> int | None:
+        return self._get_product_default_best_before_days(product_id)
+
+    def set_product_default_best_before_days(
+        self, product_id: int, default_best_before_days: Any
+    ) -> int | None:
+        days = self._safe_int(default_best_before_days)
+        if days is None or days <= 0:
+            return None
+
+        response = requests.put(
+            f"{self.settings.grocy_base_url}/objects/products/{int(product_id)}",
+            headers=self.headers,
+            json={"default_best_before_days": days},
+            timeout=30,
+        )
+        try:
+            response.raise_for_status()
+        except HTTPError:
+            if response.status_code != 400:
+                raise
+
+            sanitized_payload = self._remove_unknown_column_field(
+                {"default_best_before_days": days},
+                getattr(response, "text", ""),
+            )
+            if "default_best_before_days" not in sanitized_payload:
+                return None
+            raise
+        return days
+
     def resolve_best_before_date(
         self,
         product_id: int,
@@ -1019,19 +1050,55 @@ class GrocyClient:
     ) -> None:
         payload: Dict[str, Any] = {
             "calories": calories,
+            "energy": calories,
             "carbohydrates": carbs,
             "fat": fat,
             "protein": protein,
             "sugar": sugar,
         }
 
-        response = requests.put(
-            f"{self.settings.grocy_base_url}/objects/products/{int(product_id)}",
-            headers=self.headers,
-            json=payload,
-            timeout=30,
-        )
-        response.raise_for_status()
+        payload = {key: value for key, value in payload.items() if value is not None}
+        if not payload:
+            return
+
+        endpoint = f"{self.settings.grocy_base_url}/objects/products/{int(product_id)}"
+        attempted_payloads: list[Dict[str, Any]] = []
+        retry_payload = payload
+
+        while retry_payload and retry_payload not in attempted_payloads:
+            attempted_payloads.append(retry_payload)
+            response = requests.put(
+                endpoint,
+                headers=self.headers,
+                json=retry_payload,
+                timeout=30,
+            )
+            try:
+                response.raise_for_status()
+                return
+            except HTTPError:
+                if response.status_code != 400:
+                    raise
+
+                next_payload = self._remove_unknown_column_field(
+                    retry_payload,
+                    getattr(response, "text", ""),
+                )
+                if next_payload == retry_payload:
+                    raise
+
+                logger.warning(
+                    "Grocy rejected nutrition payload with 400. Retrying without unknown column. "
+                    "response_body=%s",
+                    response.text,
+                )
+                retry_payload = next_payload
+
+        if not retry_payload:
+            logger.warning(
+                "Nutrition update skipped for product %s because target Grocy has no matching nutrition columns.",
+                product_id,
+            )
 
     def clear_product_picture(self, product_id: int) -> None:
         response = requests.put(

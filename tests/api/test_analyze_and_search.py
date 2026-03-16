@@ -85,7 +85,7 @@ def test_dashboard_search_uses_amount_prefix_from_name(client, monkeypatch):
 
 
 def test_dashboard_search_creates_new_product_when_missing(client, monkeypatch):
-    calls = {"created": None, "added": None}
+    calls = {"created": None, "added": None, "nutrition": None, "default_days": None}
 
     class FakeDetector:
         def __init__(self, settings):
@@ -118,6 +118,23 @@ def test_dashboard_search_creates_new_product_when_missing(client, monkeypatch):
             calls["created"] = payload
             return 42
 
+        def update_product_nutrition(
+            self,
+            product_id,
+            calories=None,
+            carbs=None,
+            fat=None,
+            protein=None,
+            sugar=None,
+        ):
+            calls["nutrition"] = (product_id, calories, carbs, fat, protein, sugar)
+
+        def get_product_default_best_before_days(self, product_id):
+            return None
+
+        def set_product_default_best_before_days(self, product_id, default_best_before_days):
+            calls["default_days"] = (product_id, default_best_before_days)
+
         def add_product_to_shopping_list(self, product_id, amount, best_before_date=""):
             calls["added"] = (product_id, amount, best_before_date)
 
@@ -135,6 +152,7 @@ def test_dashboard_search_creates_new_product_when_missing(client, monkeypatch):
     assert response.json()["product_id"] == 42
     assert calls["created"]["name"] == "Reis"
     assert calls["added"] == (42, 1, "")
+    assert calls["nutrition"] == (42, 100, None, None, None, None)
 
 
 def test_dashboard_search_rejects_blank_name(client):
@@ -510,6 +528,23 @@ def test_dashboard_search_force_create_skips_variant_selection(client, monkeypat
             calls["created"] = payload
             return 42
 
+        def update_product_nutrition(
+            self,
+            product_id,
+            calories=None,
+            carbs=None,
+            fat=None,
+            protein=None,
+            sugar=None,
+        ):
+            return None
+
+        def get_product_default_best_before_days(self, product_id):
+            return None
+
+        def set_product_default_best_before_days(self, product_id, default_best_before_days):
+            return None
+
         def add_product_to_shopping_list(self, product_id, amount, best_before_date=""):
             calls["added"] = (product_id, amount, best_before_date)
 
@@ -569,6 +604,23 @@ def test_dashboard_search_generates_and_attaches_image_for_new_product(
 
         def create_product(self, payload):
             return 42
+
+        def update_product_nutrition(
+            self,
+            product_id,
+            calories=None,
+            carbs=None,
+            fat=None,
+            protein=None,
+            sugar=None,
+        ):
+            return None
+
+        def get_product_default_best_before_days(self, product_id):
+            return None
+
+        def set_product_default_best_before_days(self, product_id, default_best_before_days):
+            return None
 
         def attach_product_picture(self, product_id, image_path):
             calls["attached"] = (product_id, image_path)

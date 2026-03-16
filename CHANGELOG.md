@@ -3,6 +3,20 @@
 All notable changes to this project are documented in this file.
 
 
+## 7.1.87
+
+- Fix (Produktanlage/Nährwerte): Das Nährwert-Update nach der Produktanlage ist jetzt abwärtskompatibel. Bei Grocy-Instanzen ohne einzelne Spalten (z. B. `calories`, `carbohydrates`) werden unbekannte Felder schrittweise entfernt statt den gesamten Request mit 500 scheitern zu lassen.
+- Verbesserung (Produktanlage/Energie): Zusätzlich zu `calories` wird beim Nährwert-Update auch `energy` mitgegeben, damit unterschiedliche Grocy-Schemata besser unterstützt werden.
+- Fix (Produktanlage/Bilder): Bildgenerierung/-Zuordnung läuft wieder vor dem Nährwert-Update, sodass Produktbilder auch dann angehängt werden, wenn ein Teil der Nährwertfelder nicht unterstützt wird.
+- Pflege: Add-on-Version auf `7.1.87` erhöht.
+
+## 7.1.86
+
+- Fix (Einkaufsliste/MHD): Beim Hinzufügen zur Einkaufsliste wird ein berechnetes MHD jetzt standardmäßig aus `default_best_before_days` (Produktwert oder KI-Wert) als `heute + Tage` gesetzt.
+- Verbesserung (Produktanlage/KI-Fallback): Falls in Grocy noch kein `default_best_before_days` für das neu angelegte Produkt gesetzt ist, wird der von der KI gelieferte Wert nachträglich am Produkt gespeichert.
+- Fix (Produktanlage/Nährwerte): KI-Nährwerte (inkl. Kalorien/Energie) werden nach dem Erstellen neuer Produkte jetzt zuverlässig auf das Grocy-Produkt geschrieben.
+- Pflege: Add-on-Version auf `7.1.86` erhöht.
+
 ## 7.1.85
 
 - Fix (UI/Lager-Tab): Swipe-Aktionen bei Produkten korrigiert – links wird jetzt wie angezeigt „Verbrauchen" ausgelöst, rechts „Bearbeiten".
