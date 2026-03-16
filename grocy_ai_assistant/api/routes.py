@@ -1788,6 +1788,15 @@ def dashboard_update_stock_product(
         if resolved_product_id <= 0:
             raise HTTPException(status_code=400, detail="Ungültiger Produkteintrag")
 
+        if resolved_stock_id <= 0:
+            resolved_stock_id = (
+                grocy_client.resolve_stock_entry_id_for_product(
+                    product_id=resolved_product_id,
+                    location_id=int(matched_entry.get("location_id") or 0) or None,
+                )
+                or 0
+            )
+
         if resolved_stock_id > 0:
             grocy_client.update_stock_entry(
                 stock_id=resolved_stock_id,

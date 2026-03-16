@@ -3,6 +3,13 @@
 All notable changes to this project are documented in this file.
 
 
+## 7.1.88
+
+- Fix (API/Lager-Tab): Speichern im Produkt-Popup verwendet bei fehlender `stock_id` nun zuerst eine serverseitige Auflösung über `product_id` + `location_id`, damit die Menge als absoluter Wert aktualisiert wird (statt unbeabsichtigt `+1` über den Add-Endpoint).
+- Fix (API/Lager-Tab): Nur wenn kein Bestandseintrag auflösbar ist, wird weiterhin ein neuer Eintrag erstellt.
+- Test: API- und Unit-Tests für die neue Stock-ID-Auflösung ergänzt.
+- Pflege: Add-on-Version auf `7.1.88` erhöht.
+
 ## 7.1.87
 
 - Fix (API/Lager-Tab): Wenn ein Produkt über die Produkt-ID gefunden wird, aber kein nutzbarer `stock_id` vorhanden ist, wird beim Speichern nun automatisch ein Bestandseintrag über Grocy erstellt statt mit „Ungültiger Bestandseintrag" abzubrechen.
