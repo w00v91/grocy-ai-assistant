@@ -208,7 +208,7 @@ body.modal-open {
 
 .notification-options-layout {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: 0.8rem;
   margin-bottom: 1rem;
 }
@@ -223,6 +223,10 @@ body.modal-open {
 
 .notification-options-card h3 {
   margin-bottom: 0.45rem;
+}
+
+.notification-options-card--full {
+  width: 100%;
 }
 
 .notification-options-description {
@@ -285,7 +289,22 @@ body.modal-open {
 
 .notification-grid {
   display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.5rem;
+}
+
+.notification-device-group {
+  display: grid;
+  gap: 0.45rem;
+  align-content: start;
+}
+
+.notification-device-group-title {
+  margin: 0;
+  font-size: 0.82rem;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  color: var(--muted);
 }
 
 .notification-device-item {
@@ -1586,4 +1605,7 @@ h3 {
     gap: 0.16rem;
   }
 
+  .notification-grid {
+    grid-template-columns: 1fr;
+  }
 }

@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.82
+
+- UI (Benachrichtigungen/Geräteverwaltung): Karte im Notify-Tab wieder auf volle Breite gesetzt und Geräteansicht als 2-Spalten-Layout dargestellt (mobil weiterhin 1 Spalte).
+- Verbesserung (Benachrichtigungen/Geräte): Geräte nach Namens-Gemeinsamkeiten gruppiert (z. B. `notify.mobile_app_pixel_watch_*` → Kategorie `Pixel Watch`) mit robustem Fallback auf normalisierte Namensbestandteile bzw. `Sonstige Geräte`.
+- Pflege: Add-on-Version auf `7.1.82` erhöht.
+
 ## 7.1.81
 
 - Fix (UI/Einkaufsliste): Swipe-Aktionen im Produkt-Tab korrigiert – die auslösenden Aktionen sind nicht mehr vertauscht (links löscht, rechts markiert als gekauft), passend zur dargestellten Aktionsfläche.
