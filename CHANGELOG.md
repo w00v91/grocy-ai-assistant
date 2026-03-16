@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.79
+
+- UI (Lager-Tab): Checkbox zum Laden aller Grocy-Produkte rechts neben das Filterfeld verschoben.
+- UI (Lager-Tab): Beschriftung von „Alle in Grocy verfügbaren Produkte laden“ auf „Alle Produkte anzeigen" gekürzt.
+- UI (Lager-Tab/Mobil): Filterfeld und Checkbox umbrechen in der mobilen Ansicht jetzt in zwei Zeilen für bessere Lesbarkeit.
+- Pflege: Add-on-Version auf `7.1.79` erhöht.
+
 ## 7.1.78
 
 - UI (Benachrichtigungen): Geräte- und Verlaufskarten im Notify-Tab modernisiert (Badge-Status, klarere Hierarchie, bessere Lesbarkeit).
