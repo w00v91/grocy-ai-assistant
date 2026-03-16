@@ -2043,6 +2043,114 @@ def test_dashboard_can_update_stock_product_by_product_id_fallback(client, monke
     assert nutrition_called["args"] == (99, 100, 12, 1.5, 3, 7)
 
 
+
+
+def test_dashboard_uses_resolved_stock_id_for_absolute_update(client, monkeypatch):
+    def fake_get_stock_entries(self, location_ids=None):
+        return [{"id": 0, "product_id": 99, "location_id": 2}]
+
+    called = {}
+
+    def fake_resolve_stock_entry_id_for_product(self, product_id, location_id=None):
+        called["resolve"] = (product_id, location_id)
+        return 321
+
+    def fake_update_stock_entry(self, stock_id, amount, best_before_date=""):
+        called["update"] = (stock_id, amount, best_before_date)
+
+    def fake_update_product_nutrition(
+        self,
+        product_id,
+        calories=None,
+        carbs=None,
+        fat=None,
+        protein=None,
+        sugar=None,
+    ):
+        called["nutrition"] = (product_id, calories, carbs, fat, protein, sugar)
+
+    monkeypatch.setattr(routes.GrocyClient, "get_stock_entries", fake_get_stock_entries)
+    monkeypatch.setattr(
+        routes.GrocyClient,
+        "resolve_stock_entry_id_for_product",
+        fake_resolve_stock_entry_id_for_product,
+    )
+    monkeypatch.setattr(routes.GrocyClient, "update_stock_entry", fake_update_stock_entry)
+    monkeypatch.setattr(
+        routes.GrocyClient, "update_product_nutrition", fake_update_product_nutrition
+    )
+
+    response = client.put(
+        "/api/dashboard/stock-products/99",
+        headers={"Authorization": "Bearer test-api-key"},
+        json={"amount": 1, "best_before_date": "2026-02-01"},
+    )
+
+    assert response.status_code == 200
+    assert called["resolve"] == (99, 2)
+    assert called["update"] == (321, 1, "2026-02-01")
+    assert called["nutrition"] == (99, None, None, None, None, None)
+
+
+def test_dashboard_creates_stock_entry_when_stock_id_missing(client, monkeypatch):
+    def fake_get_stock_entries(self, location_ids=None):
+        return [{"id": 0, "product_id": 99}]
+
+    add_called = {}
+
+    def fake_add_product_to_stock(self, product_id, amount, best_before_date=""):
+        add_called["args"] = (product_id, amount, best_before_date)
+
+    nutrition_called = {}
+
+    def fake_update_product_nutrition(
+        self,
+        product_id,
+        calories=None,
+        carbs=None,
+        fat=None,
+        protein=None,
+        sugar=None,
+    ):
+        nutrition_called["args"] = (product_id, calories, carbs, fat, protein, sugar)
+
+    monkeypatch.setattr(routes.GrocyClient, "get_stock_entries", fake_get_stock_entries)
+    monkeypatch.setattr(
+        routes.GrocyClient, "resolve_stock_entry_id_for_product", lambda *args, **kwargs: None
+    )
+    monkeypatch.setattr(routes.GrocyClient, "add_product_to_stock", fake_add_product_to_stock)
+    monkeypatch.setattr(
+        routes.GrocyClient, "update_product_nutrition", fake_update_product_nutrition
+    )
+
+    response = client.put(
+        "/api/dashboard/stock-products/99",
+        headers={"Authorization": "Bearer test-api-key"},
+        json={"amount": 5, "best_before_date": "2026-02-01"},
+    )
+
+    assert response.status_code == 200
+    assert add_called["args"] == (99, 5, "2026-02-01")
+    assert nutrition_called["args"] == (99, None, None, None, None, None)
+
+
+def test_dashboard_rejects_zero_amount_when_stock_id_missing(client, monkeypatch):
+    def fake_get_stock_entries(self, location_ids=None):
+        return [{"id": 0, "product_id": 99}]
+
+    monkeypatch.setattr(routes.GrocyClient, "get_stock_entries", fake_get_stock_entries)
+    monkeypatch.setattr(
+        routes.GrocyClient, "resolve_stock_entry_id_for_product", lambda *args, **kwargs: None
+    )
+
+    response = client.put(
+        "/api/dashboard/stock-products/99",
+        headers={"Authorization": "Bearer test-api-key"},
+        json={"amount": 0, "best_before_date": ""},
+    )
+
+    assert response.status_code == 400
+    assert "Kein vorhandener Bestandseintrag für dieses Produkt." in str(response.json())
 def test_dashboard_can_delete_stock_product(client, monkeypatch):
     def fake_get_stock_entries(self, location_ids=None):
         return [{"id": 99, "product_id": 10}]
