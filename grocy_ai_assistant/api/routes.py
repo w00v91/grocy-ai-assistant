@@ -149,6 +149,11 @@ def _send_persistent_notification_to_homeassistant(
         "message": message,
         "notification_id": notification_id,
     }
+    service_data_without_id = {
+        "title": title,
+        "message": message,
+    }
+
     delivered, error, status_code = _call_homeassistant_service(
         "persistent_notification",
         "create",
@@ -157,17 +162,28 @@ def _send_persistent_notification_to_homeassistant(
     if delivered:
         return True, None
 
-    if status_code not in {404, 405}:
-        return False, error
+    if status_code in {400, 422}:
+        retry_delivered, retry_error, retry_status_code = _call_homeassistant_service(
+            "persistent_notification",
+            "create",
+            service_data_without_id,
+        )
+        if retry_delivered:
+            return True, None
+        error = retry_error or error
+        status_code = retry_status_code
 
     fallback_delivered, fallback_error, _ = _call_homeassistant_service(
         "notify",
         "persistent_notification",
-        service_data,
+        service_data_without_id,
     )
     if fallback_delivered:
         return True, None
-    return False, fallback_error or error
+
+    if status_code in {404, 405}:
+        return False, fallback_error or error
+    return False, error or fallback_error
 
 
 def _normalize_barcode_for_lookup(raw_barcode: str) -> str:
@@ -2142,6 +2158,14 @@ def _resolve_dashboard_user_id(request: Request) -> str:
     return "default-user"
 
 
+def _safe_notification_id(user_id: str) -> str:
+    normalized = re.sub(r"[^a-zA-Z0-9_-]", "-", (user_id or "").strip())
+    normalized = re.sub(r"-+", "-", normalized).strip("-")
+    if not normalized:
+        normalized = "default-user"
+    return f"dashboard-test-{normalized[:48]}"
+
+
 def _discover_notification_targets_from_env() -> list[NotificationTargetModel]:
     configured = (
         Path("/data/options.json").read_text(encoding="utf-8")
@@ -2366,7 +2390,7 @@ def dashboard_notification_test_persistent(
     delivered, error = _send_persistent_notification_to_homeassistant(
         title="Testbenachrichtigung",
         message="Test als persistent_notification",
-        notification_id=f"dashboard-test:{user_id}",
+        notification_id=_safe_notification_id(user_id),
     )
     overview.history.insert(
         0,
