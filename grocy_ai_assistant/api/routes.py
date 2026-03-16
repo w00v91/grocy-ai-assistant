@@ -85,51 +85,7 @@ def _call_homeassistant_service(
         if endpoint not in endpoint_candidates:
             endpoint_candidates.append(endpoint)
 
-    token_candidates = [
-        (os.getenv("SUPERVISOR_TOKEN") or "").strip(),
-        (os.getenv("HASSIO_TOKEN") or "").strip(),
-    ]
-    unique_tokens: list[str] = []
-    for token_candidate in token_candidates:
-        if token_candidate and token_candidate not in unique_tokens:
-            unique_tokens.append(token_candidate)
-
-    header_candidates: list[dict[str, str]] = []
-    for token in unique_tokens:
-        header_candidates.append(
-            {
-                "Authorization": f"Bearer {token}",
-                "Content-Type": "application/json",
-            }
-        )
-        header_candidates.append(
-            {
-                "Authorization": f"Bearer {token}",
-                "X-Supervisor-Token": token,
-                "Content-Type": "application/json",
-            }
-        )
-        header_candidates.append(
-            {
-                "Authorization": f"Bearer {token}",
-                "X-Hassio-Key": token,
-                "Content-Type": "application/json",
-            }
-        )
-        header_candidates.append(
-            {
-                "X-Supervisor-Token": token,
-                "Content-Type": "application/json",
-            }
-        )
-        header_candidates.append(
-            {
-                "X-Hassio-Key": token,
-                "Content-Type": "application/json",
-            }
-        )
-
-    header_candidates.append({"Content-Type": "application/json"})
+    header_candidates = _build_homeassistant_auth_headers()
 
     last_status_code: int | None = None
     errors: list[str] = []
@@ -164,6 +120,49 @@ def _call_homeassistant_service(
         errors.append(f"Service-Aufruf {domain}.{service} fehlgeschlagen")
 
     return False, " | ".join(errors), last_status_code
+
+
+def _build_homeassistant_auth_headers() -> list[dict[str, str]]:
+    token_candidates = [
+        (os.getenv("SUPERVISOR_TOKEN") or "").strip(),
+        (os.getenv("HASSIO_TOKEN") or "").strip(),
+    ]
+    unique_tokens: list[str] = []
+    for token_candidate in token_candidates:
+        if token_candidate and token_candidate not in unique_tokens:
+            unique_tokens.append(token_candidate)
+
+    header_candidates: list[dict[str, str]] = []
+    for token in unique_tokens:
+        header_candidates.extend(
+            [
+                {
+                    "Authorization": f"Bearer {token}",
+                    "Content-Type": "application/json",
+                },
+                {
+                    "Authorization": f"Bearer {token}",
+                    "X-Supervisor-Token": token,
+                    "Content-Type": "application/json",
+                },
+                {
+                    "Authorization": f"Bearer {token}",
+                    "X-Hassio-Key": token,
+                    "Content-Type": "application/json",
+                },
+                {
+                    "X-Supervisor-Token": token,
+                    "Content-Type": "application/json",
+                },
+                {
+                    "X-Hassio-Key": token,
+                    "Content-Type": "application/json",
+                },
+            ]
+        )
+
+    header_candidates.append({"Content-Type": "application/json"})
+    return header_candidates
 
 
 
@@ -2243,11 +2242,78 @@ def _discover_notification_targets_from_env() -> list[NotificationTargetModel]:
     return targets
 
 
+def _discover_notification_targets_from_homeassistant() -> list[NotificationTargetModel]:
+    supervisor_url = (os.getenv("SUPERVISOR_URL") or "http://supervisor").rstrip("/")
+    endpoint_candidates: list[str] = []
+    for endpoint in (
+        f"{supervisor_url}/core/api/services",
+        f"{supervisor_url}/api/services",
+    ):
+        if endpoint not in endpoint_candidates:
+            endpoint_candidates.append(endpoint)
+
+    seen_services: set[str] = set()
+    discovered: list[NotificationTargetModel] = []
+    for endpoint in endpoint_candidates:
+        for headers in _build_homeassistant_auth_headers():
+            try:
+                response = requests.get(endpoint, headers=headers, timeout=10)
+            except requests.RequestException:
+                continue
+
+            if response.status_code != 200:
+                continue
+
+            try:
+                payload = response.json()
+            except ValueError:
+                continue
+
+            if not isinstance(payload, list):
+                continue
+
+            for domain_entry in payload:
+                if not isinstance(domain_entry, dict):
+                    continue
+                if domain_entry.get("domain") != "notify":
+                    continue
+                services = domain_entry.get("services") or {}
+                if not isinstance(services, dict):
+                    continue
+                for service_name in services.keys():
+                    if not isinstance(service_name, str):
+                        continue
+                    if not service_name.startswith("mobile_app_"):
+                        continue
+                    full_service = f"notify.{service_name}"
+                    if full_service in seen_services:
+                        continue
+                    seen_services.add(full_service)
+                    discovered.append(
+                        NotificationTargetModel(
+                            id=full_service,
+                            service=full_service,
+                            display_name=service_name.replace("mobile_app_", "")
+                            .replace("_", " ")
+                            .title(),
+                            platform="ios" if "iphone" in service_name else "android",
+                            active=True,
+                        )
+                    )
+
+            if discovered:
+                return discovered
+
+    return discovered
+
+
 def _load_notification_overview(request: Request) -> NotificationOverviewResponse:
     store = _notification_store()
     user_id = _resolve_dashboard_user_id(request)
     overview = store.load_for_user(user_id)
-    discovered_targets = _discover_notification_targets_from_env()
+    discovered_targets = _discover_notification_targets_from_homeassistant()
+    if not discovered_targets:
+        discovered_targets = _discover_notification_targets_from_env()
     if discovered_targets:
         existing_by_id = {item.id: item for item in overview.devices}
         merged_devices: list[NotificationTargetModel] = []
