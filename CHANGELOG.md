@@ -3,6 +3,11 @@
 All notable changes to this project are documented in this file.
 
 
+## 7.1.86
+
+- Fix (UI/Lager-Tab): Mengenänderungen im Produkt-Popup akzeptieren wieder Kommawerte (z. B. `1,5`) und werden korrekt gespeichert.
+- Pflege: Add-on-Version auf `7.1.86` erhöht.
+
 ## 7.1.85
 
 - Fix (UI/Lager-Tab): Swipe-Aktionen bei Produkten korrigiert – links wird jetzt wie angezeigt „Verbrauchen" ausgelöst, rechts „Bearbeiten".
