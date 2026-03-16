@@ -1141,6 +1141,22 @@ def dashboard_search(
         else:
             product_data = detector.analyze_product_name(product_name)
         created_object_id = grocy_client.create_product(product_data)
+        grocy_client.update_product_nutrition(
+            product_id=created_object_id,
+            calories=product_data.get("calories"),
+            carbs=product_data.get("carbohydrates"),
+            fat=product_data.get("fat"),
+            protein=product_data.get("protein"),
+            sugar=product_data.get("sugar"),
+        )
+        existing_default_best_before_days = (
+            grocy_client.get_product_default_best_before_days(created_object_id)
+        )
+        if not existing_default_best_before_days:
+            grocy_client.set_product_default_best_before_days(
+                created_object_id,
+                product_data.get("default_best_before_days"),
+            )
         _generate_and_attach_product_picture(
             product_name=product_name,
             product_id=created_object_id,

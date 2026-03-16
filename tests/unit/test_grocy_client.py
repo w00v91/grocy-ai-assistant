@@ -2077,6 +2077,80 @@ def test_create_product_retries_by_removing_unknown_columns(monkeypatch):
     assert "qu_factor_purchase_to_stock" not in posted_payloads[2]
 
 
+def test_set_product_default_best_before_days_updates_product(monkeypatch):
+    captured = {}
+
+    def fake_put(url, *args, **kwargs):
+        captured["url"] = url
+        captured["json"] = kwargs.get("json")
+        return FakeResponse([])
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.services.grocy_client.requests.put", fake_put
+    )
+
+    client = GrocyClient(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+            grocy_base_url="http://grocy.local/api",
+        )
+    )
+
+    result = client.set_product_default_best_before_days(7, 5)
+
+    assert result == 5
+    assert captured["url"] == "http://grocy.local/api/objects/products/7"
+    assert captured["json"] == {"default_best_before_days": 5}
+
+
+def test_set_product_default_best_before_days_ignores_invalid_values():
+    client = GrocyClient(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+        )
+    )
+
+    assert client.set_product_default_best_before_days(7, 0) is None
+    assert client.set_product_default_best_before_days(7, None) is None
+
+
+def test_set_product_default_best_before_days_ignores_unknown_column(monkeypatch):
+    class BadRequestResponse:
+        status_code = 400
+        text = (
+            '{"error_message":"table products has no column named '
+            'default_best_before_days"}'
+        )
+
+        def raise_for_status(self):
+            raise HTTPError("Bad Request")
+
+    def fake_put(url, *args, **kwargs):
+        return BadRequestResponse()
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.services.grocy_client.requests.put", fake_put
+    )
+
+    client = GrocyClient(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+            grocy_base_url="http://grocy.local/api",
+        )
+    )
+
+    assert client.set_product_default_best_before_days(7, 5) is None
+
+
 def test_get_storage_products_filters_by_search_query(monkeypatch):
     client = GrocyClient(
         Settings(
