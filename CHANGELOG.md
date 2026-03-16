@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.80
+
+- UI (Lager-Tab): Dynamisches Laden beim Tippen im Filterfeld ergänzt (debounced Requests wie in der Such-Tab-Logik), damit große Bestände serverseitig gefiltert geladen werden.
+- API/Service (Lager): `GET /api/dashboard/stock-products` unterstützt nun den Query-Parameter `q` und gibt gefilterte Ergebnisse über Name/Lagerort zurück.
+- Test: API- und Unit-Tests für den neuen Suchfilter im Lager-Endpoint und in der Grocy-Client-Filterlogik ergänzt.
+- Pflege: Add-on-Version auf `7.1.80` erhöht.
+
 ## 7.1.79
 
 - UI (Lager-Tab): Checkbox zum Laden aller Grocy-Produkte rechts neben das Filterfeld verschoben.

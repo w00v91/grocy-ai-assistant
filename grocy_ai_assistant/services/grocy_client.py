@@ -860,62 +860,73 @@ class GrocyClient:
 
 
     def get_storage_products(
-        self, location_ids: list[int] | None = None, include_all_products: bool = False
+        self,
+        location_ids: list[int] | None = None,
+        include_all_products: bool = False,
+        search_query: str = "",
     ) -> list[Dict[str, Any]]:
         stock_products = (
             self.get_stock_products(location_ids)
             if location_ids
             else self.get_stock_products()
         )
-        if not include_all_products:
-            return stock_products
+        if include_all_products:
+            allowed_locations = {int(location_id) for location_id in (location_ids or [])}
+            product_ids_in_stock = {
+                self._safe_int(item.get("id")) for item in stock_products if item.get("id") is not None
+            }
+            product_ids_in_stock.discard(None)
 
-        allowed_locations = {int(location_id) for location_id in (location_ids or [])}
-        product_ids_in_stock = {
-            self._safe_int(item.get("id")) for item in stock_products if item.get("id") is not None
-        }
-        product_ids_in_stock.discard(None)
+            locations = {
+                int(location.get("id")): location.get("name", "")
+                for location in self.get_locations()
+                if location.get("id") is not None
+            }
 
-        locations = {
-            int(location.get("id")): location.get("name", "")
-            for location in self.get_locations()
-            if location.get("id") is not None
-        }
+            for product in self._get_all_products():
+                product_id = self._safe_int(product.get("id"))
+                if product_id is None or product_id in product_ids_in_stock:
+                    continue
 
-        for product in self._get_all_products():
-            product_id = self._safe_int(product.get("id"))
-            if product_id is None or product_id in product_ids_in_stock:
-                continue
+                location_id = self._safe_int(product.get("location_id"))
+                if allowed_locations and location_id not in allowed_locations:
+                    continue
 
-            location_id = self._safe_int(product.get("location_id"))
-            if allowed_locations and location_id not in allowed_locations:
-                continue
+                stock_products.append(
+                    {
+                        "id": product_id,
+                        "stock_id": None,
+                        "in_stock": False,
+                        "name": product.get("name") or "Unbekanntes Produkt",
+                        "picture_url": str(
+                            product.get("picture_url")
+                            or product.get("picture_file_name")
+                            or ""
+                        ),
+                        "location_id": location_id,
+                        "location_name": locations.get(location_id, "") if location_id is not None else "",
+                        "amount": "0",
+                        "best_before_date": "",
+                        "calories": str(product.get("calories") or ""),
+                        "carbs": str(product.get("carbohydrates") or ""),
+                        "fat": str(product.get("fat") or ""),
+                        "protein": str(product.get("protein") or ""),
+                        "sugar": str(product.get("sugar") or ""),
+                    }
+                )
 
-            stock_products.append(
-                {
-                    "id": product_id,
-                    "stock_id": None,
-                    "in_stock": False,
-                    "name": product.get("name") or "Unbekanntes Produkt",
-                    "picture_url": str(
-                        product.get("picture_url")
-                        or product.get("picture_file_name")
-                        or ""
-                    ),
-                    "location_id": location_id,
-                    "location_name": locations.get(location_id, "") if location_id is not None else "",
-                    "amount": "0",
-                    "best_before_date": "",
-                    "calories": str(product.get("calories") or ""),
-                    "carbs": str(product.get("carbohydrates") or ""),
-                    "fat": str(product.get("fat") or ""),
-                    "protein": str(product.get("protein") or ""),
-                    "sugar": str(product.get("sugar") or ""),
-                }
-            )
+        filtered_products = stock_products
+        normalized_query = search_query.strip().casefold()
+        if normalized_query:
+            filtered_products = [
+                item
+                for item in stock_products
+                if normalized_query
+                in f"{item.get('name', '')} {item.get('location_name', '')}".casefold()
+            ]
 
-        stock_products.sort(key=lambda item: str(item.get("name") or "").casefold())
-        return stock_products
+        filtered_products.sort(key=lambda item: str(item.get("name") or "").casefold())
+        return filtered_products
 
     def consume_stock_product(
         self,

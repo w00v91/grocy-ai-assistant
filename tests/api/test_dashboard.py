@@ -612,7 +612,8 @@ def test_stock_products_endpoint_returns_items(client, monkeypatch):
 def test_stock_products_endpoint_supports_include_all_products(client, monkeypatch):
     called = {}
 
-    def fake_get_storage_products(self, location_ids=None, include_all_products=False):
+    def fake_get_storage_products(self, location_ids=None, include_all_products=False, search_query=""):
+        called["search_query"] = search_query
         called["location_ids"] = location_ids
         called["include_all_products"] = include_all_products
         return [
@@ -631,13 +632,14 @@ def test_stock_products_endpoint_supports_include_all_products(client, monkeypat
     )
 
     response = client.get(
-        "/api/dashboard/stock-products?include_all_products=true&location_ids=2",
+        "/api/dashboard/stock-products?include_all_products=true&location_ids=2&q=mil",
         headers={"Authorization": "Bearer test-api-key"},
     )
 
     assert response.status_code == 200
     assert called["location_ids"] == [2]
     assert called["include_all_products"] is True
+    assert called["search_query"] == "mil"
     assert response.json()[0]["in_stock"] is False
 
 def test_recipe_suggestions_prioritize_grocy_then_ai(client, monkeypatch):
