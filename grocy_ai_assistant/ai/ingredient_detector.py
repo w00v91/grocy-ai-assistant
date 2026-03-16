@@ -59,7 +59,8 @@ class IngredientDetector:
           "carbohydrates": (Geschaetzte Kohlenhydrate pro 100g/ml in g als Zahl),
           "fat": (Geschaetztes Fett pro 100g/ml in g als Zahl),
           "protein": (Geschaetztes Protein pro 100g/ml in g als Zahl),
-          "sugar": (Geschaetzter Zucker pro 100g/ml in g als Zahl)
+          "sugar": (Geschaetzter Zucker pro 100g/ml in g als Zahl),
+          "default_best_before_days": (Geschaetzte Haltbarkeit in Tagen als Zahl, 0 wenn unklar)
         }}
         Antworte NUR mit dem JSON, kein Text davor oder danach.
         """
@@ -104,6 +105,7 @@ class IngredientDetector:
                 "fat": 0,
                 "protein": 0,
                 "sugar": 0,
+                "default_best_before_days": 0,
             }
 
         carbs_candidate = (
@@ -124,6 +126,9 @@ class IngredientDetector:
             "fat": _as_number(parsed.get("fat")),
             "protein": _as_number(parsed.get("protein")),
             "sugar": _as_number(parsed.get("sugar")),
+            "default_best_before_days": max(
+                0, int(_as_number(parsed.get("default_best_before_days")))
+            ),
         }
 
     def suggest_similar_products(self, product_name: str) -> list[Dict[str, Any]]:

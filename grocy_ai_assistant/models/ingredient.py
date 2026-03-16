@@ -40,6 +40,7 @@ class ProductData(BaseModel):
     fat: float | int = 0
     protein: float | int = 0
     sugar: float | int = 0
+    default_best_before_days: int = 0
 
 
 class AnalyzeProductResponse(BaseModel):

@@ -1,6 +1,6 @@
 from collections import Counter
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from math import sqrt
 from pathlib import Path
 import re
@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 class GrocyClient:
+    FALLBACK_BEST_BEFORE_DAYS = 4
     MIN_VECTOR_SIMILARITY = 0.55
     SHOPPING_LIST_MHD_NOTE_PREFIX = "[grocy_ai_mhd:"
     SHOPPING_LIST_MHD_NOTE_PATTERN = re.compile(r"\[grocy_ai_mhd:(\d{4}-\d{2}-\d{2})\]")
@@ -110,12 +111,6 @@ class GrocyClient:
         return str(value).strip()
 
     @staticmethod
-    def _safe_str(value: Any) -> str:
-        if value is None:
-            return ""
-        return str(value).strip()
-
-    @staticmethod
     def _safe_int(value: Any) -> int | None:
         if value is None:
             return None
@@ -132,6 +127,74 @@ class GrocyClient:
             return None
 
         return int(text) if text.isdigit() else None
+
+    @staticmethod
+    def _to_string_or_empty(value: Any) -> str:
+        if value is None:
+            return ""
+        return str(value)
+
+    @classmethod
+    def _normalize_best_before_date(cls, best_before_date: Any) -> str:
+        return cls._safe_str(best_before_date)
+
+    def _get_product_default_best_before_days(self, product_id: int) -> int | None:
+        for product in self._get_all_products():
+            if self._safe_int(product.get("id")) != int(product_id):
+                continue
+            default_days = self._safe_int(product.get("default_best_before_days"))
+            return default_days if default_days and default_days > 0 else None
+        return None
+
+    def get_product_default_best_before_days(self, product_id: int) -> int | None:
+        return self._get_product_default_best_before_days(product_id)
+
+    def set_product_default_best_before_days(
+        self, product_id: int, default_best_before_days: Any
+    ) -> int | None:
+        days = self._safe_int(default_best_before_days)
+        if days is None or days <= 0:
+            return None
+
+        response = requests.put(
+            f"{self.settings.grocy_base_url}/objects/products/{int(product_id)}",
+            headers=self.headers,
+            json={"default_best_before_days": days},
+            timeout=30,
+        )
+        try:
+            response.raise_for_status()
+        except HTTPError:
+            if response.status_code != 400:
+                raise
+
+            sanitized_payload = self._remove_unknown_column_field(
+                {"default_best_before_days": days},
+                getattr(response, "text", ""),
+            )
+            if "default_best_before_days" not in sanitized_payload:
+                return None
+            raise
+        return days
+
+    def resolve_best_before_date(
+        self,
+        product_id: int,
+        best_before_date: str = "",
+        default_best_before_days: Any = None,
+    ) -> str:
+        normalized_best_before_date = self._normalize_best_before_date(best_before_date)
+        if normalized_best_before_date:
+            return normalized_best_before_date
+
+        days = self._safe_int(default_best_before_days)
+        if days is None or days <= 0:
+            days = self._get_product_default_best_before_days(product_id)
+
+        if days is None or days <= 0:
+            days = self.FALLBACK_BEST_BEFORE_DAYS
+
+        return (datetime.now().date() + timedelta(days=days)).isoformat()
 
     def _build_grocy_file_url(self, folder: str, file_name: Any) -> str:
         normalized_file_name = self._safe_str(file_name)
@@ -487,7 +550,7 @@ class GrocyClient:
         best_before_date: str = "",
     ) -> None:
         payload: Dict[str, Any] = {"product_id": product_id, "amount": amount}
-        normalized_best_before_date = best_before_date.strip()
+        normalized_best_before_date = self._normalize_best_before_date(best_before_date)
         if normalized_best_before_date:
             payload["best_before_date"] = normalized_best_before_date
 
@@ -642,14 +705,9 @@ class GrocyClient:
                     or product.get("picture_file_name")
                     or "",
                     "location_name": locations.get(location_id, ""),
-                    "in_stock": str(stock_entry.get("amount") or ""),
+                    "in_stock": self._to_string_or_empty(stock_entry.get("amount")),
                     "note": clean_note,
-                    "best_before_date": best_before_date_from_note
-                    or str(
-                        stock_entry.get("best_before_date")
-                        or stock_entry.get("best_before_date_calculated")
-                        or ""
-                    ),
+                    "best_before_date": best_before_date_from_note,
                     "default_amount": str(
                         product.get("default_best_before_days") or ""
                     ),
@@ -838,7 +896,7 @@ class GrocyClient:
                 ),
                 "location_id": normalized_location_id,
                 "location_name": location_name,
-                "amount": str(entry.get("amount") or ""),
+                "amount": self._to_string_or_empty(entry.get("amount")),
                 "best_before_date": str(
                     entry.get("best_before_date")
                     or entry.get("best_before_date_calculated")
@@ -858,7 +916,6 @@ class GrocyClient:
         result.sort(key=lambda item: item["name"].casefold())
         return result
 
-
     def get_storage_products(
         self,
         location_ids: list[int] | None = None,
@@ -871,9 +928,13 @@ class GrocyClient:
             else self.get_stock_products()
         )
         if include_all_products:
-            allowed_locations = {int(location_id) for location_id in (location_ids or [])}
+            allowed_locations = {
+                int(location_id) for location_id in (location_ids or [])
+            }
             product_ids_in_stock = {
-                self._safe_int(item.get("id")) for item in stock_products if item.get("id") is not None
+                self._safe_int(item.get("id"))
+                for item in stock_products
+                if item.get("id") is not None
             }
             product_ids_in_stock.discard(None)
 
@@ -904,7 +965,11 @@ class GrocyClient:
                             or ""
                         ),
                         "location_id": location_id,
-                        "location_name": locations.get(location_id, "") if location_id is not None else "",
+                        "location_name": (
+                            locations.get(location_id, "")
+                            if location_id is not None
+                            else ""
+                        ),
                         "amount": "0",
                         "best_before_date": "",
                         "calories": str(product.get("calories") or ""),
@@ -946,6 +1011,53 @@ class GrocyClient:
         )
         response.raise_for_status()
 
+
+    def add_product_to_stock(
+        self,
+        product_id: int,
+        amount: float,
+        best_before_date: str = "",
+    ) -> None:
+        payload: Dict[str, Any] = {"amount": amount}
+        normalized_best_before = str(best_before_date or "").strip()
+        if normalized_best_before:
+            payload["best_before_date"] = normalized_best_before
+
+        response = requests.post(
+            f"{self.settings.grocy_base_url}/stock/products/{int(product_id)}/add",
+            headers=self.headers,
+            json=payload,
+            timeout=30,
+        )
+        response.raise_for_status()
+
+
+    def resolve_stock_entry_id_for_product(
+        self,
+        product_id: int,
+        location_id: int | None = None,
+    ) -> int | None:
+        stock_objects = self._get_stock_object_entries()
+        product_matches = [
+            entry
+            for entry in stock_objects
+            if self._safe_int(entry.get("product_id")) == int(product_id)
+        ]
+        if location_id is not None:
+            location_matches = [
+                entry
+                for entry in product_matches
+                if self._safe_int(entry.get("location_id")) == int(location_id)
+            ]
+            if location_matches:
+                product_matches = location_matches
+
+        for entry in product_matches:
+            stock_id = self._safe_int(entry.get("id"))
+            if stock_id is not None and stock_id > 0:
+                return stock_id
+        return None
+
     def update_stock_entry(
         self,
         stock_id: int,
@@ -954,9 +1066,8 @@ class GrocyClient:
     ) -> None:
         payload: Dict[str, Any] = {"amount": amount}
         normalized_best_before = str(best_before_date or "").strip()
-        payload["best_before_date"] = (
-            normalized_best_before if normalized_best_before else None
-        )
+        if normalized_best_before:
+            payload["best_before_date"] = normalized_best_before
 
         response = requests.put(
             f"{self.settings.grocy_base_url}/objects/stock/{int(stock_id)}",
@@ -985,19 +1096,55 @@ class GrocyClient:
     ) -> None:
         payload: Dict[str, Any] = {
             "calories": calories,
+            "energy": calories,
             "carbohydrates": carbs,
             "fat": fat,
             "protein": protein,
             "sugar": sugar,
         }
 
-        response = requests.put(
-            f"{self.settings.grocy_base_url}/objects/products/{int(product_id)}",
-            headers=self.headers,
-            json=payload,
-            timeout=30,
-        )
-        response.raise_for_status()
+        payload = {key: value for key, value in payload.items() if value is not None}
+        if not payload:
+            return
+
+        endpoint = f"{self.settings.grocy_base_url}/objects/products/{int(product_id)}"
+        attempted_payloads: list[Dict[str, Any]] = []
+        retry_payload = payload
+
+        while retry_payload and retry_payload not in attempted_payloads:
+            attempted_payloads.append(retry_payload)
+            response = requests.put(
+                endpoint,
+                headers=self.headers,
+                json=retry_payload,
+                timeout=30,
+            )
+            try:
+                response.raise_for_status()
+                return
+            except HTTPError:
+                if response.status_code != 400:
+                    raise
+
+                next_payload = self._remove_unknown_column_field(
+                    retry_payload,
+                    getattr(response, "text", ""),
+                )
+                if next_payload == retry_payload:
+                    raise
+
+                logger.warning(
+                    "Grocy rejected nutrition payload with 400. Retrying without unknown column. "
+                    "response_body=%s",
+                    response.text,
+                )
+                retry_payload = next_payload
+
+        if not retry_payload:
+            logger.warning(
+                "Nutrition update skipped for product %s because target Grocy has no matching nutrition columns.",
+                product_id,
+            )
 
     def clear_product_picture(self, product_id: int) -> None:
         response = requests.put(
@@ -1233,7 +1380,7 @@ class GrocyClient:
         payload: Dict[str, Any] = {
             "amount": self._safe_str(amount) or "1",
         }
-        normalized_best_before_date = self._safe_str(best_before_date)
+        normalized_best_before_date = self._normalize_best_before_date(best_before_date)
         if normalized_best_before_date:
             payload["best_before_date"] = normalized_best_before_date
         response = requests.post(

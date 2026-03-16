@@ -2,6 +2,61 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.88
+
+- Fix (Produktanlage/Nährwerte): Das Nährwert-Update nach der Produktanlage ist jetzt abwärtskompatibel. Bei Grocy-Instanzen ohne einzelne Spalten (z. B. `calories`, `carbohydrates`) werden unbekannte Felder schrittweise entfernt statt den gesamten Request mit 500 scheitern zu lassen.
+- Verbesserung (Produktanlage/Energie): Zusätzlich zu `calories` wird beim Nährwert-Update auch `energy` mitgegeben, damit unterschiedliche Grocy-Schemata besser unterstützt werden.
+- Fix (Produktanlage/Bilder): Bildgenerierung/-Zuordnung läuft wieder vor dem Nährwert-Update, sodass Produktbilder auch dann angehängt werden, wenn ein Teil der Nährwertfelder nicht unterstützt wird.
+- Fix (API/Lager-Tab): Speichern im Produkt-Popup verwendet bei fehlender `stock_id` nun zuerst eine serverseitige Auflösung über `product_id` + `location_id`, damit die Menge als absoluter Wert aktualisiert wird (statt unbeabsichtigt `+1` über den Add-Endpoint).
+- Fix (API/Lager-Tab): Nur wenn kein Bestandseintrag auflösbar ist, wird weiterhin ein neuer Eintrag erstellt.
+- Test: API- und Unit-Tests für die neue Stock-ID-Auflösung ergänzt.
+- Pflege: Add-on-Version auf `7.1.88` erhöht.
+
+## 7.1.87
+
+- Fix (API/Lager-Tab): Wenn ein Produkt über die Produkt-ID gefunden wird, aber kein nutzbarer `stock_id` vorhanden ist, wird beim Speichern nun automatisch ein Bestandseintrag über Grocy erstellt statt mit „Ungültiger Bestandseintrag" abzubrechen.
+- Fix (API/Lager-Tab): Für Produkte ohne bestehenden Bestandseintrag wird Menge `0` beim Speichern mit klarer 400-Fehlermeldung abgewiesen.
+- Test: API- und Unit-Tests für den neuen Fallback-Pfad ergänzt.
+- Pflege: Add-on-Version auf `7.1.87` erhöht.
+
+## 7.1.86
+
+- Fix (UI/Lager-Tab): Mengenänderungen im Produkt-Popup akzeptieren wieder Kommawerte (z. B. `1,5`) und werden korrekt gespeichert.
+- Fix (Einkaufsliste/MHD): Beim Hinzufügen zur Einkaufsliste wird ein berechnetes MHD jetzt standardmäßig aus `default_best_before_days` (Produktwert oder KI-Wert) als `heute + Tage` gesetzt.
+- Verbesserung (Produktanlage/KI-Fallback): Falls in Grocy noch kein `default_best_before_days` für das neu angelegte Produkt gesetzt ist, wird der von der KI gelieferte Wert nachträglich am Produkt gespeichert.
+- Fix (Produktanlage/Nährwerte): KI-Nährwerte (inkl. Kalorien/Energie) werden nach dem Erstellen neuer Produkte jetzt zuverlässig auf das Grocy-Produkt geschrieben.
+- Pflege: Add-on-Version auf `7.1.86` erhöht.
+
+## 7.1.89
+
+- Fix (API/Grocy): `PUT /objects/stock/{id}` sendet `best_before_date` nur noch, wenn tatsächlich ein Datum gesetzt ist; leere Werte werden nicht mehr als `null` übertragen, um 400-Fehler beim Speichern im Produkt-Popup zu vermeiden.
+- Test: Unit-Test ergänzt, der sicherstellt, dass bei leerem MHD nur `{"amount": ...}` gesendet wird.
+- Pflege: Add-on-Version auf `7.1.89` erhöht.
+
+## 7.1.88
+
+- Fix (API/Lager-Tab): Speichern im Produkt-Popup verwendet bei fehlender `stock_id` nun zuerst eine serverseitige Auflösung über `product_id` + `location_id`, damit die Menge als absoluter Wert aktualisiert wird (statt unbeabsichtigt `+1` über den Add-Endpoint).
+- Fix (API/Lager-Tab): Nur wenn kein Bestandseintrag auflösbar ist, wird weiterhin ein neuer Eintrag erstellt.
+- Test: API- und Unit-Tests für die neue Stock-ID-Auflösung ergänzt.
+- Pflege: Add-on-Version auf `7.1.88` erhöht.
+
+## 7.1.87
+
+- Fix (API/Lager-Tab): Wenn ein Produkt über die Produkt-ID gefunden wird, aber kein nutzbarer `stock_id` vorhanden ist, wird beim Speichern nun automatisch ein Bestandseintrag über Grocy erstellt statt mit „Ungültiger Bestandseintrag" abzubrechen.
+- Fix (API/Lager-Tab): Für Produkte ohne bestehenden Bestandseintrag wird Menge `0` beim Speichern mit klarer 400-Fehlermeldung abgewiesen.
+- Test: API- und Unit-Tests für den neuen Fallback-Pfad ergänzt.
+- Pflege: Add-on-Version auf `7.1.87` erhöht.
+
+## 7.1.86
+
+- Fix (UI/Lager-Tab): Mengenänderungen im Produkt-Popup akzeptieren wieder Kommawerte (z. B. `1,5`) und werden korrekt gespeichert.
+- Pflege: Add-on-Version auf `7.1.86` erhöht.
+
+## 7.1.85
+
+- Fix (UI/Lager-Tab): Swipe-Aktionen bei Produkten korrigiert – links wird jetzt wie angezeigt „Verbrauchen" ausgelöst, rechts „Bearbeiten".
+- Pflege: Add-on-Version auf `7.1.85` erhöht.
+
 ## 7.1.84
 
 - UI (Lager-Tab): Das konfigurierbare Dashboard-Polling-Intervall steuert jetzt auch das Auto-Refresh im Lager-Tab (nur aktiver Tab, pausiert bei inaktivem Browser-Tab).
@@ -10,12 +65,21 @@ All notable changes to this project are documented in this file.
 
 ## 7.1.83
 
+- Fix (Einkaufsliste/MHD): Beim Laden der Einkaufsliste wird ein MHD jetzt nur noch aus der Einkaufslisten-Notiz (`[grocy_ai_mhd:...]`) übernommen. Leere MHDs werden nicht mehr automatisch mit Lager-/Grocy-Werten überschrieben.
+- Verbesserung (MHD-Fallback): Wenn beim "Einkaufen" weder ein explizites MHD noch `default_best_before_days` (aus KI oder Produktstandard) vorhanden ist, wird als Fallback automatisch `heute + 4 Tage` gesetzt.
+- Test: Unit-Tests für den neuen Einkaufslisten-MHD-Import und den globalen `+4 Tage`-Fallback ergänzt.
+- Fix (Lager-Tab): Das Speichern einer Bestandsmenge von `0` bleibt nun erhalten und wird nicht mehr als leerer Wert zurückgegeben.
+- Test: Unit-Test ergänzt, der sicherstellt, dass `0` als Bestandsmenge als String `"0"` im Storage-Listing erhalten bleibt.
 - UI/Config: Dashboard-Polling-Intervall für die Einkaufsliste als konfigurierbare Option (`dashboard_polling_interval_seconds`) ergänzt und im Frontend an die Auto-Refresh-Logik angebunden.
 - Home-Assistant-Integration: Options-Flow um `dashboard_polling_interval_seconds` (1-60 Sekunden) erweitert.
 - Pflege: Add-on-Version auf `7.1.83` erhöht.
 
 ## 7.1.82
 
+- Verbesserung (KI/MHD): Die KI kann jetzt beim Anlegen neuer Produkte eine geschätzte Standard-Haltbarkeit (`default_best_before_days`) liefern.
+- Verbesserung (Einkaufsliste/MHD): MHD-Auflösung zentralisiert; wenn beim Hinzufügen oder beim "Einkaufen" kein MHD gesetzt ist, wird ein Datum aus `default_best_before_days` berechnet (aus KI-Wert oder Grocy-Produktstandard).
+- Pflege: Doppelte MHD-Normalisierungslogik entfernt und in eine gemeinsame Service-Methode zusammengeführt.
+- Test: Unit-Tests für die neue MHD-Auflösung und KI-Mapping ergänzt.
 - UI (Benachrichtigungen/Geräteverwaltung): Karte im Notify-Tab wieder auf volle Breite gesetzt und Geräteansicht als 2-Spalten-Layout dargestellt (mobil weiterhin 1 Spalte).
 - Verbesserung (Benachrichtigungen/Geräte): Geräte nach Namens-Gemeinsamkeiten gruppiert (z. B. `notify.mobile_app_pixel_watch_*` → Kategorie `Pixel Watch`) mit robustem Fallback auf normalisierte Namensbestandteile bzw. `Sonstige Geräte`.
 - Pflege: Add-on-Version auf `7.1.82` erhöht.

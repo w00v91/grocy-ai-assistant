@@ -1988,16 +1988,16 @@ function renderStorageProducts() {
 
   bindSwipeInteractions({
     selector: '#storage-products .storage-item',
-    onSwipeLeft: async (item, payload) => {
+    onSwipeLeft: async (_, payload) => {
+      if (payload.id > 0) {
+        await consumeStorageProduct(payload.id);
+      }
+    },
+    onSwipeRight: async (item, payload) => {
       if (payload.id > 0) {
         openStorageEditModal(payload.id);
       }
       resetSwipeVisualState(item);
-    },
-    onSwipeRight: async (_, payload) => {
-      if (payload.id > 0) {
-        await consumeStorageProduct(payload.id);
-      }
     },
     onTap: (_, payload) => {
       if (payload.id > 0) {
@@ -2167,7 +2167,8 @@ function closeStorageEditModal() {
 async function saveStorageEditModal() {
   if (!storageEditingItem || !Number.isFinite(storageEditingTargetId) || storageEditingTargetId <= 0) return;
   const status = getStorageStatusElement();
-  const amount = Number(document.getElementById('storage-edit-amount').value);
+  const amountRaw = String(document.getElementById('storage-edit-amount').value || '').trim().replace(',', '.');
+  const amount = Number(amountRaw);
   const bestBeforeDate = document.getElementById('storage-edit-best-before').value || '';
   const calories = normalizeNutritionInputValue(document.getElementById('storage-edit-calories').value);
   const carbs = normalizeNutritionInputValue(document.getElementById('storage-edit-carbs').value);
