@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.70
+
+- Fix (Benachrichtigungen/Dashboard): Persistente Testbenachrichtigungen erzeugen jetzt eine Home-Assistant-kompatible `notification_id` ohne Sonderzeichen, damit Service-Calls nicht mehr an ungültigen IDs scheitern.
+- Fix (Benachrichtigungen/Dashboard): Bei 400/422-Validierungsfehlern wird `persistent_notification.create` automatisch ohne `notification_id` erneut versucht, um 502-Fehler bei strengeren HA-Versionen zu vermeiden.
+- Test: API-Tests für ID-Sanitizing und den Retry-Pfad ohne `notification_id` ergänzt.
+- Pflege: Add-on-Version auf `7.1.70` erhöht.
+
 ## 7.1.69
 
 - UI (Benachrichtigungen): `padding` bei `.notification-list li` entfernt, damit die Listen-/Swipe-Darstellung den gewünschten Abständen entspricht.
