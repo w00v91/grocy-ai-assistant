@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.81
+
+- Fix (UI/Einkaufsliste): Swipe-Aktionen im Produkt-Tab korrigiert – die auslösenden Aktionen sind nicht mehr vertauscht (links löscht, rechts markiert als gekauft), passend zur dargestellten Aktionsfläche.
+- Pflege: Add-on-Version auf `7.1.81` erhöht.
+
 ## 7.1.80
 
 - UI (Lager-Tab): Dynamisches Laden beim Tippen im Filterfeld ergänzt (debounced Requests wie in der Such-Tab-Logik), damit große Bestände serverseitig gefiltert geladen werden.
