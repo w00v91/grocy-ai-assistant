@@ -157,6 +157,21 @@ def _send_persistent_notification_to_homeassistant(
     if delivered:
         return True, None
 
+    if status_code in {400, 422}:
+        service_data_without_id = {
+            "title": title,
+            "message": message,
+        }
+        retry_delivered, retry_error, retry_status_code = _call_homeassistant_service(
+            "persistent_notification",
+            "create",
+            service_data_without_id,
+        )
+        if retry_delivered:
+            return True, None
+        error = retry_error or error
+        status_code = retry_status_code
+
     if status_code not in {404, 405}:
         return False, error
 
@@ -2142,6 +2157,14 @@ def _resolve_dashboard_user_id(request: Request) -> str:
     return "default-user"
 
 
+def _safe_notification_id(user_id: str) -> str:
+    normalized = re.sub(r"[^a-zA-Z0-9_-]", "-", (user_id or "").strip())
+    normalized = re.sub(r"-+", "-", normalized).strip("-")
+    if not normalized:
+        normalized = "default-user"
+    return f"dashboard-test-{normalized[:48]}"
+
+
 def _discover_notification_targets_from_env() -> list[NotificationTargetModel]:
     configured = (
         Path("/data/options.json").read_text(encoding="utf-8")
@@ -2366,7 +2389,7 @@ def dashboard_notification_test_persistent(
     delivered, error = _send_persistent_notification_to_homeassistant(
         title="Testbenachrichtigung",
         message="Test als persistent_notification",
-        notification_id=f"dashboard-test:{user_id}",
+        notification_id=_safe_notification_id(user_id),
     )
     overview.history.insert(
         0,
