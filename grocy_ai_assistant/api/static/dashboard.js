@@ -1988,16 +1988,16 @@ function renderStorageProducts() {
 
   bindSwipeInteractions({
     selector: '#storage-products .storage-item',
-    onSwipeLeft: async (item, payload) => {
+    onSwipeLeft: async (_, payload) => {
+      if (payload.id > 0) {
+        await consumeStorageProduct(payload.id);
+      }
+    },
+    onSwipeRight: async (item, payload) => {
       if (payload.id > 0) {
         openStorageEditModal(payload.id);
       }
       resetSwipeVisualState(item);
-    },
-    onSwipeRight: async (_, payload) => {
-      if (payload.id > 0) {
-        await consumeStorageProduct(payload.id);
-      }
     },
     onTap: (_, payload) => {
       if (payload.id > 0) {
