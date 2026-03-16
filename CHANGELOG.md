@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.79
+
+- UI (Einkaufsliste): Die Liste im Dashboard aktualisiert sich jetzt automatisch im Hintergrund (Polling alle 5 Sekunden), damit Änderungen von anderen Nutzern zeitnah sichtbar werden.
+- UX (Einkaufsliste): Auto-Refresh läuft nur im aktiven Einkaufs-Tab und pausiert bei inaktiver Browser-Ansicht, um unnötige Requests zu vermeiden.
+- Performance (Einkaufsliste): Re-Render erfolgt nur bei tatsächlichen Datenänderungen über eine Signaturprüfung der Listeneinträge.
+- Pflege: Add-on-Version auf `7.1.79` erhöht.
+
 ## 7.1.78
 
 - UI (Benachrichtigungen): Geräte- und Verlaufskarten im Notify-Tab modernisiert (Badge-Status, klarere Hierarchie, bessere Lesbarkeit).
