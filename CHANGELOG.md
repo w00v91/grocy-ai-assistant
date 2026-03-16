@@ -4,6 +4,7 @@ All notable changes to this project are documented in this file.
 
 ## 7.1.92
 
+- Fix (Dashboard-Test/Storage): `loadStorageProducts` ist wieder mit der erwarteten Funktionssignatur (`function loadStorageProducts()`) deklariert, sodass der statische Dashboard-Test wieder stabil grün läuft.
 - Änderung (API/Grocy/Nährwerte): Fallback-Felder für Nährwerte entfernt; Updates senden bei Kalorien jetzt nur noch `calories` (kein `energy`) und bei Kohlenhydraten nur `carbohydrates` (kein `carbs`).
 - Änderung (API/Grocy/Anzeige): Kohlenhydrate werden in Listenansichten wieder ausschließlich aus `carbohydrates` gelesen (ohne `carbs`-Fallback).
 - Test: Unit-Tests auf das vereinfachte, fallback-freie Payload/Mapping angepasst.
