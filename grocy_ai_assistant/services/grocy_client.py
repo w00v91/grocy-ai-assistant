@@ -1097,19 +1097,55 @@ class GrocyClient:
     ) -> None:
         payload: Dict[str, Any] = {
             "calories": calories,
+            "energy": calories,
             "carbohydrates": carbs,
             "fat": fat,
             "protein": protein,
             "sugar": sugar,
         }
 
-        response = requests.put(
-            f"{self.settings.grocy_base_url}/objects/products/{int(product_id)}",
-            headers=self.headers,
-            json=payload,
-            timeout=30,
-        )
-        response.raise_for_status()
+        payload = {key: value for key, value in payload.items() if value is not None}
+        if not payload:
+            return
+
+        endpoint = f"{self.settings.grocy_base_url}/objects/products/{int(product_id)}"
+        attempted_payloads: list[Dict[str, Any]] = []
+        retry_payload = payload
+
+        while retry_payload and retry_payload not in attempted_payloads:
+            attempted_payloads.append(retry_payload)
+            response = requests.put(
+                endpoint,
+                headers=self.headers,
+                json=retry_payload,
+                timeout=30,
+            )
+            try:
+                response.raise_for_status()
+                return
+            except HTTPError:
+                if response.status_code != 400:
+                    raise
+
+                next_payload = self._remove_unknown_column_field(
+                    retry_payload,
+                    getattr(response, "text", ""),
+                )
+                if next_payload == retry_payload:
+                    raise
+
+                logger.warning(
+                    "Grocy rejected nutrition payload with 400. Retrying without unknown column. "
+                    "response_body=%s",
+                    response.text,
+                )
+                retry_payload = next_payload
+
+        if not retry_payload:
+            logger.warning(
+                "Nutrition update skipped for product %s because target Grocy has no matching nutrition columns.",
+                product_id,
+            )
 
     def clear_product_picture(self, product_id: int) -> None:
         response = requests.put(

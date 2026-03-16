@@ -2,9 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
-
 ## 7.1.88
 
+- Fix (Produktanlage/Nährwerte): Das Nährwert-Update nach der Produktanlage ist jetzt abwärtskompatibel. Bei Grocy-Instanzen ohne einzelne Spalten (z. B. `calories`, `carbohydrates`) werden unbekannte Felder schrittweise entfernt statt den gesamten Request mit 500 scheitern zu lassen.
+- Verbesserung (Produktanlage/Energie): Zusätzlich zu `calories` wird beim Nährwert-Update auch `energy` mitgegeben, damit unterschiedliche Grocy-Schemata besser unterstützt werden.
+- Fix (Produktanlage/Bilder): Bildgenerierung/-Zuordnung läuft wieder vor dem Nährwert-Update, sodass Produktbilder auch dann angehängt werden, wenn ein Teil der Nährwertfelder nicht unterstützt wird.
 - Fix (API/Lager-Tab): Speichern im Produkt-Popup verwendet bei fehlender `stock_id` nun zuerst eine serverseitige Auflösung über `product_id` + `location_id`, damit die Menge als absoluter Wert aktualisiert wird (statt unbeabsichtigt `+1` über den Add-Endpoint).
 - Fix (API/Lager-Tab): Nur wenn kein Bestandseintrag auflösbar ist, wird weiterhin ein neuer Eintrag erstellt.
 - Test: API- und Unit-Tests für die neue Stock-ID-Auflösung ergänzt.

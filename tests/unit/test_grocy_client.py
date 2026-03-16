@@ -1523,11 +1523,75 @@ def test_update_product_nutrition_updates_product_object(monkeypatch):
     assert captured["url"].endswith("/objects/products/42")
     assert captured["json"] == {
         "calories": 123,
+        "energy": 123,
         "carbohydrates": 4.5,
         "fat": 6,
         "protein": 7,
         "sugar": 8,
     }
+
+
+def test_update_product_nutrition_retries_without_unknown_columns(monkeypatch):
+    calls = []
+
+    class BadRequestResponse:
+        def __init__(self, text):
+            self.status_code = 400
+            self.text = text
+
+        def raise_for_status(self):
+            raise HTTPError("Bad Request")
+
+    class SuccessResponse:
+        status_code = 200
+        text = ""
+
+        def raise_for_status(self):
+            return None
+
+    def fake_put(url, headers, json, timeout):
+        calls.append(json)
+        if len(calls) == 1:
+            return BadRequestResponse(
+                '{"error_message":"table products has no column named calories"}'
+            )
+        if len(calls) == 2:
+            return BadRequestResponse(
+                '{"error_message":"table products has no column named carbohydrates"}'
+            )
+        return SuccessResponse()
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.services.grocy_client.requests.put", fake_put
+    )
+
+    client = GrocyClient(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+        )
+    )
+
+    client.update_product_nutrition(product_id=42, calories=123, carbs=4.5)
+
+    assert calls[0] == {"calories": 123, "energy": 123, "carbohydrates": 4.5}
+    assert calls[1] == {"energy": 123, "carbohydrates": 4.5}
+    assert calls[2] == {"energy": 123}
+
+
+def test_update_product_nutrition_skips_when_no_values():
+    client = GrocyClient(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+        )
+    )
+
+    client.update_product_nutrition(product_id=42)
 
 
 def test_clear_product_picture_sets_picture_file_name_to_none(monkeypatch):
