@@ -85,6 +85,46 @@ function getPlatformLabel(platform) {
   return platform === 'ios' ? 'iOS' : 'Android';
 }
 
+
+function normalizeDeviceToken(rawValue) {
+  return String(rawValue || '')
+    .toLowerCase()
+    .replace(/^notify\./, '')
+    .replace(/^mobile_app_/, '')
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+}
+
+function getDeviceCategory(device) {
+  const displayToken = normalizeDeviceToken(device?.display_name);
+  const serviceToken = normalizeDeviceToken(device?.service);
+  const combined = `${displayToken}_${serviceToken}`;
+
+  const patterns = [
+    { key: 'pixel_watch', label: 'Pixel Watch' },
+    { key: 'pixelwatch', label: 'Pixel Watch' },
+    { key: 'pixel', label: 'Pixel' },
+    { key: 'iphone', label: 'iPhone' },
+    { key: 'ipad', label: 'iPad' },
+    { key: 'apple_watch', label: 'Apple Watch' },
+    { key: 'applewatch', label: 'Apple Watch' },
+    { key: 'samsung', label: 'Samsung' },
+    { key: 'galaxy', label: 'Samsung Galaxy' },
+  ];
+
+  const directMatch = patterns.find((pattern) => combined.includes(pattern.key));
+  if (directMatch) return directMatch.label;
+
+  const normalizedBase = serviceToken || displayToken;
+  if (!normalizedBase) return 'Sonstige Geräte';
+
+  const firstParts = normalizedBase.split('_').filter(Boolean).slice(0, 2);
+  if (!firstParts.length) return 'Sonstige Geräte';
+
+  return firstParts
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
 function escapeHtml(value) {
   return String(value ?? '')
     .replaceAll('&', '&amp;')
@@ -327,25 +367,45 @@ function renderNotificationDevices(devices) {
     container.innerHTML = '<p class="muted">Keine mobilen Notify-Targets gefunden.</p>';
     return;
   }
-  container.innerHTML = devices.map((device) => {
-    const platform = inferMobilePlatform(device);
-    const platformLabel = getPlatformLabel(platform);
-    const platformIcon = getPlatformIcon(platform);
-    const payloadHint = platform === 'ios'
-      ? 'Verwendet iOS-Parameter: data.url + push.sound'
-      : 'Verwendet Android-Parameter: data.clickAction + priority + ttl';
-    return `
-      <label class="notification-device-item platform-${platform}">
-        <input type="checkbox" ${device.active ? 'checked' : ''} onchange="toggleNotificationDevice('${device.id}', this.checked)" />
-        <span class="notification-device-content">
-          <span class="notification-device-title-row">
-            <strong>${escapeHtml(device.display_name)}</strong>
-            <span class="notification-platform-badge">${platformIcon} ${platformLabel}</span>
+
+  const grouped = devices.reduce((map, device) => {
+    const category = getDeviceCategory(device);
+    if (!map.has(category)) map.set(category, []);
+    map.get(category).push(device);
+    return map;
+  }, new Map());
+
+  const sortedGroups = Array.from(grouped.entries())
+    .sort((left, right) => left[0].localeCompare(right[0], 'de', { sensitivity: 'base' }));
+
+  container.innerHTML = sortedGroups.map(([category, groupDevices]) => {
+    const deviceItems = groupDevices.map((device) => {
+      const platform = inferMobilePlatform(device);
+      const platformLabel = getPlatformLabel(platform);
+      const platformIcon = getPlatformIcon(platform);
+      const payloadHint = platform === 'ios'
+        ? 'Verwendet iOS-Parameter: data.url + push.sound'
+        : 'Verwendet Android-Parameter: data.clickAction + priority + ttl';
+      return `
+        <label class="notification-device-item platform-${platform}">
+          <input type="checkbox" ${device.active ? 'checked' : ''} onchange="toggleNotificationDevice('${device.id}', this.checked)" />
+          <span class="notification-device-content">
+            <span class="notification-device-title-row">
+              <strong>${escapeHtml(device.display_name)}</strong>
+              <span class="notification-platform-badge">${platformIcon} ${platformLabel}</span>
+            </span>
+            <small>${escapeHtml(device.service)}</small>
+            <small class="notification-payload-hint">${payloadHint}</small>
           </span>
-          <small>${escapeHtml(device.service)}</small>
-          <small class="notification-payload-hint">${payloadHint}</small>
-        </span>
-      </label>
+        </label>
+      `;
+    }).join('');
+
+    return `
+      <section class="notification-device-group">
+        <h4 class="notification-device-group-title">${escapeHtml(category)}</h4>
+        ${deviceItems}
+      </section>
     `;
   }).join('');
 }
