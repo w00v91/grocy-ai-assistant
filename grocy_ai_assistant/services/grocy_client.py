@@ -1096,7 +1096,6 @@ class GrocyClient:
     ) -> None:
         payload: Dict[str, Any] = {
             "calories": calories,
-            "energy": calories,
             "carbohydrates": carbs,
             "fat": fat,
             "protein": protein,

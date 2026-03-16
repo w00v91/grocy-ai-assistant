@@ -1217,6 +1217,7 @@ def test_get_stock_products_includes_nutrition_values(monkeypatch):
     assert result[0]["sugar"] == "4"
 
 
+
 def test_get_stock_products_returns_stock_id(monkeypatch):
     def fake_get(url, *args, **kwargs):
         if url.endswith("/stock"):
@@ -1553,7 +1554,6 @@ def test_update_product_nutrition_updates_product_object(monkeypatch):
     assert captured["url"].endswith("/objects/products/42")
     assert captured["json"] == {
         "calories": 123,
-        "energy": 123,
         "carbohydrates": 4.5,
         "fat": 6,
         "protein": 7,
@@ -1606,9 +1606,11 @@ def test_update_product_nutrition_retries_without_unknown_columns(monkeypatch):
 
     client.update_product_nutrition(product_id=42, calories=123, carbs=4.5)
 
-    assert calls[0] == {"calories": 123, "energy": 123, "carbohydrates": 4.5}
-    assert calls[1] == {"energy": 123, "carbohydrates": 4.5}
-    assert calls[2] == {"energy": 123}
+    assert calls[0] == {
+        "calories": 123,
+        "carbohydrates": 4.5,
+    }
+    assert calls[1] == {"carbohydrates": 4.5}
 
 
 def test_update_product_nutrition_skips_when_no_values():
@@ -1653,7 +1655,7 @@ def test_update_product_nutrition_skips_on_non_unknown_400(monkeypatch):
 
     client.update_product_nutrition(product_id=42, calories=123)
 
-    assert calls == [{"calories": 123, "energy": 123}]
+    assert calls == [{"calories": 123}]
 
 
 def test_clear_product_picture_sets_picture_file_name_to_none(monkeypatch):
