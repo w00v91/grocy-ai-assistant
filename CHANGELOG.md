@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.83
+
+- Fix (Lager-Tab): Das Speichern einer Bestandsmenge von `0` bleibt nun erhalten und wird nicht mehr als leerer Wert zurückgegeben.
+- Test: Unit-Test ergänzt, der sicherstellt, dass `0` als Bestandsmenge als String `"0"` im Storage-Listing erhalten bleibt.
+- Pflege: Add-on-Version auf `7.1.83` erhöht.
+
 ## 7.1.82
 
 - Verbesserung (KI/MHD): Die KI kann jetzt beim Anlegen neuer Produkte eine geschätzte Standard-Haltbarkeit (`default_best_before_days`) liefern.

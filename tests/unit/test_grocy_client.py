@@ -527,6 +527,7 @@ def test_get_stock_products_resolves_product_and_location_names(monkeypatch):
         {
             "id": 1,
             "name": "Apfel",
+            "in_stock": True,
             "picture_url": "",
             "location_id": 4,
             "location_name": "Obstkorb",
@@ -541,6 +542,7 @@ def test_get_stock_products_resolves_product_and_location_names(monkeypatch):
         {
             "id": 2,
             "name": "Milch",
+            "in_stock": True,
             "picture_url": "",
             "location_id": 1,
             "location_name": "Kühlschrank",
@@ -553,6 +555,42 @@ def test_get_stock_products_resolves_product_and_location_names(monkeypatch):
             "sugar": "",
         },
     ]
+
+
+def test_get_stock_products_preserves_zero_amount_as_string(monkeypatch):
+    def fake_get(url, *args, **kwargs):
+        if url.endswith("/stock"):
+            return FakeResponse(
+                [
+                    {
+                        "product_id": 1,
+                        "amount": 0,
+                        "best_before_date": "",
+                    }
+                ]
+            )
+        if url.endswith("/objects/products"):
+            return FakeResponse([{"id": 1, "name": "Apfel", "location_id": 4}])
+        if url.endswith("/objects/locations"):
+            return FakeResponse([{"id": 4, "name": "Obstkorb"}])
+        raise AssertionError(f"Unexpected url: {url}")
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.services.grocy_client.requests.get", fake_get
+    )
+
+    client = GrocyClient(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+        )
+    )
+
+    result = client.get_stock_products()
+
+    assert result[0]["amount"] == "0"
 
 
 def test_get_recipes_returns_grocy_recipes(monkeypatch):
@@ -676,6 +714,7 @@ def test_get_stock_products_filters_by_locations(monkeypatch):
         {
             "id": 2,
             "name": "Milch",
+            "in_stock": True,
             "picture_url": "",
             "location_id": 1,
             "location_name": "Kühlschrank",
@@ -739,6 +778,7 @@ def test_get_stock_products_uses_stock_location_for_filter_and_display(monkeypat
         {
             "id": 2,
             "name": "Milch",
+            "in_stock": True,
             "picture_url": "",
             "location_id": 4,
             "location_name": "Vorrat",
