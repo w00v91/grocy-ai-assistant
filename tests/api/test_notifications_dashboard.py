@@ -26,6 +26,45 @@ def test_notification_overview_returns_defaults(client, monkeypatch, tmp_path):
     assert payload["rules"][0]["name"]
 
 
+def test_notification_overview_discovers_mobile_devices_via_homeassistant_services(
+    client, monkeypatch, tmp_path
+):
+    monkeypatch.setattr(
+        routes, "NOTIFICATION_STORAGE_PATH", tmp_path / "notification_dashboard.json"
+    )
+    monkeypatch.setenv("SUPERVISOR_TOKEN", "token")
+
+    class _Response:
+        status_code = 200
+
+        @staticmethod
+        def json():
+            return [
+                {
+                    "domain": "notify",
+                    "services": {
+                        "mobile_app_pixel_9": {},
+                        "persistent_notification": {},
+                    },
+                }
+            ]
+
+    def _fake_get(url, headers=None, timeout=None):
+        return _Response()
+
+    monkeypatch.setattr(routes.requests, "get", _fake_get)
+
+    response = client.get(
+        "/api/dashboard/notifications/overview",
+        headers={"Authorization": "Bearer test-api-key"},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["devices"]
+    assert payload["devices"][0]["service"] == "notify.mobile_app_pixel_9"
+
+
 def test_notification_rule_can_be_created_and_deleted(client, monkeypatch, tmp_path):
     monkeypatch.setattr(
         routes, "NOTIFICATION_STORAGE_PATH", tmp_path / "notification_dashboard.json"

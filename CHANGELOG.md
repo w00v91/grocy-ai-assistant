@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.76
+
+- Fix (Benachrichtigungen/Geräteerkennung): Notify-Devices werden im Dashboard jetzt primär über die Home-Assistant-Service-API (`/api/services`) erkannt statt ausschließlich über `options.json`-Pattern-Matches.
+- Fix (Benachrichtigungen/Geräteerkennung): Fallback auf die bestehende `options.json`-Erkennung bleibt erhalten, falls die Service-API temporär nicht erreichbar ist.
+- Test: API-Test ergänzt, der die Erkennung von `notify.mobile_app_*`-Services über den Home-Assistant-Endpoint absichert.
+- Pflege: Add-on-Version auf `7.1.76` erhöht.
+
 ## 7.1.74
 
 - Fix (Benachrichtigungen/Fehlertexte): Technische Mehrfachfehler aus Supervisor-Header- und Endpoint-Retries werden nicht mehr 1:1 als UI-Statusmeldung ausgegeben. Stattdessen liefert die API jetzt eine kurze, verständliche Fehlermeldung (z. B. Autorisierungsfehler 401/403).
