@@ -1624,6 +1624,38 @@ def test_update_product_nutrition_skips_when_no_values():
     client.update_product_nutrition(product_id=42)
 
 
+def test_update_product_nutrition_skips_on_non_unknown_400(monkeypatch):
+    calls = []
+
+    class BadRequestResponse:
+        status_code = 400
+        text = '{"error_message":"invalid payload"}'
+
+        def raise_for_status(self):
+            raise HTTPError("Bad Request")
+
+    def fake_put(url, headers, json, timeout):
+        calls.append(json)
+        return BadRequestResponse()
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.services.grocy_client.requests.put", fake_put
+    )
+
+    client = GrocyClient(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+        )
+    )
+
+    client.update_product_nutrition(product_id=42, calories=123)
+
+    assert calls == [{"calories": 123, "energy": 123}]
+
+
 def test_clear_product_picture_sets_picture_file_name_to_none(monkeypatch):
     called = {}
 
