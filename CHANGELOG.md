@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.82
+
+- Verbesserung (KI/MHD): Die KI kann jetzt beim Anlegen neuer Produkte eine geschätzte Standard-Haltbarkeit (`default_best_before_days`) liefern.
+- Verbesserung (Einkaufsliste/MHD): MHD-Auflösung zentralisiert; wenn beim Hinzufügen oder beim "Einkaufen" kein MHD gesetzt ist, wird ein Datum aus `default_best_before_days` berechnet (aus KI-Wert oder Grocy-Produktstandard).
+- Pflege: Doppelte MHD-Normalisierungslogik entfernt und in eine gemeinsame Service-Methode zusammengeführt.
+- Test: Unit-Tests für die neue MHD-Auflösung und KI-Mapping ergänzt.
+- Pflege: Add-on-Version auf `7.1.82` erhöht.
+
 ## 7.1.81
 
 - Fix (UI/Einkaufsliste): Swipe-Aktionen im Produkt-Tab korrigiert – die auslösenden Aktionen sind nicht mehr vertauscht (links löscht, rechts markiert als gekauft), passend zur dargestellten Aktionsfläche.

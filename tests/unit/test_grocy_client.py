@@ -1,4 +1,5 @@
 from base64 import b64encode
+from datetime import datetime, timedelta
 
 import pytest
 import requests
@@ -425,8 +426,6 @@ def test_search_products_by_partial_name_returns_all_variants(monkeypatch):
     assert [product["name"] for product in result] == ["Apfel", "Apfelessig"]
 
 
-
-
 def test_get_storage_products_can_include_products_not_in_stock(monkeypatch):
     def fake_stock_products(self, location_ids=None):
         return [
@@ -443,37 +442,42 @@ def test_get_storage_products_can_include_products_not_in_stock(monkeypatch):
         ]
 
     def fake_get(url, *args, **kwargs):
-        if url.endswith('/objects/products'):
-            return FakeResponse([
-                {"id": 1, "name": "Milch", "location_id": 1},
-                {"id": 2, "name": "Nudeln", "location_id": 2},
-            ])
-        if url.endswith('/objects/locations'):
-            return FakeResponse([
-                {"id": 1, "name": "Kühlschrank"},
-                {"id": 2, "name": "Vorrat"},
-            ])
-        raise AssertionError(f'Unexpected url: {url}')
+        if url.endswith("/objects/products"):
+            return FakeResponse(
+                [
+                    {"id": 1, "name": "Milch", "location_id": 1},
+                    {"id": 2, "name": "Nudeln", "location_id": 2},
+                ]
+            )
+        if url.endswith("/objects/locations"):
+            return FakeResponse(
+                [
+                    {"id": 1, "name": "Kühlschrank"},
+                    {"id": 2, "name": "Vorrat"},
+                ]
+            )
+        raise AssertionError(f"Unexpected url: {url}")
 
-    monkeypatch.setattr(GrocyClient, 'get_stock_products', fake_stock_products)
+    monkeypatch.setattr(GrocyClient, "get_stock_products", fake_stock_products)
     monkeypatch.setattr(
-        'grocy_ai_assistant.services.grocy_client.requests.get', fake_get
+        "grocy_ai_assistant.services.grocy_client.requests.get", fake_get
     )
 
     client = GrocyClient(
         Settings(
-            api_key='x',
-            addon_version='a',
-            required_integration_version='1',
-            grocy_api_key='g',
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
         )
     )
 
     result = client.get_storage_products(include_all_products=True)
 
-    assert [item['name'] for item in result] == ['Milch', 'Nudeln']
-    assert result[1]['in_stock'] is False
-    assert result[1]['amount'] == '0'
+    assert [item["name"] for item in result] == ["Milch", "Nudeln"]
+    assert result[1]["in_stock"] is False
+    assert result[1]["amount"] == "0"
+
 
 def test_get_stock_products_resolves_product_and_location_names(monkeypatch):
     def fake_get(url, *args, **kwargs):
@@ -1966,3 +1970,46 @@ def test_get_storage_products_filters_by_search_query(monkeypatch):
 
     assert len(result) == 1
     assert result[0]["name"] == "Milch"
+
+
+def test_resolve_best_before_date_prefers_explicit_value():
+    client = GrocyClient(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+        )
+    )
+
+    assert (
+        client.resolve_best_before_date(
+            product_id=1,
+            best_before_date="2027-01-05",
+            default_best_before_days=4,
+        )
+        == "2027-01-05"
+    )
+
+
+def test_resolve_best_before_date_uses_default_days_from_product(monkeypatch):
+    def fake_get(url, *args, **kwargs):
+        if url.endswith("/objects/products"):
+            return FakeResponse([{"id": 12, "default_best_before_days": 5}])
+        raise AssertionError(f"Unexpected url: {url}")
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.services.grocy_client.requests.get", fake_get
+    )
+
+    client = GrocyClient(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+        )
+    )
+
+    expected = (datetime.now().date() + timedelta(days=5)).isoformat()
+    assert client.resolve_best_before_date(product_id=12) == expected
