@@ -896,6 +896,40 @@ def test_best_before_date_is_extracted_from_shopping_list_note(monkeypatch):
     assert result[0]["note"] == "Bio"
 
 
+def test_enrich_shopping_items_does_not_use_stock_best_before_date_without_note(monkeypatch):
+    def fake_get(url, *args, **kwargs):
+        if url.endswith("/objects/products"):
+            return FakeResponse([{"id": 5, "name": "Milch"}])
+        if url.endswith("/stock"):
+            return FakeResponse(
+                [
+                    {
+                        "product_id": 5,
+                        "best_before_date": "2028-04-20",
+                        "amount": "1",
+                    }
+                ]
+            )
+        raise AssertionError(f"Unexpected URL: {url}")
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.services.grocy_client.requests.get", fake_get
+    )
+
+    client = GrocyClient(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+        )
+    )
+
+    result = client._enrich_shopping_items([{"id": 1, "product_id": 5, "note": ""}])
+
+    assert result[0]["best_before_date"] == ""
+
+
 def test_embed_best_before_date_in_note_replaces_existing_marker():
     result = GrocyClient._embed_best_before_date_in_note(
         "Alt [grocy_ai_mhd:2020-01-01]",
@@ -1990,6 +2024,23 @@ def test_resolve_best_before_date_prefers_explicit_value():
         )
         == "2027-01-05"
     )
+
+
+def test_resolve_best_before_date_uses_global_fallback_when_no_defaults_available(monkeypatch):
+    client = GrocyClient(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+        )
+    )
+    monkeypatch.setattr(client, "_get_product_default_best_before_days", lambda _pid: None)
+
+    expected = (
+        datetime.now().date() + timedelta(days=GrocyClient.FALLBACK_BEST_BEFORE_DAYS)
+    ).isoformat()
+    assert client.resolve_best_before_date(product_id=12) == expected
 
 
 def test_resolve_best_before_date_uses_default_days_from_product(monkeypatch):

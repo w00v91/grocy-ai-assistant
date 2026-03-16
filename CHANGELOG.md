@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.83
+
+- Fix (Einkaufsliste/MHD): Beim Laden der Einkaufsliste wird ein MHD jetzt nur noch aus der Einkaufslisten-Notiz (`[grocy_ai_mhd:...]`) übernommen. Leere MHDs werden nicht mehr automatisch mit Lager-/Grocy-Werten überschrieben.
+- Verbesserung (MHD-Fallback): Wenn beim "Einkaufen" weder ein explizites MHD noch `default_best_before_days` (aus KI oder Produktstandard) vorhanden ist, wird als Fallback automatisch `heute + 4 Tage` gesetzt.
+- Test: Unit-Tests für den neuen Einkaufslisten-MHD-Import und den globalen `+4 Tage`-Fallback ergänzt.
+- Pflege: Add-on-Version auf `7.1.83` erhöht.
+
 ## 7.1.82
 
 - Verbesserung (KI/MHD): Die KI kann jetzt beim Anlegen neuer Produkte eine geschätzte Standard-Haltbarkeit (`default_best_before_days`) liefern.
