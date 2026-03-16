@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.73
+
+- UI (Lager-Tab): Attributdarstellung der Lagerprodukte an das Such-Layout angepasst; `Lager` bleibt als Zeile unter dem Produktnamen.
+- UI (Lager-Tab): `Menge` und `MHD` werden rechts als Badge-Spalte dargestellt, analog zur Produktsuche.
+- UI (Lager/Swipe): Swipe-Aktionsflächen im Lager zeigen Bearbeiten/Verbrauchen jetzt ebenfalls als Badge-Chips wie im Such-Tab.
+- Pflege: Add-on-Version auf `7.1.73` erhöht.
+
 ## 7.1.72
 
 - Fix (Benachrichtigungen/Dashboard): Home-Assistant-Serviceaufrufe probieren jetzt zusätzliche Auth-Header-Kombinationen (`Authorization`, `X-Supervisor-Token`, `X-Hassio-Key`), damit Supervisor-/Ingress-Varianten zuverlässiger autorisiert werden.

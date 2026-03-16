@@ -1792,7 +1792,11 @@ function renderStorageProducts() {
         <img src="${toImageSource(item.picture_url)}" alt="${escapeHtml(item.name || 'Unbekanntes Produkt')}" loading="lazy" />
         <div class="storage-item-main">
           <strong class="storage-item-name">${escapeHtml(item.name || 'Unbekanntes Produkt')}</strong>
-          <div class="muted storage-item-description">Lager: ${escapeHtml(item.location_name || '-')} · Menge: ${escapeHtml(formatBadgeValue(item.amount, '0'))} · MHD: ${escapeHtml(formatBadgeValue(item.best_before_date, '-'))}</div>
+          <div class="muted storage-item-description">Lager: ${escapeHtml(item.location_name || '-')}</div>
+        </div>
+        <div class="storage-item-badges">
+          <span class="badge">Menge: ${escapeHtml(formatBadgeValue(item.amount, '0'))}</span>
+          <span class="badge">MHD: ${escapeHtml(formatBadgeValue(item.best_before_date, '-'))}</span>
         </div>
       </div>
     </li>
