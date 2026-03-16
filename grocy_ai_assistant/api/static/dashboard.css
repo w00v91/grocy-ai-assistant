@@ -1002,21 +1002,27 @@ img {
   margin-top: 0.8rem;
 }
 
+#storage-products.variant-grid {
+  grid-template-columns: 1fr;
+}
+
 .storage-item {
+  padding: 0;
+  text-align: left;
+}
+
+.storage-item.variant-card {
   padding: 0;
 }
 
 .storage-item-content {
-  display: grid;
-  grid-template-columns: 64px minmax(0, 1fr) minmax(8.2rem, auto);
-  gap: 0.8rem;
-  align-items: start;
-  padding: 0.6rem 0.8rem;
+  width: 100%;
 }
 
 .storage-item-content img {
-  width: 64px;
-  height: 64px;
+  width: 72px;
+  height: 72px;
+  margin-bottom: 0;
   border-radius: 10px;
   object-fit: cover;
   border: 1px solid var(--item-border);
@@ -1037,39 +1043,10 @@ img {
 .storage-item-description {
   line-height: 1.35;
 }
-
-.storage-item-badges {
-  margin-left: auto;
-  display: grid;
-  gap: 0.35rem;
-  justify-items: stretch;
-  width: 100%;
-  max-width: 33.333%;
-}
-
-.storage-item-badges .badge {
-  margin-left: 0;
-  width: 100%;
-  box-sizing: border-box;
-  text-align: center;
-}
-
-.storage-item-attributes {
-  margin: 0.45rem 0 0;
-  padding: 0;
-  list-style: none;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem;
-}
-
-.storage-item-attributes .badge {
-  margin: 0;
-}
-
 @media (max-width: 640px) {
-  .storage-item-content {
-    grid-template-columns: 56px minmax(0, 1fr);
+  .storage-item-content img {
+    width: 56px;
+    height: 56px;
   }
 }
 

@@ -1776,25 +1776,22 @@ function renderStorageProducts() {
 
   list.innerHTML = filteredItems.map((item) => {
     const actionableId = getActionableStorageId(item);
-    const canExecuteAction = actionableId > 0 && item.in_stock;
-    const disabledAttr = canExecuteAction ? '' : ' disabled';
-    const disabledTitle = canExecuteAction ? '' : ' title="Für diesen Eintrag ist keine nutzbare Produkt-/Bestand-ID verfügbar"';
 
     return `
-    <li class="storage-item swipe-item" data-swipe-payload="${encodeURIComponent(JSON.stringify({ id: actionableId }))}">
+    <li class="storage-item swipe-item variant-card" data-swipe-payload="${encodeURIComponent(JSON.stringify({ id: actionableId }))}">
       <div class="swipe-item-action swipe-item-action-left" aria-hidden="true">
         <span class="swipe-chip swipe-chip-edit">✏️ Bearbeiten</span>
       </div>
       <div class="swipe-item-action swipe-item-action-right" aria-hidden="true">
         <span class="swipe-chip swipe-chip-buy">✅ Verbrauchen</span>
       </div>
-      <div class="storage-item-content swipe-item-content">
+      <div class="storage-item-content shopping-item-content swipe-item-content">
         <img src="${toImageSource(item.picture_url)}" alt="${escapeHtml(item.name || 'Unbekanntes Produkt')}" loading="lazy" />
-        <div class="storage-item-main">
-          <strong class="storage-item-name">${escapeHtml(item.name || 'Unbekanntes Produkt')}</strong>
+        <div class="shopping-item-meta storage-item-main">
+          <div><strong class="storage-item-name">${escapeHtml(item.name || 'Unbekanntes Produkt')}</strong></div>
           <div class="muted storage-item-description">Lager: ${escapeHtml(item.location_name || '-')}</div>
         </div>
-        <div class="storage-item-badges">
+        <div class="shopping-item-badges storage-item-badges">
           <span class="badge">Menge: ${escapeHtml(formatBadgeValue(item.amount, '0'))}</span>
           <span class="badge">MHD: ${escapeHtml(formatBadgeValue(item.best_before_date, '-'))}</span>
         </div>

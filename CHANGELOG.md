@@ -4,6 +4,8 @@ All notable changes to this project are documented in this file.
 
 ## 7.1.76
 
+- UI (Lager-Tab): Produktkarten im Lager verwenden jetzt denselben HTML-Aufbau wie Produkte im Such-Tab (gemeinsame Card-/Content-Struktur für Bild, Meta-Bereich und Badge-Spalte).
+- UI (Lager-Tab): Lagerprodukte nutzen dieselben Stilklassen wie die Suchprodukte, damit Abstände, Bildgröße und Badge-Ausrichtung visuell konsistent sind.
 - Fix (Benachrichtigungen/Geräteerkennung): Notify-Devices werden im Dashboard jetzt primär über die Home-Assistant-Service-API (`/api/services`) erkannt statt ausschließlich über `options.json`-Pattern-Matches.
 - Fix (Benachrichtigungen/Geräteerkennung): Fallback auf die bestehende `options.json`-Erkennung bleibt erhalten, falls die Service-API temporär nicht erreichbar ist.
 - Test: API-Test ergänzt, der die Erkennung von `notify.mobile_app_*`-Services über den Home-Assistant-Endpoint absichert.
