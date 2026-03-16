@@ -7,6 +7,7 @@ from datetime import date, timedelta
 from pathlib import Path
 from urllib.parse import ParseResult, quote, unquote, urlencode, urlparse, urlunparse
 from uuid import uuid4
+from typing import Any
 
 import requests
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
@@ -521,6 +522,22 @@ def _extract_amount_prefixed_product_input(raw_value: str) -> tuple[str, float |
     return product_name.strip(), parsed_amount
 
 
+def _resolve_best_before_date_for_product(
+    grocy_client: GrocyClient,
+    product_id: int,
+    best_before_date: str = "",
+    default_best_before_days: Any = None,
+) -> str:
+    resolver = getattr(grocy_client, "resolve_best_before_date", None)
+    if callable(resolver):
+        return resolver(
+            product_id=product_id,
+            best_before_date=best_before_date,
+            default_best_before_days=default_best_before_days,
+        )
+    return str(best_before_date or "").strip()
+
+
 def _score_recipe_match(recipe: dict, selected_products: list[str]) -> tuple[int, str]:
     title = str(recipe.get("name") or "")
     normalized_title = title.casefold()
@@ -1027,10 +1044,15 @@ def dashboard_add_existing_product(
         grocy_client = GrocyClient(settings)
         _, parsed_amount = _extract_amount_prefixed_product_input(payload.product_name)
         amount = parsed_amount if parsed_amount is not None else payload.amount
+        resolved_best_before_date = _resolve_best_before_date_for_product(
+            grocy_client,
+            product_id=payload.product_id,
+            best_before_date=payload.best_before_date,
+        )
         grocy_client.add_product_to_shopping_list(
             payload.product_id,
             amount=amount,
-            best_before_date=payload.best_before_date,
+            best_before_date=resolved_best_before_date,
         )
         return DashboardSearchResponse(
             success=True,
@@ -1073,10 +1095,16 @@ def dashboard_search(
     try:
         existing_product = grocy_client.find_product_by_name(product_name)
         if existing_product:
-            grocy_client.add_product_to_shopping_list(
-                existing_product.get("id"),
-                amount=amount,
+            existing_product_id = int(existing_product.get("id"))
+            resolved_best_before_date = _resolve_best_before_date_for_product(
+                grocy_client,
+                product_id=existing_product_id,
                 best_before_date=payload.best_before_date,
+            )
+            grocy_client.add_product_to_shopping_list(
+                existing_product_id,
+                amount=amount,
+                best_before_date=resolved_best_before_date,
             )
             return DashboardSearchResponse(
                 success=True,
@@ -1120,10 +1148,16 @@ def dashboard_search(
             grocy_client=grocy_client,
             settings=settings,
         )
+        resolved_best_before_date = _resolve_best_before_date_for_product(
+            grocy_client,
+            product_id=created_object_id,
+            best_before_date=payload.best_before_date,
+            default_best_before_days=product_data.get("default_best_before_days"),
+        )
         grocy_client.add_product_to_shopping_list(
             created_object_id,
             amount=amount,
-            best_before_date=payload.best_before_date,
+            best_before_date=resolved_best_before_date,
         )
 
         return DashboardSearchResponse(
@@ -2193,11 +2227,17 @@ def dashboard_complete_shopping_list_item(
         if product_id is None:
             raise HTTPException(status_code=400, detail="Produkt-ID für Eintrag fehlt")
 
+        resolved_best_before_date = _resolve_best_before_date_for_product(
+            grocy_client,
+            product_id=int(product_id),
+            best_before_date=str(selected_item.get("best_before_date") or ""),
+            default_best_before_days=selected_item.get("default_amount"),
+        )
         grocy_client.complete_shopping_list_item(
             shopping_list_id,
             product_id=int(product_id),
             amount=str(selected_item.get("amount") or "1"),
-            best_before_date=str(selected_item.get("best_before_date") or ""),
+            best_before_date=resolved_best_before_date,
         )
         return {
             "success": True,

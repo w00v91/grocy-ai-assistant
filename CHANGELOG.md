@@ -4,6 +4,10 @@ All notable changes to this project are documented in this file.
 
 ## 7.1.82
 
+- Verbesserung (KI/MHD): Die KI kann jetzt beim Anlegen neuer Produkte eine geschätzte Standard-Haltbarkeit (`default_best_before_days`) liefern.
+- Verbesserung (Einkaufsliste/MHD): MHD-Auflösung zentralisiert; wenn beim Hinzufügen oder beim "Einkaufen" kein MHD gesetzt ist, wird ein Datum aus `default_best_before_days` berechnet (aus KI-Wert oder Grocy-Produktstandard).
+- Pflege: Doppelte MHD-Normalisierungslogik entfernt und in eine gemeinsame Service-Methode zusammengeführt.
+- Test: Unit-Tests für die neue MHD-Auflösung und KI-Mapping ergänzt.
 - UI (Benachrichtigungen/Geräteverwaltung): Karte im Notify-Tab wieder auf volle Breite gesetzt und Geräteansicht als 2-Spalten-Layout dargestellt (mobil weiterhin 1 Spalte).
 - Verbesserung (Benachrichtigungen/Geräte): Geräte nach Namens-Gemeinsamkeiten gruppiert (z. B. `notify.mobile_app_pixel_watch_*` → Kategorie `Pixel Watch`) mit robustem Fallback auf normalisierte Namensbestandteile bzw. `Sonstige Geräte`.
 - Pflege: Add-on-Version auf `7.1.82` erhöht.

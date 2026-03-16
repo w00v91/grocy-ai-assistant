@@ -1,6 +1,6 @@
 from collections import Counter
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from math import sqrt
 from pathlib import Path
 import re
@@ -110,12 +110,6 @@ class GrocyClient:
         return str(value).strip()
 
     @staticmethod
-    def _safe_str(value: Any) -> str:
-        if value is None:
-            return ""
-        return str(value).strip()
-
-    @staticmethod
     def _safe_int(value: Any) -> int | None:
         if value is None:
             return None
@@ -132,6 +126,37 @@ class GrocyClient:
             return None
 
         return int(text) if text.isdigit() else None
+
+    @classmethod
+    def _normalize_best_before_date(cls, best_before_date: Any) -> str:
+        return cls._safe_str(best_before_date)
+
+    def _get_product_default_best_before_days(self, product_id: int) -> int | None:
+        for product in self._get_all_products():
+            if self._safe_int(product.get("id")) != int(product_id):
+                continue
+            default_days = self._safe_int(product.get("default_best_before_days"))
+            return default_days if default_days and default_days > 0 else None
+        return None
+
+    def resolve_best_before_date(
+        self,
+        product_id: int,
+        best_before_date: str = "",
+        default_best_before_days: Any = None,
+    ) -> str:
+        normalized_best_before_date = self._normalize_best_before_date(best_before_date)
+        if normalized_best_before_date:
+            return normalized_best_before_date
+
+        days = self._safe_int(default_best_before_days)
+        if days is None or days <= 0:
+            days = self._get_product_default_best_before_days(product_id)
+
+        if days is None or days <= 0:
+            return ""
+
+        return (datetime.now().date() + timedelta(days=days)).isoformat()
 
     def _build_grocy_file_url(self, folder: str, file_name: Any) -> str:
         normalized_file_name = self._safe_str(file_name)
@@ -487,7 +512,7 @@ class GrocyClient:
         best_before_date: str = "",
     ) -> None:
         payload: Dict[str, Any] = {"product_id": product_id, "amount": amount}
-        normalized_best_before_date = best_before_date.strip()
+        normalized_best_before_date = self._normalize_best_before_date(best_before_date)
         if normalized_best_before_date:
             payload["best_before_date"] = normalized_best_before_date
 
@@ -858,7 +883,6 @@ class GrocyClient:
         result.sort(key=lambda item: item["name"].casefold())
         return result
 
-
     def get_storage_products(
         self,
         location_ids: list[int] | None = None,
@@ -871,9 +895,13 @@ class GrocyClient:
             else self.get_stock_products()
         )
         if include_all_products:
-            allowed_locations = {int(location_id) for location_id in (location_ids or [])}
+            allowed_locations = {
+                int(location_id) for location_id in (location_ids or [])
+            }
             product_ids_in_stock = {
-                self._safe_int(item.get("id")) for item in stock_products if item.get("id") is not None
+                self._safe_int(item.get("id"))
+                for item in stock_products
+                if item.get("id") is not None
             }
             product_ids_in_stock.discard(None)
 
@@ -904,7 +932,11 @@ class GrocyClient:
                             or ""
                         ),
                         "location_id": location_id,
-                        "location_name": locations.get(location_id, "") if location_id is not None else "",
+                        "location_name": (
+                            locations.get(location_id, "")
+                            if location_id is not None
+                            else ""
+                        ),
                         "amount": "0",
                         "best_before_date": "",
                         "calories": str(product.get("calories") or ""),
@@ -1233,7 +1265,7 @@ class GrocyClient:
         payload: Dict[str, Any] = {
             "amount": self._safe_str(amount) or "1",
         }
-        normalized_best_before_date = self._safe_str(best_before_date)
+        normalized_best_before_date = self._normalize_best_before_date(best_before_date)
         if normalized_best_before_date:
             payload["best_before_date"] = normalized_best_before_date
         response = requests.post(

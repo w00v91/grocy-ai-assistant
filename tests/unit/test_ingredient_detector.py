@@ -296,7 +296,9 @@ def test_detect_product_from_image_uses_configurable_min_confidence(monkeypatch)
 
     def fake_post(*args, **kwargs):
         captured_payload.update(kwargs.get("json") or {})
-        return FakeResponse({"response": '{"product_name":"Milch","brand":"Bio","hint":"1L"}'})
+        return FakeResponse(
+            {"response": '{"product_name":"Milch","brand":"Bio","hint":"1L"}'}
+        )
 
     monkeypatch.setattr(
         "grocy_ai_assistant.ai.ingredient_detector.requests.post", fake_post
@@ -382,7 +384,7 @@ def test_generate_product_image_uses_openai_images_api(monkeypatch, tmp_path):
     assert captured["url"] == "https://api.openai.com/v1/images/generations"
     assert captured["headers"]["Authorization"] == "Bearer sk-test"
     assert captured["json"]["model"] == "gpt-image-1"
-    assert "Erstelle ein produktbild für \"Hafer Milch\"" in captured["json"]["prompt"]
+    assert 'Erstelle ein produktbild für "Hafer Milch"' in captured["json"]["prompt"]
     assert Path(result).exists()
 
 
@@ -436,7 +438,9 @@ def test_generate_product_image_falls_back_to_dalle_on_403(monkeypatch, tmp_path
     assert Path(result).exists()
 
 
-def test_generate_product_image_downloads_from_url_when_b64_missing(monkeypatch, tmp_path):
+def test_generate_product_image_downloads_from_url_when_b64_missing(
+    monkeypatch, tmp_path
+):
     class FakeImageApiResponse:
         status_code = 200
 
@@ -516,6 +520,7 @@ def test_analyze_product_name_returns_extended_nutrition_values(monkeypatch):
     assert result["fat"] == 7
     assert result["protein"] == 13.5
     assert result["sugar"] == 0.8
+    assert result["default_best_before_days"] == 0
 
 
 def test_analyze_product_name_maps_carbs_alias(monkeypatch):
@@ -549,3 +554,33 @@ def test_analyze_product_name_maps_carbs_alias(monkeypatch):
     assert result["fat"] == 0
     assert result["protein"] == 0
     assert result["sugar"] == 0
+
+
+def test_analyze_product_name_maps_default_best_before_days(monkeypatch):
+    def fake_post(*args, **kwargs):
+        return FakeResponse(
+            {
+                "response": (
+                    '{"name":"Joghurt","description":"","location_id":1,'
+                    '"qu_id_purchase":1,"qu_id_stock":1,"calories":60,'
+                    '"default_best_before_days":"7"}'
+                )
+            }
+        )
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.ai.ingredient_detector.requests.post", fake_post
+    )
+
+    detector = IngredientDetector(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+        )
+    )
+
+    result = detector.analyze_product_name("Joghurt")
+
+    assert result["default_best_before_days"] == 7
