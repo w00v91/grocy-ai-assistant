@@ -128,6 +128,12 @@ class GrocyClient:
 
         return int(text) if text.isdigit() else None
 
+    @staticmethod
+    def _to_string_or_empty(value: Any) -> str:
+        if value is None:
+            return ""
+        return str(value)
+
     @classmethod
     def _normalize_best_before_date(cls, best_before_date: Any) -> str:
         return cls._safe_str(best_before_date)
@@ -668,7 +674,7 @@ class GrocyClient:
                     or product.get("picture_file_name")
                     or "",
                     "location_name": locations.get(location_id, ""),
-                    "in_stock": str(stock_entry.get("amount") or ""),
+                    "in_stock": self._to_string_or_empty(stock_entry.get("amount")),
                     "note": clean_note,
                     "best_before_date": best_before_date_from_note,
                     "default_amount": str(
@@ -859,7 +865,7 @@ class GrocyClient:
                 ),
                 "location_id": normalized_location_id,
                 "location_name": location_name,
-                "amount": str(entry.get("amount") or ""),
+                "amount": self._to_string_or_empty(entry.get("amount")),
                 "best_before_date": str(
                     entry.get("best_before_date")
                     or entry.get("best_before_date_calculated")
