@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.80
+
+- Verbesserung (Benachrichtigungen/Mobile Styling): Mobile Testbenachrichtigungen enthalten jetzt zusätzliche Styling-Metadaten wie `icon`, `notification_icon`, `group` und `color`, um auf mobilen Geräten konsistenter dargestellt zu werden.
+- Verbesserung (Benachrichtigungen/iOS): iOS-Payload ergänzt um `push.interruption-level`, damit Hinweise sichtbar, aber nicht überaggressiv zugestellt werden.
+- Verbesserung (Benachrichtigungen/Android): Android-Payload ergänzt um `importance` und `sticky`, zusätzlich zu bestehenden `priority`-/`channel`-Feldern.
+- Test: API-Tests erweitert, um die neuen plattformspezifischen Payload-Felder für mobile Testsendungen abzusichern.
+- Pflege: Add-on-Version auf `7.1.80` erhöht.
+
 ## 7.1.79
 
 - UI (Einkaufsliste): Die Liste im Dashboard aktualisiert sich jetzt automatisch im Hintergrund (Polling alle 5 Sekunden), damit Änderungen von anderen Nutzern zeitnah sichtbar werden.

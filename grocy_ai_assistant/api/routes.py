@@ -271,26 +271,42 @@ def _build_mobile_notification_payload(
     message: str,
     platform: str,
 ) -> dict:
+    data = {
+        "tag": "grocy-assistant",
+        "group": "grocy-assistant",
+        "icon": "mdi:fridge-outline",
+        "notification_icon": "mdi:fridge-outline",
+        "color": "#4F46E5",
+    }
+
     payload = {
         "title": title,
         "message": message,
+        "data": data,
     }
 
     if platform == "ios":
-        payload["data"] = {
-            "url": "/lovelace/default_view",
-            "push": {
-                "sound": "default",
-                "thread-id": "grocy-assistant",
-            },
-        }
+        payload["data"].update(
+            {
+                "url": "/lovelace/default_view",
+                "push": {
+                    "sound": "default",
+                    "thread-id": "grocy-assistant",
+                    "interruption-level": "active",
+                },
+            }
+        )
     else:
-        payload["data"] = {
-            "clickAction": "/lovelace/default_view",
-            "channel": "Grocy Assistant",
-            "ttl": 300,
-            "priority": "high",
-        }
+        payload["data"].update(
+            {
+                "clickAction": "/lovelace/default_view",
+                "channel": "Grocy Assistant",
+                "ttl": 300,
+                "priority": "high",
+                "importance": "high",
+                "sticky": False,
+            }
+        )
 
     return payload
 
