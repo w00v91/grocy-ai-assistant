@@ -1,6 +1,6 @@
 {
   "name": "Grocy AI Assistant",
-  "version": "7.1.72",
+  "version": "7.1.74",
   "slug": "grocy_ai_assistant",
   "dependencies": [
     "a0d49513_grocy"
@@ -23,6 +23,8 @@
   "host_network": false,
   "ingress": true,
   "ingress_port": 8000,
+  "homeassistant_api": true,
+  "hassio_api": true,
   "options": {
     "api_key": "DEIN_KI_KEY",
     "grocy_api_key": "DEIN_GROCY_KEY",

@@ -189,7 +189,7 @@ def test_notification_persistent_test_returns_error_when_supervisor_token_missin
     )
 
     assert response.status_code == 502
-    assert "fehlgeschlagen (401)" in response.text
+    assert "Home-Assistant-Autorisierung fehlgeschlagen" in response.text
 
     overview = client.get(
         "/api/dashboard/notifications/overview",
@@ -199,6 +199,7 @@ def test_notification_persistent_test_returns_error_when_supervisor_token_missin
     payload = overview.json()
     assert payload["history"]
     assert payload["history"][0]["delivered"] is False
+    assert "Autorisierung fehlgeschlagen" in payload["history"][0]["error"]
 
 
 def test_notification_persistent_test_uses_hassio_token_when_supervisor_missing(
