@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.71
+
+- Fix (Benachrichtigungen/Dashboard): Bei Fehlern von `persistent_notification.create` wird jetzt immer zusätzlich der Fallback `notify.persistent_notification` versucht, statt nur bei 404/405. Dadurch schlagen Systeme mit 400-Fehlermeldungen (z. B. "service not found") nicht mehr mit 502 fehl.
+- Fix (Benachrichtigungen/Dashboard): Fallback-Aufruf sendet nur `title` und `message`, damit keine inkompatiblen Felder wie `notification_id` an den Notify-Service gehen.
+- Test: API-Test ergänzt, der den 400-Fehlerpfad von `persistent_notification.create` mit erfolgreichem Notify-Fallback absichert.
+- Pflege: Add-on-Version auf `7.1.71` erhöht.
+
 ## 7.1.70
 
 - Fix (Benachrichtigungen/Dashboard): Persistente Testbenachrichtigungen erzeugen jetzt eine Home-Assistant-kompatible `notification_id` ohne Sonderzeichen, damit Service-Calls nicht mehr an ungültigen IDs scheitern.

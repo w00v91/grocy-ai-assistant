@@ -149,6 +149,11 @@ def _send_persistent_notification_to_homeassistant(
         "message": message,
         "notification_id": notification_id,
     }
+    service_data_without_id = {
+        "title": title,
+        "message": message,
+    }
+
     delivered, error, status_code = _call_homeassistant_service(
         "persistent_notification",
         "create",
@@ -158,10 +163,6 @@ def _send_persistent_notification_to_homeassistant(
         return True, None
 
     if status_code in {400, 422}:
-        service_data_without_id = {
-            "title": title,
-            "message": message,
-        }
         retry_delivered, retry_error, retry_status_code = _call_homeassistant_service(
             "persistent_notification",
             "create",
@@ -172,17 +173,17 @@ def _send_persistent_notification_to_homeassistant(
         error = retry_error or error
         status_code = retry_status_code
 
-    if status_code not in {404, 405}:
-        return False, error
-
     fallback_delivered, fallback_error, _ = _call_homeassistant_service(
         "notify",
         "persistent_notification",
-        service_data,
+        service_data_without_id,
     )
     if fallback_delivered:
         return True, None
-    return False, fallback_error or error
+
+    if status_code in {404, 405}:
+        return False, fallback_error or error
+    return False, error or fallback_error
 
 
 def _normalize_barcode_for_lookup(raw_barcode: str) -> str:
