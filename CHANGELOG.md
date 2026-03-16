@@ -2,6 +2,34 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.73
+
+- Fix (Add-on/Home Assistant OS): `config.json` aktiviert jetzt `homeassistant_api` und `hassio_api`, damit Supervisor-Token/HA-API im Add-on zuverlässig verfügbar sind und Service-Calls für persistente Benachrichtigungen nicht mehr an fehlenden Berechtigungen scheitern.
+- Verbesserung (Logging): Bei fehlgeschlagenem Versand persistenter Testbenachrichtigungen wird die genaue Fehlerursache jetzt zusätzlich ins Add-on-Log geschrieben.
+- Test: Unit-Test ergänzt, der die API-Flags in `config.json` absichert.
+- Pflege: Add-on-Version auf `7.1.73` erhöht.
+
+## 7.1.72
+
+- Fix (Benachrichtigungen/Dashboard): Home-Assistant-Serviceaufrufe probieren jetzt zusätzliche Auth-Header-Kombinationen (`Authorization`, `X-Supervisor-Token`, `X-Hassio-Key`), damit Supervisor-/Ingress-Varianten zuverlässiger autorisiert werden.
+- Fix (Benachrichtigungen/Dashboard): Serviceaufrufe testen neben `/core/api/services/...` auch `/api/services/...`, um Installationen mit abweichendem Supervisor-Proxy robuster zu unterstützen.
+- Test: API-Test ergänzt, der den Erfolgsfall über `X-Hassio-Key` absichert.
+- Pflege: Add-on-Version auf `7.1.72` erhöht.
+
+## 7.1.71
+
+- Fix (Benachrichtigungen/Dashboard): Bei Fehlern von `persistent_notification.create` wird jetzt immer zusätzlich der Fallback `notify.persistent_notification` versucht, statt nur bei 404/405. Dadurch schlagen Systeme mit 400-Fehlermeldungen (z. B. "service not found") nicht mehr mit 502 fehl.
+- Fix (Benachrichtigungen/Dashboard): Fallback-Aufruf sendet nur `title` und `message`, damit keine inkompatiblen Felder wie `notification_id` an den Notify-Service gehen.
+- Test: API-Test ergänzt, der den 400-Fehlerpfad von `persistent_notification.create` mit erfolgreichem Notify-Fallback absichert.
+- Pflege: Add-on-Version auf `7.1.71` erhöht.
+
+## 7.1.70
+
+- Fix (Benachrichtigungen/Dashboard): Persistente Testbenachrichtigungen erzeugen jetzt eine Home-Assistant-kompatible `notification_id` ohne Sonderzeichen, damit Service-Calls nicht mehr an ungültigen IDs scheitern.
+- Fix (Benachrichtigungen/Dashboard): Bei 400/422-Validierungsfehlern wird `persistent_notification.create` automatisch ohne `notification_id` erneut versucht, um 502-Fehler bei strengeren HA-Versionen zu vermeiden.
+- Test: API-Tests für ID-Sanitizing und den Retry-Pfad ohne `notification_id` ergänzt.
+- Pflege: Add-on-Version auf `7.1.70` erhöht.
+
 ## 7.1.69
 
 - UI (Benachrichtigungen): `padding` bei `.notification-list li` entfernt, damit die Listen-/Swipe-Darstellung den gewünschten Abständen entspricht.

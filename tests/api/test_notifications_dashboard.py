@@ -229,3 +229,138 @@ def test_notification_persistent_test_uses_hassio_token_when_supervisor_missing(
 
     assert response.status_code == 200
     assert called["headers"]["Authorization"] == "Bearer hassio-token"
+
+
+def test_notification_persistent_test_sanitizes_notification_id(
+    client, monkeypatch, tmp_path
+):
+    monkeypatch.setattr(
+        routes, "NOTIFICATION_STORAGE_PATH", tmp_path / "notification_dashboard.json"
+    )
+    monkeypatch.setenv("SUPERVISOR_TOKEN", "token")
+
+    called = {}
+
+    class _Response:
+        status_code = 200
+        text = ""
+
+    def _fake_post(url, headers=None, json=None, timeout=None):
+        called["json"] = json or {}
+        return _Response()
+
+    monkeypatch.setattr(routes.requests, "post", _fake_post)
+
+    response = client.post(
+        "/api/dashboard/notifications/tests/persistent",
+        headers={
+            "Authorization": "Bearer test-api-key",
+            "x-ha-user-id": "abc:def/ghi",
+        },
+    )
+
+    assert response.status_code == 200
+    assert called["json"]["notification_id"] == "dashboard-test-abc-def-ghi"
+
+
+def test_notification_persistent_test_retries_without_notification_id_on_422(
+    client, monkeypatch, tmp_path
+):
+    monkeypatch.setattr(
+        routes, "NOTIFICATION_STORAGE_PATH", tmp_path / "notification_dashboard.json"
+    )
+    monkeypatch.setenv("SUPERVISOR_TOKEN", "token")
+
+    calls = []
+
+    class _Response:
+        def __init__(self, status_code, text=""):
+            self.status_code = status_code
+            self.text = text
+
+    def _fake_post(url, headers=None, json=None, timeout=None):
+        payload = json or {}
+        calls.append(payload)
+        if "notification_id" in payload:
+            return _Response(422, "invalid notification_id")
+        return _Response(200)
+
+    monkeypatch.setattr(routes.requests, "post", _fake_post)
+
+    response = client.post(
+        "/api/dashboard/notifications/tests/persistent",
+        headers={"Authorization": "Bearer test-api-key"},
+    )
+
+    assert response.status_code == 200
+    assert calls
+    assert "notification_id" in calls[0]
+    assert any("notification_id" not in payload for payload in calls)
+
+
+def test_notification_persistent_test_falls_back_to_notify_on_core_400(
+    client, monkeypatch, tmp_path
+):
+    monkeypatch.setattr(
+        routes, "NOTIFICATION_STORAGE_PATH", tmp_path / "notification_dashboard.json"
+    )
+    monkeypatch.setenv("SUPERVISOR_TOKEN", "token")
+
+    calls = []
+
+    class _Response:
+        def __init__(self, status_code, text=""):
+            self.status_code = status_code
+            self.text = text
+
+    def _fake_post(url, headers=None, json=None, timeout=None):
+        calls.append((url, json or {}))
+        if "/persistent_notification/create" in url:
+            return _Response(400, "Service persistent_notification.create not found")
+        return _Response(200)
+
+    monkeypatch.setattr(routes.requests, "post", _fake_post)
+
+    response = client.post(
+        "/api/dashboard/notifications/tests/persistent",
+        headers={"Authorization": "Bearer test-api-key"},
+    )
+
+    assert response.status_code == 200
+    assert any("/persistent_notification/create" in url for url, _ in calls)
+    fallback_calls = [payload for url, payload in calls if "/notify/persistent_notification" in url]
+    assert fallback_calls
+    assert "notification_id" not in fallback_calls[0]
+
+
+def test_notification_persistent_test_uses_x_hassio_key_header_when_required(
+    client, monkeypatch, tmp_path
+):
+    monkeypatch.setattr(
+        routes, "NOTIFICATION_STORAGE_PATH", tmp_path / "notification_dashboard.json"
+    )
+    monkeypatch.setenv("SUPERVISOR_TOKEN", "token")
+
+    called_headers = []
+
+    class _Response:
+        def __init__(self, status_code, text=""):
+            self.status_code = status_code
+            self.text = text
+
+    def _fake_post(url, headers=None, json=None, timeout=None):
+        headers = headers or {}
+        called_headers.append(headers)
+        if headers.get("X-Hassio-Key") == "token":
+            return _Response(200)
+        return _Response(401, "Unauthorized")
+
+    monkeypatch.setattr(routes.requests, "post", _fake_post)
+
+    response = client.post(
+        "/api/dashboard/notifications/tests/persistent",
+        headers={"Authorization": "Bearer test-api-key"},
+    )
+
+    assert response.status_code == 200
+    assert any(h.get("X-Hassio-Key") == "token" for h in called_headers)
