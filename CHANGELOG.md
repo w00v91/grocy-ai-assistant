@@ -3,6 +3,11 @@
 All notable changes to this project are documented in this file.
 
 
+## 7.1.85
+
+- Fix (UI/Lager-Tab): Swipe-Aktionen bei Produkten korrigiert – links wird jetzt wie angezeigt „Verbrauchen" ausgelöst, rechts „Bearbeiten".
+- Pflege: Add-on-Version auf `7.1.85` erhöht.
+
 ## 7.1.84
 
 - UI (Lager-Tab): Das konfigurierbare Dashboard-Polling-Intervall steuert jetzt auch das Auto-Refresh im Lager-Tab (nur aktiver Tab, pausiert bei inaktivem Browser-Tab).
