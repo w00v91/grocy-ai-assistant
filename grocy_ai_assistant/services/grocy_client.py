@@ -146,6 +146,37 @@ class GrocyClient:
             return default_days if default_days and default_days > 0 else None
         return None
 
+    def get_product_default_best_before_days(self, product_id: int) -> int | None:
+        return self._get_product_default_best_before_days(product_id)
+
+    def set_product_default_best_before_days(
+        self, product_id: int, default_best_before_days: Any
+    ) -> int | None:
+        days = self._safe_int(default_best_before_days)
+        if days is None or days <= 0:
+            return None
+
+        response = requests.put(
+            f"{self.settings.grocy_base_url}/objects/products/{int(product_id)}",
+            headers=self.headers,
+            json={"default_best_before_days": days},
+            timeout=30,
+        )
+        try:
+            response.raise_for_status()
+        except HTTPError:
+            if response.status_code != 400:
+                raise
+
+            sanitized_payload = self._remove_unknown_column_field(
+                {"default_best_before_days": days},
+                getattr(response, "text", ""),
+            )
+            if "default_best_before_days" not in sanitized_payload:
+                return None
+            raise
+        return days
+
     def resolve_best_before_date(
         self,
         product_id: int,

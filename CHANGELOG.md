@@ -3,6 +3,13 @@
 All notable changes to this project are documented in this file.
 
 
+## 7.1.86
+
+- Fix (Einkaufsliste/MHD): Beim Hinzufügen zur Einkaufsliste wird ein berechnetes MHD jetzt standardmäßig aus `default_best_before_days` (Produktwert oder KI-Wert) als `heute + Tage` gesetzt.
+- Verbesserung (Produktanlage/KI-Fallback): Falls in Grocy noch kein `default_best_before_days` für das neu angelegte Produkt gesetzt ist, wird der von der KI gelieferte Wert nachträglich am Produkt gespeichert.
+- Fix (Produktanlage/Nährwerte): KI-Nährwerte (inkl. Kalorien/Energie) werden nach dem Erstellen neuer Produkte jetzt zuverlässig auf das Grocy-Produkt geschrieben.
+- Pflege: Add-on-Version auf `7.1.86` erhöht.
+
 ## 7.1.85
 
 - Fix (UI/Lager-Tab): Swipe-Aktionen bei Produkten korrigiert – links wird jetzt wie angezeigt „Verbrauchen" ausgelöst, rechts „Bearbeiten".
