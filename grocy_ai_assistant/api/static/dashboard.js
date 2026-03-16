@@ -135,6 +135,9 @@ function syncModalScrollLock() {
 }
 
 let activeTab = "shopping";
+let shoppingListRefreshTimer = null;
+let shoppingListRefreshInFlight = false;
+let shoppingListSignature = '';
 let scannerStream = null;
 let scannerInterval = null;
 let scannerLastBarcode = "";
@@ -159,6 +162,7 @@ const scannerFocusRefreshMs = 2000;
 const scannerAnalysisWarmupMs = 1200;
 const scannerLightCheckIntervalMs = 1500;
 const scannerLightWarningThreshold = 72;
+const shoppingListRefreshMs = 5000;
 const recipeState = {
   initialized: false,
   hasLoadedInitialSuggestions: false,
@@ -240,6 +244,9 @@ function switchTab(tabName) {
   }
   if (activeTab === 'notifications') {
     loadNotificationOverview();
+  }
+  if (activeTab === 'shopping') {
+    refreshShoppingListInBackground();
   }
 
   syncTopbarStatusFromActiveTab();
@@ -811,8 +818,24 @@ function renderShoppingList(items) {
   bindShoppingSwipeInteractions();
 }
 
-async function loadShoppingList() {
-  return withBusyState(async () => {
+function buildShoppingListSignature(items) {
+  return JSON.stringify(
+    (Array.isArray(items) ? items : [])
+      .map((item) => [
+        String(item.id ?? ''),
+        String(item.product_name ?? ''),
+        String(item.amount ?? ''),
+        String(item.note ?? ''),
+        String(item.best_before_date ?? ''),
+        String(item.in_stock ?? ''),
+      ])
+      .sort((left, right) => left.join('|').localeCompare(right.join('|')))
+  );
+}
+
+async function loadShoppingList(options = {}) {
+  const { background = false } = options;
+  const load = async () => {
   const key = ensureApiKey();
   const status = getShoppingStatusElement();
   if (!key) {
@@ -820,7 +843,9 @@ async function loadShoppingList() {
     return;
   }
 
-  status.textContent = 'Lade Einkaufsliste...';
+  if (!background) {
+    status.textContent = 'Lade Einkaufsliste...';
+  }
   try {
     const res = await fetch(buildApiUrl('/api/dashboard/shopping-list'), {
       headers: { 'Authorization': `Bearer ${key}` },
@@ -828,17 +853,58 @@ async function loadShoppingList() {
     const payload = await parseJsonSafe(res);
 
     if (!res.ok) {
-      status.textContent = getErrorMessage(payload, 'Einkaufsliste konnte nicht geladen werden.');
+      if (!background) {
+        status.textContent = getErrorMessage(payload, 'Einkaufsliste konnte nicht geladen werden.');
+      }
       return;
     }
 
-    renderShoppingList(payload);
-    status.textContent = `Einkaufsliste geladen (${payload.length} Einträge).`;
+    const nextSignature = buildShoppingListSignature(payload);
+    const hasChanged = nextSignature !== shoppingListSignature;
+
+    if (hasChanged) {
+      renderShoppingList(payload);
+      shoppingListSignature = nextSignature;
+    }
+
+    if (!background) {
+      status.textContent = `Einkaufsliste geladen (${payload.length} Einträge).`;
+    }
   } catch (_) {
-    status.textContent = 'Einkaufsliste konnte nicht geladen werden (Netzwerk-/Ingress-Fehler).';
+    if (!background) {
+      status.textContent = 'Einkaufsliste konnte nicht geladen werden (Netzwerk-/Ingress-Fehler).';
+    }
   }
 
-  });
+  };
+
+  if (background) {
+    return load();
+  }
+
+  return withBusyState(load);
+}
+
+async function refreshShoppingListInBackground() {
+  if (shoppingListRefreshInFlight) return;
+  if (document.hidden || activeTab !== 'shopping') return;
+
+  shoppingListRefreshInFlight = true;
+  try {
+    await loadShoppingList({ background: true });
+  } finally {
+    shoppingListRefreshInFlight = false;
+  }
+}
+
+function startShoppingListAutoRefresh() {
+  if (shoppingListRefreshTimer) {
+    clearInterval(shoppingListRefreshTimer);
+  }
+
+  shoppingListRefreshTimer = setInterval(() => {
+    refreshShoppingListInBackground();
+  }, shoppingListRefreshMs);
 }
 
 function renderVariants(items) {
@@ -1351,10 +1417,12 @@ function bindShoppingSwipeInteractions() {
     selector: '#shopping-list .shopping-item',
     interactiveElementSelector: '.amount-increment-button, .mhd-picker-button',
     onSwipeLeft: async (_, payload) => {
-      await purchaseShoppingItem(payload.id);
+      const shoppingListId = payload.id;
+      await purchaseShoppingItem(shoppingListId);
     },
     onSwipeRight: async (_, payload) => {
-      await removeShoppingItem(payload.id);
+      const shoppingListId = payload.id;
+      await removeShoppingItem(shoppingListId);
     },
     onTap: (_, payload) => {
       showShoppingItemDetails(payload);
@@ -1569,9 +1637,16 @@ document.addEventListener('keydown', (event) => {
   }
 });
 
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && activeTab === 'shopping') {
+    refreshShoppingListInBackground();
+  }
+});
+
 switchTab('shopping');
 initializeTopbarStatusSync();
 loadShoppingList();
+startShoppingListAutoRefresh();
 preloadRecipeSuggestionsOnStartup();
 
 
