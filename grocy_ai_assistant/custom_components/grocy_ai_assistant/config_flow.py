@@ -6,7 +6,9 @@ import voluptuous as vol
 
 from .const import (
     CONF_API_KEY,
+    CONF_DASHBOARD_POLLING_INTERVAL_SECONDS,
     CONF_DEBUG_MODE,
+    DEFAULT_DASHBOARD_POLLING_INTERVAL_SECONDS,
     CONF_GROCY_API_KEY,
     CONF_GROCY_BASE_URL,
     DEFAULT_ADDON_INGRESS_PATH,
@@ -113,6 +115,18 @@ class GrocyAIOptionsFlowHandler(config_entries.OptionsFlow):
                             DEFAULT_GROCY_BASE_URL,
                         ),
                     ): str,
+                    vol.Required(
+                        CONF_DASHBOARD_POLLING_INTERVAL_SECONDS,
+                        default=int(
+                            options.get(
+                                CONF_DASHBOARD_POLLING_INTERVAL_SECONDS,
+                                data.get(
+                                    CONF_DASHBOARD_POLLING_INTERVAL_SECONDS,
+                                    DEFAULT_DASHBOARD_POLLING_INTERVAL_SECONDS,
+                                ),
+                            )
+                        ),
+                    ): vol.All(vol.Coerce(int), vol.Range(min=1, max=60)),
                 }
             ),
         )
