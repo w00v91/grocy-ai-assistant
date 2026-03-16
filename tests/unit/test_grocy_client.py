@@ -1217,52 +1217,6 @@ def test_get_stock_products_includes_nutrition_values(monkeypatch):
     assert result[0]["sugar"] == "4"
 
 
-def test_get_stock_products_reads_legacy_carbs_column(monkeypatch):
-    def fake_get(url, *args, **kwargs):
-        if url.endswith("/stock"):
-            return FakeResponse(
-                [
-                    {
-                        "id": 77,
-                        "product_id": 10,
-                        "location_id": 1,
-                        "amount": 2,
-                        "best_before_date": "2026-01-01",
-                    }
-                ]
-            )
-        if url.endswith("/objects/products"):
-            return FakeResponse(
-                [
-                    {
-                        "id": 10,
-                        "name": "Milch",
-                        "calories": 120,
-                        "carbs": 4.5,
-                    }
-                ]
-            )
-        if url.endswith("/objects/locations"):
-            return FakeResponse([{"id": 1, "name": "Keller"}])
-        raise AssertionError(f"Unexpected url: {url}")
-
-    monkeypatch.setattr(
-        "grocy_ai_assistant.services.grocy_client.requests.get", fake_get
-    )
-
-    client = GrocyClient(
-        Settings(
-            api_key="x",
-            addon_version="a",
-            required_integration_version="1",
-            grocy_api_key="g",
-        )
-    )
-
-    result = client.get_stock_products()
-    assert result[0]["calories"] == "120"
-    assert result[0]["carbs"] == "4.5"
-
 
 def test_get_stock_products_returns_stock_id(monkeypatch):
     def fake_get(url, *args, **kwargs):
@@ -1600,9 +1554,7 @@ def test_update_product_nutrition_updates_product_object(monkeypatch):
     assert captured["url"].endswith("/objects/products/42")
     assert captured["json"] == {
         "calories": 123,
-        "energy": 123,
         "carbohydrates": 4.5,
-        "carbs": 4.5,
         "fat": 6,
         "protein": 7,
         "sugar": 8,
@@ -1656,12 +1608,9 @@ def test_update_product_nutrition_retries_without_unknown_columns(monkeypatch):
 
     assert calls[0] == {
         "calories": 123,
-        "energy": 123,
         "carbohydrates": 4.5,
-        "carbs": 4.5,
     }
-    assert calls[1] == {"energy": 123, "carbohydrates": 4.5, "carbs": 4.5}
-    assert calls[2] == {"energy": 123, "carbs": 4.5}
+    assert calls[1] == {"carbohydrates": 4.5}
 
 
 def test_update_product_nutrition_skips_when_no_values():
@@ -1706,7 +1655,7 @@ def test_update_product_nutrition_skips_on_non_unknown_400(monkeypatch):
 
     client.update_product_nutrition(product_id=42, calories=123)
 
-    assert calls == [{"calories": 123, "energy": 123}]
+    assert calls == [{"calories": 123}]
 
 
 def test_clear_product_picture_sets_picture_file_name_to_none(monkeypatch):

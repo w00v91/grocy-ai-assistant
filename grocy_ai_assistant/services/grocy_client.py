@@ -712,11 +712,7 @@ class GrocyClient:
                         product.get("default_best_before_days") or ""
                     ),
                     "calories": str(product.get("calories") or ""),
-                    "carbs": str(
-                        product.get("carbohydrates")
-                        or product.get("carbs")
-                        or ""
-                    ),
+                    "carbs": str(product.get("carbohydrates") or ""),
                     "fat": str(product.get("fat") or ""),
                     "protein": str(product.get("protein") or ""),
                 }
@@ -907,11 +903,7 @@ class GrocyClient:
                     or ""
                 ),
                 "calories": str(product.get("calories") or ""),
-                "carbs": str(
-                    product.get("carbohydrates")
-                    or product.get("carbs")
-                    or ""
-                ),
+                "carbs": str(product.get("carbohydrates") or ""),
                 "fat": str(product.get("fat") or ""),
                 "protein": str(product.get("protein") or ""),
                 "sugar": str(product.get("sugar") or ""),
@@ -981,11 +973,7 @@ class GrocyClient:
                         "amount": "0",
                         "best_before_date": "",
                         "calories": str(product.get("calories") or ""),
-                        "carbs": str(
-                            product.get("carbohydrates")
-                            or product.get("carbs")
-                            or ""
-                        ),
+                        "carbs": str(product.get("carbohydrates") or ""),
                         "fat": str(product.get("fat") or ""),
                         "protein": str(product.get("protein") or ""),
                         "sugar": str(product.get("sugar") or ""),
@@ -1108,9 +1096,7 @@ class GrocyClient:
     ) -> None:
         payload: Dict[str, Any] = {
             "calories": calories,
-            "energy": calories,
             "carbohydrates": carbs,
-            "carbs": carbs,
             "fat": fat,
             "protein": protein,
             "sugar": sugar,
