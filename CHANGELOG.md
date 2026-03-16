@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.91
+
+- Fix (Dashboard-Test/Storage): `loadStorageProducts` ist wieder mit der erwarteten Funktionssignatur (`function loadStorageProducts()`) deklariert, sodass der statische Dashboard-Test wieder stabil grün läuft.
+- Pflege: Add-on-Version auf `7.1.91` erhöht.
+
 ## 7.1.90
 
 - Fix (API/Grocy/Nährwerte): Wenn Grocy ein Nährwert-Update mit 400 ablehnt und keine unbekannte Spalte aus der Fehlermeldung extrahiert werden kann, wird das Update nun defensiv übersprungen statt den gesamten Request mit 500 abzubrechen.

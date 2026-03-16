@@ -2007,8 +2007,8 @@ function renderStorageProducts() {
   });
 }
 
-async function loadStorageProducts(options = {}) {
-  const { background = false } = options;
+async function loadStorageProducts() {
+  const { background = false } = arguments[0] || {};
   const load = async () => {
     const key = ensureApiKey();
     const status = getStorageStatusElement();
