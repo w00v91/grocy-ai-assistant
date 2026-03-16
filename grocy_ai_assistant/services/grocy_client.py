@@ -1011,6 +1011,26 @@ class GrocyClient:
         )
         response.raise_for_status()
 
+
+    def add_product_to_stock(
+        self,
+        product_id: int,
+        amount: float,
+        best_before_date: str = "",
+    ) -> None:
+        payload: Dict[str, Any] = {"amount": amount}
+        normalized_best_before = str(best_before_date or "").strip()
+        if normalized_best_before:
+            payload["best_before_date"] = normalized_best_before
+
+        response = requests.post(
+            f"{self.settings.grocy_base_url}/stock/products/{int(product_id)}/add",
+            headers=self.headers,
+            json=payload,
+            timeout=30,
+        )
+        response.raise_for_status()
+
     def update_stock_entry(
         self,
         stock_id: int,

@@ -2167,7 +2167,8 @@ function closeStorageEditModal() {
 async function saveStorageEditModal() {
   if (!storageEditingItem || !Number.isFinite(storageEditingTargetId) || storageEditingTargetId <= 0) return;
   const status = getStorageStatusElement();
-  const amount = Number(document.getElementById('storage-edit-amount').value);
+  const amountRaw = String(document.getElementById('storage-edit-amount').value || '').trim().replace(',', '.');
+  const amount = Number(amountRaw);
   const bestBeforeDate = document.getElementById('storage-edit-best-before').value || '';
   const calories = normalizeNutritionInputValue(document.getElementById('storage-edit-calories').value);
   const carbs = normalizeNutritionInputValue(document.getElementById('storage-edit-carbs').value);

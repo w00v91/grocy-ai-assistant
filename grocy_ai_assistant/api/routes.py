@@ -1784,18 +1784,27 @@ def dashboard_update_stock_product(
         resolved_stock_id = int(
             matched_entry.get("stock_id") or matched_entry.get("id") or 0
         )
-        if resolved_stock_id <= 0:
-            raise HTTPException(status_code=400, detail="Ungültiger Bestandseintrag")
-
         resolved_product_id = int(matched_entry.get("product_id") or 0)
         if resolved_product_id <= 0:
             raise HTTPException(status_code=400, detail="Ungültiger Produkteintrag")
 
-        grocy_client.update_stock_entry(
-            stock_id=resolved_stock_id,
-            amount=payload.amount,
-            best_before_date=payload.best_before_date,
-        )
+        if resolved_stock_id > 0:
+            grocy_client.update_stock_entry(
+                stock_id=resolved_stock_id,
+                amount=payload.amount,
+                best_before_date=payload.best_before_date,
+            )
+        else:
+            if payload.amount <= 0:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Kein vorhandener Bestandseintrag für dieses Produkt.",
+                )
+            grocy_client.add_product_to_stock(
+                product_id=resolved_product_id,
+                amount=payload.amount,
+                best_before_date=payload.best_before_date,
+            )
         grocy_client.update_product_nutrition(
             product_id=resolved_product_id,
             calories=payload.calories,
