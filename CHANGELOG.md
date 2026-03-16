@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.76
+
+- UI (Lager-Tab): Produktkarten im Lager verwenden jetzt denselben HTML-Aufbau wie Produkte im Such-Tab (gemeinsame Card-/Content-Struktur für Bild, Meta-Bereich und Badge-Spalte).
+- UI (Lager-Tab): Lagerprodukte nutzen dieselben Stilklassen wie die Suchprodukte, damit Abstände, Bildgröße und Badge-Ausrichtung visuell konsistent sind.
+- Pflege: Add-on-Version auf `7.1.76` erhöht.
+
 ## 7.1.74
 
 - Fix (Benachrichtigungen/Fehlertexte): Technische Mehrfachfehler aus Supervisor-Header- und Endpoint-Retries werden nicht mehr 1:1 als UI-Statusmeldung ausgegeben. Stattdessen liefert die API jetzt eine kurze, verständliche Fehlermeldung (z. B. Autorisierungsfehler 401/403).
