@@ -1038,6 +1038,22 @@ img {
   line-height: 1.35;
 }
 
+.storage-item-badges {
+  margin-left: auto;
+  display: grid;
+  gap: 0.35rem;
+  justify-items: stretch;
+  width: 100%;
+  max-width: 33.333%;
+}
+
+.storage-item-badges .badge {
+  margin-left: 0;
+  width: 100%;
+  box-sizing: border-box;
+  text-align: center;
+}
+
 .storage-item-attributes {
   margin: 0.45rem 0 0;
   padding: 0;

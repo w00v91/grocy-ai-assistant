@@ -12,6 +12,9 @@ All notable changes to this project are documented in this file.
 
 ## 7.1.73
 
+- UI (Lager-Tab): Attributdarstellung der Lagerprodukte an das Such-Layout angepasst; `Lager` bleibt als Zeile unter dem Produktnamen.
+- UI (Lager-Tab): `Menge` und `MHD` werden rechts als Badge-Spalte dargestellt, analog zur Produktsuche.
+- UI (Lager/Swipe): Swipe-Aktionsflächen im Lager zeigen Bearbeiten/Verbrauchen jetzt ebenfalls als Badge-Chips wie im Such-Tab.
 - Fix (Add-on/Home Assistant OS): `config.json` aktiviert jetzt `homeassistant_api` und `hassio_api`, damit Supervisor-Token/HA-API im Add-on zuverlässig verfügbar sind und Service-Calls für persistente Benachrichtigungen nicht mehr an fehlenden Berechtigungen scheitern.
 - Verbesserung (Logging): Bei fehlgeschlagenem Versand persistenter Testbenachrichtigungen wird die genaue Fehlerursache jetzt zusätzlich ins Add-on-Log geschrieben.
 - Test: Unit-Test ergänzt, der die API-Flags in `config.json` absichert.
