@@ -4,6 +4,9 @@ All notable changes to this project are documented in this file.
 
 ## 7.1.79
 
+- UI (Lager-Tab): Checkbox zum Laden aller Grocy-Produkte rechts neben das Filterfeld verschoben.
+- UI (Lager-Tab): Beschriftung von „Alle in Grocy verfügbaren Produkte laden“ auf „Alle Produkte anzeigen" gekürzt.
+- UI (Lager-Tab/Mobil): Filterfeld und Checkbox umbrechen in der mobilen Ansicht jetzt in zwei Zeilen für bessere Lesbarkeit.
 - UI (Einkaufsliste): Die Liste im Dashboard aktualisiert sich jetzt automatisch im Hintergrund (Polling alle 5 Sekunden), damit Änderungen von anderen Nutzern zeitnah sichtbar werden.
 - UX (Einkaufsliste): Auto-Refresh läuft nur im aktiven Einkaufs-Tab und pausiert bei inaktiver Browser-Ansicht, um unnötige Requests zu vermeiden.
 - Performance (Einkaufsliste): Re-Render erfolgt nur bei tatsächlichen Datenänderungen über eine Signaturprüfung der Listeneinträge.
