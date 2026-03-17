@@ -30,6 +30,14 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+def _as_float_or_none(value: object) -> float | None:
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return None
+    return number
+
+
 def _generate_missing_product_images_on_startup(settings: Settings) -> None:
     if not settings.generate_missing_product_images_on_startup:
         return
@@ -50,7 +58,9 @@ def _generate_missing_product_images_on_startup(settings: Settings) -> None:
         return
 
     if not products_without_picture:
-        logger.info("Batch-Bildgenerierung beim Start: Keine Produkte ohne Bild gefunden")
+        logger.info(
+            "Batch-Bildgenerierung beim Start: Keine Produkte ohne Bild gefunden"
+        )
         return
 
     logger.info(
@@ -90,6 +100,130 @@ def _generate_missing_product_images_on_startup(settings: Settings) -> None:
     )
 
 
+def _run_initial_info_sync_on_startup(settings: Settings) -> None:
+    if not settings.initial_info_sync:
+        return
+
+    client = GrocyClient(settings)
+    detector = IngredientDetector(settings)
+
+    try:
+        products = client.get_products()
+    except Exception as error:
+        logger.warning("Initialer Info-Sync konnte Produkte nicht laden: %s", error)
+        return
+
+    if not products:
+        logger.info("Initialer Info-Sync: Keine Produkte gefunden")
+        return
+
+    synced_count = 0
+    considered_count = 0
+
+    for product in products:
+        product_name = str(product.get("name") or "").strip()
+        product_id_raw = product.get("id")
+        try:
+            product_id = int(product_id_raw)
+        except (TypeError, ValueError):
+            continue
+
+        if not product_name:
+            continue
+
+        try:
+            nutrition = client.get_product_nutrition(product_id)
+        except Exception as error:
+            logger.warning(
+                "Initialer Info-Sync: Nährwerte für Produkt %s konnten nicht geladen werden: %s",
+                product_id,
+                error,
+            )
+            continue
+
+        missing_calories = not _as_float_or_none(nutrition.get("calories"))
+        missing_carbs = not _as_float_or_none(nutrition.get("carbs"))
+        missing_fat = not _as_float_or_none(nutrition.get("fat"))
+        missing_protein = not _as_float_or_none(nutrition.get("protein"))
+        missing_sugar = not _as_float_or_none(nutrition.get("sugar"))
+        missing_best_before_days = not _as_float_or_none(
+            product.get("default_best_before_days")
+        )
+
+        if not any(
+            [
+                missing_calories,
+                missing_carbs,
+                missing_fat,
+                missing_protein,
+                missing_sugar,
+                missing_best_before_days,
+            ]
+        ):
+            continue
+
+        considered_count += 1
+
+        try:
+            ai_data = detector.analyze_product_name(product_name)
+        except Exception as error:
+            logger.warning(
+                "Initialer Info-Sync: KI-Analyse fehlgeschlagen für Produkt %s (%s): %s",
+                product_id,
+                product_name,
+                error,
+            )
+            continue
+
+        calories = (
+            _as_float_or_none(ai_data.get("calories")) if missing_calories else None
+        )
+        carbs = (
+            _as_float_or_none(ai_data.get("carbohydrates")) if missing_carbs else None
+        )
+        fat = _as_float_or_none(ai_data.get("fat")) if missing_fat else None
+        protein = _as_float_or_none(ai_data.get("protein")) if missing_protein else None
+        sugar = _as_float_or_none(ai_data.get("sugar")) if missing_sugar else None
+        best_before_days = (
+            int(_as_float_or_none(ai_data.get("default_best_before_days")) or 0)
+            if missing_best_before_days
+            else 0
+        )
+
+        if not any(
+            value and value > 0
+            for value in [calories, carbs, fat, protein, sugar, best_before_days]
+        ):
+            continue
+
+        try:
+            client.update_product_nutrition(
+                product_id=product_id,
+                calories=calories if calories and calories > 0 else None,
+                carbs=carbs if carbs and carbs > 0 else None,
+                fat=fat if fat and fat > 0 else None,
+                protein=protein if protein and protein > 0 else None,
+                sugar=sugar if sugar and sugar > 0 else None,
+            )
+            if best_before_days > 0:
+                client.set_product_default_best_before_days(
+                    product_id, best_before_days
+                )
+            synced_count += 1
+        except Exception as error:
+            logger.warning(
+                "Initialer Info-Sync: Produkt %s konnte nicht aktualisiert werden: %s",
+                product_id,
+                error,
+            )
+
+    logger.info(
+        "Initialer Info-Sync abgeschlossen: %s von %s Produkten aktualisiert",
+        synced_count,
+        considered_count,
+    )
+
+
 @asynccontextmanager
 async def _lifespan(app: FastAPI):
     settings = get_settings()
@@ -109,9 +243,14 @@ async def _lifespan(app: FastAPI):
             )
             if prefetched:
                 app.state.recipe_suggestion_cache.update(prefetched)
-                logger.info("Initiale Rezeptvorschläge zeitverzögert vorab geladen und gecacht")
+                logger.info(
+                    "Initiale Rezeptvorschläge zeitverzögert vorab geladen und gecacht"
+                )
 
-            await asyncio.to_thread(_generate_missing_product_images_on_startup, settings)
+            await asyncio.to_thread(
+                _generate_missing_product_images_on_startup, settings
+            )
+            await asyncio.to_thread(_run_initial_info_sync_on_startup, settings)
         except Exception as error:
             logger.warning(
                 "Zeitverzögertes Vorladen der Rezeptvorschläge fehlgeschlagen: %s",

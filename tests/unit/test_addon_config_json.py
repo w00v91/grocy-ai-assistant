@@ -52,3 +52,13 @@ def test_addon_config_enables_supervisor_and_homeassistant_api():
 
     assert config["homeassistant_api"] is True
     assert config["hassio_api"] is True
+
+
+def test_addon_config_contains_initial_info_sync_option():
+    config_path = (
+        Path(__file__).resolve().parents[2] / "grocy_ai_assistant" / "config.json"
+    )
+    config = json.loads(config_path.read_text())
+
+    assert config["options"]["initial_info_sync"] is False
+    assert config["schema"]["initial_info_sync"] == "bool"
