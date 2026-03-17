@@ -2143,6 +2143,29 @@ function openStorageEditModal(stockId) {
 
   document.getElementById('storage-edit-modal').classList.remove('hidden');
   syncModalScrollLock();
+
+  const productId = Number(stockItem?.id || 0);
+  if (!Number.isFinite(productId) || productId <= 0) {
+    return;
+  }
+
+  (async () => {
+    try {
+      const res = await fetch(buildApiUrl(`/api/dashboard/products/${encodeURIComponent(productId)}/nutrition`), {
+        headers: getAuthHeaders(),
+      });
+      const payload = await parseJsonSafe(res);
+      if (!res.ok || !payload || typeof payload !== 'object') return;
+
+      document.getElementById('storage-edit-calories').value = String(payload.calories || '').replace(',', '.');
+      document.getElementById('storage-edit-carbs').value = String(payload.carbs || '').replace(',', '.');
+      document.getElementById('storage-edit-fat').value = String(payload.fat || '').replace(',', '.');
+      document.getElementById('storage-edit-protein').value = String(payload.protein || '').replace(',', '.');
+      document.getElementById('storage-edit-sugar').value = String(payload.sugar || '').replace(',', '.');
+    } catch (error) {
+      console.debug('Nutrition userfields could not be loaded for storage edit modal:', error);
+    }
+  })();
 }
 
 function closeStorageEditModal() {

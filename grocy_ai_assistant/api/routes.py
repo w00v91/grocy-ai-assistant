@@ -1154,7 +1154,20 @@ def dashboard_search(
         # Bei expliziter Neuanlage muss der eingegebene Name bestehen bleiben,
         # auch wenn der KI-Detektor ähnliche Produkte vorschlägt.
         product_data["name"] = product_name
-        created_object_id = grocy_client.create_product(product_data)
+
+        product_payload = {
+            key: value
+            for key, value in product_data.items()
+            if key
+            not in {
+                "calories",
+                "carbohydrates",
+                "fat",
+                "protein",
+                "sugar",
+            }
+        }
+        created_object_id = grocy_client.create_product(product_payload)
         grocy_client.update_product_nutrition(
             product_id=created_object_id,
             calories=product_data.get("calories"),
@@ -1178,22 +1191,6 @@ def dashboard_search(
             grocy_client=grocy_client,
             settings=settings,
         )
-        grocy_client.update_product_nutrition(
-            product_id=created_object_id,
-            calories=product_data.get("calories"),
-            carbs=product_data.get("carbohydrates"),
-            fat=product_data.get("fat"),
-            protein=product_data.get("protein"),
-            sugar=product_data.get("sugar"),
-        )
-        existing_default_best_before_days = (
-            grocy_client.get_product_default_best_before_days(created_object_id)
-        )
-        if not existing_default_best_before_days:
-            grocy_client.set_product_default_best_before_days(
-                created_object_id,
-                product_data.get("default_best_before_days"),
-            )
         resolved_best_before_date = _resolve_best_before_date_for_product(
             grocy_client,
             product_id=created_object_id,
@@ -1603,6 +1600,32 @@ def dashboard_stock_products(
             )
             for item in stock_products
         ]
+    except Exception as error:
+        log_api_error(
+            logger,
+            request=request,
+            status_code=500,
+            message=str(error),
+            exc=error,
+        )
+        raise HTTPException(status_code=500, detail=str(error)) from error
+
+
+@router.get("/api/dashboard/products/{product_id}/nutrition")
+def dashboard_product_nutrition(
+    product_id: int,
+    request: Request,
+    _: None = Depends(require_auth),
+    settings: Settings = Depends(get_settings),
+):
+    if not settings.grocy_api_key:
+        raise HTTPException(
+            status_code=500, detail="grocy_api_key fehlt in Add-on Optionen"
+        )
+
+    try:
+        grocy_client = GrocyClient(settings)
+        return grocy_client.get_product_nutrition(product_id)
     except Exception as error:
         log_api_error(
             logger,
