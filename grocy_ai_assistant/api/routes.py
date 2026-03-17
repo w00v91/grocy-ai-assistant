@@ -413,7 +413,7 @@ def _release_llava_request_slot() -> None:
 def _build_product_picture_url(raw_picture_url: str, settings: Settings) -> str:
     rewritten = build_product_picture_url(raw_picture_url, settings)
     if rewritten and rewritten != (raw_picture_url or ""):
-        logger.info(
+        logger.debug(
             "Produktbild-URL auf konfigurierten Grocy-Host umgeschrieben: %s -> %s",
             raw_picture_url,
             rewritten,
@@ -459,6 +459,7 @@ def _apply_picture_size(url: str, size: str) -> str:
 
     query_values["best_fit_width"] = str(width)
     query_values["best_fit_height"] = str(height)
+    query_values.setdefault("force_serve_as", "picture")
 
     return urlunparse(
         (

@@ -342,7 +342,7 @@ def test_product_picture_proxy_fetches_with_grocy_api_key(client, monkeypatch):
     assert response.headers["content-type"].startswith("image/png")
     assert (
         captured["url"]
-        == "http://homeassistant.local:9192/files/productpictures/abc123.jpg?best_fit_width=96&best_fit_height=96"
+        == "http://homeassistant.local:9192/files/productpictures/abc123.jpg?best_fit_width=96&best_fit_height=96&force_serve_as=picture"
     )
     assert captured["headers"]["GROCY-API-KEY"] == "test-grocy-key"
 
@@ -378,7 +378,7 @@ def test_product_picture_proxy_supports_mobile_size(client, monkeypatch):
     assert response.headers["cache-control"] == "public, max-age=86400"
     assert (
         captured["url"]
-        == "http://homeassistant.local:9192/files/productpictures/abc123.jpg?best_fit_width=64&best_fit_height=64"
+        == "http://homeassistant.local:9192/files/productpictures/abc123.jpg?best_fit_width=64&best_fit_height=64&force_serve_as=picture"
     )
     assert captured["headers"]["GROCY-API-KEY"] == "test-grocy-key"
 
@@ -542,7 +542,7 @@ def test_product_picture_uses_app_cache_when_available(client):
         def get_cached_image(self, src):
             assert (
                 src
-                == "http://homeassistant.local:9192/files/productpictures/abc123.jpg?best_fit_width=96&best_fit_height=96"
+                == "http://homeassistant.local:9192/files/productpictures/abc123.jpg?best_fit_width=96&best_fit_height=96&force_serve_as=picture"
             )
             return b"cached", "image/jpeg"
 
