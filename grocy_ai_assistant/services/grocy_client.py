@@ -30,6 +30,35 @@ class GrocyClient:
     def _normalize_name(value: str) -> str:
         return (value or "").strip().casefold()
 
+    @classmethod
+    def _name_match_candidates(cls, value: str) -> set[str]:
+        normalized = cls._normalize_name(value)
+        if not normalized:
+            return set()
+
+        candidates = {normalized}
+        for suffix in ("nen", "en", "ern", "er", "e", "n", "s"):
+            if normalized.endswith(suffix):
+                stem = normalized[: -len(suffix)]
+                if len(stem) >= 4:
+                    candidates.add(stem)
+
+        return {candidate for candidate in candidates if len(candidate) >= 3}
+
+    @classmethod
+    def _is_fuzzy_partial_name_match(cls, query: str, product_name: str) -> bool:
+        query_candidates = cls._name_match_candidates(query)
+        product_candidates = cls._name_match_candidates(product_name)
+        if not query_candidates or not product_candidates:
+            return False
+
+        return any(
+            query_candidate in product_candidate
+            or product_candidate in query_candidate
+            for query_candidate in query_candidates
+            for product_candidate in product_candidates
+        )
+
     @staticmethod
     def _build_trigram_vector(value: str) -> Counter[str]:
         normalized = GrocyClient._normalize_name(value)
@@ -280,7 +309,7 @@ class GrocyClient:
         return [
             product
             for product in products
-            if normalized_query in self._normalize_name(product.get("name", ""))
+            if self._is_fuzzy_partial_name_match(query, product.get("name", ""))
         ]
 
     def find_product_by_name(self, product_name: str) -> Optional[Dict[str, Any]]:

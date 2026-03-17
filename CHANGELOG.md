@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.2.3
+
+- Verbesserung (Suche/Fuzzy-Match): Die Produktsuche berücksichtigt jetzt einfache Wortstämme und Pluralformen, sodass z. B. `zitronen` auch `Zitrone` und `Zitronensaft` findet.
+- Test: Unit-Test für Plural-/Stammwort-Matching in `search_products_by_partial_name` ergänzt.
+- Pflege: Add-on-Version auf `7.2.3` erhöht.
+
 ## 7.2.2
 
 - UI (Einkaufsliste/Produkt-Popup): Beim Klick auf **Speichern** wird das Produkt-Detail-Popup nach erfolgreichem Speichern der Menge jetzt automatisch geschlossen.
