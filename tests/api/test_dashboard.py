@@ -2000,8 +2000,8 @@ def test_dashboard_can_update_stock_product_by_product_id_fallback(client, monke
 
     called = {}
 
-    def fake_update_stock_entry(self, stock_id, amount, best_before_date=""):
-        called["args"] = (stock_id, amount, best_before_date)
+    def fake_set_product_inventory(self, product_id, amount, stock_id=None):
+        called["args"] = (product_id, amount, stock_id)
 
     nutrition_called = {}
 
@@ -2018,7 +2018,7 @@ def test_dashboard_can_update_stock_product_by_product_id_fallback(client, monke
 
     monkeypatch.setattr(routes.GrocyClient, "get_stock_entries", fake_get_stock_entries)
     monkeypatch.setattr(
-        routes.GrocyClient, "update_stock_entry", fake_update_stock_entry
+        routes.GrocyClient, "set_product_inventory", fake_set_product_inventory
     )
     monkeypatch.setattr(
         routes.GrocyClient, "update_product_nutrition", fake_update_product_nutrition
@@ -2039,7 +2039,7 @@ def test_dashboard_can_update_stock_product_by_product_id_fallback(client, monke
     )
 
     assert response.status_code == 200
-    assert called["args"] == (321, 5, "2026-02-01")
+    assert called["args"] == (99, 5, 321)
     assert nutrition_called["args"] == (99, 100, 12, 1.5, 3, 7)
 
 
@@ -2055,8 +2055,8 @@ def test_dashboard_uses_resolved_stock_id_for_absolute_update(client, monkeypatc
         called["resolve"] = (product_id, location_id)
         return 321
 
-    def fake_update_stock_entry(self, stock_id, amount, best_before_date=""):
-        called["update"] = (stock_id, amount, best_before_date)
+    def fake_set_product_inventory(self, product_id, amount, stock_id=None):
+        called["inventory"] = (product_id, amount, stock_id)
 
     def fake_update_product_nutrition(
         self,
@@ -2075,7 +2075,9 @@ def test_dashboard_uses_resolved_stock_id_for_absolute_update(client, monkeypatc
         "resolve_stock_entry_id_for_product",
         fake_resolve_stock_entry_id_for_product,
     )
-    monkeypatch.setattr(routes.GrocyClient, "update_stock_entry", fake_update_stock_entry)
+    monkeypatch.setattr(
+        routes.GrocyClient, "set_product_inventory", fake_set_product_inventory
+    )
     monkeypatch.setattr(
         routes.GrocyClient, "update_product_nutrition", fake_update_product_nutrition
     )
@@ -2088,7 +2090,7 @@ def test_dashboard_uses_resolved_stock_id_for_absolute_update(client, monkeypatc
 
     assert response.status_code == 200
     assert called["resolve"] == (99, 2)
-    assert called["update"] == (321, 1, "2026-02-01")
+    assert called["inventory"] == (99, 1, 321)
     assert called["nutrition"] == (99, None, None, None, None, None)
 
 
@@ -2134,7 +2136,7 @@ def test_dashboard_creates_stock_entry_when_stock_id_missing(client, monkeypatch
     assert nutrition_called["args"] == (99, None, None, None, None, None)
 
 
-def test_dashboard_rejects_zero_amount_when_stock_id_missing(client, monkeypatch):
+def test_dashboard_allows_zero_amount_when_stock_id_missing(client, monkeypatch):
     def fake_get_stock_entries(self, location_ids=None):
         return [{"id": 0, "product_id": 99}]
 
@@ -2143,27 +2145,34 @@ def test_dashboard_rejects_zero_amount_when_stock_id_missing(client, monkeypatch
         routes.GrocyClient, "resolve_stock_entry_id_for_product", lambda *args, **kwargs: None
     )
 
+    called = {}
+
+    def fake_set_product_inventory(self, product_id, amount, stock_id=None):
+        called["inventory"] = (product_id, amount, stock_id)
+
+    monkeypatch.setattr(
+        routes.GrocyClient, "set_product_inventory", fake_set_product_inventory
+    )
+
     response = client.put(
         "/api/dashboard/stock-products/99",
         headers={"Authorization": "Bearer test-api-key"},
         json={"amount": 0, "best_before_date": ""},
     )
 
-    assert response.status_code == 400
-    assert "Kein vorhandener Bestandseintrag für dieses Produkt." in str(response.json())
+    assert response.status_code == 200
+    assert called["inventory"] == (99, 0, None)
 def test_dashboard_can_delete_stock_product(client, monkeypatch):
     def fake_get_stock_entries(self, location_ids=None):
         return [{"id": 99, "product_id": 10}]
 
     called = {}
 
-    def fake_delete_stock_entry(self, stock_id):
-        called["stock_id"] = stock_id
+    def fake_delete_product(self, product_id):
+        called["product_id"] = product_id
 
     monkeypatch.setattr(routes.GrocyClient, "get_stock_entries", fake_get_stock_entries)
-    monkeypatch.setattr(
-        routes.GrocyClient, "delete_stock_entry", fake_delete_stock_entry
-    )
+    monkeypatch.setattr(routes.GrocyClient, "delete_product", fake_delete_product)
 
     response = client.delete(
         "/api/dashboard/stock-products/99",
@@ -2171,7 +2180,7 @@ def test_dashboard_can_delete_stock_product(client, monkeypatch):
     )
 
     assert response.status_code == 200
-    assert called["stock_id"] == 99
+    assert called["product_id"] == 10
 
 
 def test_dashboard_can_delete_stock_product_by_product_id_fallback(client, monkeypatch):
@@ -2180,13 +2189,11 @@ def test_dashboard_can_delete_stock_product_by_product_id_fallback(client, monke
 
     called = {}
 
-    def fake_delete_stock_entry(self, stock_id):
-        called["stock_id"] = stock_id
+    def fake_delete_product(self, product_id):
+        called["product_id"] = product_id
 
     monkeypatch.setattr(routes.GrocyClient, "get_stock_entries", fake_get_stock_entries)
-    monkeypatch.setattr(
-        routes.GrocyClient, "delete_stock_entry", fake_delete_stock_entry
-    )
+    monkeypatch.setattr(routes.GrocyClient, "delete_product", fake_delete_product)
 
     response = client.delete(
         "/api/dashboard/stock-products/99",
@@ -2194,7 +2201,7 @@ def test_dashboard_can_delete_stock_product_by_product_id_fallback(client, monke
     )
 
     assert response.status_code == 200
-    assert called["stock_id"] == 321
+    assert called["product_id"] == 99
 
 
 def test_dashboard_can_update_stock_product(client, monkeypatch):
@@ -2203,8 +2210,8 @@ def test_dashboard_can_update_stock_product(client, monkeypatch):
 
     called = {}
 
-    def fake_update_stock_entry(self, stock_id, amount, best_before_date=""):
-        called["args"] = (stock_id, amount, best_before_date)
+    def fake_set_product_inventory(self, product_id, amount, stock_id=None):
+        called["args"] = (product_id, amount, stock_id)
 
     nutrition_called = {}
 
@@ -2220,9 +2227,7 @@ def test_dashboard_can_update_stock_product(client, monkeypatch):
         nutrition_called["args"] = (product_id, calories, carbs, fat, protein, sugar)
 
     monkeypatch.setattr(routes.GrocyClient, "get_stock_entries", fake_get_stock_entries)
-    monkeypatch.setattr(
-        routes.GrocyClient, "update_stock_entry", fake_update_stock_entry
-    )
+    monkeypatch.setattr(routes.GrocyClient, "set_product_inventory", fake_set_product_inventory)
     monkeypatch.setattr(
         routes.GrocyClient, "update_product_nutrition", fake_update_product_nutrition
     )
@@ -2234,5 +2239,5 @@ def test_dashboard_can_update_stock_product(client, monkeypatch):
     )
 
     assert response.status_code == 200
-    assert called["args"] == (99, 5, "2026-02-01")
+    assert called["args"] == (10, 5, 99)
     assert nutrition_called["args"] == (10, None, None, None, None, None)

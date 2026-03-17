@@ -1093,29 +1093,29 @@ def dashboard_search(
     grocy_client = GrocyClient(settings)
 
     try:
-        existing_product = grocy_client.find_product_by_name(product_name)
-        if existing_product:
-            existing_product_id = int(existing_product.get("id"))
-            resolved_best_before_date = _resolve_best_before_date_for_product(
-                grocy_client,
-                product_id=existing_product_id,
-                best_before_date=payload.best_before_date,
-            )
-            grocy_client.add_product_to_shopping_list(
-                existing_product_id,
-                amount=amount,
-                best_before_date=resolved_best_before_date,
-            )
-            return DashboardSearchResponse(
-                success=True,
-                action="existing_added",
-                message=f"{product_name} war vorhanden und wurde zur Einkaufsliste hinzugefügt.",
-            )
+        if not payload.force_create:
+            existing_product = grocy_client.find_product_by_name(product_name)
+            if existing_product:
+                existing_product_id = int(existing_product.get("id"))
+                resolved_best_before_date = _resolve_best_before_date_for_product(
+                    grocy_client,
+                    product_id=existing_product_id,
+                    best_before_date=payload.best_before_date,
+                )
+                grocy_client.add_product_to_shopping_list(
+                    existing_product_id,
+                    amount=amount,
+                    best_before_date=resolved_best_before_date,
+                )
+                return DashboardSearchResponse(
+                    success=True,
+                    action="existing_added",
+                    message=f"{product_name} war vorhanden und wurde zur Einkaufsliste hinzugefügt.",
+                )
 
         fallback_variants = _build_fallback_variants(
             product_name=product_name,
             grocy_client=grocy_client,
-            detector=detector,
             settings=settings,
         )
         if fallback_variants and not payload.force_create:
@@ -1803,13 +1803,13 @@ def dashboard_update_stock_product(
                 status_code=404, detail="Bestandseintrag nicht gefunden"
             )
 
-        resolved_stock_id = int(
-            matched_entry.get("stock_id") or matched_entry.get("id") or 0
-        )
         resolved_product_id = int(matched_entry.get("product_id") or 0)
         if resolved_product_id <= 0:
             raise HTTPException(status_code=400, detail="Ungültiger Produkteintrag")
 
+        resolved_stock_id = int(matched_entry.get("stock_id") or 0)
+        if resolved_stock_id <= 0:
+            resolved_stock_id = int(matched_entry.get("id") or 0)
         if resolved_stock_id <= 0:
             resolved_stock_id = (
                 grocy_client.resolve_stock_entry_id_for_product(
@@ -1819,24 +1819,23 @@ def dashboard_update_stock_product(
                 or 0
             )
 
-        if resolved_stock_id > 0 and payload.amount > 0:
-            grocy_client.update_stock_entry(
-                stock_id=resolved_stock_id,
+        if resolved_stock_id > 0:
+            grocy_client.set_product_inventory(
+                product_id=resolved_product_id,
                 amount=payload.amount,
-                best_before_date=payload.best_before_date,
+                stock_id=resolved_stock_id,
             )
         else:
-            if payload.amount <= 0:
-                grocy_client.set_product_inventory(
-                    product_id=resolved_product_id,
-                    amount=0,
-                    stock_id=resolved_stock_id if resolved_stock_id > 0 else None,
-                )
-            else:
+            if payload.amount > 0:
                 grocy_client.add_product_to_stock(
                     product_id=resolved_product_id,
                     amount=payload.amount,
                     best_before_date=payload.best_before_date,
+                )
+            else:
+                grocy_client.set_product_inventory(
+                    product_id=resolved_product_id,
+                    amount=0,
                 )
         grocy_client.update_product_nutrition(
             product_id=resolved_product_id,

@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.94
+
+- Fix (Dashboard/Produktvorschläge): Beim Tippen werden nur noch Grocy-Produktvorschläge geladen; zusätzliche KI-Varianten werden im Vorschlags-Request nicht mehr nachgeladen.
+- Fix (Dashboard/Neu anlegen): `force_create` umgeht jetzt die vorherige Produkterkennung, damit bei „Neu anlegen" wirklich das eingegebene Produkt neu erstellt wird.
+- Fix (API/Lager-Tab/Speichern): Mengenänderungen setzen den Bestand nun konsistent über den Grocy-Inventar-Endpunkt (`POST /stock/products/{id}/inventory`) mit aufgelöster `stock_entry_id`; dadurch treten keine 400er durch falsche Objekt-IDs in `PUT /objects/stock/{id}` mehr auf.
+- Pflege: Add-on-Version auf `7.1.94` erhöht.
+
 ## 7.1.93
 
 - Fix (Dashboard/Neuanlage): Bei „Neu anlegen" wird jetzt immer der exakt eingegebene Produktname verwendet (kein unbeabsichtigtes Ersetzen durch KI-ähnliche Vorschläge).

@@ -1030,18 +1030,6 @@ async function loadVariants() {
     if (requestToken !== variantsRequestToken) return;
     renderVariants(payload);
 
-    const aiRes = await fetch(buildApiUrl(`/api/dashboard/search-variants?q=${encodeURIComponent(query)}&include_ai=true`), {
-      headers: { 'Authorization': `Bearer ${key}` },
-    });
-    const aiPayload = await parseJsonSafe(aiRes);
-
-    if (!aiRes.ok) {
-      status.textContent = getErrorMessage(aiPayload, 'KI-Varianten konnten nicht geladen werden.');
-      return;
-    }
-
-    if (requestToken !== variantsRequestToken) return;
-    renderVariants(aiPayload);
   } catch (_) {
     status.textContent = 'Varianten konnten nicht geladen werden (Netzwerk-/Ingress-Fehler).';
   }
