@@ -84,6 +84,52 @@ def test_dashboard_search_uses_amount_prefix_from_name(client, monkeypatch):
     assert calls == [(7, 2, "")]
 
 
+def test_dashboard_search_reconciles_existing_product_amount_when_backend_adds_only_one(
+    client, monkeypatch
+):
+    class FakeGrocyClient:
+        shopping_items = [
+            {"id": 9, "product_id": 7, "amount": "1", "product_name": "Milch"}
+        ]
+        update_calls = []
+
+        def __init__(self, settings):
+            self.settings = settings
+
+        def find_product_by_name(self, name):
+            assert name == "Milch"
+            return {"id": 7}
+
+        def get_shopping_list(self):
+            return [dict(item) for item in self.shopping_items]
+
+        def add_product_to_shopping_list(self, product_id, amount, best_before_date=""):
+            for item in self.shopping_items:
+                if item.get("product_id") == product_id:
+                    current = float(str(item.get("amount") or "1").replace(",", "."))
+                    item["amount"] = str(int(current + 1))
+                    return
+
+        def update_shopping_list_item_amount(self, shopping_list_id, amount):
+            self.update_calls.append((shopping_list_id, amount))
+            for item in self.shopping_items:
+                if item.get("id") == shopping_list_id:
+                    item["amount"] = str(amount)
+                    break
+
+    monkeypatch.setattr(routes, "GrocyClient", FakeGrocyClient)
+
+    response = client.post(
+        "/api/dashboard/search",
+        headers={"Authorization": "Bearer test-api-key"},
+        json={"name": "2 Milch"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["action"] == "existing_added"
+    assert FakeGrocyClient.update_calls == [(9, "3")]
+
+
 def test_dashboard_search_creates_new_product_when_missing(client, monkeypatch):
     calls = {"created": None, "added": None, "nutrition": None, "default_days": None}
 
@@ -132,7 +178,9 @@ def test_dashboard_search_creates_new_product_when_missing(client, monkeypatch):
         def get_product_default_best_before_days(self, product_id):
             return None
 
-        def set_product_default_best_before_days(self, product_id, default_best_before_days):
+        def set_product_default_best_before_days(
+            self, product_id, default_best_before_days
+        ):
             calls["default_days"] = (product_id, default_best_before_days)
 
         def add_product_to_shopping_list(self, product_id, amount, best_before_date=""):
@@ -155,7 +203,9 @@ def test_dashboard_search_creates_new_product_when_missing(client, monkeypatch):
     assert calls["nutrition"] == (42, 100, None, None, None, None)
 
 
-def test_dashboard_search_new_product_uses_userfield_nutrition_values(client, monkeypatch):
+def test_dashboard_search_new_product_uses_userfield_nutrition_values(
+    client, monkeypatch
+):
     calls = {"created": None, "nutrition": None}
 
     class FakeDetector:
@@ -207,7 +257,9 @@ def test_dashboard_search_new_product_uses_userfield_nutrition_values(client, mo
         def get_product_default_best_before_days(self, product_id):
             return None
 
-        def set_product_default_best_before_days(self, product_id, default_best_before_days):
+        def set_product_default_best_before_days(
+            self, product_id, default_best_before_days
+        ):
             return None
 
         def add_product_to_shopping_list(self, product_id, amount, best_before_date=""):
@@ -321,10 +373,14 @@ def test_dashboard_search_variants_ignores_amount_prefix(client, monkeypatch):
     assert [item["name"] for item in response.json()] == ["apf", "Apfel"]
 
 
-def test_dashboard_search_variants_without_ai_does_not_call_detector(client, monkeypatch):
+def test_dashboard_search_variants_without_ai_does_not_call_detector(
+    client, monkeypatch
+):
     class FakeDetector:
         def __init__(self, settings):
-            raise AssertionError("Detector darf ohne include_ai nicht initialisiert werden")
+            raise AssertionError(
+                "Detector darf ohne include_ai nicht initialisiert werden"
+            )
 
     class FakeGrocyClient:
         def __init__(self, settings):
@@ -448,7 +504,9 @@ def test_dashboard_add_existing_product_adds_to_shopping_list(client, monkeypatc
     assert calls == [(11, 2.5, "2026-12-31")]
 
 
-def test_dashboard_add_existing_product_uses_amount_prefix_from_product_name(client, monkeypatch):
+def test_dashboard_add_existing_product_uses_amount_prefix_from_product_name(
+    client, monkeypatch
+):
     calls = []
 
     class FakeGrocyClient:
@@ -504,7 +562,9 @@ def test_dashboard_add_existing_product_corrects_amount_when_backend_adds_only_o
                     item["amount"] = str(int(current + 1))
                     return
 
-            next_id = max((item.get("id", 0) for item in self.shopping_items), default=0) + 1
+            next_id = (
+                max((item.get("id", 0) for item in self.shopping_items), default=0) + 1
+            )
             self.shopping_items.append(
                 {
                     "id": next_id,
@@ -672,15 +732,21 @@ def test_dashboard_search_creates_product_when_only_ai_variant_would_exist(
         def set_product_default_best_before_days(self, product_id, days):
             return None
 
-        def resolve_best_before_date(self, product_id, best_before_date="", default_best_before_days=None):
+        def resolve_best_before_date(
+            self, product_id, best_before_date="", default_best_before_days=None
+        ):
             return ""
 
-        def add_product_to_shopping_list(self, product_id, amount="1", best_before_date=""):
+        def add_product_to_shopping_list(
+            self, product_id, amount="1", best_before_date=""
+        ):
             return None
 
     monkeypatch.setattr(routes, "IngredientDetector", FakeDetector)
     monkeypatch.setattr(routes, "GrocyClient", FakeGrocyClient)
-    monkeypatch.setattr(routes, "_generate_and_attach_product_picture", lambda **kwargs: None)
+    monkeypatch.setattr(
+        routes, "_generate_and_attach_product_picture", lambda **kwargs: None
+    )
 
     response = client.post(
         "/api/dashboard/search",
@@ -734,15 +800,21 @@ def test_dashboard_search_force_create_skips_existing_product_lookup(
         def set_product_default_best_before_days(self, product_id, days):
             return None
 
-        def resolve_best_before_date(self, product_id, best_before_date="", default_best_before_days=None):
+        def resolve_best_before_date(
+            self, product_id, best_before_date="", default_best_before_days=None
+        ):
             return ""
 
-        def add_product_to_shopping_list(self, product_id, amount="1", best_before_date=""):
+        def add_product_to_shopping_list(
+            self, product_id, amount="1", best_before_date=""
+        ):
             calls["added"] = (product_id, amount, best_before_date)
 
     monkeypatch.setattr(routes, "IngredientDetector", FakeDetector)
     monkeypatch.setattr(routes, "GrocyClient", FakeGrocyClient)
-    monkeypatch.setattr(routes, "_generate_and_attach_product_picture", lambda **kwargs: None)
+    monkeypatch.setattr(
+        routes, "_generate_and_attach_product_picture", lambda **kwargs: None
+    )
 
     response = client.post(
         "/api/dashboard/search",
@@ -805,7 +877,9 @@ def test_dashboard_search_force_create_skips_variant_selection(client, monkeypat
         def get_product_default_best_before_days(self, product_id):
             return None
 
-        def set_product_default_best_before_days(self, product_id, default_best_before_days):
+        def set_product_default_best_before_days(
+            self, product_id, default_best_before_days
+        ):
             return None
 
         def add_product_to_shopping_list(self, product_id, amount, best_before_date=""):
@@ -882,7 +956,9 @@ def test_dashboard_search_generates_and_attaches_image_for_new_product(
         def get_product_default_best_before_days(self, product_id):
             return None
 
-        def set_product_default_best_before_days(self, product_id, default_best_before_days):
+        def set_product_default_best_before_days(
+            self, product_id, default_best_before_days
+        ):
             return None
 
         def attach_product_picture(self, product_id, image_path):

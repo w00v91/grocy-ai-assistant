@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.107
+
+- Fix (Dashboard/"Suchen & hinzufügen"): Die serverseitige Mengen-Reconciliation greift jetzt auch im direkten Suchpfad (`/api/dashboard/search`), wenn ein vorhandenes Produkt sofort hinzugefügt wird.
+- Fix (Dashboard/"Suchen & hinzufügen"): Auch beim Neuanlegen eines Produkts über die Suche wird die Zielmenge nach dem Add verifiziert und bei Bedarf auf den erwarteten Wert korrigiert.
+- Test: API-Test ergänzt, der den Suchpfad mit Backend-Verhalten simuliert, bei dem zunächst nur `+1` gesetzt wird, und die Korrektur auf die gewünschte Menge absichert.
+- Pflege: Add-on-Version auf `7.1.107` erhöht.
+
 ## 7.1.106
 
 - Fix (API/Einkaufsliste/Menge): Beim Hinzufügen eines bestehenden Produkts wird die Zielmenge jetzt serverseitig verifiziert und bei Bedarf direkt auf den erwarteten Wert korrigiert. Dadurch greifen Mengenpräfixe (z. B. `2 Backpulver`) auch dann korrekt, wenn Grocy intern nur `+1` verbucht.
