@@ -1187,10 +1187,10 @@ class GrocyClient:
                 if next_payload == retry_payload:
                     logger.warning(
                         "Grocy rejected nutrition payload with 400 and no removable unknown column. "
-                        "Skipping nutrition update to avoid failing the request. response_body=%s",
+                        "Skipping object nutrition update and continuing with userfield sync. response_body=%s",
                         response.text,
                     )
-                    return
+                    break
 
                 logger.warning(
                     "Grocy rejected nutrition payload with 400. Retrying without unknown column. "

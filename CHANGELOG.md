@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.99
+
+- Fix (API/Grocy/Nährwerte): Wenn das Produkt-Objekt-Update (`/objects/products/{id}`) mit einem nicht weiter reduzierbaren 400-Fehler (z. B. `no such column: fat`) scheitert, wird der Ablauf nicht mehr vorzeitig abgebrochen; der Userfield-Sync läuft trotzdem weiter.
+- Verbesserung (Logging): Die Warnung beschreibt jetzt klar, dass nur das Objekt-Update übersprungen wird und der Userfield-Sync weiterläuft.
+- Test: Unit-Test ergänzt, der den Fallback-Pfad mit 400 auf Objekt-Update und erfolgreichem Userfield-Update absichert.
+- Pflege: Add-on-Version auf `7.1.99` erhöht.
+
 ## 7.1.98
 
 - Änderung (API/Grocy/Userfields): Beim Nährwert-Update werden `carbohydrates`, `fat`, `protein` und `sugar` zusätzlich auf den Grocy-Userfields des Produkts gesetzt (`PUT /userfields/products/{id}`).

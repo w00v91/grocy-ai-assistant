@@ -1762,6 +1762,44 @@ def test_update_product_nutrition_skips_on_non_unknown_400(monkeypatch):
     assert calls[0][1] == {"calories": 123}
 
 
+
+
+def test_update_product_nutrition_continues_with_userfields_on_unremovable_object_400(monkeypatch):
+    calls = []
+
+    class BadRequestResponse:
+        status_code = 400
+        text = '{"error_message":"SQLSTATE[HY000]: General error: 1 no such column: fat"}'
+
+        def raise_for_status(self):
+            raise HTTPError("Bad Request")
+
+    def fake_put(url, headers, json, timeout):
+        calls.append((url, json))
+        if url.endswith("/objects/products/42"):
+            return BadRequestResponse()
+        return FakeResponse({"ok": True})
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.services.grocy_client.requests.put", fake_put
+    )
+
+    client = GrocyClient(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+        )
+    )
+
+    client.update_product_nutrition(product_id=42, fat=6, protein=7)
+
+    assert calls[0][0].endswith("/objects/products/42")
+    assert calls[0][1] == {"fat": 6, "protein": 7}
+    assert calls[1][0].endswith("/userfields/products/42")
+    assert calls[1][1] == {"fat": 6, "protein": 7}
+
 def test_update_product_nutrition_skips_userfields_when_endpoint_unavailable(monkeypatch):
     calls = []
 
