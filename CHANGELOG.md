@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.98
+
+- Änderung (API/Grocy/Userfields): Beim Nährwert-Update werden `carbohydrates`, `fat`, `protein` und `sugar` zusätzlich auf den Grocy-Userfields des Produkts gesetzt (`PUT /userfields/products/{id}`).
+- Robustheit (API/Grocy/Userfields): Wenn der Userfield-Endpunkt nicht verfügbar ist (z. B. 404/405) oder einzelne Felder unbekannt sind, wird defensiv mit reduziertem Payload weitergemacht, ohne den gesamten Request scheitern zu lassen.
+- Test: Unit-Tests für Userfield-Sync und Fallback-Verhalten ergänzt/angepasst.
+- Pflege: Add-on-Version auf `7.1.98` erhöht.
+
 ## 7.1.97
 
 - Fix (API/Lager-Tab/Nährwerte speichern): Beim Speichern wird der Inventar-Endpunkt nur noch aufgerufen, wenn sich die Menge tatsächlich geändert hat. Damit schlagen reine Nährwert-Änderungen (z. B. Kalorien) nicht mehr mit Grocy-400 im `/inventory`-Endpoint fehl.
