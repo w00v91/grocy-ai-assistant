@@ -1521,6 +1521,61 @@ def test_delete_stock_entry_deletes_objects_stock(monkeypatch):
     assert called["url"].endswith("/objects/stock/77")
 
 
+def test_set_product_inventory_posts_inventory_endpoint(monkeypatch):
+    captured = {}
+
+    def fake_post(url, headers, json, timeout):
+        captured["url"] = url
+        captured["json"] = json
+        return FakeResponse({"ok": True})
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.services.grocy_client.requests.post", fake_post
+    )
+
+    client = GrocyClient(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+        )
+    )
+
+    client.set_product_inventory(product_id=42, amount=0, stock_id=8)
+
+    assert captured["url"].endswith("/stock/products/42/inventory")
+    assert captured["json"] == {"new_amount": 0, "stock_entry_id": 8}
+
+
+def test_delete_product_deletes_objects_products(monkeypatch):
+    called = {}
+
+    class FakeDeleteResponse(FakeResponse):
+        pass
+
+    def fake_delete(url, *args, **kwargs):
+        called["url"] = url
+        return FakeDeleteResponse({})
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.services.grocy_client.requests.delete", fake_delete
+    )
+
+    client = GrocyClient(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+        )
+    )
+
+    client.delete_product(product_id=77)
+
+    assert called["url"].endswith("/objects/products/77")
+
+
 def test_update_product_nutrition_updates_product_object(monkeypatch):
     captured = {}
 

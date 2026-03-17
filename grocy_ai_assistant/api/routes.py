@@ -1140,6 +1140,9 @@ def dashboard_search(
             )
         else:
             product_data = detector.analyze_product_name(product_name)
+        # Bei expliziter Neuanlage muss der eingegebene Name bestehen bleiben,
+        # auch wenn der KI-Detektor ähnliche Produkte vorschlägt.
+        product_data["name"] = product_name
         created_object_id = grocy_client.create_product(product_data)
         grocy_client.update_product_nutrition(
             product_id=created_object_id,
@@ -1738,14 +1741,17 @@ def dashboard_delete_stock_product(
                 status_code=404, detail="Bestandseintrag nicht gefunden"
             )
 
-        resolved_stock_id = int(
-            matched_entry.get("stock_id") or matched_entry.get("id") or 0
-        )
-        if resolved_stock_id <= 0:
-            raise HTTPException(status_code=400, detail="Ungültiger Bestandseintrag")
+        resolved_product_id = int(matched_entry.get("product_id") or 0)
+        if resolved_product_id <= 0:
+            resolved_product_id = int(matched_entry.get("id") or 0)
+        if resolved_product_id <= 0:
+            resolved_product_id = stock_id
 
-        grocy_client.delete_stock_entry(stock_id=resolved_stock_id)
-        return {"success": True, "message": "Bestandseintrag wurde gelöscht."}
+        if resolved_product_id <= 0:
+            raise HTTPException(status_code=400, detail="Ungültiger Produkteintrag")
+
+        grocy_client.delete_product(resolved_product_id)
+        return {"success": True, "message": "Produkt wurde gelöscht."}
     except HTTPException:
         raise
     except Exception as error:
@@ -1813,7 +1819,7 @@ def dashboard_update_stock_product(
                 or 0
             )
 
-        if resolved_stock_id > 0:
+        if resolved_stock_id > 0 and payload.amount > 0:
             grocy_client.update_stock_entry(
                 stock_id=resolved_stock_id,
                 amount=payload.amount,
@@ -1821,15 +1827,17 @@ def dashboard_update_stock_product(
             )
         else:
             if payload.amount <= 0:
-                raise HTTPException(
-                    status_code=400,
-                    detail="Kein vorhandener Bestandseintrag für dieses Produkt.",
+                grocy_client.set_product_inventory(
+                    product_id=resolved_product_id,
+                    amount=0,
+                    stock_id=resolved_stock_id if resolved_stock_id > 0 else None,
                 )
-            grocy_client.add_product_to_stock(
-                product_id=resolved_product_id,
-                amount=payload.amount,
-                best_before_date=payload.best_before_date,
-            )
+            else:
+                grocy_client.add_product_to_stock(
+                    product_id=resolved_product_id,
+                    amount=payload.amount,
+                    best_before_date=payload.best_before_date,
+                )
         grocy_client.update_product_nutrition(
             product_id=resolved_product_id,
             calories=payload.calories,

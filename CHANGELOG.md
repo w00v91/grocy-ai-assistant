@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.93
+
+- Fix (Dashboard/Neuanlage): Bei „Neu anlegen" wird jetzt immer der exakt eingegebene Produktname verwendet (kein unbeabsichtigtes Ersetzen durch KI-ähnliche Vorschläge).
+- Fix (API/Lager-Tab/Löschen): Löschen im Lager-Tab entfernt nun Produkte korrekt über `DELETE /objects/products/{product_id}` statt über einen Stock-Objekt-Endpunkt.
+- Fix (API/Lager-Tab/Menge=0): Beim Speichern mit Menge `0` wird jetzt der Grocy-Inventar-Endpunkt (`POST /stock/products/{id}/inventory` mit `new_amount`) verwendet, damit der Bestand korrekt auf 0 gesetzt/aufgebraucht wird.
+- Test: Unit-Tests für die neuen Grocy-Client-Endpunkte (`set_product_inventory`, `delete_product`) ergänzt.
+- Pflege: Add-on-Version auf `7.1.93` erhöht.
+
 ## 7.1.92
 
 - Fix (Dashboard-Test/Storage): `loadStorageProducts` ist wieder mit der erwarteten Funktionssignatur (`function loadStorageProducts()`) deklariert, sodass der statische Dashboard-Test wieder stabil grün läuft.
