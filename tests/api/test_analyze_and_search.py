@@ -477,6 +477,116 @@ def test_dashboard_add_existing_product_uses_amount_prefix_from_product_name(cli
     assert calls == [(11, 2, "")]
 
 
+def test_dashboard_add_existing_product_corrects_amount_when_backend_adds_only_one(
+    client, monkeypatch
+):
+    class FakeGrocyClient:
+        shopping_items = [
+            {
+                "id": 9,
+                "product_id": 11,
+                "amount": "1",
+                "product_name": "Apfel",
+            }
+        ]
+        update_calls = []
+
+        def __init__(self, settings):
+            self.settings = settings
+
+        def get_shopping_list(self):
+            return [dict(item) for item in self.shopping_items]
+
+        def add_product_to_shopping_list(self, product_id, amount, best_before_date=""):
+            for item in self.shopping_items:
+                if item.get("product_id") == product_id:
+                    current = float(str(item.get("amount") or "1").replace(",", "."))
+                    item["amount"] = str(int(current + 1))
+                    return
+
+            next_id = max((item.get("id", 0) for item in self.shopping_items), default=0) + 1
+            self.shopping_items.append(
+                {
+                    "id": next_id,
+                    "product_id": product_id,
+                    "amount": "1",
+                    "product_name": "Apfel",
+                }
+            )
+
+        def update_shopping_list_item_amount(self, shopping_list_id, amount):
+            self.update_calls.append((shopping_list_id, amount))
+            for item in self.shopping_items:
+                if item.get("id") == shopping_list_id:
+                    item["amount"] = str(amount)
+                    break
+
+    monkeypatch.setattr(routes, "GrocyClient", FakeGrocyClient)
+
+    response = client.post(
+        "/api/dashboard/add-existing-product",
+        headers={"Authorization": "Bearer test-api-key"},
+        json={
+            "product_id": 11,
+            "product_name": "2 Apfel",
+            "amount": 1,
+            "best_before_date": "",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["action"] == "existing_added"
+    assert FakeGrocyClient.update_calls == [(9, "3")]
+
+
+def test_dashboard_add_existing_product_corrects_amount_for_new_item_when_backend_defaults_to_one(
+    client, monkeypatch
+):
+    class FakeGrocyClient:
+        shopping_items = []
+        update_calls = []
+
+        def __init__(self, settings):
+            self.settings = settings
+
+        def get_shopping_list(self):
+            return [dict(item) for item in self.shopping_items]
+
+        def add_product_to_shopping_list(self, product_id, amount, best_before_date=""):
+            self.shopping_items.append(
+                {
+                    "id": 42,
+                    "product_id": product_id,
+                    "amount": "1",
+                    "product_name": "Apfel",
+                }
+            )
+
+        def update_shopping_list_item_amount(self, shopping_list_id, amount):
+            self.update_calls.append((shopping_list_id, amount))
+            for item in self.shopping_items:
+                if item.get("id") == shopping_list_id:
+                    item["amount"] = str(amount)
+                    break
+
+    monkeypatch.setattr(routes, "GrocyClient", FakeGrocyClient)
+
+    response = client.post(
+        "/api/dashboard/add-existing-product",
+        headers={"Authorization": "Bearer test-api-key"},
+        json={
+            "product_id": 11,
+            "product_name": "2 Apfel",
+            "amount": 1,
+            "best_before_date": "",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["action"] == "existing_added"
+    assert FakeGrocyClient.update_calls == [(42, "2")]
+
+
 def test_dashboard_search_returns_fallback_variants_for_incomplete_query(
     client, monkeypatch
 ):
