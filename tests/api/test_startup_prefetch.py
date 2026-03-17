@@ -1,4 +1,5 @@
 from fastapi.testclient import TestClient
+import json
 
 import grocy_ai_assistant.api.main as api_main
 from grocy_ai_assistant.config.settings import Settings
@@ -231,3 +232,83 @@ def test_startup_initial_info_sync_skips_when_flag_disabled(monkeypatch):
     )
 
     api_main._run_initial_info_sync_on_startup(settings)
+
+
+def test_startup_initial_info_sync_uses_delta_state_to_skip_unchanged_products(
+    monkeypatch, tmp_path
+):
+    nutrition_calls: list[int] = []
+
+    unchanged_product = {
+        "id": 1,
+        "name": "Reis",
+        "default_best_before_days": 365,
+        "row_updated_timestamp": "2026-03-17 10:00:00",
+    }
+    candidate_product = {
+        "id": 2,
+        "name": "Milch",
+        "default_best_before_days": None,
+        "row_updated_timestamp": "2026-03-17 10:01:00",
+    }
+
+    state_path = tmp_path / "initial-info-sync-state.json"
+    state_path.write_text(
+        json.dumps(
+            {
+                "1": {
+                    "signature": api_main._build_initial_sync_product_signature(
+                        unchanged_product
+                    ),
+                    "missing_fields": False,
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    class DummyGrocyClient:
+        def __init__(self, _settings):
+            pass
+
+        def get_products(self):
+            return [unchanged_product, candidate_product]
+
+        def get_product_nutrition(self, product_id: int):
+            nutrition_calls.append(product_id)
+            return {
+                "calories": "",
+                "carbs": "",
+                "fat": "",
+                "protein": "",
+                "sugar": "",
+            }
+
+        def update_product_nutrition(self, **_kwargs):
+            return None
+
+        def set_product_default_best_before_days(self, _product_id: int, _days: int):
+            return None
+
+    class DummyDetector:
+        def __init__(self, _settings):
+            pass
+
+        def analyze_product_name(self, _product_name: str):
+            return {
+                "calories": 120,
+                "carbohydrates": 10,
+                "fat": 4,
+                "protein": 6,
+                "sugar": 4,
+                "default_best_before_days": 7,
+            }
+
+    monkeypatch.setattr(api_main, "INITIAL_INFO_SYNC_STATE_PATH", state_path)
+    monkeypatch.setattr(api_main, "GrocyClient", DummyGrocyClient)
+    monkeypatch.setattr(api_main, "IngredientDetector", DummyDetector)
+
+    settings = Settings(api_key="k", grocy_api_key="g", initial_info_sync=True)
+    api_main._run_initial_info_sync_on_startup(settings)
+
+    assert nutrition_calls == [2]

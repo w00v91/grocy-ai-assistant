@@ -1,4 +1,5 @@
 import asyncio
+import json
 import logging
 import sys
 import time
@@ -28,6 +29,7 @@ logging.basicConfig(
     stream=sys.stdout,
 )
 logger = logging.getLogger(__name__)
+INITIAL_INFO_SYNC_STATE_PATH = Path("/tmp/grocy-initial-info-sync-state.json")
 
 
 def _as_float_or_none(value: object) -> float | None:
@@ -36,6 +38,42 @@ def _as_float_or_none(value: object) -> float | None:
     except (TypeError, ValueError):
         return None
     return number
+
+
+def _load_initial_info_sync_state() -> dict[str, dict[str, object]]:
+    try:
+        raw = INITIAL_INFO_SYNC_STATE_PATH.read_text(encoding="utf-8")
+        payload = json.loads(raw)
+    except (OSError, json.JSONDecodeError):
+        return {}
+
+    if not isinstance(payload, dict):
+        return {}
+
+    normalized: dict[str, dict[str, object]] = {}
+    for product_id, state in payload.items():
+        if isinstance(product_id, str) and isinstance(state, dict):
+            normalized[product_id] = state
+    return normalized
+
+
+def _save_initial_info_sync_state(state: dict[str, dict[str, object]]) -> None:
+    try:
+        INITIAL_INFO_SYNC_STATE_PATH.write_text(
+            json.dumps(state, ensure_ascii=False), encoding="utf-8"
+        )
+    except OSError as error:
+        logger.debug("Initialer Info-Sync: Zustand konnte nicht gespeichert werden: %s", error)
+
+
+def _build_initial_sync_product_signature(product: dict) -> str:
+    signature_fields = {
+        "default_best_before_days": product.get("default_best_before_days"),
+        "row_created_timestamp": product.get("row_created_timestamp"),
+        "row_updated_timestamp": product.get("row_updated_timestamp"),
+        "name": product.get("name"),
+    }
+    return json.dumps(signature_fields, sort_keys=True, ensure_ascii=False)
 
 
 def _generate_missing_product_images_on_startup(settings: Settings) -> None:
@@ -122,8 +160,13 @@ def _run_initial_info_sync_on_startup(settings: Settings) -> None:
         len(products),
     )
 
+    state = _load_initial_info_sync_state()
+
     synced_count = 0
     considered_count = 0
+    skipped_by_delta_count = 0
+    products_reloaded_count = 0
+    next_state: dict[str, dict[str, object]] = {}
 
     for product in products:
         product_name = str(product.get("name") or "").strip()
@@ -142,6 +185,24 @@ def _run_initial_info_sync_on_startup(settings: Settings) -> None:
                 product_id,
                 product_name,
             )
+
+        product_state_key = str(product_id)
+        product_signature = _build_initial_sync_product_signature(product)
+        previous_state = state.get(product_state_key, {})
+        if (
+            previous_state.get("signature") == product_signature
+            and previous_state.get("missing_fields") is False
+        ):
+            skipped_by_delta_count += 1
+            next_state[product_state_key] = previous_state
+            if settings.debug_mode:
+                logger.debug(
+                    "Initialer Info-Sync: Produkt %s per Delta übersprungen (unverändert ohne fehlende Felder)",
+                    product_id,
+                )
+            continue
+
+        products_reloaded_count += 1
 
         try:
             nutrition = client.get_product_nutrition(product_id)
@@ -177,6 +238,10 @@ def _run_initial_info_sync_on_startup(settings: Settings) -> None:
                     "Initialer Info-Sync: Produkt %s hat keine fehlenden Felder",
                     product_id,
                 )
+            next_state[product_state_key] = {
+                "signature": product_signature,
+                "missing_fields": False,
+            }
             continue
 
         considered_count += 1
@@ -216,6 +281,10 @@ def _run_initial_info_sync_on_startup(settings: Settings) -> None:
                     "Initialer Info-Sync: Produkt %s lieferte keine verwertbaren KI-Werte",
                     product_id,
                 )
+            next_state[product_state_key] = {
+                "signature": product_signature,
+                "missing_fields": True,
+            }
             continue
 
         try:
@@ -232,12 +301,28 @@ def _run_initial_info_sync_on_startup(settings: Settings) -> None:
                     product_id, best_before_days
                 )
             synced_count += 1
+            next_state[product_state_key] = {
+                "signature": product_signature,
+                "missing_fields": False,
+            }
         except Exception as error:
             logger.warning(
                 "Initialer Info-Sync: Produkt %s konnte nicht aktualisiert werden: %s",
                 product_id,
                 error,
             )
+            next_state[product_state_key] = {
+                "signature": product_signature,
+                "missing_fields": True,
+            }
+
+    _save_initial_info_sync_state(next_state)
+
+    logger.info(
+        "Initialer Info-Sync: %s Produkte neu geladen (%s per Delta übersprungen)",
+        products_reloaded_count,
+        skipped_by_delta_count,
+    )
 
     logger.info(
         "Initialer Info-Sync abgeschlossen: %s von %s Produkten aktualisiert",
