@@ -534,6 +534,93 @@ def _parse_float_or_none(value: object) -> float | None:
         return None
 
 
+def _reconcile_shopping_list_amount_after_add(
+    grocy_client: GrocyClient,
+    *,
+    product_id: int,
+    requested_amount: float,
+    before_items: list[dict] | None = None,
+) -> None:
+    if requested_amount <= 0:
+        return
+
+    supports_amount_reconciliation = all(
+        hasattr(grocy_client, attr)
+        for attr in ("get_shopping_list", "update_shopping_list_item_amount")
+    )
+    if not supports_amount_reconciliation:
+        return
+
+    try:
+        normalized_before_items = (
+            before_items
+            if isinstance(before_items, list)
+            else grocy_client.get_shopping_list()
+        )
+        after_items = grocy_client.get_shopping_list()
+    except Exception:
+        return
+
+    def _amount_by_item_id(items: list[dict]) -> dict[int, float]:
+        amounts: dict[int, float] = {}
+        for item in items:
+            if item.get("product_id") != product_id:
+                continue
+            item_id = _safe_int(item.get("id"))
+            if item_id is None:
+                continue
+            parsed_item_amount = _parse_float_or_none(item.get("amount"))
+            amounts[item_id] = parsed_item_amount if parsed_item_amount else 0.0
+        return amounts
+
+    before_amounts = _amount_by_item_id(normalized_before_items)
+    after_amounts = _amount_by_item_id(after_items)
+
+    target_item_id: int | None = None
+    expected_amount: float | None = None
+
+    new_item_ids = [
+        item_id for item_id in after_amounts if item_id not in before_amounts
+    ]
+    if new_item_ids:
+        target_item_id = max(new_item_ids)
+        expected_amount = float(requested_amount)
+    else:
+        shared_item_ids = [
+            item_id for item_id in after_amounts if item_id in before_amounts
+        ]
+        if shared_item_ids:
+            target_item_id = max(
+                shared_item_ids,
+                key=lambda item_id: abs(
+                    after_amounts.get(item_id, 0.0) - before_amounts.get(item_id, 0.0)
+                ),
+            )
+            expected_amount = before_amounts.get(target_item_id, 0.0) + float(
+                requested_amount
+            )
+
+    if target_item_id is None or expected_amount is None:
+        return
+
+    current_amount = after_amounts.get(target_item_id)
+    if current_amount is not None and abs(current_amount - expected_amount) <= 1e-9:
+        return
+
+    normalized_amount = (
+        str(int(expected_amount))
+        if float(expected_amount).is_integer()
+        else str(expected_amount)
+    )
+    try:
+        grocy_client.update_shopping_list_item_amount(
+            shopping_list_id=target_item_id,
+            amount=normalized_amount,
+        )
+    except Exception:
+        return
+
+
 def _resolve_best_before_date_for_product(
     grocy_client: GrocyClient,
     product_id: int,
@@ -1058,6 +1145,7 @@ def dashboard_add_existing_product(
             payload.product_name
         )
         amount = parsed_amount if parsed_amount is not None else payload.amount
+
         supports_amount_reconciliation = all(
             hasattr(grocy_client, attr)
             for attr in ("get_shopping_list", "update_shopping_list_item_amount")
@@ -1075,6 +1163,13 @@ def dashboard_add_existing_product(
             amount=amount,
             best_before_date=resolved_best_before_date,
         )
+        _reconcile_shopping_list_amount_after_add(
+            grocy_client,
+            product_id=payload.product_id,
+            requested_amount=float(amount),
+            before_items=before_items,
+        )
+
 
         after_items = (
             grocy_client.get_shopping_list() if supports_amount_reconciliation else []
@@ -1181,10 +1276,21 @@ def dashboard_search(
                     product_id=existing_product_id,
                     best_before_date=payload.best_before_date,
                 )
+                before_items = (
+                    grocy_client.get_shopping_list()
+                    if hasattr(grocy_client, "get_shopping_list")
+                    else None
+                )
                 grocy_client.add_product_to_shopping_list(
                     existing_product_id,
                     amount=amount,
                     best_before_date=resolved_best_before_date,
+                )
+                _reconcile_shopping_list_amount_after_add(
+                    grocy_client,
+                    product_id=existing_product_id,
+                    requested_amount=float(amount),
+                    before_items=before_items,
                 )
                 return DashboardSearchResponse(
                     success=True,
@@ -1265,10 +1371,21 @@ def dashboard_search(
             best_before_date=payload.best_before_date,
             default_best_before_days=product_data.get("default_best_before_days"),
         )
+        before_items = (
+            grocy_client.get_shopping_list()
+            if hasattr(grocy_client, "get_shopping_list")
+            else None
+        )
         grocy_client.add_product_to_shopping_list(
             created_object_id,
             amount=amount,
             best_before_date=resolved_best_before_date,
+        )
+        _reconcile_shopping_list_amount_after_add(
+            grocy_client,
+            product_id=created_object_id,
+            requested_amount=float(amount),
+            before_items=before_items,
         )
 
         return DashboardSearchResponse(
@@ -1759,16 +1876,18 @@ def dashboard_consume_stock_product(
             for entry in stock_entries:
                 if int(entry.get("product_id") or 0) != normalized_product_id:
                     continue
-                candidate_stock_id = int(
-                    entry.get("stock_id") or entry.get("id") or 0
-                )
+                candidate_stock_id = int(entry.get("stock_id") or entry.get("id") or 0)
                 if candidate_stock_id == stock_id:
                     matched_entry = entry
-                    matched_stock_id = candidate_stock_id if candidate_stock_id > 0 else None
+                    matched_stock_id = (
+                        candidate_stock_id if candidate_stock_id > 0 else None
+                    )
                     break
                 if matched_entry is None:
                     matched_entry = entry
-                    matched_stock_id = candidate_stock_id if candidate_stock_id > 0 else None
+                    matched_stock_id = (
+                        candidate_stock_id if candidate_stock_id > 0 else None
+                    )
 
         if matched_entry is None:
             matched_entry = next(
@@ -1783,7 +1902,9 @@ def dashboard_consume_stock_product(
                 candidate_stock_id = int(
                     matched_entry.get("stock_id") or matched_entry.get("id") or 0
                 )
-                matched_stock_id = candidate_stock_id if candidate_stock_id > 0 else None
+                matched_stock_id = (
+                    candidate_stock_id if candidate_stock_id > 0 else None
+                )
 
         if matched_entry is None:
             # Fallback für Clients, die mangels stock_id auf product_id umschalten.
@@ -1799,7 +1920,9 @@ def dashboard_consume_stock_product(
                 candidate_stock_id = int(
                     matched_entry.get("stock_id") or matched_entry.get("id") or 0
                 )
-                matched_stock_id = candidate_stock_id if candidate_stock_id > 0 else None
+                matched_stock_id = (
+                    candidate_stock_id if candidate_stock_id > 0 else None
+                )
 
         if not matched_entry:
             raise HTTPException(
