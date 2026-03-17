@@ -1614,11 +1614,10 @@ def test_delete_product_deletes_objects_products(monkeypatch):
 
 
 def test_update_product_nutrition_updates_product_object(monkeypatch):
-    captured = {}
+    calls = []
 
     def fake_put(url, headers, json, timeout):
-        captured["url"] = url
-        captured["json"] = json
+        calls.append((url, json))
         return FakeResponse({"ok": True})
 
     monkeypatch.setattr(
@@ -1643,9 +1642,16 @@ def test_update_product_nutrition_updates_product_object(monkeypatch):
         sugar=8,
     )
 
-    assert captured["url"].endswith("/objects/products/42")
-    assert captured["json"] == {
+    assert calls[0][0].endswith("/objects/products/42")
+    assert calls[0][1] == {
         "calories": 123,
+        "carbohydrates": 4.5,
+        "fat": 6,
+        "protein": 7,
+        "sugar": 8,
+    }
+    assert calls[1][0].endswith("/userfields/products/42")
+    assert calls[1][1] == {
         "carbohydrates": 4.5,
         "fat": 6,
         "protein": 7,
@@ -1672,7 +1678,7 @@ def test_update_product_nutrition_retries_without_unknown_columns(monkeypatch):
             return None
 
     def fake_put(url, headers, json, timeout):
-        calls.append(json)
+        calls.append((url, json))
         if len(calls) == 1:
             return BadRequestResponse(
                 '{"error_message":"table products has no column named calories"}'
@@ -1698,11 +1704,15 @@ def test_update_product_nutrition_retries_without_unknown_columns(monkeypatch):
 
     client.update_product_nutrition(product_id=42, calories=123, carbs=4.5)
 
-    assert calls[0] == {
+    assert calls[0][0].endswith("/objects/products/42")
+    assert calls[0][1] == {
         "calories": 123,
         "carbohydrates": 4.5,
     }
-    assert calls[1] == {"carbohydrates": 4.5}
+    assert calls[1][0].endswith("/objects/products/42")
+    assert calls[1][1] == {"carbohydrates": 4.5}
+    assert calls[2][0].endswith("/userfields/products/42")
+    assert calls[2][1] == {"carbohydrates": 4.5}
 
 
 def test_update_product_nutrition_skips_when_no_values():
@@ -1729,7 +1739,7 @@ def test_update_product_nutrition_skips_on_non_unknown_400(monkeypatch):
             raise HTTPError("Bad Request")
 
     def fake_put(url, headers, json, timeout):
-        calls.append(json)
+        calls.append((url, json))
         return BadRequestResponse()
 
     monkeypatch.setattr(
@@ -1747,7 +1757,82 @@ def test_update_product_nutrition_skips_on_non_unknown_400(monkeypatch):
 
     client.update_product_nutrition(product_id=42, calories=123)
 
-    assert calls == [{"calories": 123}]
+    assert len(calls) == 1
+    assert calls[0][0].endswith("/objects/products/42")
+    assert calls[0][1] == {"calories": 123}
+
+
+
+
+def test_update_product_nutrition_continues_with_userfields_on_unremovable_object_400(monkeypatch):
+    calls = []
+
+    class BadRequestResponse:
+        status_code = 400
+        text = '{"error_message":"SQLSTATE[HY000]: General error: 1 no such column: fat"}'
+
+        def raise_for_status(self):
+            raise HTTPError("Bad Request")
+
+    def fake_put(url, headers, json, timeout):
+        calls.append((url, json))
+        if url.endswith("/objects/products/42"):
+            return BadRequestResponse()
+        return FakeResponse({"ok": True})
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.services.grocy_client.requests.put", fake_put
+    )
+
+    client = GrocyClient(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+        )
+    )
+
+    client.update_product_nutrition(product_id=42, fat=6, protein=7)
+
+    assert calls[0][0].endswith("/objects/products/42")
+    assert calls[0][1] == {"fat": 6, "protein": 7}
+    assert calls[1][0].endswith("/userfields/products/42")
+    assert calls[1][1] == {"fat": 6, "protein": 7}
+
+def test_update_product_nutrition_skips_userfields_when_endpoint_unavailable(monkeypatch):
+    calls = []
+
+    class UnsupportedUserfieldsResponse:
+        status_code = 404
+        text = ""
+
+        def raise_for_status(self):
+            raise HTTPError("Not Found")
+
+    def fake_put(url, headers, json, timeout):
+        calls.append((url, json))
+        if url.endswith("/userfields/products/42"):
+            return UnsupportedUserfieldsResponse()
+        return FakeResponse({"ok": True})
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.services.grocy_client.requests.put", fake_put
+    )
+
+    client = GrocyClient(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+        )
+    )
+
+    client.update_product_nutrition(product_id=42, carbs=4.5, fat=6)
+
+    assert calls[0][0].endswith("/objects/products/42")
+    assert calls[1][0].endswith("/userfields/products/42")
 
 
 def test_clear_product_picture_sets_picture_file_name_to_none(monkeypatch):

@@ -1136,7 +1136,7 @@ class GrocyClient:
         protein: float | None = None,
         sugar: float | None = None,
     ) -> None:
-        payload: Dict[str, Any] = {
+        object_payload: Dict[str, Any] = {
             "calories": calories,
             "carbohydrates": carbs,
             "fat": fat,
@@ -1144,13 +1144,80 @@ class GrocyClient:
             "sugar": sugar,
         }
 
-        payload = {key: value for key, value in payload.items() if value is not None}
-        if not payload:
+        userfield_payload = {
+            "carbohydrates": carbs,
+            "fat": fat,
+            "protein": protein,
+            "sugar": sugar,
+        }
+
+        object_payload = {
+            key: value for key, value in object_payload.items() if value is not None
+        }
+        userfield_payload = {
+            key: value for key, value in userfield_payload.items() if value is not None
+        }
+
+        if not object_payload and not userfield_payload:
             return
 
         endpoint = f"{self.settings.grocy_base_url}/objects/products/{int(product_id)}"
         attempted_payloads: list[Dict[str, Any]] = []
-        retry_payload = payload
+        retry_payload = object_payload
+
+        while retry_payload and retry_payload not in attempted_payloads:
+            attempted_payloads.append(retry_payload)
+            response = requests.put(
+                endpoint,
+                headers=self.headers,
+                json=retry_payload,
+                timeout=30,
+            )
+            try:
+                response.raise_for_status()
+                break
+            except HTTPError:
+                if response.status_code != 400:
+                    raise
+
+                next_payload = self._remove_unknown_column_field(
+                    retry_payload,
+                    getattr(response, "text", ""),
+                )
+                if next_payload == retry_payload:
+                    logger.warning(
+                        "Grocy rejected nutrition payload with 400 and no removable unknown column. "
+                        "Skipping object nutrition update and continuing with userfield sync. response_body=%s",
+                        response.text,
+                    )
+                    break
+
+                logger.warning(
+                    "Grocy rejected nutrition payload with 400. Retrying without unknown column. "
+                    "response_body=%s",
+                    response.text,
+                )
+                retry_payload = next_payload
+
+        if not retry_payload:
+            logger.warning(
+                "Nutrition update skipped for product %s because target Grocy has no matching nutrition columns.",
+                product_id,
+            )
+
+        self._update_product_nutrition_userfields(product_id, userfield_payload)
+
+    def _update_product_nutrition_userfields(
+        self,
+        product_id: int,
+        userfield_payload: Dict[str, Any],
+    ) -> None:
+        if not userfield_payload:
+            return
+
+        endpoint = f"{self.settings.grocy_base_url}/userfields/products/{int(product_id)}"
+        attempted_payloads: list[Dict[str, Any]] = []
+        retry_payload = userfield_payload
 
         while retry_payload and retry_payload not in attempted_payloads:
             attempted_payloads.append(retry_payload)
@@ -1164,6 +1231,15 @@ class GrocyClient:
                 response.raise_for_status()
                 return
             except HTTPError:
+                if response.status_code in {404, 405}:
+                    logger.warning(
+                        "Grocy userfields endpoint unavailable for product %s. "
+                        "Skipping userfield nutrition sync. status=%s",
+                        product_id,
+                        response.status_code,
+                    )
+                    return
+
                 if response.status_code != 400:
                     raise
 
@@ -1173,14 +1249,14 @@ class GrocyClient:
                 )
                 if next_payload == retry_payload:
                     logger.warning(
-                        "Grocy rejected nutrition payload with 400 and no removable unknown column. "
-                        "Skipping nutrition update to avoid failing the request. response_body=%s",
+                        "Grocy rejected userfield nutrition payload with 400 and no removable unknown column. "
+                        "Skipping userfield nutrition update. response_body=%s",
                         response.text,
                     )
                     return
 
                 logger.warning(
-                    "Grocy rejected nutrition payload with 400. Retrying without unknown column. "
+                    "Grocy rejected userfield nutrition payload with 400. Retrying without unknown column. "
                     "response_body=%s",
                     response.text,
                 )
@@ -1188,7 +1264,7 @@ class GrocyClient:
 
         if not retry_payload:
             logger.warning(
-                "Nutrition update skipped for product %s because target Grocy has no matching nutrition columns.",
+                "Userfield nutrition update skipped for product %s because target Grocy has no matching userfields.",
                 product_id,
             )
 
