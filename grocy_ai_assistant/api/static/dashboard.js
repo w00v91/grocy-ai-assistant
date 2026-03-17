@@ -971,9 +971,11 @@ function startShoppingListAutoRefresh() {
   }, shoppingListRefreshMs);
 }
 
-function renderVariants(items) {
+function renderVariants(items, options = {}) {
   const list = document.getElementById('variant-list');
   const section = document.getElementById('variant-section');
+  const parsedAmount = Number(options.amount);
+  const hasParsedAmount = Number.isFinite(parsedAmount) && parsedAmount > 0;
   if (!items.length) {
     list.innerHTML = '';
     section.classList.add('hidden');
@@ -986,9 +988,13 @@ function renderVariants(items) {
     const productId = item.id ?? '';
     const source = item.source || 'grocy';
     const sourceLabel = source === 'ai' ? 'KI-Vorschlag' : (source === 'input' ? 'Neu anlegen' : 'Grocy');
+    const amountBadge = hasParsedAmount
+      ? `<span class="variant-amount-badge" aria-label="Menge ${parsedAmount}">${parsedAmount}</span>`
+      : '';
     return `
     <div class="variant-card">
-      <button type="button" class="variant-select" data-product-id="${productId}" data-product-name="${encodeURIComponent(item.name)}" data-product-source="${source}">
+      <button type="button" class="variant-select" data-product-id="${productId}" data-product-name="${encodeURIComponent(item.name)}" data-product-source="${source}" data-product-amount="${hasParsedAmount ? parsedAmount : ''}">
+        ${amountBadge}
         <img src="${toImageSource(item.picture_url)}" alt="${item.name}" loading="lazy" />
         <div><strong>${item.name}</strong></div>
         <small class="muted">${sourceLabel}</small>
@@ -1005,10 +1011,11 @@ async function loadVariants() {
   const key = ensureApiKey();
   const status = getShoppingStatusElement();
   const name = document.getElementById('name').value || '';
+  const { productName, amountFromName } = parseAmountPrefixedSearch(name);
 
   if (!key) return;
 
-  const query = name.trim();
+  const query = productName.trim();
   const requestToken = ++variantsRequestToken;
   if (!query) {
     document.getElementById('variant-list').innerHTML = '';
@@ -1028,7 +1035,7 @@ async function loadVariants() {
     }
 
     if (requestToken !== variantsRequestToken) return;
-    renderVariants(payload);
+    renderVariants(payload, { amount: amountFromName });
 
   } catch (_) {
     status.textContent = 'Varianten konnten nicht geladen werden (Netzwerk-/Ingress-Fehler).';
@@ -1037,7 +1044,7 @@ async function loadVariants() {
   });
 }
 
-async function confirmVariant(productId, productName) {
+async function confirmVariant(productId, productName, amountOverride = null) {
   return withBusyState(async () => {
   const key = ensureApiKey();
   const status = getShoppingStatusElement();
@@ -1049,7 +1056,10 @@ async function confirmVariant(productId, productName) {
 
   status.textContent = `Füge ${productName} zur Einkaufsliste hinzu...`;
   const { amountFromName } = parseAmountPrefixedSearch(document.getElementById('name').value || '');
-  const amount = amountFromName ?? getShoppingAmount();
+  const normalizedOverride = Number(amountOverride);
+  const amount = (Number.isFinite(normalizedOverride) && normalizedOverride > 0)
+    ? normalizedOverride
+    : (amountFromName ?? getShoppingAmount());
   const bestBeforeDate = getShoppingBestBeforeDate();
 
   try {
@@ -1069,7 +1079,7 @@ async function confirmVariant(productId, productName) {
     if (res.ok) {
       const variants = payload.variants || [];
       if (payload.action === 'variant_selection_required' && variants.length) {
-        renderVariants(variants);
+        renderVariants(variants, { amount });
         return;
       }
 
@@ -1582,7 +1592,7 @@ async function searchProduct(options = {}) {
     if (res.ok) {
       const variants = payload.variants || [];
       if (payload.action === 'variant_selection_required' && variants.length) {
-        renderVariants(variants);
+        renderVariants(variants, { amount });
         return;
       }
 
@@ -1605,6 +1615,7 @@ document.getElementById('variant-list').addEventListener('click', (event) => {
   const productIdRaw = target.dataset.productId;
   const productId = Number(productIdRaw);
   const productName = decodeURIComponent(target.dataset.productName || '');
+  const productAmount = Number(target.dataset.productAmount || '');
   const source = target.dataset.productSource || 'grocy';
 
   if (source === 'input') {
@@ -1622,7 +1633,7 @@ document.getElementById('variant-list').addEventListener('click', (event) => {
     return;
   }
 
-  confirmVariant(productId, productName);
+  confirmVariant(productId, productName, productAmount);
 });
 
 

@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.103
+
+- Fix (Dashboard/Produktvarianten): Mengenpräfixe in der Suche (z. B. `2 backpulver`) werden bei der Varianten-Auswahl jetzt bis zum Klick mitgeführt, sodass beim Auswählen einer Variante die erkannte Menge korrekt (hier `2`) auf die Einkaufsliste geschrieben wird.
+- UI (Dashboard/Produktvarianten): In der Varianten-Auswahl wird bei erkannter Mengenpräfix-Suche ein rundes Mengen-Badge oben rechts auf der Produktkarte angezeigt.
+- Pflege: Add-on-Version auf `7.1.103` erhöht.
+
 ## 7.1.102
 
 - UI (Einkaufsliste/Produkt-Popup): Label `Standardmenge` im Produkt-Popup der Einkaufsliste in `Geschätzte Haltbarkeit` umbenannt.
