@@ -1289,11 +1289,12 @@ img {
 }
 
 .storage-edit-picture {
-  width: 92px;
-  height: 92px;
+  width: 100%;
+  height: auto;
   border-radius: 12px;
   object-fit: cover;
   border: 1px solid var(--item-border);
+  display: block;
 }
 
 .storage-edit-details {

@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.106
+
+- UI (Dashboard/Produkt ändern Popup): Produktbilder werden im "Bestand ändern"-Popup jetzt in voller Breite angezeigt, damit Details besser erkennbar sind.
+- Pflege: Add-on-Version auf `7.1.106` erhöht.
+
 ## 7.1.105
 
 - Fix (Dashboard/Produktvarianten): Beim Hinzufügen bestehender Varianten wird die erkannte Menge jetzt zusätzlich im `product_name`-Präfix an die API übergeben, sodass die Menge serverseitig zuverlässig erkannt und auf die Einkaufsliste übernommen wird.
