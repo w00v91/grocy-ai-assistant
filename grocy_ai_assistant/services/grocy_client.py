@@ -268,6 +268,9 @@ class GrocyClient:
         response.raise_for_status()
         return response.json()
 
+    def get_products(self) -> list[Dict[str, Any]]:
+        return self._get_all_products()
+
     def search_products_by_partial_name(self, query: str) -> list[Dict[str, Any]]:
         normalized_query = self._normalize_name(query)
         if not normalized_query:
@@ -1011,7 +1014,6 @@ class GrocyClient:
         )
         response.raise_for_status()
 
-
     def add_product_to_stock(
         self,
         product_id: int,
@@ -1030,7 +1032,6 @@ class GrocyClient:
             timeout=30,
         )
         response.raise_for_status()
-
 
     def resolve_stock_entry_id_for_product(
         self,
@@ -1211,7 +1212,9 @@ class GrocyClient:
         if not userfield_payload:
             return
 
-        endpoint = f"{self.settings.grocy_base_url}/userfields/products/{int(product_id)}"
+        endpoint = (
+            f"{self.settings.grocy_base_url}/userfields/products/{int(product_id)}"
+        )
         attempted_payloads: list[Dict[str, Any]] = []
         retry_payload = userfield_payload
 
@@ -1274,7 +1277,9 @@ class GrocyClient:
         if not userfield_payload:
             return
 
-        endpoint = f"{self.settings.grocy_base_url}/userfields/products/{int(product_id)}"
+        endpoint = (
+            f"{self.settings.grocy_base_url}/userfields/products/{int(product_id)}"
+        )
         attempted_payloads: list[Dict[str, Any]] = []
         retry_payload = userfield_payload
 

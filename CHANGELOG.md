@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.2.1
+
+- Neu (Konfiguration): Option `initial_info_sync` ergänzt. Wenn aktiviert, wird beim Start ein initialer KI-Info-Sync für bestehende Produkte ausgeführt.
+- Neu (Startup-Sync): Produkte mit fehlenden Feldern bei `calories`, Nährwert-Userfields (`carbohydrates`, `fat`, `protein`, `sugar`) oder `default_best_before_days` werden über die KI analysiert und selektiv ergänzt.
+- Pflege: Add-on-Version auf `7.2.1` erhöht.
+
 ## 7.1.107
 
 - Fix (Dashboard/"Suchen & hinzufügen"): Die serverseitige Mengen-Reconciliation greift jetzt auch im direkten Suchpfad (`/api/dashboard/search`), wenn ein vorhandenes Produkt sofort hinzugefügt wird.

@@ -60,6 +60,7 @@ class Settings(BaseModel):
     dashboard_polling_interval_seconds: int = 5
     image_generation_enabled: bool = False
     generate_missing_product_images_on_startup: bool = False
+    initial_info_sync: bool = False
     openai_api_key: str = ""
     openai_image_model: str = "gpt-image-1"
     debug_mode: bool = False
