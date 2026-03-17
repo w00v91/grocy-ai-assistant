@@ -4,6 +4,9 @@ All notable changes to this project are documented in this file.
 
 ## 7.1.106
 
+- Verbesserung (Dashboard/Produktbilder): Der Bild-Proxy ergänzt für Produktbilder jetzt standardmäßig `force_serve_as=picture`, damit Grocy-Datei-URLs konsistent als Bild ausgeliefert werden (inkl. weiterhin größenabhängigem `best_fit_width`/`best_fit_height`).
+- Logging: Das Umschreiben von Produktbild-URLs auf den konfigurierten Grocy-Host wurde von INFO auf DEBUG reduziert, um Polling-bedingtes Log-Spam im Normalbetrieb zu vermeiden.
+- Test: API-Tests für Produktbild-Proxy-URLs auf den neuen Standard-Queryparameter angepasst.
 - UI (Dashboard/Produkt ändern Popup): Produktbilder werden im "Bestand ändern"-Popup jetzt in voller Breite angezeigt, damit Details besser erkennbar sind.
 - Pflege: Add-on-Version auf `7.1.106` erhöht.
 
