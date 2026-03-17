@@ -25,10 +25,20 @@ def test_startup_prefetch_waits_five_seconds(monkeypatch):
         calls.append("prefetch")
         return None
 
+    def fake_wait_for_initial_refresh(self, timeout=None):
+        calls.append("wait_for_image_sync")
+        return True
+
     monkeypatch.setattr(api_main, "ProductImageCache", _DummyCache)
     monkeypatch.setattr(api_main, "LocationCache", _DummyCache)
     monkeypatch.setattr(api_main.asyncio, "sleep", fake_sleep)
     monkeypatch.setattr(api_main, "prefetch_initial_recipe_suggestions", fake_prefetch)
+    monkeypatch.setattr(
+        _DummyCache,
+        "wait_for_initial_refresh",
+        fake_wait_for_initial_refresh,
+        raising=False,
+    )
     monkeypatch.setattr(
         api_main,
         "get_settings",
@@ -41,6 +51,23 @@ def test_startup_prefetch_waits_five_seconds(monkeypatch):
 
     assert calls[0] == 5
     assert "prefetch" in calls
+
+
+def test_product_image_cache_wait_for_initial_refresh_signals_after_refresh(monkeypatch):
+    from grocy_ai_assistant.services.product_image_cache import ProductImageCache
+
+    class _ImmediateSettings:
+        grocy_api_key = "g"
+        grocy_base_url = "http://localhost:9192/api"
+
+    cache = ProductImageCache(_ImmediateSettings(), refresh_interval_seconds=3600)
+    monkeypatch.setattr(cache, "refresh_all_product_images", lambda: 0)
+
+    cache.start()
+    try:
+        assert cache.wait_for_initial_refresh(timeout=1.0) is True
+    finally:
+        cache.stop()
 
 
 def test_startup_batch_generates_images_for_products_without_picture(monkeypatch):

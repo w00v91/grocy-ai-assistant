@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.2.4
+
+- Verbesserung (Startup/Sync): Der initiale Info-Sync wartet jetzt auf den initialen Produktbild-Cache-Sync (mit Timeout), bevor er startet.
+- Logging (Startup/Info-Sync): Beim Start wird jetzt geloggt, wie viele Produkte aus Grocy geladen wurden, plus zusätzliche Debug-Logs pro Produktprüfung und Skip-Gründen.
+- Test: Startup-Tests um einen Check für das Signalisieren des initialen Bildcache-Refreshs erweitert.
+- Pflege: Add-on-Version auf `7.2.4` erhöht.
+
 ## 7.2.3
 
 - Fix (API/Produkterneuanlage): Namen neuer Produkte werden vor dem Anlegen normalisiert (mehrfache Leerzeichen entfernt) und immer mit großem Anfangsbuchstaben gespeichert.
