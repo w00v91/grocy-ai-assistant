@@ -2078,28 +2078,37 @@ def dashboard_update_stock_product(
                 ),
                 None,
             )
-        if not matched_entry:
-            raise HTTPException(
-                status_code=404, detail="Bestandseintrag nicht gefunden"
-            )
+        if matched_entry:
+            resolved_product_id = int(matched_entry.get("product_id") or 0)
+            if resolved_product_id <= 0:
+                raise HTTPException(status_code=400, detail="Ungültiger Produkteintrag")
 
-        resolved_product_id = int(matched_entry.get("product_id") or 0)
-        if resolved_product_id <= 0:
-            raise HTTPException(status_code=400, detail="Ungültiger Produkteintrag")
-
-        resolved_stock_id = int(matched_entry.get("stock_id") or 0)
-        if resolved_stock_id <= 0:
-            resolved_stock_id = int(matched_entry.get("id") or 0)
-        if resolved_stock_id <= 0:
+            resolved_stock_id = int(matched_entry.get("stock_id") or 0)
+            if resolved_stock_id <= 0:
+                resolved_stock_id = int(matched_entry.get("id") or 0)
+            if resolved_stock_id <= 0:
+                resolved_stock_id = (
+                    grocy_client.resolve_stock_entry_id_for_product(
+                        product_id=resolved_product_id,
+                        location_id=int(matched_entry.get("location_id") or 0) or None,
+                    )
+                    or 0
+                )
+            current_amount = _parse_float_or_none(matched_entry.get("amount"))
+        else:
+            if normalized_product_id <= 0:
+                raise HTTPException(
+                    status_code=404, detail="Bestandseintrag nicht gefunden"
+                )
+            resolved_product_id = normalized_product_id
             resolved_stock_id = (
                 grocy_client.resolve_stock_entry_id_for_product(
                     product_id=resolved_product_id,
-                    location_id=int(matched_entry.get("location_id") or 0) or None,
                 )
                 or 0
             )
+            current_amount = None
 
-        current_amount = _parse_float_or_none(matched_entry.get("amount"))
         should_update_inventory = (
             current_amount is None or abs(current_amount - payload.amount) > 1e-9
         )
