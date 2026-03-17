@@ -1079,6 +1079,14 @@ def test_dashboard_swipe_actions_match_labels(client):
     assert "await removeShoppingItem(shoppingListId);" in static_response.text
 
 
+def test_dashboard_amount_save_closes_shopping_modal(client):
+    static_response = client.get("/dashboard-static/dashboard.js")
+
+    assert static_response.status_code == 200
+    assert "async function saveShoppingAmountFromModal()" in static_response.text
+    assert "await closeShoppingItemDetails();" in static_response.text
+
+
 def test_shopping_list_item_can_be_deleted(client, monkeypatch):
     captured = {}
 
