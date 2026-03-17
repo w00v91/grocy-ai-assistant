@@ -117,6 +117,11 @@ def _run_initial_info_sync_on_startup(settings: Settings) -> None:
         logger.info("Initialer Info-Sync: Keine Produkte gefunden")
         return
 
+    logger.info(
+        "Initialer Info-Sync gestartet: %s Produkte aus Grocy geladen",
+        len(products),
+    )
+
     synced_count = 0
     considered_count = 0
 
@@ -130,6 +135,13 @@ def _run_initial_info_sync_on_startup(settings: Settings) -> None:
 
         if not product_name:
             continue
+
+        if settings.debug_mode:
+            logger.debug(
+                "Initialer Info-Sync: Prüfe Produkt id=%s name=%s",
+                product_id,
+                product_name,
+            )
 
         try:
             nutrition = client.get_product_nutrition(product_id)
@@ -160,6 +172,11 @@ def _run_initial_info_sync_on_startup(settings: Settings) -> None:
                 missing_best_before_days,
             ]
         ):
+            if settings.debug_mode:
+                logger.debug(
+                    "Initialer Info-Sync: Produkt %s hat keine fehlenden Felder",
+                    product_id,
+                )
             continue
 
         considered_count += 1
@@ -194,6 +211,11 @@ def _run_initial_info_sync_on_startup(settings: Settings) -> None:
             value and value > 0
             for value in [calories, carbs, fat, protein, sugar, best_before_days]
         ):
+            if settings.debug_mode:
+                logger.debug(
+                    "Initialer Info-Sync: Produkt %s lieferte keine verwertbaren KI-Werte",
+                    product_id,
+                )
             continue
 
         try:
@@ -247,9 +269,20 @@ async def _lifespan(app: FastAPI):
                     "Initiale Rezeptvorschläge zeitverzögert vorab geladen und gecacht"
                 )
 
-            await asyncio.to_thread(
-                _generate_missing_product_images_on_startup, settings
+            await asyncio.to_thread(_generate_missing_product_images_on_startup, settings)
+
+            image_sync_completed = await asyncio.to_thread(
+                image_cache.wait_for_initial_refresh, 120.0
             )
+            if image_sync_completed:
+                logger.info(
+                    "Startup-Bildsync abgeschlossen, starte initialen Info-Sync"
+                )
+            else:
+                logger.warning(
+                    "Startup-Bildsync nicht innerhalb von 120 Sekunden abgeschlossen; initialer Info-Sync startet trotzdem"
+                )
+
             await asyncio.to_thread(_run_initial_info_sync_on_startup, settings)
         except Exception as error:
             logger.warning(

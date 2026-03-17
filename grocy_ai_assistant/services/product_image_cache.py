@@ -30,6 +30,7 @@ class ProductImageCache:
         self._cache_dir.mkdir(parents=True, exist_ok=True)
         self._refresh_interval_seconds = max(refresh_interval_seconds, 60)
         self._stop_event = threading.Event()
+        self._initial_refresh_done = threading.Event()
         self._refresh_thread: threading.Thread | None = None
         self._refresh_lock = threading.Lock()
 
@@ -42,12 +43,16 @@ class ProductImageCache:
             return
 
         self._stop_event.clear()
+        self._initial_refresh_done.clear()
         self._refresh_thread = threading.Thread(
             target=self._refresh_loop,
             name="grocy-product-image-cache-refresh",
             daemon=True,
         )
         self._refresh_thread.start()
+
+    def wait_for_initial_refresh(self, timeout: float | None = None) -> bool:
+        return self._initial_refresh_done.wait(timeout)
 
     def stop(self) -> None:
         self._stop_event.set()
@@ -102,7 +107,10 @@ class ProductImageCache:
             return None, ""
 
     def _refresh_loop(self) -> None:
-        self.refresh_all_product_images()
+        try:
+            self.refresh_all_product_images()
+        finally:
+            self._initial_refresh_done.set()
         while not self._stop_event.wait(self._refresh_interval_seconds):
             self.refresh_all_product_images()
 
