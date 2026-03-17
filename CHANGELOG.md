@@ -2,6 +2,31 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.106
+
+- Fix (API/Einkaufsliste/Menge): Beim Hinzufügen eines bestehenden Produkts wird die Zielmenge jetzt serverseitig verifiziert und bei Bedarf direkt auf den erwarteten Wert korrigiert. Dadurch greifen Mengenpräfixe (z. B. `2 Backpulver`) auch dann korrekt, wenn Grocy intern nur `+1` verbucht.
+- Fix (API/Einkaufsliste/Menge): Der gleiche Korrekturpfad deckt sowohl bestehende als auch neu angelegte Einkaufslisten-Einträge ab.
+- Test: API-Tests ergänzt, die Backend-Verhalten simulieren, bei dem `add-product` nur Menge `1` setzt, und die anschließende Korrektur auf die erwartete Menge prüfen.
+- Pflege: Add-on-Version auf `7.1.106` erhöht.
+
+## 7.1.105
+
+- Fix (Dashboard/Produktvarianten): Beim Hinzufügen bestehender Varianten wird die erkannte Menge jetzt zusätzlich im `product_name`-Präfix an die API übergeben, sodass die Menge serverseitig zuverlässig erkannt und auf die Einkaufsliste übernommen wird.
+- Fix (API/Antworttext): Bei mengenpräfixierten Produktnamen wird die Erfolgsmeldung bereinigt (ohne Präfix), z. B. `Apfel wurde zur Einkaufsliste hinzugefügt.` statt `2 Apfel ...`.
+- Test: API-Test für bereinigte Erfolgsmeldung bei mengenpräfixiertem Produktnamen ergänzt.
+- Pflege: Add-on-Version auf `7.1.105` erhöht.
+
+## 7.1.104
+
+- Fix (Dashboard/Produktvarianten): Die erkannte Menge aus dem Suchpräfix wird jetzt auch beim Klick auf KI-/Input-Varianten (Pfad über erneute Produktsuche) korrekt mitgeführt, sodass die Menge zuverlässig auf der Einkaufsliste ankommt.
+- Pflege: Add-on-Version auf `7.1.104` erhöht.
+
+## 7.1.103
+
+- Fix (Dashboard/Produktvarianten): Mengenpräfixe in der Suche (z. B. `2 backpulver`) werden bei der Varianten-Auswahl jetzt bis zum Klick mitgeführt, sodass beim Auswählen einer Variante die erkannte Menge korrekt (hier `2`) auf die Einkaufsliste geschrieben wird.
+- UI (Dashboard/Produktvarianten): In der Varianten-Auswahl wird bei erkannter Mengenpräfix-Suche ein rundes Mengen-Badge oben rechts auf der Produktkarte angezeigt.
+- Pflege: Add-on-Version auf `7.1.103` erhöht.
+
 ## 7.1.102
 
 - UI (Einkaufsliste/Produkt-Popup): Label `Standardmenge` im Produkt-Popup der Einkaufsliste in `Geschätzte Haltbarkeit` umbenannt.
