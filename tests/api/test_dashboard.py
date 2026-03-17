@@ -2221,6 +2221,8 @@ def test_dashboard_allows_zero_amount_when_stock_id_missing(client, monkeypatch)
 
     assert response.status_code == 200
     assert called["inventory"] == (99, 0, None)
+
+
 def test_dashboard_can_delete_stock_product(client, monkeypatch):
     def fake_get_stock_entries(self, location_ids=None):
         return [{"id": 99, "product_id": 10}]
@@ -2403,3 +2405,55 @@ def test_dashboard_update_stock_product_skips_inventory_when_amount_unchanged(
     assert response.status_code == 200
     assert called["inventory"] == 0
     assert called["nutrition"] == (10, 120, None, None, None, None)
+
+
+def test_dashboard_update_stock_product_supports_out_of_stock_products(client, monkeypatch):
+    def fake_get_stock_entries(self, location_ids=None):
+        return [{"stock_id": 11, "product_id": 10, "amount": "2"}]
+
+    called = {}
+
+    def fake_resolve_stock_entry_id_for_product(self, product_id, location_id=None):
+        called["resolve"] = (product_id, location_id)
+        return None
+
+    def fake_set_product_inventory(self, product_id, amount, stock_id=None):
+        called["inventory"] = (product_id, amount, stock_id)
+
+    def fake_add_product_to_stock(self, product_id, amount, best_before_date=""):
+        called["add"] = (product_id, amount, best_before_date)
+
+    def fake_update_product_nutrition(
+        self,
+        product_id,
+        calories=None,
+        carbs=None,
+        fat=None,
+        protein=None,
+        sugar=None,
+    ):
+        called["nutrition"] = (product_id, calories, carbs, fat, protein, sugar)
+
+    monkeypatch.setattr(routes.GrocyClient, "get_stock_entries", fake_get_stock_entries)
+    monkeypatch.setattr(
+        routes.GrocyClient,
+        "resolve_stock_entry_id_for_product",
+        fake_resolve_stock_entry_id_for_product,
+    )
+    monkeypatch.setattr(routes.GrocyClient, "set_product_inventory", fake_set_product_inventory)
+    monkeypatch.setattr(routes.GrocyClient, "add_product_to_stock", fake_add_product_to_stock)
+    monkeypatch.setattr(
+        routes.GrocyClient, "update_product_nutrition", fake_update_product_nutrition
+    )
+
+    response = client.put(
+        "/api/dashboard/stock-products/777?product_id=777",
+        headers={"Authorization": "Bearer test-api-key"},
+        json={"amount": 4, "best_before_date": ""},
+    )
+
+    assert response.status_code == 200
+    assert called["resolve"] == (777, None)
+    assert "inventory" not in called
+    assert called["add"] == (777, 4, "")
+    assert called["nutrition"] == (777, None, None, None, None, None)

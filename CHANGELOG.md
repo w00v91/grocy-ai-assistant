@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.2.2
+
+- Fix (Dashboard/Lager bearbeiten): Das Aktualisieren von Menge und Nährwerten funktioniert jetzt auch für Produkte aus „Alle Produkte anzeigen", selbst wenn dafür noch kein Bestandseintrag existiert.
+- Test: API-Test ergänzt, der den Update-Pfad für nicht vorrätige Produkte (nur `product_id`, ohne `stock_id`) absichert.
+- Pflege: Add-on-Version auf `7.2.2` erhöht.
+
 ## 7.2.1
 
 - Neu (Konfiguration): Option `initial_info_sync` ergänzt. Wenn aktiviert, wird beim Start ein initialer KI-Info-Sync für bestehende Produkte ausgeführt.
