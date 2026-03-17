@@ -1030,18 +1030,6 @@ async function loadVariants() {
     if (requestToken !== variantsRequestToken) return;
     renderVariants(payload);
 
-    const aiRes = await fetch(buildApiUrl(`/api/dashboard/search-variants?q=${encodeURIComponent(query)}&include_ai=true`), {
-      headers: { 'Authorization': `Bearer ${key}` },
-    });
-    const aiPayload = await parseJsonSafe(aiRes);
-
-    if (!aiRes.ok) {
-      status.textContent = getErrorMessage(aiPayload, 'KI-Varianten konnten nicht geladen werden.');
-      return;
-    }
-
-    if (requestToken !== variantsRequestToken) return;
-    renderVariants(aiPayload);
   } catch (_) {
     status.textContent = 'Varianten konnten nicht geladen werden (Netzwerk-/Ingress-Fehler).';
   }
@@ -2093,7 +2081,17 @@ async function consumeStorageProduct(stockId) {
   if (!key) return;
 
   try {
-    const res = await fetch(buildApiUrl(`/api/dashboard/stock-products/${encodeURIComponent(stockId)}/consume`), {
+    const normalizedStockId = Number(stockId);
+    const stockItem = storageProductsCache.find((item) => {
+      if (Number(item?.stock_id) === normalizedStockId) return true;
+      return Number(item?.id) === normalizedStockId;
+    });
+    const productId = Number(stockItem?.id || 0);
+    const query = Number.isFinite(productId) && productId > 0
+      ? `?product_id=${encodeURIComponent(productId)}`
+      : '';
+
+    const res = await fetch(buildApiUrl(`/api/dashboard/stock-products/${encodeURIComponent(stockId)}/consume${query}`), {
       method: 'POST',
       headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
       body: JSON.stringify({ amount: 1 }),
@@ -2186,7 +2184,12 @@ async function saveStorageEditModal() {
   }
 
   try {
-    const res = await fetch(buildApiUrl(`/api/dashboard/stock-products/${encodeURIComponent(storageEditingTargetId)}`), {
+    const productId = Number(storageEditingItem?.id || 0);
+    const query = Number.isFinite(productId) && productId > 0
+      ? `?product_id=${encodeURIComponent(productId)}`
+      : '';
+
+    const res = await fetch(buildApiUrl(`/api/dashboard/stock-products/${encodeURIComponent(storageEditingTargetId)}${query}`), {
       method: 'PUT',
       headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -2246,7 +2249,12 @@ async function deleteStorageEditItem() {
   if (!confirmed) return;
 
   try {
-    const res = await fetch(buildApiUrl(`/api/dashboard/stock-products/${encodeURIComponent(storageEditingTargetId)}`), {
+    const productId = Number(storageEditingItem?.id || 0);
+    const query = Number.isFinite(productId) && productId > 0
+      ? `?product_id=${encodeURIComponent(productId)}`
+      : '';
+
+    const res = await fetch(buildApiUrl(`/api/dashboard/stock-products/${encodeURIComponent(storageEditingTargetId)}${query}`), {
       method: 'DELETE',
       headers: getAuthHeaders(),
     });

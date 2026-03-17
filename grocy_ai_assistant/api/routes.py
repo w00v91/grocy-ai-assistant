@@ -10,7 +10,7 @@ from uuid import uuid4
 from typing import Any
 
 import requests
-from fastapi import APIRouter, Depends, Header, HTTPException, Request
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse, Response
 from fastapi.templating import Jinja2Templates
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -1093,29 +1093,29 @@ def dashboard_search(
     grocy_client = GrocyClient(settings)
 
     try:
-        existing_product = grocy_client.find_product_by_name(product_name)
-        if existing_product:
-            existing_product_id = int(existing_product.get("id"))
-            resolved_best_before_date = _resolve_best_before_date_for_product(
-                grocy_client,
-                product_id=existing_product_id,
-                best_before_date=payload.best_before_date,
-            )
-            grocy_client.add_product_to_shopping_list(
-                existing_product_id,
-                amount=amount,
-                best_before_date=resolved_best_before_date,
-            )
-            return DashboardSearchResponse(
-                success=True,
-                action="existing_added",
-                message=f"{product_name} war vorhanden und wurde zur Einkaufsliste hinzugefügt.",
-            )
+        if not payload.force_create:
+            existing_product = grocy_client.find_product_by_name(product_name)
+            if existing_product:
+                existing_product_id = int(existing_product.get("id"))
+                resolved_best_before_date = _resolve_best_before_date_for_product(
+                    grocy_client,
+                    product_id=existing_product_id,
+                    best_before_date=payload.best_before_date,
+                )
+                grocy_client.add_product_to_shopping_list(
+                    existing_product_id,
+                    amount=amount,
+                    best_before_date=resolved_best_before_date,
+                )
+                return DashboardSearchResponse(
+                    success=True,
+                    action="existing_added",
+                    message=f"{product_name} war vorhanden und wurde zur Einkaufsliste hinzugefügt.",
+                )
 
         fallback_variants = _build_fallback_variants(
             product_name=product_name,
             grocy_client=grocy_client,
-            detector=detector,
             settings=settings,
         )
         if fallback_variants and not payload.force_create:
@@ -1140,6 +1140,9 @@ def dashboard_search(
             )
         else:
             product_data = detector.analyze_product_name(product_name)
+        # Bei expliziter Neuanlage muss der eingegebene Name bestehen bleiben,
+        # auch wenn der KI-Detektor ähnliche Produkte vorschlägt.
+        product_data["name"] = product_name
         created_object_id = grocy_client.create_product(product_data)
         grocy_client.update_product_nutrition(
             product_id=created_object_id,
@@ -1634,6 +1637,7 @@ def dashboard_consume_stock_product(
     stock_id: int,
     payload: StockProductConsumeRequest,
     request: Request,
+    product_id: int | None = Query(default=None),
     _: None = Depends(require_auth),
     settings: Settings = Depends(get_settings),
 ):
@@ -1645,20 +1649,41 @@ def dashboard_consume_stock_product(
     try:
         grocy_client = GrocyClient(settings)
         stock_entries = grocy_client.get_stock_entries()
+        matched_entry = None
         matched_stock_id: int | None = None
-        matched_entry = next(
-            (
-                entry
-                for entry in stock_entries
-                if int(entry.get("stock_id") or entry.get("id") or 0) == stock_id
-            ),
-            None,
-        )
-        if matched_entry:
-            matched_stock_id = int(
-                matched_entry.get("stock_id") or matched_entry.get("id") or 0
+        normalized_product_id = int(product_id or 0)
+
+        if normalized_product_id > 0:
+            for entry in stock_entries:
+                if int(entry.get("product_id") or 0) != normalized_product_id:
+                    continue
+                candidate_stock_id = int(
+                    entry.get("stock_id") or entry.get("id") or 0
+                )
+                if candidate_stock_id == stock_id:
+                    matched_entry = entry
+                    matched_stock_id = candidate_stock_id if candidate_stock_id > 0 else None
+                    break
+                if matched_entry is None:
+                    matched_entry = entry
+                    matched_stock_id = candidate_stock_id if candidate_stock_id > 0 else None
+
+        if matched_entry is None:
+            matched_entry = next(
+                (
+                    entry
+                    for entry in stock_entries
+                    if int(entry.get("stock_id") or entry.get("id") or 0) == stock_id
+                ),
+                None,
             )
-        else:
+            if matched_entry:
+                candidate_stock_id = int(
+                    matched_entry.get("stock_id") or matched_entry.get("id") or 0
+                )
+                matched_stock_id = candidate_stock_id if candidate_stock_id > 0 else None
+
+        if matched_entry is None:
             # Fallback für Clients, die mangels stock_id auf product_id umschalten.
             matched_entry = next(
                 (
@@ -1669,9 +1694,10 @@ def dashboard_consume_stock_product(
                 None,
             )
             if matched_entry:
-                matched_stock_id = int(
+                candidate_stock_id = int(
                     matched_entry.get("stock_id") or matched_entry.get("id") or 0
                 )
+                matched_stock_id = candidate_stock_id if candidate_stock_id > 0 else None
 
         if not matched_entry:
             raise HTTPException(
@@ -1705,6 +1731,7 @@ def dashboard_consume_stock_product(
 def dashboard_delete_stock_product(
     stock_id: int,
     request: Request,
+    product_id: int | None = Query(default=None),
     _: None = Depends(require_auth),
     settings: Settings = Depends(get_settings),
 ):
@@ -1716,14 +1743,29 @@ def dashboard_delete_stock_product(
     try:
         grocy_client = GrocyClient(settings)
         stock_entries = grocy_client.get_stock_entries()
-        matched_entry = next(
-            (
-                entry
-                for entry in stock_entries
-                if int(entry.get("stock_id") or entry.get("id") or 0) == stock_id
-            ),
-            None,
-        )
+        matched_entry = None
+        normalized_product_id = int(product_id or 0)
+
+        if normalized_product_id > 0:
+            for entry in stock_entries:
+                if int(entry.get("product_id") or 0) != normalized_product_id:
+                    continue
+                candidate_stock_id = int(entry.get("stock_id") or entry.get("id") or 0)
+                if candidate_stock_id == stock_id:
+                    matched_entry = entry
+                    break
+                if matched_entry is None:
+                    matched_entry = entry
+
+        if not matched_entry:
+            matched_entry = next(
+                (
+                    entry
+                    for entry in stock_entries
+                    if int(entry.get("stock_id") or entry.get("id") or 0) == stock_id
+                ),
+                None,
+            )
         if not matched_entry:
             matched_entry = next(
                 (
@@ -1738,14 +1780,17 @@ def dashboard_delete_stock_product(
                 status_code=404, detail="Bestandseintrag nicht gefunden"
             )
 
-        resolved_stock_id = int(
-            matched_entry.get("stock_id") or matched_entry.get("id") or 0
-        )
-        if resolved_stock_id <= 0:
-            raise HTTPException(status_code=400, detail="Ungültiger Bestandseintrag")
+        resolved_product_id = int(matched_entry.get("product_id") or 0)
+        if resolved_product_id <= 0:
+            resolved_product_id = int(matched_entry.get("id") or 0)
+        if resolved_product_id <= 0:
+            resolved_product_id = stock_id
 
-        grocy_client.delete_stock_entry(stock_id=resolved_stock_id)
-        return {"success": True, "message": "Bestandseintrag wurde gelöscht."}
+        if resolved_product_id <= 0:
+            raise HTTPException(status_code=400, detail="Ungültiger Produkteintrag")
+
+        grocy_client.delete_product(resolved_product_id)
+        return {"success": True, "message": "Produkt wurde gelöscht."}
     except HTTPException:
         raise
     except Exception as error:
@@ -1764,6 +1809,7 @@ def dashboard_update_stock_product(
     stock_id: int,
     payload: StockProductUpdateRequest,
     request: Request,
+    product_id: int | None = Query(default=None),
     _: None = Depends(require_auth),
     settings: Settings = Depends(get_settings),
 ):
@@ -1775,14 +1821,29 @@ def dashboard_update_stock_product(
     try:
         grocy_client = GrocyClient(settings)
         stock_entries = grocy_client.get_stock_entries()
-        matched_entry = next(
-            (
-                entry
-                for entry in stock_entries
-                if int(entry.get("stock_id") or entry.get("id") or 0) == stock_id
-            ),
-            None,
-        )
+        matched_entry = None
+        normalized_product_id = int(product_id or 0)
+
+        if normalized_product_id > 0:
+            for entry in stock_entries:
+                if int(entry.get("product_id") or 0) != normalized_product_id:
+                    continue
+                candidate_stock_id = int(entry.get("stock_id") or entry.get("id") or 0)
+                if candidate_stock_id == stock_id:
+                    matched_entry = entry
+                    break
+                if matched_entry is None:
+                    matched_entry = entry
+
+        if not matched_entry:
+            matched_entry = next(
+                (
+                    entry
+                    for entry in stock_entries
+                    if int(entry.get("stock_id") or entry.get("id") or 0) == stock_id
+                ),
+                None,
+            )
         if not matched_entry:
             matched_entry = next(
                 (
@@ -1797,13 +1858,13 @@ def dashboard_update_stock_product(
                 status_code=404, detail="Bestandseintrag nicht gefunden"
             )
 
-        resolved_stock_id = int(
-            matched_entry.get("stock_id") or matched_entry.get("id") or 0
-        )
         resolved_product_id = int(matched_entry.get("product_id") or 0)
         if resolved_product_id <= 0:
             raise HTTPException(status_code=400, detail="Ungültiger Produkteintrag")
 
+        resolved_stock_id = int(matched_entry.get("stock_id") or 0)
+        if resolved_stock_id <= 0:
+            resolved_stock_id = int(matched_entry.get("id") or 0)
         if resolved_stock_id <= 0:
             resolved_stock_id = (
                 grocy_client.resolve_stock_entry_id_for_product(
@@ -1814,22 +1875,23 @@ def dashboard_update_stock_product(
             )
 
         if resolved_stock_id > 0:
-            grocy_client.update_stock_entry(
-                stock_id=resolved_stock_id,
-                amount=payload.amount,
-                best_before_date=payload.best_before_date,
-            )
-        else:
-            if payload.amount <= 0:
-                raise HTTPException(
-                    status_code=400,
-                    detail="Kein vorhandener Bestandseintrag für dieses Produkt.",
-                )
-            grocy_client.add_product_to_stock(
+            grocy_client.set_product_inventory(
                 product_id=resolved_product_id,
                 amount=payload.amount,
-                best_before_date=payload.best_before_date,
+                stock_id=resolved_stock_id,
             )
+        else:
+            if payload.amount > 0:
+                grocy_client.add_product_to_stock(
+                    product_id=resolved_product_id,
+                    amount=payload.amount,
+                    best_before_date=payload.best_before_date,
+                )
+            else:
+                grocy_client.set_product_inventory(
+                    product_id=resolved_product_id,
+                    amount=0,
+                )
         grocy_client.update_product_nutrition(
             product_id=resolved_product_id,
             calories=payload.calories,

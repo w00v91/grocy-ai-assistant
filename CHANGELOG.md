@@ -2,6 +2,28 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.95
+
+- Fix (Lager-Tab/ID-Normalisierung): `consume`, `update` und `delete` akzeptieren jetzt optional `product_id` als eindeutigen Hint und priorisieren dadurch den korrekten Produkteintrag auch bei kollidierenden numerischen `stock_id`/`product_id`-Werten.
+- Fix (Dashboard-Frontend/Lager): Requests aus dem Lager-Tab senden bei Verbrauchen, Speichern und Löschen zusätzlich `product_id` als Query-Parameter, damit serverseitig immer die richtige Produkt-ID aufgelöst wird.
+- Test: API-Tests für die neue `product_id`-Priorisierung bei Verbrauchen, Speichern und Löschen ergänzt.
+- Pflege: Add-on-Version auf `7.1.95` erhöht.
+
+## 7.1.94
+
+- Fix (Dashboard/Produktvorschläge): Beim Tippen werden nur noch Grocy-Produktvorschläge geladen; zusätzliche KI-Varianten werden im Vorschlags-Request nicht mehr nachgeladen.
+- Fix (Dashboard/Neu anlegen): `force_create` umgeht jetzt die vorherige Produkterkennung, damit bei „Neu anlegen" wirklich das eingegebene Produkt neu erstellt wird.
+- Fix (API/Lager-Tab/Speichern): Mengenänderungen setzen den Bestand nun konsistent über den Grocy-Inventar-Endpunkt (`POST /stock/products/{id}/inventory`) mit aufgelöster `stock_entry_id`; dadurch treten keine 400er durch falsche Objekt-IDs in `PUT /objects/stock/{id}` mehr auf.
+- Pflege: Add-on-Version auf `7.1.94` erhöht.
+
+## 7.1.93
+
+- Fix (Dashboard/Neuanlage): Bei „Neu anlegen" wird jetzt immer der exakt eingegebene Produktname verwendet (kein unbeabsichtigtes Ersetzen durch KI-ähnliche Vorschläge).
+- Fix (API/Lager-Tab/Löschen): Löschen im Lager-Tab entfernt nun Produkte korrekt über `DELETE /objects/products/{product_id}` statt über einen Stock-Objekt-Endpunkt.
+- Fix (API/Lager-Tab/Menge=0): Beim Speichern mit Menge `0` wird jetzt der Grocy-Inventar-Endpunkt (`POST /stock/products/{id}/inventory` mit `new_amount`) verwendet, damit der Bestand korrekt auf 0 gesetzt/aufgebraucht wird.
+- Test: Unit-Tests für die neuen Grocy-Client-Endpunkte (`set_product_inventory`, `delete_product`) ergänzt.
+- Pflege: Add-on-Version auf `7.1.93` erhöht.
+
 ## 7.1.92
 
 - Fix (Dashboard-Test/Storage): `loadStorageProducts` ist wieder mit der erwarteten Funktionssignatur (`function loadStorageProducts()`) deklariert, sodass der statische Dashboard-Test wieder stabil grün läuft.

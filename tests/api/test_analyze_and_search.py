@@ -408,7 +408,6 @@ def test_dashboard_search_returns_fallback_variants_for_incomplete_query(
             self.settings = settings
 
         def suggest_similar_products(self, name):
-            assert name == "apf"
             return [{"name": "Apfel"}, {"name": "Apfelessig"}]
 
         def analyze_product_name(self, name, locations=None):
@@ -426,8 +425,6 @@ def test_dashboard_search_returns_fallback_variants_for_incomplete_query(
         def search_products_by_partial_name(self, query):
             if query == "apf":
                 return [{"id": 1, "name": "Apfel", "picture_url": ""}]
-            if query == "Apfelessig":
-                return [{"id": 2, "name": "Apfelessig", "picture_url": ""}]
             return []
 
     monkeypatch.setattr(routes, "IngredientDetector", FakeDetector)
@@ -443,15 +440,13 @@ def test_dashboard_search_returns_fallback_variants_for_incomplete_query(
     payload = response.json()
     assert payload["success"] is False
     assert payload["action"] == "variant_selection_required"
-    assert [item["name"] for item in payload["variants"]] == [
-        "apf",
-        "Apfel",
-        "Apfelessig",
-    ]
+    assert [item["name"] for item in payload["variants"]] == ["apf", "Apfel"]
     assert payload["variants"][0]["source"] == "input"
 
 
-def test_dashboard_search_keeps_ai_variant_without_grocy_match(client, monkeypatch):
+def test_dashboard_search_creates_product_when_only_ai_variant_would_exist(
+    client, monkeypatch
+):
     class FakeDetector:
         def __init__(self, settings):
             self.settings = settings
@@ -460,9 +455,13 @@ def test_dashboard_search_keeps_ai_variant_without_grocy_match(client, monkeypat
             return [{"name": "Apfelschale"}]
 
         def analyze_product_name(self, name, locations=None):
-            raise AssertionError(
-                "analyze_product_name should not run when AI variant exists"
-            )
+            return {
+                "name": name,
+                "description": "neu",
+                "location_id": 1,
+                "qu_id_purchase": 2,
+                "qu_id_stock": 2,
+            }
 
     class FakeGrocyClient:
         def __init__(self, settings):
@@ -474,8 +473,27 @@ def test_dashboard_search_keeps_ai_variant_without_grocy_match(client, monkeypat
         def search_products_by_partial_name(self, query):
             return []
 
+        def create_product(self, product_data):
+            return 55
+
+        def update_product_nutrition(self, **kwargs):
+            return None
+
+        def get_product_default_best_before_days(self, product_id):
+            return None
+
+        def set_product_default_best_before_days(self, product_id, days):
+            return None
+
+        def resolve_best_before_date(self, product_id, best_before_date="", default_best_before_days=None):
+            return ""
+
+        def add_product_to_shopping_list(self, product_id, amount="1", best_before_date=""):
+            return None
+
     monkeypatch.setattr(routes, "IngredientDetector", FakeDetector)
     monkeypatch.setattr(routes, "GrocyClient", FakeGrocyClient)
+    monkeypatch.setattr(routes, "_generate_and_attach_product_picture", lambda **kwargs: None)
 
     response = client.post(
         "/api/dashboard/search",
@@ -485,11 +503,69 @@ def test_dashboard_search_keeps_ai_variant_without_grocy_match(client, monkeypat
 
     assert response.status_code == 200
     payload = response.json()
-    assert payload["action"] == "variant_selection_required"
-    assert payload["variants"] == [
-        {"id": None, "name": "apf", "picture_url": "", "source": "input"},
-        {"id": None, "name": "Apfelschale", "picture_url": "", "source": "ai"},
-    ]
+    assert payload["action"] == "created_and_added"
+
+
+def test_dashboard_search_force_create_skips_existing_product_lookup(
+    client, monkeypatch
+):
+    class FakeDetector:
+        def __init__(self, settings):
+            self.settings = settings
+
+        def analyze_product_name(self, name, locations=None):
+            return {
+                "name": "anderer-name",
+                "description": "neu",
+                "location_id": 1,
+                "qu_id_purchase": 2,
+                "qu_id_stock": 2,
+            }
+
+    calls = {"created": None, "added": None}
+
+    class FakeGrocyClient:
+        def __init__(self, settings):
+            self.settings = settings
+
+        def find_product_by_name(self, name):
+            return {"id": 5, "name": "Falscher Treffer"}
+
+        def search_products_by_partial_name(self, query):
+            return []
+
+        def create_product(self, product_data):
+            calls["created"] = product_data
+            return 77
+
+        def update_product_nutrition(self, **kwargs):
+            return None
+
+        def get_product_default_best_before_days(self, product_id):
+            return None
+
+        def set_product_default_best_before_days(self, product_id, days):
+            return None
+
+        def resolve_best_before_date(self, product_id, best_before_date="", default_best_before_days=None):
+            return ""
+
+        def add_product_to_shopping_list(self, product_id, amount="1", best_before_date=""):
+            calls["added"] = (product_id, amount, best_before_date)
+
+    monkeypatch.setattr(routes, "IngredientDetector", FakeDetector)
+    monkeypatch.setattr(routes, "GrocyClient", FakeGrocyClient)
+    monkeypatch.setattr(routes, "_generate_and_attach_product_picture", lambda **kwargs: None)
+
+    response = client.post(
+        "/api/dashboard/search",
+        headers={"Authorization": "Bearer test-api-key"},
+        json={"name": "Sojasprossen", "force_create": True},
+    )
+
+    assert response.status_code == 200
+    assert calls["created"]["name"] == "Sojasprossen"
+    assert calls["added"] == (77, 1, "")
 
 
 def test_dashboard_search_force_create_skips_variant_selection(client, monkeypatch):
