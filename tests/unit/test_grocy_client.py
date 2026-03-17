@@ -1548,6 +1548,43 @@ def test_set_product_inventory_posts_inventory_endpoint(monkeypatch):
     assert captured["json"] == {"new_amount": 0, "stock_entry_id": 8}
 
 
+def test_set_product_inventory_retries_without_stock_entry_id_on_400(monkeypatch):
+    calls = []
+
+    class BadRequestResponse(FakeResponse):
+        status_code = 400
+        text = '{"error":"invalid field stock_entry_id"}'
+
+        def raise_for_status(self):
+            raise HTTPError("Bad Request")
+
+    def fake_post(url, headers, json, timeout):
+        calls.append((url, json))
+        if len(calls) == 1:
+            return BadRequestResponse({})
+        return FakeResponse({"ok": True})
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.services.grocy_client.requests.post", fake_post
+    )
+
+    client = GrocyClient(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+        )
+    )
+
+    client.set_product_inventory(product_id=42, amount=3, stock_id=30)
+
+    assert calls[0][0].endswith("/stock/products/42/inventory")
+    assert calls[0][1] == {"new_amount": 3, "stock_entry_id": 30}
+    assert calls[1][0].endswith("/stock/products/42/inventory")
+    assert calls[1][1] == {"new_amount": 3}
+
+
 def test_delete_product_deletes_objects_products(monkeypatch):
     called = {}
 

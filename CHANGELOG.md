@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.96
+
+- Fix (Grocy Inventory-API): `set_product_inventory` nutzt weiterhin `POST`, versucht bei 400-Antworten mit `stock_entry_id` aber automatisch einen zweiten Request ohne `stock_entry_id`, damit Grocy-Instanzen mit restriktiverem Schema weiterhin korrekt aktualisiert werden.
+- Test: Unit-Test ergänzt, der den Retry ohne `stock_entry_id` absichert.
+- Pflege: Add-on-Version auf `7.1.96` erhöht.
+
 ## 7.1.95
 
 - Fix (Lager-Tab/ID-Normalisierung): `consume`, `update` und `delete` akzeptieren jetzt optional `product_id` als eindeutigen Hint und priorisieren dadurch den korrekten Produkteintrag auch bei kollidierenden numerischen `stock_id`/`product_id`-Werten.
