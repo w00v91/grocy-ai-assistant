@@ -6,6 +6,8 @@ All notable changes to this project are documented in this file.
 
 - Fix (API/Produkterneuanlage): Namen neuer Produkte werden vor dem Anlegen normalisiert (mehrfache Leerzeichen entfernt) und immer mit großem Anfangsbuchstaben gespeichert.
 - Test: API-Test ergänzt, der die Normalisierung für neu angelegte Produkte absichert.
+- Verbesserung (Suche/Fuzzy-Match): Die Produktsuche berücksichtigt jetzt einfache Wortstämme und Pluralformen, sodass z. B. `zitronen` auch `Zitrone` und `Zitronensaft` findet.
+- Test: Unit-Test für Plural-/Stammwort-Matching in `search_products_by_partial_name` ergänzt.
 - Pflege: Add-on-Version auf `7.2.3` erhöht.
 
 ## 7.2.2
