@@ -897,9 +897,68 @@ def test_dashboard_search_force_create_skips_variant_selection(client, monkeypat
     assert response.status_code == 200
     payload = response.json()
     assert payload["action"] == "created_and_added"
-    assert calls["created"]["name"] == "oliven"
+    assert calls["created"]["name"] == "Oliven"
     assert calls["added"] == (42, 2, "")
 
+
+
+
+def test_dashboard_search_normalizes_new_product_name_before_create(client, monkeypatch):
+    calls = {"created": None}
+
+    class FakeDetector:
+        def __init__(self, settings):
+            self.settings = settings
+
+        def analyze_product_name(self, name, locations=None):
+            return {
+                "name": "ignored",
+                "description": "neu",
+                "location_id": 1,
+                "qu_id_purchase": 2,
+                "qu_id_stock": 2,
+            }
+
+        def suggest_similar_products(self, name):
+            return []
+
+    class FakeGrocyClient:
+        def __init__(self, settings):
+            self.settings = settings
+
+        def find_product_by_name(self, name):
+            return None
+
+        def search_products_by_partial_name(self, query):
+            return []
+
+        def create_product(self, payload):
+            calls["created"] = payload
+            return 44
+
+        def update_product_nutrition(self, **kwargs):
+            return None
+
+        def get_product_default_best_before_days(self, product_id):
+            return None
+
+        def set_product_default_best_before_days(self, product_id, days):
+            return None
+
+        def add_product_to_shopping_list(self, product_id, amount, best_before_date=""):
+            return None
+
+    monkeypatch.setattr(routes, "IngredientDetector", FakeDetector)
+    monkeypatch.setattr(routes, "GrocyClient", FakeGrocyClient)
+
+    response = client.post(
+        "/api/dashboard/search",
+        headers={"Authorization": "Bearer test-api-key"},
+        json={"name": "   neuer   produkte   ", "force_create": True},
+    )
+
+    assert response.status_code == 200
+    assert calls["created"]["name"] == "Neuer produkte"
 
 def test_dashboard_search_generates_and_attaches_image_for_new_product(
     client, test_settings, monkeypatch

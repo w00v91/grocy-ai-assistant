@@ -523,6 +523,14 @@ def _extract_amount_prefixed_product_input(raw_value: str) -> tuple[str, float |
     return product_name.strip(), parsed_amount
 
 
+def _normalize_new_product_name(raw_name: str) -> str:
+    compact_name = re.sub(r"\s+", " ", str(raw_name or "").strip())
+    if not compact_name:
+        return ""
+
+    return f"{compact_name[:1].upper()}{compact_name[1:]}"
+
+
 def _parse_float_or_none(value: object) -> float | None:
     normalized_value = str(value or "").strip().replace(",", ".")
     if not normalized_value:
@@ -1327,7 +1335,8 @@ def dashboard_search(
             product_data = detector.analyze_product_name(product_name)
         # Bei expliziter Neuanlage muss der eingegebene Name bestehen bleiben,
         # auch wenn der KI-Detektor ähnliche Produkte vorschlägt.
-        product_data["name"] = product_name
+        normalized_new_product_name = _normalize_new_product_name(product_name)
+        product_data["name"] = normalized_new_product_name or product_name
 
         product_payload = {
             key: value
