@@ -522,6 +522,17 @@ def _extract_amount_prefixed_product_input(raw_value: str) -> tuple[str, float |
     return product_name.strip(), parsed_amount
 
 
+def _parse_float_or_none(value: object) -> float | None:
+    normalized_value = str(value or "").strip().replace(",", ".")
+    if not normalized_value:
+        return None
+
+    try:
+        return float(normalized_value)
+    except ValueError:
+        return None
+
+
 def _resolve_best_before_date_for_product(
     grocy_client: GrocyClient,
     product_id: int,
@@ -1874,24 +1885,30 @@ def dashboard_update_stock_product(
                 or 0
             )
 
-        if resolved_stock_id > 0:
-            grocy_client.set_product_inventory(
-                product_id=resolved_product_id,
-                amount=payload.amount,
-                stock_id=resolved_stock_id,
-            )
-        else:
-            if payload.amount > 0:
-                grocy_client.add_product_to_stock(
-                    product_id=resolved_product_id,
-                    amount=payload.amount,
-                    best_before_date=payload.best_before_date,
-                )
-            else:
+        current_amount = _parse_float_or_none(matched_entry.get("amount"))
+        should_update_inventory = (
+            current_amount is None or abs(current_amount - payload.amount) > 1e-9
+        )
+
+        if should_update_inventory:
+            if resolved_stock_id > 0:
                 grocy_client.set_product_inventory(
                     product_id=resolved_product_id,
-                    amount=0,
+                    amount=payload.amount,
+                    stock_id=resolved_stock_id,
                 )
+            else:
+                if payload.amount > 0:
+                    grocy_client.add_product_to_stock(
+                        product_id=resolved_product_id,
+                        amount=payload.amount,
+                        best_before_date=payload.best_before_date,
+                    )
+                else:
+                    grocy_client.set_product_inventory(
+                        product_id=resolved_product_id,
+                        amount=0,
+                    )
         grocy_client.update_product_nutrition(
             product_id=resolved_product_id,
             calories=payload.calories,
