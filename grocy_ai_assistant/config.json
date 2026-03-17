@@ -1,6 +1,6 @@
 {
   "name": "Grocy AI Assistant",
-  "version": "7.1.92",
+  "version": "7.1.96",
   "slug": "grocy_ai_assistant",
   "dependencies": [
     "a0d49513_grocy"
