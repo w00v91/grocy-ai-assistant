@@ -1619,17 +1619,17 @@ document.getElementById('variant-list').addEventListener('click', (event) => {
   const source = target.dataset.productSource || 'grocy';
 
   if (source === 'input') {
-    searchSuggestedProduct(productName, { forceCreate: true });
+    searchSuggestedProduct(productName, { forceCreate: true, amount: productAmount });
     return;
   }
 
   if (!Number.isFinite(productId) || !productIdRaw) {
-    searchSuggestedProduct(productName);
+    searchSuggestedProduct(productName, { amount: productAmount });
     return;
   }
 
   if (source === 'ai') {
-    searchSuggestedProduct(productName);
+    searchSuggestedProduct(productName, { amount: productAmount });
     return;
   }
 
@@ -1728,9 +1728,16 @@ preloadRecipeSuggestionsOnStartup();
 
 async function searchSuggestedProduct(productName, options = {}) {
   const nameInput = document.getElementById('name');
-  nameInput.value = productName;
+  const normalizedAmount = Number(options.amount);
+  const hasAmount = Number.isFinite(normalizedAmount) && normalizedAmount > 0;
+  const prefixedProductName = hasAmount ? `${normalizedAmount} ${productName}` : productName;
+  nameInput.value = prefixedProductName;
   updateClearButtonVisibility();
-  await searchProduct(options);
+
+  const nextOptions = { ...options };
+  delete nextOptions.amount;
+
+  await searchProduct(nextOptions);
 }
 
 function getSelectedLocationIds() {
