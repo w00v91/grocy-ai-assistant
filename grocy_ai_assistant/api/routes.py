@@ -1614,6 +1614,32 @@ def dashboard_stock_products(
         raise HTTPException(status_code=500, detail=str(error)) from error
 
 
+@router.get("/api/dashboard/products/{product_id}/nutrition")
+def dashboard_product_nutrition(
+    product_id: int,
+    request: Request,
+    _: None = Depends(require_auth),
+    settings: Settings = Depends(get_settings),
+):
+    if not settings.grocy_api_key:
+        raise HTTPException(
+            status_code=500, detail="grocy_api_key fehlt in Add-on Optionen"
+        )
+
+    try:
+        grocy_client = GrocyClient(settings)
+        return grocy_client.get_product_nutrition(product_id)
+    except Exception as error:
+        log_api_error(
+            logger,
+            request=request,
+            status_code=500,
+            message=str(error),
+            exc=error,
+        )
+        raise HTTPException(status_code=500, detail=str(error)) from error
+
+
 @router.delete("/api/dashboard/products/{product_id}/picture")
 def dashboard_delete_product_picture(
     product_id: int,

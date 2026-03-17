@@ -1901,6 +1901,38 @@ def test_dashboard_stock_products_include_stock_id(client, monkeypatch):
     )
 
 
+def test_dashboard_product_nutrition_reads_userfields(client, monkeypatch):
+    def fake_get_product_nutrition(self, product_id):
+        assert product_id == 10
+        return {
+            "calories": "120",
+            "carbs": "4.5",
+            "fat": "3.2",
+            "protein": "8",
+            "sugar": "4",
+        }
+
+    monkeypatch.setattr(
+        routes.GrocyClient,
+        "get_product_nutrition",
+        fake_get_product_nutrition,
+    )
+
+    response = client.get(
+        "/api/dashboard/products/10/nutrition",
+        headers={"Authorization": "Bearer test-api-key"},
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "calories": "120",
+        "carbs": "4.5",
+        "fat": "3.2",
+        "protein": "8",
+        "sugar": "4",
+    }
+
+
 def test_dashboard_can_delete_product_picture(client, monkeypatch):
     called = {}
 
