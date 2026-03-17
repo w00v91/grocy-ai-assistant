@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.101
+
+- Fix (Neues Produkt/Nährwerte): Bei der Neuanlage über `/api/dashboard/search` werden KI-Nährwerte für `carbohydrates`, `fat`, `protein` und `sugar` jetzt konsequent über die Userfield-Logik weitergereicht (`update_product_nutrition` → `/userfields/products/{id}`), statt im Create-Payload mitzuschwimmen.
+- Bereinigung (Neues Produkt): Doppelte Aufrufe für Nährwert- und `default_best_before_days`-Update nach dem Bild-Upload entfernt.
+- Test: API-Test ergänzt, der sicherstellt, dass Makro-Nährwerte nicht im `create_product`-Payload landen und korrekt an `update_product_nutrition` übergeben werden.
+- Pflege: Add-on-Version auf `7.1.101` erhöht.
+
 ## 7.1.100
 
 - Fix (API/Grocy/Nährwerte): `update_product_nutrition` nutzt für `carbohydrates`, `fat`, `protein` und `sugar` jetzt ausschließlich den korrekten Userfield-Endpunkt (`PUT /userfields/products/{id}`); der fehlerhafte Erstversuch über das Produkt-Objekt wurde entfernt.

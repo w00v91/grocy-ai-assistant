@@ -155,6 +155,82 @@ def test_dashboard_search_creates_new_product_when_missing(client, monkeypatch):
     assert calls["nutrition"] == (42, 100, None, None, None, None)
 
 
+def test_dashboard_search_new_product_uses_userfield_nutrition_values(client, monkeypatch):
+    calls = {"created": None, "nutrition": None}
+
+    class FakeDetector:
+        def __init__(self, settings):
+            self.settings = settings
+
+        def analyze_product_name(self, name, locations=None):
+            return {
+                "name": name,
+                "description": "bio",
+                "location_id": 1,
+                "qu_id_purchase": 2,
+                "qu_id_stock": 2,
+                "calories": 222,
+                "carbohydrates": 33,
+                "fat": 4,
+                "protein": 5,
+                "sugar": 6,
+            }
+
+        def suggest_similar_products(self, name):
+            return []
+
+    class FakeGrocyClient:
+        def __init__(self, settings):
+            self.settings = settings
+
+        def find_product_by_name(self, name):
+            return None
+
+        def search_products_by_partial_name(self, query):
+            return []
+
+        def create_product(self, payload):
+            calls["created"] = payload
+            return 42
+
+        def update_product_nutrition(
+            self,
+            product_id,
+            calories=None,
+            carbs=None,
+            fat=None,
+            protein=None,
+            sugar=None,
+        ):
+            calls["nutrition"] = (product_id, calories, carbs, fat, protein, sugar)
+
+        def get_product_default_best_before_days(self, product_id):
+            return None
+
+        def set_product_default_best_before_days(self, product_id, default_best_before_days):
+            return None
+
+        def add_product_to_shopping_list(self, product_id, amount, best_before_date=""):
+            return None
+
+    monkeypatch.setattr(routes, "IngredientDetector", FakeDetector)
+    monkeypatch.setattr(routes, "GrocyClient", FakeGrocyClient)
+
+    response = client.post(
+        "/api/dashboard/search",
+        headers={"Authorization": "Bearer test-api-key"},
+        json={"name": "Linsen"},
+    )
+
+    assert response.status_code == 200
+    assert calls["created"]["name"] == "Linsen"
+    assert "carbohydrates" not in calls["created"]
+    assert "fat" not in calls["created"]
+    assert "protein" not in calls["created"]
+    assert "sugar" not in calls["created"]
+    assert calls["nutrition"] == (42, 222, 33, 4, 5, 6)
+
+
 def test_dashboard_search_rejects_blank_name(client):
     response = client.post(
         "/api/dashboard/search",
