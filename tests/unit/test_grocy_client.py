@@ -426,6 +426,34 @@ def test_search_products_by_partial_name_returns_all_variants(monkeypatch):
     assert [product["name"] for product in result] == ["Apfel", "Apfelessig"]
 
 
+def test_search_products_by_partial_name_matches_plural_and_stem(monkeypatch):
+    def fake_get(*args, **kwargs):
+        return FakeResponse(
+            [
+                {"id": 1, "name": "Zitrone"},
+                {"id": 2, "name": "Zitronensaft"},
+                {"id": 3, "name": "Banane"},
+            ]
+        )
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.services.grocy_client.requests.get", fake_get
+    )
+
+    client = GrocyClient(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+        )
+    )
+
+    result = client.search_products_by_partial_name("zitronen")
+
+    assert [product["name"] for product in result] == ["Zitrone", "Zitronensaft"]
+
+
 def test_get_storage_products_can_include_products_not_in_stock(monkeypatch):
     def fake_stock_products(self, location_ids=None):
         return [

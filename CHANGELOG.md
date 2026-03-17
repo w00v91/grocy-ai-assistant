@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.2.3
+
+- Verbesserung (Suche/Fuzzy-Match): Die Produktsuche berücksichtigt jetzt einfache Wortstämme und Pluralformen, sodass z. B. `zitronen` auch `Zitrone` und `Zitronensaft` findet.
+- Test: Unit-Test für Plural-/Stammwort-Matching in `search_products_by_partial_name` ergänzt.
+- Pflege: Add-on-Version auf `7.2.3` erhöht.
+
 ## 7.2.2
 
 - Fix (Dashboard/Lager bearbeiten): Das Aktualisieren von Menge und Nährwerten funktioniert jetzt auch für Produkte aus „Alle Produkte anzeigen", selbst wenn dafür noch kein Bestandseintrag existiert.
