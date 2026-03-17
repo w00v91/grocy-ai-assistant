@@ -473,6 +473,7 @@ def test_dashboard_add_existing_product_uses_amount_prefix_from_product_name(cli
 
     assert response.status_code == 200
     assert response.json()["action"] == "existing_added"
+    assert response.json()["message"] == "Apfel wurde zur Einkaufsliste hinzugefügt."
     assert calls == [(11, 2, "")]
 
 
