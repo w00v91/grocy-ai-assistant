@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.106
+
+- Fix (API/Einkaufsliste/Menge): Beim Hinzufügen eines bestehenden Produkts wird die Zielmenge jetzt serverseitig verifiziert und bei Bedarf direkt auf den erwarteten Wert korrigiert. Dadurch greifen Mengenpräfixe (z. B. `2 Backpulver`) auch dann korrekt, wenn Grocy intern nur `+1` verbucht.
+- Fix (API/Einkaufsliste/Menge): Der gleiche Korrekturpfad deckt sowohl bestehende als auch neu angelegte Einkaufslisten-Einträge ab.
+- Test: API-Tests ergänzt, die Backend-Verhalten simulieren, bei dem `add-product` nur Menge `1` setzt, und die anschließende Korrektur auf die erwartete Menge prüfen.
+- Verbesserung (Dashboard/Produktbilder): Der Bild-Proxy ergänzt für Produktbilder jetzt standardmäßig `force_serve_as=picture`, damit Grocy-Datei-URLs konsistent als Bild ausgeliefert werden (inkl. weiterhin größenabhängigem `best_fit_width`/`best_fit_height`).
+- Logging: Das Umschreiben von Produktbild-URLs auf den konfigurierten Grocy-Host wurde von INFO auf DEBUG reduziert, um Polling-bedingtes Log-Spam im Normalbetrieb zu vermeiden.
+- Test: API-Tests für Produktbild-Proxy-URLs auf den neuen Standard-Queryparameter angepasst.
+- UI (Dashboard/Produkt ändern Popup): Produktbilder werden im "Bestand ändern"-Popup jetzt in voller Breite angezeigt, damit Details besser erkennbar sind.
+- Pflege: Add-on-Version auf `7.1.106` erhöht.
+
 ## 7.1.105
 
 - Fix (Dashboard/Produktvarianten): Beim Hinzufügen bestehender Varianten wird die erkannte Menge jetzt zusätzlich im `product_name`-Präfix an die API übergeben, sodass die Menge serverseitig zuverlässig erkannt und auf die Einkaufsliste übernommen wird.
