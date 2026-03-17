@@ -1053,7 +1053,9 @@ def dashboard_add_existing_product(
 
     try:
         grocy_client = GrocyClient(settings)
-        _, parsed_amount = _extract_amount_prefixed_product_input(payload.product_name)
+        normalized_product_name, parsed_amount = _extract_amount_prefixed_product_input(
+            payload.product_name
+        )
         amount = parsed_amount if parsed_amount is not None else payload.amount
         resolved_best_before_date = _resolve_best_before_date_for_product(
             grocy_client,
@@ -1068,7 +1070,10 @@ def dashboard_add_existing_product(
         return DashboardSearchResponse(
             success=True,
             action="existing_added",
-            message=f"{payload.product_name} wurde zur Einkaufsliste hinzugefügt.",
+            message=(
+                f"{normalized_product_name or payload.product_name} "
+                "wurde zur Einkaufsliste hinzugefügt."
+            ),
             product_id=payload.product_id,
         )
     except Exception as error:

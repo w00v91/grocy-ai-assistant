@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.105
+
+- Fix (Dashboard/Produktvarianten): Beim Hinzufügen bestehender Varianten wird die erkannte Menge jetzt zusätzlich im `product_name`-Präfix an die API übergeben, sodass die Menge serverseitig zuverlässig erkannt und auf die Einkaufsliste übernommen wird.
+- Fix (API/Antworttext): Bei mengenpräfixierten Produktnamen wird die Erfolgsmeldung bereinigt (ohne Präfix), z. B. `Apfel wurde zur Einkaufsliste hinzugefügt.` statt `2 Apfel ...`.
+- Test: API-Test für bereinigte Erfolgsmeldung bei mengenpräfixiertem Produktnamen ergänzt.
+- Pflege: Add-on-Version auf `7.1.105` erhöht.
+
 ## 7.1.104
 
 - Fix (Dashboard/Produktvarianten): Die erkannte Menge aus dem Suchpräfix wird jetzt auch beim Klick auf KI-/Input-Varianten (Pfad über erneute Produktsuche) korrekt mitgeführt, sodass die Menge zuverlässig auf der Einkaufsliste ankommt.

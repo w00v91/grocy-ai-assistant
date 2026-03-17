@@ -1060,6 +1060,9 @@ async function confirmVariant(productId, productName, amountOverride = null) {
   const amount = (Number.isFinite(normalizedOverride) && normalizedOverride > 0)
     ? normalizedOverride
     : (amountFromName ?? getShoppingAmount());
+  const requestProductName = Number.isFinite(amount) && amount > 0
+    ? `${amount} ${productName}`
+    : productName;
   const bestBeforeDate = getShoppingBestBeforeDate();
 
   try {
@@ -1068,7 +1071,7 @@ async function confirmVariant(productId, productName, amountOverride = null) {
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
       body: JSON.stringify({
         product_id: productId,
-        product_name: productName,
+        product_name: requestProductName,
         amount,
         best_before_date: bestBeforeDate,
       }),
