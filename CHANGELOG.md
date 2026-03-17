@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.2.3
+
+- Fix (API/Produkterneuanlage): Namen neuer Produkte werden vor dem Anlegen normalisiert (mehrfache Leerzeichen entfernt) und immer mit großem Anfangsbuchstaben gespeichert.
+- Test: API-Test ergänzt, der die Normalisierung für neu angelegte Produkte absichert.
+- Pflege: Add-on-Version auf `7.2.3` erhöht.
+
 ## 7.2.2
 
 - Fix (Dashboard/Lager bearbeiten): Das Aktualisieren von Menge und Nährwerten funktioniert jetzt auch für Produkte aus „Alle Produkte anzeigen", selbst wenn dafür noch kein Bestandseintrag existiert.
