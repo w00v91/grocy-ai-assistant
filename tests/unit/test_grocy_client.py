@@ -1651,6 +1651,13 @@ def test_update_product_nutrition_updates_calories_and_userfields(monkeypatch):
         "protein": 7,
         "sugar": 8,
     }
+    assert calls[1][0].endswith("/userfields/products/42")
+    assert calls[1][1] == {
+        "carbohydrates": 4.5,
+        "fat": 6,
+        "protein": 7,
+        "sugar": 8,
+    }
 
 
 def test_update_product_nutrition_skips_calories_on_400_and_updates_userfields(

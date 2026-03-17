@@ -1225,6 +1225,69 @@ class GrocyClient:
             )
             try:
                 response.raise_for_status()
+                break
+            except HTTPError:
+                if response.status_code in {404, 405}:
+                    logger.warning(
+                        "Grocy userfields endpoint unavailable for product %s. "
+                        "Skipping userfield nutrition sync. status=%s",
+                        product_id,
+                        response.status_code,
+                    )
+                    return
+
+                if response.status_code != 400:
+                    raise
+
+                next_payload = self._remove_unknown_column_field(
+                    retry_payload,
+                    getattr(response, "text", ""),
+                )
+                if next_payload == retry_payload:
+                    logger.warning(
+                        "Grocy rejected userfield nutrition payload with 400 and no removable unknown column. "
+                        "Skipping userfield nutrition update. response_body=%s",
+                        response.text,
+                    )
+                    break
+
+                logger.warning(
+                    "Grocy rejected userfield nutrition payload with 400. Retrying without unknown column. "
+                    "response_body=%s",
+                    response.text,
+                )
+                retry_payload = next_payload
+
+        if not retry_payload:
+            logger.warning(
+                "Userfield nutrition update skipped for product %s because target Grocy has no matching userfields.",
+                product_id,
+            )
+
+        self._update_product_nutrition_userfields(product_id, userfield_payload)
+
+    def _update_product_nutrition_userfields(
+        self,
+        product_id: int,
+        userfield_payload: Dict[str, Any],
+    ) -> None:
+        if not userfield_payload:
+            return
+
+        endpoint = f"{self.settings.grocy_base_url}/userfields/products/{int(product_id)}"
+        attempted_payloads: list[Dict[str, Any]] = []
+        retry_payload = userfield_payload
+
+        while retry_payload and retry_payload not in attempted_payloads:
+            attempted_payloads.append(retry_payload)
+            response = requests.put(
+                endpoint,
+                headers=self.headers,
+                json=retry_payload,
+                timeout=30,
+            )
+            try:
+                response.raise_for_status()
                 return
             except HTTPError:
                 if response.status_code in {404, 405}:
