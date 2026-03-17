@@ -1085,6 +1085,32 @@ class GrocyClient:
         )
         response.raise_for_status()
 
+    def set_product_inventory(
+        self,
+        product_id: int,
+        amount: float,
+        stock_id: int | None = None,
+    ) -> None:
+        payload: Dict[str, Any] = {"new_amount": amount}
+        if stock_id is not None:
+            payload["stock_entry_id"] = int(stock_id)
+
+        response = requests.post(
+            f"{self.settings.grocy_base_url}/stock/products/{int(product_id)}/inventory",
+            headers=self.headers,
+            json=payload,
+            timeout=30,
+        )
+        response.raise_for_status()
+
+    def delete_product(self, product_id: int) -> None:
+        response = requests.delete(
+            f"{self.settings.grocy_base_url}/objects/products/{int(product_id)}",
+            headers=self.headers,
+            timeout=30,
+        )
+        response.raise_for_status()
+
     def update_product_nutrition(
         self,
         product_id: int,
