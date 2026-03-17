@@ -2332,3 +2332,42 @@ def test_dashboard_update_stock_product_prefers_product_id_hint(client, monkeypa
     assert response.status_code == 200
     assert called["inventory"] == (99, 3, 55)
     assert called["nutrition"] == (99, None, None, None, None, None)
+
+
+def test_dashboard_update_stock_product_skips_inventory_when_amount_unchanged(
+    client, monkeypatch
+):
+    def fake_get_stock_entries(self, location_ids=None):
+        return [{"stock_id": 99, "product_id": 10, "amount": "5"}]
+
+    called = {"inventory": 0}
+
+    def fake_set_product_inventory(self, product_id, amount, stock_id=None):
+        called["inventory"] += 1
+
+    def fake_update_product_nutrition(
+        self,
+        product_id,
+        calories=None,
+        carbs=None,
+        fat=None,
+        protein=None,
+        sugar=None,
+    ):
+        called["nutrition"] = (product_id, calories, carbs, fat, protein, sugar)
+
+    monkeypatch.setattr(routes.GrocyClient, "get_stock_entries", fake_get_stock_entries)
+    monkeypatch.setattr(routes.GrocyClient, "set_product_inventory", fake_set_product_inventory)
+    monkeypatch.setattr(
+        routes.GrocyClient, "update_product_nutrition", fake_update_product_nutrition
+    )
+
+    response = client.put(
+        "/api/dashboard/stock-products/99",
+        headers={"Authorization": "Bearer test-api-key"},
+        json={"amount": 5, "best_before_date": "", "calories": 120},
+    )
+
+    assert response.status_code == 200
+    assert called["inventory"] == 0
+    assert called["nutrition"] == (10, 120, None, None, None, None)

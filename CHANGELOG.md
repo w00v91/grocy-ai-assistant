@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.97
+
+- Fix (API/Lager-Tab/Nährwerte speichern): Beim Speichern wird der Inventar-Endpunkt nur noch aufgerufen, wenn sich die Menge tatsächlich geändert hat. Damit schlagen reine Nährwert-Änderungen (z. B. Kalorien) nicht mehr mit Grocy-400 im `/inventory`-Endpoint fehl.
+- Test: API-Test ergänzt, der bei unveränderter Menge keinen Aufruf von `set_product_inventory` mehr erwartet und trotzdem das Nährwert-Update prüft.
+- Pflege: Add-on-Version auf `7.1.97` erhöht.
+
 ## 7.1.96
 
 - Fix (Grocy Inventory-API): `set_product_inventory` nutzt weiterhin `POST`, versucht bei 400-Antworten mit `stock_entry_id` aber automatisch einen zweiten Request ohne `stock_entry_id`, damit Grocy-Instanzen mit restriktiverem Schema weiterhin korrekt aktualisiert werden.
