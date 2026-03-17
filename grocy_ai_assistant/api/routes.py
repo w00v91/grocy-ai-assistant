@@ -413,7 +413,7 @@ def _release_llava_request_slot() -> None:
 def _build_product_picture_url(raw_picture_url: str, settings: Settings) -> str:
     rewritten = build_product_picture_url(raw_picture_url, settings)
     if rewritten and rewritten != (raw_picture_url or ""):
-        logger.info(
+        logger.debug(
             "Produktbild-URL auf konfigurierten Grocy-Host umgeschrieben: %s -> %s",
             raw_picture_url,
             rewritten,
@@ -459,6 +459,7 @@ def _apply_picture_size(url: str, size: str) -> str:
 
     query_values["best_fit_width"] = str(width)
     query_values["best_fit_height"] = str(height)
+    query_values.setdefault("force_serve_as", "picture")
 
     return urlunparse(
         (
@@ -1144,10 +1145,13 @@ def dashboard_add_existing_product(
             payload.product_name
         )
         amount = parsed_amount if parsed_amount is not None else payload.amount
+
+        supports_amount_reconciliation = all(
+            hasattr(grocy_client, attr)
+            for attr in ("get_shopping_list", "update_shopping_list_item_amount")
+        )
         before_items = (
-            grocy_client.get_shopping_list()
-            if hasattr(grocy_client, "get_shopping_list")
-            else None
+            grocy_client.get_shopping_list() if supports_amount_reconciliation else []
         )
         resolved_best_before_date = _resolve_best_before_date_for_product(
             grocy_client,
@@ -1165,6 +1169,61 @@ def dashboard_add_existing_product(
             requested_amount=float(amount),
             before_items=before_items,
         )
+
+
+        after_items = (
+            grocy_client.get_shopping_list() if supports_amount_reconciliation else []
+        )
+
+        def _amount_by_item_id(items: list[dict]) -> dict[int, float]:
+            amounts: dict[int, float] = {}
+            for item in items:
+                if item.get("product_id") != payload.product_id:
+                    continue
+                item_id = _safe_int(item.get("id"))
+                if item_id is None:
+                    continue
+                parsed_item_amount = _parse_float_or_none(item.get("amount"))
+                amounts[item_id] = parsed_item_amount if parsed_item_amount else 0.0
+            return amounts
+
+        before_amounts = _amount_by_item_id(before_items)
+        after_amounts = _amount_by_item_id(after_items)
+
+        target_item_id: int | None = None
+        expected_amount: float | None = None
+
+        new_item_ids = [item_id for item_id in after_amounts if item_id not in before_amounts]
+        if new_item_ids:
+            target_item_id = max(new_item_ids)
+            expected_amount = float(amount)
+        else:
+            shared_item_ids = [item_id for item_id in after_amounts if item_id in before_amounts]
+            if shared_item_ids:
+                target_item_id = max(
+                    shared_item_ids,
+                    key=lambda item_id: abs(
+                        after_amounts.get(item_id, 0.0) - before_amounts.get(item_id, 0.0)
+                    ),
+                )
+                expected_amount = before_amounts.get(target_item_id, 0.0) + float(amount)
+
+        if (
+            supports_amount_reconciliation
+            and target_item_id is not None
+            and expected_amount is not None
+        ):
+            current_amount = after_amounts.get(target_item_id)
+            if current_amount is None or abs(current_amount - expected_amount) > 1e-9:
+                normalized_amount = (
+                    str(int(expected_amount))
+                    if float(expected_amount).is_integer()
+                    else str(expected_amount)
+                )
+                grocy_client.update_shopping_list_item_amount(
+                    shopping_list_id=target_item_id,
+                    amount=normalized_amount,
+                )
 
         return DashboardSearchResponse(
             success=True,
