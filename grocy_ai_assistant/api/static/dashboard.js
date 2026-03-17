@@ -1159,7 +1159,7 @@ function showShoppingItemDetails(item) {
         <li><span>Lagerort</span><strong>${formatValue(item.location_name)}</strong></li>
         <li><span>In Bestand</span><strong>${formatValue(item.in_stock)}</strong></li>
         <li><span>Menge Einkauf</span><strong id="shopping-item-current-amount">${formatValue(item.amount)}</strong></li>
-        <li><span>Standardmenge</span><strong>${formatValue(item.default_amount)}</strong></li>
+        <li><span>Geschätzte Haltbarkeit</span><strong>${formatValue(item.default_amount)}</strong></li>
         <li><span>MHD</span><strong>${formatValue(item.best_before_date)}</strong></li>
       </ul>
     </section>

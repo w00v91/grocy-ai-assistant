@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.102
+
+- UI (Einkaufsliste/Produkt-Popup): Label `Standardmenge` im Produkt-Popup der Einkaufsliste in `Geschätzte Haltbarkeit` umbenannt.
+- Pflege: Add-on-Version auf `7.1.102` erhöht.
+
 ## 7.1.101
 
 - Fix (Neues Produkt/Nährwerte): Bei der Neuanlage über `/api/dashboard/search` werden KI-Nährwerte für `carbohydrates`, `fat`, `protein` und `sugar` jetzt konsequent über die Userfield-Logik weitergereicht (`update_product_nutrition` → `/userfields/products/{id}`), statt im Create-Payload mitzuschwimmen.
