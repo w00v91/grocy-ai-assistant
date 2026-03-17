@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.1.95
+
+- Fix (Lager-Tab/ID-Normalisierung): `consume`, `update` und `delete` akzeptieren jetzt optional `product_id` als eindeutigen Hint und priorisieren dadurch den korrekten Produkteintrag auch bei kollidierenden numerischen `stock_id`/`product_id`-Werten.
+- Fix (Dashboard-Frontend/Lager): Requests aus dem Lager-Tab senden bei Verbrauchen, Speichern und Löschen zusätzlich `product_id` als Query-Parameter, damit serverseitig immer die richtige Produkt-ID aufgelöst wird.
+- Test: API-Tests für die neue `product_id`-Priorisierung bei Verbrauchen, Speichern und Löschen ergänzt.
+- Pflege: Add-on-Version auf `7.1.95` erhöht.
+
 ## 7.1.94
 
 - Fix (Dashboard/Produktvorschläge): Beim Tippen werden nur noch Grocy-Produktvorschläge geladen; zusätzliche KI-Varianten werden im Vorschlags-Request nicht mehr nachgeladen.

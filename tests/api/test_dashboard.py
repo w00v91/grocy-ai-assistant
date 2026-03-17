@@ -1994,6 +1994,33 @@ def test_dashboard_can_consume_stock_product_by_product_id_fallback(
     assert called["args"] == (99, 1, 321)
 
 
+def test_dashboard_consume_stock_product_prefers_product_id_hint(client, monkeypatch):
+    def fake_get_stock_entries(self, location_ids=None):
+        return [
+            {"stock_id": 99, "product_id": 10},
+            {"stock_id": 55, "product_id": 99},
+        ]
+
+    called = {}
+
+    def fake_consume_stock_product(self, product_id, amount=1, stock_id=None):
+        called["args"] = (product_id, amount, stock_id)
+
+    monkeypatch.setattr(routes.GrocyClient, "get_stock_entries", fake_get_stock_entries)
+    monkeypatch.setattr(
+        routes.GrocyClient, "consume_stock_product", fake_consume_stock_product
+    )
+
+    response = client.post(
+        "/api/dashboard/stock-products/99/consume?product_id=99",
+        headers={"Authorization": "Bearer test-api-key"},
+        json={"amount": 1},
+    )
+
+    assert response.status_code == 200
+    assert called["args"] == (99, 1, 55)
+
+
 def test_dashboard_can_update_stock_product_by_product_id_fallback(client, monkeypatch):
     def fake_get_stock_entries(self, location_ids=None):
         return [{"id": 321, "product_id": 99}]
@@ -2204,6 +2231,30 @@ def test_dashboard_can_delete_stock_product_by_product_id_fallback(client, monke
     assert called["product_id"] == 99
 
 
+def test_dashboard_delete_stock_product_prefers_product_id_hint(client, monkeypatch):
+    def fake_get_stock_entries(self, location_ids=None):
+        return [
+            {"stock_id": 99, "product_id": 10},
+            {"stock_id": 55, "product_id": 99},
+        ]
+
+    called = {}
+
+    def fake_delete_product(self, product_id):
+        called["product_id"] = product_id
+
+    monkeypatch.setattr(routes.GrocyClient, "get_stock_entries", fake_get_stock_entries)
+    monkeypatch.setattr(routes.GrocyClient, "delete_product", fake_delete_product)
+
+    response = client.delete(
+        "/api/dashboard/stock-products/99?product_id=99",
+        headers={"Authorization": "Bearer test-api-key"},
+    )
+
+    assert response.status_code == 200
+    assert called["product_id"] == 99
+
+
 def test_dashboard_can_update_stock_product(client, monkeypatch):
     def fake_get_stock_entries(self, location_ids=None):
         return [{"id": 99, "product_id": 10}]
@@ -2241,3 +2292,43 @@ def test_dashboard_can_update_stock_product(client, monkeypatch):
     assert response.status_code == 200
     assert called["args"] == (10, 5, 99)
     assert nutrition_called["args"] == (10, None, None, None, None, None)
+
+
+def test_dashboard_update_stock_product_prefers_product_id_hint(client, monkeypatch):
+    def fake_get_stock_entries(self, location_ids=None):
+        return [
+            {"stock_id": 99, "product_id": 10, "location_id": 1},
+            {"stock_id": 55, "product_id": 99, "location_id": 2},
+        ]
+
+    called = {}
+
+    def fake_set_product_inventory(self, product_id, amount, stock_id=None):
+        called["inventory"] = (product_id, amount, stock_id)
+
+    def fake_update_product_nutrition(
+        self,
+        product_id,
+        calories=None,
+        carbs=None,
+        fat=None,
+        protein=None,
+        sugar=None,
+    ):
+        called["nutrition"] = (product_id, calories, carbs, fat, protein, sugar)
+
+    monkeypatch.setattr(routes.GrocyClient, "get_stock_entries", fake_get_stock_entries)
+    monkeypatch.setattr(routes.GrocyClient, "set_product_inventory", fake_set_product_inventory)
+    monkeypatch.setattr(
+        routes.GrocyClient, "update_product_nutrition", fake_update_product_nutrition
+    )
+
+    response = client.put(
+        "/api/dashboard/stock-products/99?product_id=99",
+        headers={"Authorization": "Bearer test-api-key"},
+        json={"amount": 3, "best_before_date": ""},
+    )
+
+    assert response.status_code == 200
+    assert called["inventory"] == (99, 3, 55)
+    assert called["nutrition"] == (99, None, None, None, None, None)

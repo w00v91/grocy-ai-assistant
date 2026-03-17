@@ -10,7 +10,7 @@ from uuid import uuid4
 from typing import Any
 
 import requests
-from fastapi import APIRouter, Depends, Header, HTTPException, Request
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse, Response
 from fastapi.templating import Jinja2Templates
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -1637,6 +1637,7 @@ def dashboard_consume_stock_product(
     stock_id: int,
     payload: StockProductConsumeRequest,
     request: Request,
+    product_id: int | None = Query(default=None),
     _: None = Depends(require_auth),
     settings: Settings = Depends(get_settings),
 ):
@@ -1648,20 +1649,41 @@ def dashboard_consume_stock_product(
     try:
         grocy_client = GrocyClient(settings)
         stock_entries = grocy_client.get_stock_entries()
+        matched_entry = None
         matched_stock_id: int | None = None
-        matched_entry = next(
-            (
-                entry
-                for entry in stock_entries
-                if int(entry.get("stock_id") or entry.get("id") or 0) == stock_id
-            ),
-            None,
-        )
-        if matched_entry:
-            matched_stock_id = int(
-                matched_entry.get("stock_id") or matched_entry.get("id") or 0
+        normalized_product_id = int(product_id or 0)
+
+        if normalized_product_id > 0:
+            for entry in stock_entries:
+                if int(entry.get("product_id") or 0) != normalized_product_id:
+                    continue
+                candidate_stock_id = int(
+                    entry.get("stock_id") or entry.get("id") or 0
+                )
+                if candidate_stock_id == stock_id:
+                    matched_entry = entry
+                    matched_stock_id = candidate_stock_id if candidate_stock_id > 0 else None
+                    break
+                if matched_entry is None:
+                    matched_entry = entry
+                    matched_stock_id = candidate_stock_id if candidate_stock_id > 0 else None
+
+        if matched_entry is None:
+            matched_entry = next(
+                (
+                    entry
+                    for entry in stock_entries
+                    if int(entry.get("stock_id") or entry.get("id") or 0) == stock_id
+                ),
+                None,
             )
-        else:
+            if matched_entry:
+                candidate_stock_id = int(
+                    matched_entry.get("stock_id") or matched_entry.get("id") or 0
+                )
+                matched_stock_id = candidate_stock_id if candidate_stock_id > 0 else None
+
+        if matched_entry is None:
             # Fallback für Clients, die mangels stock_id auf product_id umschalten.
             matched_entry = next(
                 (
@@ -1672,9 +1694,10 @@ def dashboard_consume_stock_product(
                 None,
             )
             if matched_entry:
-                matched_stock_id = int(
+                candidate_stock_id = int(
                     matched_entry.get("stock_id") or matched_entry.get("id") or 0
                 )
+                matched_stock_id = candidate_stock_id if candidate_stock_id > 0 else None
 
         if not matched_entry:
             raise HTTPException(
@@ -1708,6 +1731,7 @@ def dashboard_consume_stock_product(
 def dashboard_delete_stock_product(
     stock_id: int,
     request: Request,
+    product_id: int | None = Query(default=None),
     _: None = Depends(require_auth),
     settings: Settings = Depends(get_settings),
 ):
@@ -1719,14 +1743,29 @@ def dashboard_delete_stock_product(
     try:
         grocy_client = GrocyClient(settings)
         stock_entries = grocy_client.get_stock_entries()
-        matched_entry = next(
-            (
-                entry
-                for entry in stock_entries
-                if int(entry.get("stock_id") or entry.get("id") or 0) == stock_id
-            ),
-            None,
-        )
+        matched_entry = None
+        normalized_product_id = int(product_id or 0)
+
+        if normalized_product_id > 0:
+            for entry in stock_entries:
+                if int(entry.get("product_id") or 0) != normalized_product_id:
+                    continue
+                candidate_stock_id = int(entry.get("stock_id") or entry.get("id") or 0)
+                if candidate_stock_id == stock_id:
+                    matched_entry = entry
+                    break
+                if matched_entry is None:
+                    matched_entry = entry
+
+        if not matched_entry:
+            matched_entry = next(
+                (
+                    entry
+                    for entry in stock_entries
+                    if int(entry.get("stock_id") or entry.get("id") or 0) == stock_id
+                ),
+                None,
+            )
         if not matched_entry:
             matched_entry = next(
                 (
@@ -1770,6 +1809,7 @@ def dashboard_update_stock_product(
     stock_id: int,
     payload: StockProductUpdateRequest,
     request: Request,
+    product_id: int | None = Query(default=None),
     _: None = Depends(require_auth),
     settings: Settings = Depends(get_settings),
 ):
@@ -1781,14 +1821,29 @@ def dashboard_update_stock_product(
     try:
         grocy_client = GrocyClient(settings)
         stock_entries = grocy_client.get_stock_entries()
-        matched_entry = next(
-            (
-                entry
-                for entry in stock_entries
-                if int(entry.get("stock_id") or entry.get("id") or 0) == stock_id
-            ),
-            None,
-        )
+        matched_entry = None
+        normalized_product_id = int(product_id or 0)
+
+        if normalized_product_id > 0:
+            for entry in stock_entries:
+                if int(entry.get("product_id") or 0) != normalized_product_id:
+                    continue
+                candidate_stock_id = int(entry.get("stock_id") or entry.get("id") or 0)
+                if candidate_stock_id == stock_id:
+                    matched_entry = entry
+                    break
+                if matched_entry is None:
+                    matched_entry = entry
+
+        if not matched_entry:
+            matched_entry = next(
+                (
+                    entry
+                    for entry in stock_entries
+                    if int(entry.get("stock_id") or entry.get("id") or 0) == stock_id
+                ),
+                None,
+            )
         if not matched_entry:
             matched_entry = next(
                 (
