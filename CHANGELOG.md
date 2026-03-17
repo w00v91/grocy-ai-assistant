@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.2.2
+
+- UI (Einkaufsliste/Produkt-Popup): Beim Klick auf **Speichern** wird das Produkt-Detail-Popup nach erfolgreichem Speichern der Menge jetzt automatisch geschlossen.
+- Pflege: Add-on-Version auf `7.2.2` erhöht.
+
 ## 7.2.1
 
 - Neu (Konfiguration): Option `initial_info_sync` ergänzt. Wenn aktiviert, wird beim Start ein initialer KI-Info-Sync für bestehende Produkte ausgeführt.

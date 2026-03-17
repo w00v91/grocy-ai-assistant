@@ -1301,6 +1301,7 @@ async function saveShoppingAmountFromModal() {
   const saved = await saveShoppingAmount(activeShoppingNoteItemId, amount);
   if (saved) {
     await loadShoppingList();
+    await closeShoppingItemDetails();
   }
 }
 
