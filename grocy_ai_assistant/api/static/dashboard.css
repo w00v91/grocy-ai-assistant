@@ -893,6 +893,10 @@ img {
 #shopping-list {
   margin-top: 0.9rem;
 }
+
+#shopping-list li.shopping-item:last-child {
+  margin-bottom: 1rem;
+}
 .danger-button {
   margin-top: 0.85rem;
   width: 100%;
@@ -1324,7 +1328,8 @@ img {
   margin: 0;
 }
 
-.storage-edit-attribute-row input {
+.storage-edit-attribute-row input,
+.storage-edit-attribute-row select {
   width: 100%;
 }
 

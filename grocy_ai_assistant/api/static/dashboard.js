@@ -18,6 +18,7 @@ let notificationEditingRuleId = null;
 let storageProductsCache = [];
 let storageEditingItem = null;
 let storageEditingTargetId = null;
+let storageLocationOptions = [];
 
 function normalizeStockProduct(item) {
   const productId = Number(item?.id ?? item?.product_id ?? 0);
@@ -44,6 +45,34 @@ function normalizeNutritionInputValue(value) {
   const parsed = Number(normalized);
   if (!Number.isFinite(parsed) || parsed < 0) return Number.NaN;
   return parsed;
+}
+
+function renderStorageEditLocationOptions(selectedLocationId = null, fallbackLocationName = '') {
+  const select = document.getElementById('storage-edit-location-select');
+  if (!select) return;
+
+  const normalizedSelectedId = Number(selectedLocationId);
+  const hasSelectedId = Number.isFinite(normalizedSelectedId) && normalizedSelectedId > 0;
+  const options = Array.isArray(storageLocationOptions) ? storageLocationOptions : [];
+
+  select.innerHTML = [
+    '<option value="">Bitte Lagerort wählen</option>',
+    ...options.map((location) => {
+      const locationId = Number(location?.id ?? 0);
+      const selected = hasSelectedId && locationId === normalizedSelectedId ? ' selected' : '';
+      return `<option value="${locationId}"${selected}>${escapeHtml(location?.name || `Lagerort ${locationId}`)}</option>`;
+    }),
+  ].join('');
+
+  if (hasSelectedId) {
+    select.value = String(normalizedSelectedId);
+    if (select.value !== String(normalizedSelectedId)) {
+      select.innerHTML = `<option value="${normalizedSelectedId}" selected>${escapeHtml(fallbackLocationName || `Lagerort ${normalizedSelectedId}`)}</option>${select.innerHTML}`;
+      select.value = String(normalizedSelectedId);
+    }
+  } else {
+    select.value = '';
+  }
 }
 
 const NOTIFICATION_EVENT_LABELS = {
@@ -1920,6 +1949,10 @@ async function loadLocations() {
       return;
     }
 
+    storageLocationOptions = Array.isArray(payload) ? payload : [];
+    if (storageEditingItem) {
+      renderStorageEditLocationOptions(storageEditingItem.location_id, storageEditingItem.location_name || '');
+    }
     renderLocations(payload);
     recipeState.initialized = true;
     await loadStockProducts();
@@ -2214,6 +2247,7 @@ function openStorageEditModal(stockId) {
   document.getElementById('storage-edit-current-best-before').textContent = formatBadgeValue(stockItem.best_before_date, '-');
   document.getElementById('storage-edit-amount').value = String(stockItem.amount || '0').replace(',', '.');
   document.getElementById('storage-edit-best-before').value = stockItem.best_before_date || '';
+  renderStorageEditLocationOptions(stockItem.location_id, stockItem.location_name || '');
   document.getElementById('storage-edit-calories').value = String(stockItem.calories || '').replace(',', '.');
   document.getElementById('storage-edit-carbs').value = String(stockItem.carbs || '').replace(',', '.');
   document.getElementById('storage-edit-fat').value = String(stockItem.fat || '').replace(',', '.');
@@ -2272,6 +2306,7 @@ function closeStorageEditModal() {
   document.getElementById('storage-edit-fat').value = '';
   document.getElementById('storage-edit-protein').value = '';
   document.getElementById('storage-edit-sugar').value = '';
+  renderStorageEditLocationOptions();
   document.getElementById('storage-edit-modal').classList.add('hidden');
   syncModalScrollLock();
 }
@@ -2282,6 +2317,8 @@ async function saveStorageEditModal() {
   const amountRaw = String(document.getElementById('storage-edit-amount').value || '').trim().replace(',', '.');
   const amount = Number(amountRaw);
   const bestBeforeDate = document.getElementById('storage-edit-best-before').value || '';
+  const locationValue = document.getElementById('storage-edit-location-select').value || '';
+  const locationId = Number(locationValue);
   const calories = normalizeNutritionInputValue(document.getElementById('storage-edit-calories').value);
   const carbs = normalizeNutritionInputValue(document.getElementById('storage-edit-carbs').value);
   const fat = normalizeNutritionInputValue(document.getElementById('storage-edit-fat').value);
@@ -2309,6 +2346,7 @@ async function saveStorageEditModal() {
       body: JSON.stringify({
         amount,
         best_before_date: bestBeforeDate,
+        location_id: Number.isFinite(locationId) && locationId > 0 ? locationId : null,
         calories,
         carbs,
         fat,
