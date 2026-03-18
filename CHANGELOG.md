@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.2.8
+
+- Fix (Einkaufsliste/Produkt-Popup): Das Shopping-List-API-Response enthält wieder das Feld `sugar`, sodass Zucker im Produkt-Popup zuverlässig angezeigt wird.
+- Test: Dashboard-API-Test ergänzt, der das `sugar`-Feld für Einkaufslisten-Produkte absichert.
+- Pflege: Add-on-Version auf `7.2.8` erhöht.
+
 ## 7.2.7
 
 - UI (Produktsuche): Nährwertdetails wieder aus der Variantenauswahl entfernt; die Produktsuche zeigt erneut nur die Produktkarten ohne zusätzliche Nährwertzeile.

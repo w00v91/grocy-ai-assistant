@@ -1718,6 +1718,7 @@ def dashboard_shopping_list(
                 carbs=str(item.get("carbs") or ""),
                 fat=str(item.get("fat") or ""),
                 protein=str(item.get("protein") or ""),
+                sugar=str(item.get("sugar") or ""),
             )
             for item in items
         ]

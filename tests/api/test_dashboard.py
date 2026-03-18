@@ -12,6 +12,7 @@ def test_shopping_list_returns_items(client, monkeypatch):
                 "product_name": "Hafermilch",
                 "note": "Barista",
                 "picture_url": "https://example.org/hafermilch.png",
+                "sugar": "4.8",
             }
         ]
 
@@ -26,6 +27,7 @@ def test_shopping_list_returns_items(client, monkeypatch):
     assert response.json()[0]["amount"] == "2"
     assert response.json()[0]["product_name"] == "Hafermilch"
     assert response.json()[0]["note"] == "Barista"
+    assert response.json()[0]["sugar"] == "4.8"
     assert response.json()[0]["picture_url"].startswith(
         "/api/dashboard/product-picture?src="
     )
