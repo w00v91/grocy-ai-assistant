@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.2.9
+
+- Verbesserung (Startup-Optionen): Die einmaligen Startup-Optionen `initial_info_sync` und `generate_missing_product_images_on_startup` werden nach erfolgreichem Abschluss automatisch in der Add-on-Konfiguration wieder deaktiviert.
+- Test: Startup-Tests ergänzt, die das automatische Zurücksetzen beider Optionen in `options.json` absichern.
+- Pflege: Add-on-Version auf `7.2.9` erhöht.
+
 ## 7.2.8
 
 - Fix (Einkaufsliste/Produkt-Popup): Das Shopping-List-API-Response enthält wieder das Feld `sugar`, sodass Zucker im Produkt-Popup zuverlässig angezeigt wird.
