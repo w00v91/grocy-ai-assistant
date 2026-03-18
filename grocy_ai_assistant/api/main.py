@@ -18,6 +18,10 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from grocy_ai_assistant.api.errors import build_error_response, log_api_error
 from grocy_ai_assistant.api.routes import prefetch_initial_recipe_suggestions, router
 from grocy_ai_assistant.ai.ingredient_detector import IngredientDetector
+from grocy_ai_assistant.config.options_store import (
+    load_addon_options,
+    save_addon_options,
+)
 from grocy_ai_assistant.config.settings import Settings, get_settings
 from grocy_ai_assistant.services.grocy_client import GrocyClient
 from grocy_ai_assistant.services.location_cache import LocationCache
@@ -30,7 +34,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 INITIAL_INFO_SYNC_STATE_PATH = Path("/tmp/grocy-initial-info-sync-state.json")
-ADDON_OPTIONS_PATH = Path("/data/options.json")
 
 
 def _as_float_or_none(value: object) -> float | None:
@@ -71,23 +74,23 @@ def _save_initial_info_sync_state(state: dict[str, dict[str, object]]) -> None:
 
 def _disable_startup_option(option_name: str) -> None:
     try:
-        payload = json.loads(ADDON_OPTIONS_PATH.read_text(encoding="utf-8"))
+        payload = load_addon_options()
     except OSError as error:
         logger.debug(
             "Startup-Option %s konnte nicht gelesen werden: %s", option_name, error
         )
         return
-    except json.JSONDecodeError as error:
+    except ValueError as error:
         logger.warning(
-            "Startup-Option %s konnte wegen ungültiger options.json nicht deaktiviert werden: %s",
+            "Startup-Option %s konnte wegen ungültiger options.yaml nicht deaktiviert werden: %s",
             option_name,
             error,
         )
         return
 
-    if not isinstance(payload, dict):
+    if payload and not isinstance(payload, dict):
         logger.warning(
-            "Startup-Option %s konnte nicht deaktiviert werden: options.json enthält kein Objekt",
+            "Startup-Option %s konnte nicht deaktiviert werden: options.yaml enthält kein Objekt",
             option_name,
         )
         return
@@ -98,10 +101,7 @@ def _disable_startup_option(option_name: str) -> None:
     payload[option_name] = False
 
     try:
-        ADDON_OPTIONS_PATH.write_text(
-            json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
-            encoding="utf-8",
-        )
+        save_addon_options(payload)
     except OSError as error:
         logger.warning(
             "Startup-Option %s konnte nicht gespeichert werden: %s", option_name, error

@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.2.11
+
+- Änderung (Add-on-Konfiguration): Die Laufzeit-Konfiguration wird jetzt primär aus `options.yaml` gelesen und geschrieben; bestehende `options.json`-Dateien bleiben als Legacy-Fallback kompatibel.
+- Pflege (Add-on-Konfiguration): Startup-Optionen und die Notification-Zielerkennung berücksichtigen jetzt ebenfalls `options.yaml`.
+- Pflege: Add-on-Version auf `7.2.11` erhöht.
+
 ## 7.2.9
 
 - Verbesserung (Startup-Optionen): Die einmaligen Startup-Optionen `initial_info_sync` und `generate_missing_product_images_on_startup` werden nach erfolgreichem Abschluss automatisch in der Add-on-Konfiguration wieder deaktiviert.
