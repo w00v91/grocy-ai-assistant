@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.2.16
+
+- UI (Einkaufsliste): Unter dem letzten Produkt in der Einkaufsliste gibt es jetzt zusätzlichen Abstand, damit der Abschlussbereich luftiger wirkt.
+- Pflege: Add-on-Version auf `7.2.16` erhöht.
+
 ## 7.2.15
 
 - Fix (Suche/Einkaufsliste): Der Button `Zurücksetzen` im MHD-Popup entfernt das auf der Einkaufsliste gesetzte Datum jetzt vollständig, sodass wieder `MHD wählen` angezeigt wird.
