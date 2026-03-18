@@ -1,6 +1,8 @@
 import json
 from pathlib import Path
 
+from grocy_ai_assistant.config import options_store
+
 
 def test_addon_config_enables_ingress_on_service_port():
     config_path = (
@@ -64,21 +66,13 @@ def test_addon_config_contains_initial_info_sync_option():
     assert config["schema"]["initial_info_sync"] == "bool"
 
 
-def test_repository_options_yaml_matches_config_defaults():
+def test_repository_config_yaml_matches_config_json():
     repo_root = Path(__file__).resolve().parents[2]
-    config = json.loads((repo_root / "grocy_ai_assistant" / "config.json").read_text())
-    options_yaml = (repo_root / "grocy_ai_assistant" / "options.yaml").read_text(encoding="utf-8")
+    config_json = json.loads(
+        (repo_root / "grocy_ai_assistant" / "config.json").read_text(encoding="utf-8")
+    )
+    config_yaml = options_store.parse_simple_yaml(
+        (repo_root / "grocy_ai_assistant" / "config.yaml").read_text(encoding="utf-8")
+    )
 
-    expected_lines = []
-    for key, value in config["options"].items():
-        if isinstance(value, bool):
-            rendered = "true" if value else "false"
-        elif isinstance(value, (int, float)) and not isinstance(value, bool):
-            rendered = str(value)
-        elif value is None:
-            rendered = "null"
-        else:
-            rendered = json.dumps(str(value), ensure_ascii=False)
-        expected_lines.append(f"{key}: {rendered}")
-
-    assert options_yaml == "\n".join(expected_lines) + "\n"
+    assert config_yaml == config_json
