@@ -2117,6 +2117,16 @@ def dashboard_update_stock_product(
                     or 0
                 )
             current_amount = _parse_float_or_none(matched_entry.get("amount"))
+            current_best_before_date = str(
+                matched_entry.get("best_before_date")
+                or matched_entry.get("best_before_date_calculated")
+                or ""
+            ).strip()
+            current_location_id = int(matched_entry.get("location_id") or 0) or None
+            has_current_best_before_date = any(
+                matched_entry.get(key) is not None
+                for key in ("best_before_date", "best_before_date_calculated")
+            )
         else:
             if normalized_product_id <= 0:
                 raise HTTPException(
@@ -2130,10 +2140,31 @@ def dashboard_update_stock_product(
                 or 0
             )
             current_amount = None
+            current_best_before_date = ""
+            current_location_id = None
+            has_current_best_before_date = False
+
+        requested_location_id = (
+            int(payload.location_id) if payload.location_id is not None else None
+        )
+        should_update_location = (
+            requested_location_id is not None
+            and requested_location_id > 0
+            and requested_location_id != current_location_id
+        )
+        should_update_best_before_date = has_current_best_before_date and (
+            str(payload.best_before_date or "").strip() != current_best_before_date
+        )
 
         should_update_inventory = (
             current_amount is None or abs(current_amount - payload.amount) > 1e-9
         )
+
+        if should_update_location and requested_location_id is not None:
+            grocy_client.update_product_location(
+                product_id=resolved_product_id,
+                location_id=requested_location_id,
+            )
 
         if should_update_inventory:
             if resolved_stock_id > 0:
@@ -2154,6 +2185,17 @@ def dashboard_update_stock_product(
                         product_id=resolved_product_id,
                         amount=0,
                     )
+        if (
+            resolved_stock_id > 0
+            and payload.amount > 0
+            and (should_update_best_before_date or should_update_location)
+        ):
+            grocy_client.update_stock_entry(
+                stock_id=resolved_stock_id,
+                amount=payload.amount,
+                best_before_date=payload.best_before_date,
+                location_id=requested_location_id,
+            )
         grocy_client.update_product_nutrition(
             product_id=resolved_product_id,
             calories=payload.calories,
