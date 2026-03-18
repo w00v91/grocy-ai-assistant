@@ -34,18 +34,19 @@ configuration:
   notification_global_enabled:
     name: "04 · Benachrichtigungen · Global aktiv"
     description: "Aktiviert/deaktiviert Benachrichtigungen global für das Add-on."
-  image_generation_enabled:
-    name: "05 · Bilder · Bildgenerierung aktiv"
-    description: "Aktiviert die KI-gestützte Generierung fehlender Produktbilder."
-  openai_api_key:
-    name: "05 · Bilder · OpenAI API-Key"
-    description: "OpenAI API-Schlüssel für die Bildgenerierung."
-  openai_image_model:
-    name: "05 · Bilder · OpenAI Bildmodell"
-    description: "OpenAI-Modellname für die Bildgenerierung (z. B. gpt-image-1)."
-  generate_missing_product_images_on_startup:
-    name: "05 · Bilder · Fehlende Bilder beim Start erzeugen"
-    description: "Erzeugt beim Add-on-Start automatisch fehlende Produktbilder."
+  cloud_ai:
+    image_generation_enabled:
+      name: "05 · Bilder · Bildgenerierung aktiv"
+      description: "Aktiviert die KI-gestützte Generierung fehlender Produktbilder."
+    openai_api_key:
+      name: "05 · Bilder · OpenAI API-Key"
+      description: "OpenAI API-Schlüssel für die Bildgenerierung."
+    openai_image_model:
+      name: "05 · Bilder · OpenAI Bildmodell"
+      description: "OpenAI-Modellname für die Bildgenerierung (z. B. gpt-image-1)."
+    generate_missing_product_images_on_startup:
+      name: "05 · Bilder · Fehlende Bilder beim Start erzeugen"
+      description: "Erzeugt beim Add-on-Start automatisch fehlende Produktbilder."
   initial_info_sync:
     name: "05 · Bilder & Infos · Einmaliger Info-Sync beim Start"
     description: "Analysiert beim nächsten Add-on-Start bestehende Produkte einmalig und ergänzt fehlende Nährwerte sowie geschätzte MHD-Tage."
