@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.2.6
+
+- UI (Dashboard): `.section-header` erhält `margin-bottom: 0.8rem`, damit die Abschnittsüberschriften konsistent mehr Abstand zum folgenden Inhalt haben.
+- Pflege: Add-on-Version auf `7.2.6` erhöht.
+
 ## 7.2.5
 
 - Verbesserung (Startup/Info-Sync Delta): Für den initialen Info-Sync wird ein lokaler Delta-Status pro Produkt gespeichert. Unveränderte Produkte ohne fehlende Felder werden beim nächsten Lauf übersprungen, statt erneut im Detail geladen zu werden.
