@@ -30,6 +30,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 INITIAL_INFO_SYNC_STATE_PATH = Path("/tmp/grocy-initial-info-sync-state.json")
+ADDON_OPTIONS_PATH = Path("/data/options.json")
 
 
 def _as_float_or_none(value: object) -> float | None:
@@ -63,7 +64,54 @@ def _save_initial_info_sync_state(state: dict[str, dict[str, object]]) -> None:
             json.dumps(state, ensure_ascii=False), encoding="utf-8"
         )
     except OSError as error:
-        logger.debug("Initialer Info-Sync: Zustand konnte nicht gespeichert werden: %s", error)
+        logger.debug(
+            "Initialer Info-Sync: Zustand konnte nicht gespeichert werden: %s", error
+        )
+
+
+def _disable_startup_option(option_name: str) -> None:
+    try:
+        payload = json.loads(ADDON_OPTIONS_PATH.read_text(encoding="utf-8"))
+    except OSError as error:
+        logger.debug(
+            "Startup-Option %s konnte nicht gelesen werden: %s", option_name, error
+        )
+        return
+    except json.JSONDecodeError as error:
+        logger.warning(
+            "Startup-Option %s konnte wegen ungültiger options.json nicht deaktiviert werden: %s",
+            option_name,
+            error,
+        )
+        return
+
+    if not isinstance(payload, dict):
+        logger.warning(
+            "Startup-Option %s konnte nicht deaktiviert werden: options.json enthält kein Objekt",
+            option_name,
+        )
+        return
+
+    if payload.get(option_name) is False:
+        return
+
+    payload[option_name] = False
+
+    try:
+        ADDON_OPTIONS_PATH.write_text(
+            json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+    except OSError as error:
+        logger.warning(
+            "Startup-Option %s konnte nicht gespeichert werden: %s", option_name, error
+        )
+        return
+
+    get_settings.cache_clear()
+    logger.info(
+        "Startup-Option %s wurde nach Abschluss automatisch deaktiviert", option_name
+    )
 
 
 def _build_initial_sync_product_signature(product: dict) -> str:
@@ -99,6 +147,7 @@ def _generate_missing_product_images_on_startup(settings: Settings) -> None:
         logger.info(
             "Batch-Bildgenerierung beim Start: Keine Produkte ohne Bild gefunden"
         )
+        _disable_startup_option("generate_missing_product_images_on_startup")
         return
 
     logger.info(
@@ -136,6 +185,7 @@ def _generate_missing_product_images_on_startup(settings: Settings) -> None:
         generated_count,
         len(products_without_picture),
     )
+    _disable_startup_option("generate_missing_product_images_on_startup")
 
 
 def _run_initial_info_sync_on_startup(settings: Settings) -> None:
@@ -153,6 +203,7 @@ def _run_initial_info_sync_on_startup(settings: Settings) -> None:
 
     if not products:
         logger.info("Initialer Info-Sync: Keine Produkte gefunden")
+        _disable_startup_option("initial_info_sync")
         return
 
     logger.info(
@@ -329,6 +380,7 @@ def _run_initial_info_sync_on_startup(settings: Settings) -> None:
         synced_count,
         considered_count,
     )
+    _disable_startup_option("initial_info_sync")
 
 
 @asynccontextmanager
@@ -354,7 +406,9 @@ async def _lifespan(app: FastAPI):
                     "Initiale Rezeptvorschläge zeitverzögert vorab geladen und gecacht"
                 )
 
-            await asyncio.to_thread(_generate_missing_product_images_on_startup, settings)
+            await asyncio.to_thread(
+                _generate_missing_product_images_on_startup, settings
+            )
 
             image_sync_completed = await asyncio.to_thread(
                 image_cache.wait_for_initial_refresh, 120.0

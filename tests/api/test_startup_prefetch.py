@@ -54,7 +54,9 @@ def test_startup_prefetch_waits_five_seconds(monkeypatch):
     assert "prefetch" in calls
 
 
-def test_product_image_cache_wait_for_initial_refresh_signals_after_refresh(monkeypatch):
+def test_product_image_cache_wait_for_initial_refresh_signals_after_refresh(
+    monkeypatch,
+):
     from grocy_ai_assistant.services.product_image_cache import ProductImageCache
 
     class _ImmediateSettings:
@@ -69,6 +71,54 @@ def test_product_image_cache_wait_for_initial_refresh_signals_after_refresh(monk
         assert cache.wait_for_initial_refresh(timeout=1.0) is True
     finally:
         cache.stop()
+
+
+def test_startup_batch_disables_option_after_completion(monkeypatch, tmp_path):
+    options_path = tmp_path / "options.json"
+    options_path.write_text(
+        json.dumps(
+            {
+                "generate_missing_product_images_on_startup": True,
+                "initial_info_sync": True,
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    class DummyGrocyClient:
+        def __init__(self, _settings):
+            pass
+
+        def get_products_without_picture(self):
+            return [{"id": 1, "name": "Nudeln"}]
+
+        def attach_product_picture(self, _product_id: int, _image_path: str):
+            return None
+
+    class DummyDetector:
+        def __init__(self, _settings):
+            pass
+
+        def generate_product_image(self, product_name: str) -> str:
+            return f"/tmp/{product_name}.png"
+
+    monkeypatch.setattr(api_main, "ADDON_OPTIONS_PATH", options_path)
+    monkeypatch.setattr(api_main, "GrocyClient", DummyGrocyClient)
+    monkeypatch.setattr(api_main, "IngredientDetector", DummyDetector)
+
+    settings = Settings(
+        api_key="k",
+        grocy_api_key="g",
+        image_generation_enabled=True,
+        generate_missing_product_images_on_startup=True,
+        initial_info_sync=True,
+    )
+
+    api_main._generate_missing_product_images_on_startup(settings)
+
+    stored = json.loads(options_path.read_text(encoding="utf-8"))
+    assert stored["generate_missing_product_images_on_startup"] is False
+    assert stored["initial_info_sync"] is True
 
 
 def test_startup_batch_generates_images_for_products_without_picture(monkeypatch):
@@ -216,6 +266,74 @@ def test_startup_initial_info_sync_updates_missing_fields(monkeypatch):
         },
     ]
     assert best_before_updates == [(1, 365)]
+
+
+def test_startup_initial_info_sync_disables_option_after_completion(
+    monkeypatch, tmp_path
+):
+    options_path = tmp_path / "options.json"
+    options_path.write_text(
+        json.dumps(
+            {
+                "generate_missing_product_images_on_startup": True,
+                "initial_info_sync": True,
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    class DummyGrocyClient:
+        def __init__(self, _settings):
+            pass
+
+        def get_products(self):
+            return [{"id": 1, "name": "Nudeln", "default_best_before_days": None}]
+
+        def get_product_nutrition(self, _product_id: int):
+            return {
+                "calories": "",
+                "carbs": "",
+                "fat": "",
+                "protein": "",
+                "sugar": "",
+            }
+
+        def update_product_nutrition(self, **_kwargs):
+            return None
+
+        def set_product_default_best_before_days(self, _product_id: int, _days: int):
+            return None
+
+    class DummyDetector:
+        def __init__(self, _settings):
+            pass
+
+        def analyze_product_name(self, _product_name: str):
+            return {
+                "calories": 350,
+                "carbohydrates": 70,
+                "fat": 2,
+                "protein": 12,
+                "sugar": 3,
+                "default_best_before_days": 365,
+            }
+
+    monkeypatch.setattr(api_main, "ADDON_OPTIONS_PATH", options_path)
+    monkeypatch.setattr(api_main, "GrocyClient", DummyGrocyClient)
+    monkeypatch.setattr(api_main, "IngredientDetector", DummyDetector)
+
+    settings = Settings(
+        api_key="k",
+        grocy_api_key="g",
+        initial_info_sync=True,
+        generate_missing_product_images_on_startup=True,
+    )
+
+    api_main._run_initial_info_sync_on_startup(settings)
+
+    stored = json.loads(options_path.read_text(encoding="utf-8"))
+    assert stored["initial_info_sync"] is False
+    assert stored["generate_missing_product_images_on_startup"] is True
 
 
 def test_startup_initial_info_sync_skips_when_flag_disabled(monkeypatch):
