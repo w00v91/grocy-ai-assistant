@@ -1202,9 +1202,7 @@ def test_shopping_list_item_best_before_date_update_rejects_missing_entry(
     assert response.status_code == 404
 
 
-def test_shopping_list_item_best_before_date_can_be_reset_to_default(
-    client, monkeypatch
-):
+def test_shopping_list_item_best_before_date_can_be_reset(client, monkeypatch):
     captured = {}
 
     def fake_get_shopping_list(self):
@@ -1216,16 +1214,6 @@ def test_shopping_list_item_best_before_date_can_be_reset_to_default(
                 "note": "dringend",
             }
         ]
-
-    def fake_resolve_best_before_date(
-        self, product_id, best_before_date="", default_best_before_days=None
-    ):
-        captured["resolved_with"] = {
-            "product_id": product_id,
-            "best_before_date": best_before_date,
-            "default_best_before_days": default_best_before_days,
-        }
-        return "2026-12-24"
 
     def fake_update_shopping_list_item_best_before_date(
         self, shopping_list_id, best_before_date, current_note=""
@@ -1239,11 +1227,6 @@ def test_shopping_list_item_best_before_date_can_be_reset_to_default(
     monkeypatch.setattr(routes.GrocyClient, "get_shopping_list", fake_get_shopping_list)
     monkeypatch.setattr(
         routes.GrocyClient,
-        "resolve_best_before_date",
-        fake_resolve_best_before_date,
-    )
-    monkeypatch.setattr(
-        routes.GrocyClient,
         "update_shopping_list_item_best_before_date",
         fake_update_shopping_list_item_best_before_date,
     )
@@ -1255,21 +1238,16 @@ def test_shopping_list_item_best_before_date_can_be_reset_to_default(
 
     assert response.status_code == 200
     assert captured == {
-        "resolved_with": {
-            "product_id": 7,
-            "best_before_date": "",
-            "default_best_before_days": "5",
-        },
         "updated": {
             "shopping_list_id": 42,
-            "best_before_date": "2026-12-24",
+            "best_before_date": "",
             "current_note": "dringend",
         },
     }
     assert response.json() == {
         "success": True,
-        "message": "MHD für Eintrag 42 auf Standard zurückgesetzt.",
-        "best_before_date": "2026-12-24",
+        "message": "MHD für Eintrag 42 zurückgesetzt.",
+        "best_before_date": "",
     }
 
 

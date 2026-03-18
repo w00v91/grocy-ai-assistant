@@ -1406,7 +1406,7 @@ async function resetMhdPickerDate() {
     return;
   }
 
-  status.textContent = 'Setze MHD auf Standard zurück...';
+  status.textContent = 'Setze MHD zurück...';
   try {
     const res = await fetch(buildApiUrl(`/api/dashboard/shopping-list/item/${activeMhdShoppingListId}/best-before/reset`), {
       method: 'POST',

@@ -2442,20 +2442,15 @@ def dashboard_reset_shopping_list_item_best_before_date(
                 status_code=404, detail="Einkaufslisten-Eintrag nicht gefunden"
             )
 
-        resolved_best_before_date = _resolve_best_before_date_for_product(
-            grocy_client,
-            product_id=int(selected_item.get("product_id") or 0),
-            default_best_before_days=selected_item.get("default_amount"),
-        )
         grocy_client.update_shopping_list_item_best_before_date(
             shopping_list_id=shopping_list_id,
-            best_before_date=resolved_best_before_date,
+            best_before_date="",
             current_note=str(selected_item.get("note") or ""),
         )
         return {
             "success": True,
-            "message": f"MHD für Eintrag {shopping_list_id} auf Standard zurückgesetzt.",
-            "best_before_date": resolved_best_before_date,
+            "message": f"MHD für Eintrag {shopping_list_id} zurückgesetzt.",
+            "best_before_date": "",
         }
     except HTTPException:
         raise
