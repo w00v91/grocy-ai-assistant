@@ -96,6 +96,8 @@ function normalizeDeviceToken(rawValue) {
     .replace(/^_+|_+$/g, '');
 }
 
+const NOTIFICATION_MISC_GROUP = 'Sonstige';
+
 function getDeviceCategory(device) {
   const displayToken = normalizeDeviceToken(device?.display_name);
   const serviceToken = normalizeDeviceToken(device?.service);
@@ -117,15 +119,37 @@ function getDeviceCategory(device) {
   if (directMatch) return directMatch.label;
 
   const normalizedBase = serviceToken || displayToken;
-  if (!normalizedBase) return 'Sonstige Geräte';
+  if (!normalizedBase) return NOTIFICATION_MISC_GROUP;
 
   const firstParts = normalizedBase.split('_').filter(Boolean).slice(0, 2);
-  if (!firstParts.length) return 'Sonstige Geräte';
+  if (!firstParts.length) return NOTIFICATION_MISC_GROUP;
 
   return firstParts
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(' ');
 }
+
+function collapseSingleDeviceGroups(groupedDevices) {
+  const collapsedGroups = new Map();
+  const miscDevices = [];
+
+  Array.from(groupedDevices.entries()).forEach(([category, devices]) => {
+    if (category !== NOTIFICATION_MISC_GROUP && devices.length === 1) {
+      miscDevices.push(...devices);
+      return;
+    }
+
+    collapsedGroups.set(category, devices);
+  });
+
+  if (miscDevices.length) {
+    const existingMiscDevices = collapsedGroups.get(NOTIFICATION_MISC_GROUP) || [];
+    collapsedGroups.set(NOTIFICATION_MISC_GROUP, [...existingMiscDevices, ...miscDevices]);
+  }
+
+  return collapsedGroups;
+}
+
 function escapeHtml(value) {
   return String(value ?? '')
     .replaceAll('&', '&amp;')
@@ -378,8 +402,12 @@ function renderNotificationDevices(devices) {
     return map;
   }, new Map());
 
-  const sortedGroups = Array.from(grouped.entries())
-    .sort((left, right) => left[0].localeCompare(right[0], 'de', { sensitivity: 'base' }));
+  const sortedGroups = Array.from(collapseSingleDeviceGroups(grouped).entries())
+    .sort((left, right) => {
+      if (left[0] === NOTIFICATION_MISC_GROUP) return 1;
+      if (right[0] === NOTIFICATION_MISC_GROUP) return -1;
+      return left[0].localeCompare(right[0], 'de', { sensitivity: 'base' });
+    });
 
   container.innerHTML = sortedGroups.map(([category, groupDevices]) => {
     const deviceItems = groupDevices.map((device) => {
