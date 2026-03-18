@@ -2533,3 +2533,65 @@ def test_dashboard_update_stock_product_supports_out_of_stock_products(
     assert "inventory" not in called
     assert called["add"] == (777, 4, "")
     assert called["nutrition"] == (777, None, None, None, None, None)
+
+
+def test_dashboard_update_stock_product_updates_location_and_best_before(
+    client, monkeypatch
+):
+    def fake_get_stock_entries(self, location_ids=None):
+        return [
+            {
+                "stock_id": 99,
+                "product_id": 10,
+                "amount": "5",
+                "location_id": 2,
+                "best_before_date": "2026-03-20",
+            }
+        ]
+
+    called = {}
+
+    def fake_update_product_location(self, product_id, location_id):
+        called["product_location"] = (product_id, location_id)
+
+    def fake_update_stock_entry(
+        self, stock_id, amount, best_before_date="", location_id=None
+    ):
+        called["stock_update"] = (stock_id, amount, best_before_date, location_id)
+
+    def fake_update_product_nutrition(
+        self,
+        product_id,
+        calories=None,
+        carbs=None,
+        fat=None,
+        protein=None,
+        sugar=None,
+    ):
+        called["nutrition"] = (product_id, calories, carbs, fat, protein, sugar)
+
+    monkeypatch.setattr(routes.GrocyClient, "get_stock_entries", fake_get_stock_entries)
+    monkeypatch.setattr(
+        routes.GrocyClient, "update_product_location", fake_update_product_location
+    )
+    monkeypatch.setattr(
+        routes.GrocyClient, "update_stock_entry", fake_update_stock_entry
+    )
+    monkeypatch.setattr(
+        routes.GrocyClient, "update_product_nutrition", fake_update_product_nutrition
+    )
+
+    response = client.put(
+        "/api/dashboard/stock-products/99",
+        headers={"Authorization": "Bearer test-api-key"},
+        json={
+            "amount": 5,
+            "best_before_date": "2026-03-25",
+            "location_id": 7,
+        },
+    )
+
+    assert response.status_code == 200
+    assert called["product_location"] == (10, 7)
+    assert called["stock_update"] == (99, 5, "2026-03-25", 7)
+    assert called["nutrition"] == (10, None, None, None, None, None)

@@ -1143,16 +1143,28 @@ class GrocyClient:
         stock_id: int,
         amount: float,
         best_before_date: str = "",
+        location_id: int | None = None,
     ) -> None:
         payload: Dict[str, Any] = {"amount": amount}
         normalized_best_before = str(best_before_date or "").strip()
         if normalized_best_before:
             payload["best_before_date"] = normalized_best_before
+        if location_id is not None and int(location_id) > 0:
+            payload["location_id"] = int(location_id)
 
         response = requests.put(
             f"{self.settings.grocy_base_url}/objects/stock/{int(stock_id)}",
             headers=self.headers,
             json=payload,
+            timeout=30,
+        )
+        response.raise_for_status()
+
+    def update_product_location(self, product_id: int, location_id: int) -> None:
+        response = requests.put(
+            f"{self.settings.grocy_base_url}/objects/products/{int(product_id)}",
+            headers=self.headers,
+            json={"location_id": int(location_id)},
             timeout=30,
         )
         response.raise_for_status()
