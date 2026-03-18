@@ -8,24 +8,26 @@ configuration:
   grocy_base_url:
     name: "01 · Allgemein · Grocy Basis-URL"
     description: "Basis-URL der Grocy-API, z. B. http://homeassistant.local:9192/api."
-  ollama_url:
-    name: "02 · Ollama · Generate-Endpoint"
-    description: "URL zum Ollama-Generate-Endpunkt für KI-Anfragen."
-  ollama_model:
-    name: "02 · Ollama · Standardmodell"
-    description: "Ollama-Modell für die allgemeine Erkennung."
-  ollama_llava_model:
-    name: "02 · Ollama · Vision-Modell (LLaVA)"
-    description: "Ollama-LLaVA-Modell für bildbasierte Erkennung."
-  scanner_barcode_fallback_seconds:
-    name: "03 · Scanner · Barcode-Fallback (Sek.)"
-    description: "Wartezeit in Sekunden, bevor auf alternative Scanner-Logik gewechselt wird."
-  scanner_llava_min_confidence:
-    name: "03 · Scanner · LLaVA Mindestvertrauen (%)"
-    description: "Mindest-Konfidenz in Prozent für LLaVA-Scannerergebnisse."
-  scanner_llava_timeout_seconds:
-    name: "03 · Scanner · LLaVA Timeout (Sek.)"
-    description: "Maximale Wartezeit in Sekunden für LLaVA-Scanneranfragen."
+  ollama:
+    ollama_url:
+      name: "Generate-Endpoint"
+      description: "URL zum Ollama-Generate-Endpunkt für KI-Anfragen."
+    ollama_model:
+      name: "Standardmodell"
+      description: "Ollama-Modell für die allgemeine Erkennung."
+    ollama_llava_model:
+      name: "Vision-Modell (LLaVA)"
+      description: "Ollama-LLaVA-Modell für bildbasierte Erkennung."
+  scanner:
+    scanner_barcode_fallback_seconds:
+      name: "Barcode-Fallback (Sek.)"
+      description: "Wartezeit in Sekunden, bevor auf alternative Scanner-Logik gewechselt wird."
+    scanner_llava_min_confidence:
+      name: "LLaVA Mindestvertrauen (%)"
+      description: "Mindest-Konfidenz in Prozent für LLaVA-Scannerergebnisse."
+    scanner_llava_timeout_seconds:
+      name: "LLaVA Timeout (Sek.)"
+      description: "Maximale Wartezeit in Sekunden für LLaVA-Scanneranfragen."
   dashboard_polling_interval_seconds:
     name: "04 · Dashboard · Aktualisierungsintervall (Sek.)"
     description: "Legt fest, in welchem Abstand das Dashboard seine Daten automatisch neu lädt."
