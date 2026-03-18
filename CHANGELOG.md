@@ -4,6 +4,9 @@ All notable changes to this project are documented in this file.
 
 ## 7.2.16
 
+- UI (Lager/Produkt-Popup): Im Bearbeiten-Popup des Lager-Tabs gibt es jetzt direkt nach dem MHD ein Lagerort-Dropdown, sodass der Lagerort im selben Dialog geändert werden kann.
+- API (Lager): Das Speichern von Lagerprodukten übernimmt jetzt optional den ausgewählten Lagerort und synchronisiert ihn auf Produkt- sowie Bestandsebene.
+- Test: API- und Unit-Tests für Lagerort-Updates im Lager-Popup ergänzt.
 - UI (Einkaufsliste): Unter dem letzten Produkt in der Einkaufsliste gibt es jetzt zusätzlichen Abstand, damit der Abschlussbereich luftiger wirkt.
 - Pflege: Add-on-Version auf `7.2.16` erhöht.
 

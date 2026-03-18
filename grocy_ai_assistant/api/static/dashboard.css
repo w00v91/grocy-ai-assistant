@@ -1328,7 +1328,8 @@ img {
   margin: 0;
 }
 
-.storage-edit-attribute-row input {
+.storage-edit-attribute-row input,
+.storage-edit-attribute-row select {
   width: 100%;
 }
 
