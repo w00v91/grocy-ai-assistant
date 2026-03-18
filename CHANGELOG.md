@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.2.8
+
+- UI (Produktsuche): Den Button **"Suchen & hinzufügen"** aus der Suchzeile entfernt; die Produktsuche bleibt per Enter im Eingabefeld sowie über die Variantenauswahl nutzbar.
+- Pflege (Frontend): Die Suchzeile nutzt jetzt ein dediziertes Formular, damit der Submit-Pfad ohne separaten Button stabil erhalten bleibt.
+- Pflege: Add-on-Version auf `7.2.8` erhöht.
+
 ## 7.2.7
 
 - UI (Produktsuche): Nährwertdetails wieder aus der Variantenauswahl entfernt; die Produktsuche zeigt erneut nur die Produktkarten ohne zusätzliche Nährwertzeile.

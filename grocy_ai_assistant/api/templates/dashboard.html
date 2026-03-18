@@ -32,13 +32,12 @@
               onclick='openScannerModal()'
             ><span class='scanner-barcode-icon' aria-hidden='true'></span></button>
           </div>
-          <div class='search-row'>
+          <form id='shopping-search-form' class='search-row'>
             <div class='search-input-wrapper'>
               <input id='name' placeholder='z.B. Hafermilch 1L' />
               <button id='clear-name' class='clear-input-button' type='button' aria-label='Sucheingabe löschen' onclick='clearSearchInput()'>×</button>
             </div>
-            <button class="primary-button" onclick='searchProduct()'>Suchen & hinzufügen</button>
-          </div>
+          </form>
           <section id='variant-section' class='variant-section hidden'>
             <h3>Gefundene Produktvarianten</h3>
             <div id='variant-list' class='variant-grid'></div>
