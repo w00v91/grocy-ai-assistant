@@ -1722,6 +1722,12 @@ document.getElementById('name').addEventListener('input', () => {
   }, 250);
 });
 
+document.getElementById('shopping-search-form')?.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  clearTimeout(variantsDebounce);
+  await searchProduct();
+});
+
 
 const savedTheme = localStorage.getItem(themeStorageKey) || 'light';
 applyTheme(savedTheme);
