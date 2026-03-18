@@ -6,11 +6,11 @@ from pathlib import Path
 
 from pydantic import BaseModel, Field
 
-from grocy_ai_assistant.config.options_store import load_addon_options
+from grocy_ai_assistant.config.options_store import load_addon_options, parse_simple_yaml
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-ADDON_CONFIG_PATH = PROJECT_ROOT / "grocy_ai_assistant" / "config.json"
+ADDON_CONFIG_PATH = PROJECT_ROOT / "grocy_ai_assistant" / "config.yaml"
 INTEGRATION_MANIFEST_PATH = (
     PROJECT_ROOT
     / "grocy_ai_assistant"
@@ -20,10 +20,13 @@ INTEGRATION_MANIFEST_PATH = (
 )
 
 
-def _load_version_from_json(path: Path) -> str | None:
+def _load_version_from_metadata(path: Path) -> str | None:
     try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
+        if path.suffix == ".yaml":
+            payload = parse_simple_yaml(path.read_text(encoding="utf-8"))
+        else:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError, json.JSONDecodeError):
         return None
     version = payload.get("version")
     return str(version) if version else None
@@ -31,12 +34,12 @@ def _load_version_from_json(path: Path) -> str | None:
 
 @lru_cache(maxsize=1)
 def _default_addon_version() -> str:
-    return _load_version_from_json(ADDON_CONFIG_PATH) or "dev"
+    return _load_version_from_metadata(ADDON_CONFIG_PATH) or "dev"
 
 
 @lru_cache(maxsize=1)
 def _default_required_integration_version() -> str:
-    return _load_version_from_json(INTEGRATION_MANIFEST_PATH) or "dev"
+    return _load_version_from_metadata(INTEGRATION_MANIFEST_PATH) or "dev"
 
 
 def _default_ollama_url() -> str:

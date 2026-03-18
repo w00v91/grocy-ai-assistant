@@ -116,7 +116,7 @@ black .
 
 Dieses Repository enthält zwei relevante Versionsdomänen:
 
-- Add-on-Version in `grocy_ai_assistant/config.json`
+- Add-on-Metadaten in `grocy_ai_assistant/config.json` und gespiegelt in `grocy_ai_assistant/config.yaml`
 - Integrationsversion in `grocy_ai_assistant/custom_components/grocy_ai_assistant/manifest.json`
 
 Zusätzlich nutzt die Integration eine Konstante in `const.py`, die synchron zur Manifest-Version gehalten wird.

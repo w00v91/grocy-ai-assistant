@@ -1,6 +1,8 @@
 import json
 from pathlib import Path
 
+from grocy_ai_assistant.config import options_store
+
 
 def test_addon_config_enables_ingress_on_service_port():
     config_path = (
@@ -62,3 +64,15 @@ def test_addon_config_contains_initial_info_sync_option():
 
     assert config["options"]["initial_info_sync"] is False
     assert config["schema"]["initial_info_sync"] == "bool"
+
+
+def test_repository_config_yaml_matches_config_json():
+    repo_root = Path(__file__).resolve().parents[2]
+    config_json = json.loads(
+        (repo_root / "grocy_ai_assistant" / "config.json").read_text(encoding="utf-8")
+    )
+    config_yaml = options_store.parse_simple_yaml(
+        (repo_root / "grocy_ai_assistant" / "config.yaml").read_text(encoding="utf-8")
+    )
+
+    assert config_yaml == config_json
