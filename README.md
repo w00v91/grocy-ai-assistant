@@ -38,7 +38,8 @@ Weitere Details: [ARCHITECTURE.md](ARCHITECTURE.md)
 ├── tests/
 ├── CHANGELOG.md
 ├── ARCHITECTURE.md
-└── README.md
+├── README.md
+└── grocy_ai_assistant/DOCS.md
 ```
 
 ## Voraussetzungen
@@ -123,8 +124,12 @@ Zusätzlich nutzt die Integration eine Konstante in `const.py`, die synchron zur
 
 Aktueller Stand:
 
-- **Add-on:** `7.1.65`
+- **Add-on:** `7.2.16`
 - **Integration:** siehe `manifest.json` der Home-Assistant-Integration
+
+## Add-on-Dokumentation
+
+Eine Home-Assistant-konforme Add-on-Benutzerdokumentation findest du in `grocy_ai_assistant/DOCS.md`.
 
 ## Changelog
 

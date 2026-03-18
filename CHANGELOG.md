@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.2.16
+
+- Dokumentation (Add-on): Neue `grocy_ai_assistant/DOCS.md` im Stil aktueller Home-Assistant-Add-ons ergänzt.
+- Pflege (Dokumentation): README um Verweis auf die Add-on-Dokumentation erweitert und Versionsstand aktualisiert.
+- Pflege: Add-on-Version auf `7.2.16` erhöht.
+
 ## 7.2.15
 
 - Fix (Suche/Einkaufsliste): Der Button `Zurücksetzen` im MHD-Popup entfernt das auf der Einkaufsliste gesetzte Datum jetzt vollständig, sodass wieder `MHD wählen` angezeigt wird.
