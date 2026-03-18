@@ -7,6 +7,7 @@ All notable changes to this project are documented in this file.
 - UI (Produktsuche): Gefundene Produktvarianten zeigen jetzt zusätzlich Kalorien sowie Nährwert-Userfields (`carbohydrates`, `fat`, `protein`, `sugar`) direkt in der Produktauswahl an.
 - Fix (Einkaufsliste/Produkt-Popup): Das Produktdetail-Popup liest Nährwerte für Einkaufslisten-Einträge jetzt aus den Grocy-Userfields und zeigt dabei auch Zucker an.
 - Test: API- und Unit-Tests ergänzt, die die Nährwert-Anreicherung für Suchvarianten und Einkaufslisten-Produkte absichern.
+- UI (Dashboard): `.section-header` erhält `margin-bottom: 0.8rem`, damit die Abschnittsüberschriften konsistent mehr Abstand zum folgenden Inhalt haben.
 - Pflege: Add-on-Version auf `7.2.6` erhöht.
 
 ## 7.2.5
