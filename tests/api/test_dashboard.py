@@ -609,12 +609,12 @@ def test_stock_products_endpoint_returns_items(client, monkeypatch):
     assert response.json()[0]["best_before_date"] == "2026-01-02"
 
 
-
-
 def test_stock_products_endpoint_supports_include_all_products(client, monkeypatch):
     called = {}
 
-    def fake_get_storage_products(self, location_ids=None, include_all_products=False, search_query=""):
+    def fake_get_storage_products(
+        self, location_ids=None, include_all_products=False, search_query=""
+    ):
         called["search_query"] = search_query
         called["location_ids"] = location_ids
         called["include_all_products"] = include_all_products
@@ -643,6 +643,7 @@ def test_stock_products_endpoint_supports_include_all_products(client, monkeypat
     assert called["include_all_products"] is True
     assert called["search_query"] == "mil"
     assert response.json()[0]["in_stock"] is False
+
 
 def test_recipe_suggestions_prioritize_grocy_then_ai(client, monkeypatch):
     def fake_get_stock_products(self):
@@ -1199,6 +1200,77 @@ def test_shopping_list_item_best_before_date_update_rejects_missing_entry(
     )
 
     assert response.status_code == 404
+
+
+def test_shopping_list_item_best_before_date_can_be_reset_to_default(
+    client, monkeypatch
+):
+    captured = {}
+
+    def fake_get_shopping_list(self):
+        return [
+            {
+                "id": 42,
+                "product_id": 7,
+                "default_amount": "5",
+                "note": "dringend",
+            }
+        ]
+
+    def fake_resolve_best_before_date(
+        self, product_id, best_before_date="", default_best_before_days=None
+    ):
+        captured["resolved_with"] = {
+            "product_id": product_id,
+            "best_before_date": best_before_date,
+            "default_best_before_days": default_best_before_days,
+        }
+        return "2026-12-24"
+
+    def fake_update_shopping_list_item_best_before_date(
+        self, shopping_list_id, best_before_date, current_note=""
+    ):
+        captured["updated"] = {
+            "shopping_list_id": shopping_list_id,
+            "best_before_date": best_before_date,
+            "current_note": current_note,
+        }
+
+    monkeypatch.setattr(routes.GrocyClient, "get_shopping_list", fake_get_shopping_list)
+    monkeypatch.setattr(
+        routes.GrocyClient,
+        "resolve_best_before_date",
+        fake_resolve_best_before_date,
+    )
+    monkeypatch.setattr(
+        routes.GrocyClient,
+        "update_shopping_list_item_best_before_date",
+        fake_update_shopping_list_item_best_before_date,
+    )
+
+    response = client.post(
+        "/api/dashboard/shopping-list/item/42/best-before/reset",
+        headers={"Authorization": "Bearer test-api-key"},
+    )
+
+    assert response.status_code == 200
+    assert captured == {
+        "resolved_with": {
+            "product_id": 7,
+            "best_before_date": "",
+            "default_best_before_days": "5",
+        },
+        "updated": {
+            "shopping_list_id": 42,
+            "best_before_date": "2026-12-24",
+            "current_note": "dringend",
+        },
+    }
+    assert response.json() == {
+        "success": True,
+        "message": "MHD für Eintrag 42 auf Standard zurückgesetzt.",
+        "best_before_date": "2026-12-24",
+    }
 
 
 def test_shopping_list_can_be_completed(client, monkeypatch):
@@ -2112,8 +2184,6 @@ def test_dashboard_can_update_stock_product_by_product_id_fallback(client, monke
     assert nutrition_called["args"] == (99, 100, 12, 1.5, 3, 7)
 
 
-
-
 def test_dashboard_uses_resolved_stock_id_for_absolute_update(client, monkeypatch):
     def fake_get_stock_entries(self, location_ids=None):
         return [{"id": 0, "product_id": 99, "location_id": 2}]
@@ -2187,9 +2257,13 @@ def test_dashboard_creates_stock_entry_when_stock_id_missing(client, monkeypatch
 
     monkeypatch.setattr(routes.GrocyClient, "get_stock_entries", fake_get_stock_entries)
     monkeypatch.setattr(
-        routes.GrocyClient, "resolve_stock_entry_id_for_product", lambda *args, **kwargs: None
+        routes.GrocyClient,
+        "resolve_stock_entry_id_for_product",
+        lambda *args, **kwargs: None,
     )
-    monkeypatch.setattr(routes.GrocyClient, "add_product_to_stock", fake_add_product_to_stock)
+    monkeypatch.setattr(
+        routes.GrocyClient, "add_product_to_stock", fake_add_product_to_stock
+    )
     monkeypatch.setattr(
         routes.GrocyClient, "update_product_nutrition", fake_update_product_nutrition
     )
@@ -2211,7 +2285,9 @@ def test_dashboard_allows_zero_amount_when_stock_id_missing(client, monkeypatch)
 
     monkeypatch.setattr(routes.GrocyClient, "get_stock_entries", fake_get_stock_entries)
     monkeypatch.setattr(
-        routes.GrocyClient, "resolve_stock_entry_id_for_product", lambda *args, **kwargs: None
+        routes.GrocyClient,
+        "resolve_stock_entry_id_for_product",
+        lambda *args, **kwargs: None,
     )
 
     called = {}
@@ -2322,7 +2398,9 @@ def test_dashboard_can_update_stock_product(client, monkeypatch):
         nutrition_called["args"] = (product_id, calories, carbs, fat, protein, sugar)
 
     monkeypatch.setattr(routes.GrocyClient, "get_stock_entries", fake_get_stock_entries)
-    monkeypatch.setattr(routes.GrocyClient, "set_product_inventory", fake_set_product_inventory)
+    monkeypatch.setattr(
+        routes.GrocyClient, "set_product_inventory", fake_set_product_inventory
+    )
     monkeypatch.setattr(
         routes.GrocyClient, "update_product_nutrition", fake_update_product_nutrition
     )
@@ -2362,7 +2440,9 @@ def test_dashboard_update_stock_product_prefers_product_id_hint(client, monkeypa
         called["nutrition"] = (product_id, calories, carbs, fat, protein, sugar)
 
     monkeypatch.setattr(routes.GrocyClient, "get_stock_entries", fake_get_stock_entries)
-    monkeypatch.setattr(routes.GrocyClient, "set_product_inventory", fake_set_product_inventory)
+    monkeypatch.setattr(
+        routes.GrocyClient, "set_product_inventory", fake_set_product_inventory
+    )
     monkeypatch.setattr(
         routes.GrocyClient, "update_product_nutrition", fake_update_product_nutrition
     )
@@ -2401,7 +2481,9 @@ def test_dashboard_update_stock_product_skips_inventory_when_amount_unchanged(
         called["nutrition"] = (product_id, calories, carbs, fat, protein, sugar)
 
     monkeypatch.setattr(routes.GrocyClient, "get_stock_entries", fake_get_stock_entries)
-    monkeypatch.setattr(routes.GrocyClient, "set_product_inventory", fake_set_product_inventory)
+    monkeypatch.setattr(
+        routes.GrocyClient, "set_product_inventory", fake_set_product_inventory
+    )
     monkeypatch.setattr(
         routes.GrocyClient, "update_product_nutrition", fake_update_product_nutrition
     )
@@ -2417,7 +2499,9 @@ def test_dashboard_update_stock_product_skips_inventory_when_amount_unchanged(
     assert called["nutrition"] == (10, 120, None, None, None, None)
 
 
-def test_dashboard_update_stock_product_supports_out_of_stock_products(client, monkeypatch):
+def test_dashboard_update_stock_product_supports_out_of_stock_products(
+    client, monkeypatch
+):
     def fake_get_stock_entries(self, location_ids=None):
         return [{"stock_id": 11, "product_id": 10, "amount": "2"}]
 
@@ -2450,8 +2534,12 @@ def test_dashboard_update_stock_product_supports_out_of_stock_products(client, m
         "resolve_stock_entry_id_for_product",
         fake_resolve_stock_entry_id_for_product,
     )
-    monkeypatch.setattr(routes.GrocyClient, "set_product_inventory", fake_set_product_inventory)
-    monkeypatch.setattr(routes.GrocyClient, "add_product_to_stock", fake_add_product_to_stock)
+    monkeypatch.setattr(
+        routes.GrocyClient, "set_product_inventory", fake_set_product_inventory
+    )
+    monkeypatch.setattr(
+        routes.GrocyClient, "add_product_to_stock", fake_add_product_to_stock
+    )
     monkeypatch.setattr(
         routes.GrocyClient, "update_product_nutrition", fake_update_product_nutrition
     )

@@ -2418,6 +2418,58 @@ def dashboard_update_shopping_list_item_best_before_date(
         raise HTTPException(status_code=500, detail=str(error)) from error
 
 
+@router.post("/api/dashboard/shopping-list/item/{shopping_list_id}/best-before/reset")
+def dashboard_reset_shopping_list_item_best_before_date(
+    shopping_list_id: int,
+    request: Request,
+    _: None = Depends(require_auth),
+    settings: Settings = Depends(get_settings),
+):
+    if not settings.grocy_api_key:
+        raise HTTPException(
+            status_code=500, detail="grocy_api_key fehlt in Add-on Optionen"
+        )
+
+    try:
+        grocy_client = GrocyClient(settings)
+        shopping_items = grocy_client.get_shopping_list()
+        selected_item = next(
+            (item for item in shopping_items if item.get("id") == shopping_list_id),
+            None,
+        )
+        if selected_item is None:
+            raise HTTPException(
+                status_code=404, detail="Einkaufslisten-Eintrag nicht gefunden"
+            )
+
+        resolved_best_before_date = _resolve_best_before_date_for_product(
+            grocy_client,
+            product_id=int(selected_item.get("product_id") or 0),
+            default_best_before_days=selected_item.get("default_amount"),
+        )
+        grocy_client.update_shopping_list_item_best_before_date(
+            shopping_list_id=shopping_list_id,
+            best_before_date=resolved_best_before_date,
+            current_note=str(selected_item.get("note") or ""),
+        )
+        return {
+            "success": True,
+            "message": f"MHD für Eintrag {shopping_list_id} auf Standard zurückgesetzt.",
+            "best_before_date": resolved_best_before_date,
+        }
+    except HTTPException:
+        raise
+    except Exception as error:
+        log_api_error(
+            logger,
+            request=request,
+            status_code=500,
+            message=str(error),
+            exc=error,
+        )
+        raise HTTPException(status_code=500, detail=str(error)) from error
+
+
 @router.delete("/api/dashboard/shopping-list/item/{shopping_list_id}")
 def dashboard_delete_shopping_list_item(
     shopping_list_id: int,
