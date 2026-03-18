@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.2.17
+
+- Neu (Add-on-Sicherheit): Eine aktuelle `grocy_ai_assistant/apparmor.txt` ergänzt, die das Home-Assistant-Add-on auf die tatsächlich benötigten Laufzeitpfade (`/app`, `/data`, `/config`, `/tmp`) und Netzwerkzugriffe beschränkt.
+- Test: Konfigurationstest ergänzt, der die neue AppArmor-Datei samt Profilnamen und zentralen Dateipfaden absichert.
+- Pflege: Add-on-Version auf `7.2.17` erhöht.
+
 ## 7.2.16
 
 - Dokumentation (Add-on): Neue `grocy_ai_assistant/DOCS.md` im Stil aktueller Home-Assistant-Add-ons ergänzt.

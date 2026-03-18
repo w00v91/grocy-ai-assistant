@@ -1,0 +1,42 @@
+#include <tunables/global>
+
+profile grocy_ai_assistant flags=(attach_disconnected,mediate_deleted) {
+  #include <abstractions/base>
+
+  file,
+  network,
+  umount,
+  signal (send) set=(kill,term,int,hup,cont),
+
+  # S6-Overlay / Home Assistant base image
+  /init ix,
+  /bin/** ix,
+  /sbin/** ix,
+  /usr/bin/** ix,
+  /usr/sbin/** ix,
+  /usr/lib/bashio/** ix,
+  /run/{s6,s6-rc*,service}/** ix,
+  /package/** ix,
+  /command/** ix,
+  /etc/services.d/** rwix,
+  /etc/cont-init.d/** rwix,
+  /etc/cont-finish.d/** rwix,
+  /run/{,**} rwk,
+  /dev/tty rw,
+
+  # Add-on sources and runtime
+  /app/** rix,
+  /tmp/** rwk,
+  /data/** rwk,
+  /config/** rwk,
+
+  # Python / Alpine runtime metadata
+  /etc/hosts r,
+  /etc/hostname r,
+  /etc/resolv.conf r,
+  /etc/nsswitch.conf r,
+  /etc/passwd r,
+  /etc/group r,
+  /proc/{,**} r,
+  /sys/devices/** r,
+}
