@@ -939,8 +939,7 @@ def prefetch_initial_recipe_suggestions(settings: Settings) -> dict | None:
 
 
 def _variant_from_grocy_product(
-    product: dict,
-    settings: Settings,
+    product: dict, settings: Settings
 ) -> ProductVariantResponse:
     return ProductVariantResponse(
         id=product.get("id"),
@@ -962,9 +961,8 @@ def _build_fallback_variants(
 ) -> list[ProductVariantResponse]:
     variants: list[ProductVariantResponse] = []
     seen_names: set[str] = set()
-    grocy_products = grocy_client.search_products_by_partial_name(product_name)
 
-    for product in grocy_products:
+    for product in grocy_client.search_products_by_partial_name(product_name):
         variant = _variant_from_grocy_product(product, settings)
         normalized_name = variant.name.casefold()
         if normalized_name in seen_names:
@@ -979,11 +977,7 @@ def _build_fallback_variants(
             if not suggested_name:
                 continue
 
-            suggested_products = grocy_client.search_products_by_partial_name(
-                suggested_name
-            )
-
-            for product in suggested_products:
+            for product in grocy_client.search_products_by_partial_name(suggested_name):
                 variant = _variant_from_grocy_product(product, settings)
                 normalized_name = variant.name.casefold()
                 if normalized_name in seen_names:

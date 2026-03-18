@@ -300,44 +300,6 @@ class GrocyClient:
     def get_products(self) -> list[Dict[str, Any]]:
         return self._get_all_products()
 
-    def get_product_nutrition_map(
-        self, product_ids: list[int] | set[int] | tuple[int, ...]
-    ) -> dict[int, Dict[str, str]]:
-        nutrition_map: dict[int, Dict[str, str]] = {}
-
-        for product_id in {int(product_id) for product_id in product_ids if product_id}:
-            nutrition_map[product_id] = {
-                "carbs": "",
-                "fat": "",
-                "protein": "",
-                "sugar": "",
-            }
-
-            try:
-                response = requests.get(
-                    f"{self.settings.grocy_base_url}/userfields/products/{product_id}",
-                    headers=self.headers,
-                    timeout=30,
-                )
-                response.raise_for_status()
-            except HTTPError:
-                if getattr(response, "status_code", None) not in {404, 405}:
-                    raise
-                continue
-            except Exception:
-                continue
-
-            payload = response.json()
-            userfields_payload = payload if isinstance(payload, dict) else {}
-            nutrition_map[product_id] = {
-                "carbs": str(userfields_payload.get("carbohydrates") or ""),
-                "fat": str(userfields_payload.get("fat") or ""),
-                "protein": str(userfields_payload.get("protein") or ""),
-                "sugar": str(userfields_payload.get("sugar") or ""),
-            }
-
-        return nutrition_map
-
     def search_products_by_partial_name(self, query: str) -> list[Dict[str, Any]]:
         normalized_query = self._normalize_name(query)
         if not normalized_query:
@@ -752,20 +714,9 @@ class GrocyClient:
         except Exception:
             locations = {}
 
-        nutrition_map = self.get_product_nutrition_map(
-            [
-                int(product_id)
-                for product_id in (
-                    self._safe_int(item.get("product_id")) for item in shopping_items
-                )
-                if product_id is not None
-            ]
-        )
-
         merged_items = []
         for item in shopping_items:
             product_id = self._safe_str(item.get("product_id"))
-            nutrition = nutrition_map.get(self._safe_int(product_id) or 0, {})
             product = products.get(product_id, {})
             stock_entry = stock_by_product_id.get(product_id, {})
             clean_note, best_before_date_from_note = (
@@ -793,10 +744,9 @@ class GrocyClient:
                         product.get("default_best_before_days") or ""
                     ),
                     "calories": str(product.get("calories") or ""),
-                    "carbs": str(nutrition.get("carbs") or ""),
-                    "fat": str(nutrition.get("fat") or ""),
-                    "protein": str(nutrition.get("protein") or ""),
-                    "sugar": str(nutrition.get("sugar") or ""),
+                    "carbs": str(product.get("carbohydrates") or ""),
+                    "fat": str(product.get("fat") or ""),
+                    "protein": str(product.get("protein") or ""),
                 }
             )
 

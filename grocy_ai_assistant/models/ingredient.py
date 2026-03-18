@@ -71,7 +71,6 @@ class ShoppingListItemResponse(BaseModel):
     carbs: str = ""
     fat: str = ""
     protein: str = ""
-    sugar: str = ""
 
 
 class ProductVariantResponse(BaseModel):
