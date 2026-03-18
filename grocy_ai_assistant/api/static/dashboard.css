@@ -210,7 +210,7 @@ body.modal-open {
   display: grid;
   grid-template-columns: 1fr;
   gap: 0.8rem;
-  margin-bottom: 1rem;
+  margin-bottom: 0;
 }
 
 .notification-options-card {
@@ -893,6 +893,10 @@ img {
 #shopping-list {
   margin-top: 0.9rem;
 }
+
+#shopping-list li.shopping-item:last-child {
+  margin-bottom: 1rem;
+}
 .danger-button {
   margin-top: 0.85rem;
   width: 100%;
@@ -1298,15 +1302,6 @@ img {
   display: block;
 }
 
-.storage-edit-details {
-  margin-bottom: 0.75rem;
-  font-size: 0.95rem;
-}
-
-.storage-edit-details p {
-  margin: 0.18rem 0;
-}
-
 .storage-edit-attributes {
   display: grid;
   gap: 0.6rem;
@@ -1324,7 +1319,8 @@ img {
   margin: 0;
 }
 
-.storage-edit-attribute-row input {
+.storage-edit-attribute-row input,
+.storage-edit-attribute-row select {
   width: 100%;
 }
 
@@ -1383,6 +1379,10 @@ img {
 
 .shopping-modal-save-row {
   margin-top: 0.7rem;
+}
+
+#shopping-item-modal .shopping-modal-save-row {
+  margin-bottom: 0.8rem;
 }
 
 .shopping-modal-content {

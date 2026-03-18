@@ -307,14 +307,6 @@
         <div class='storage-edit-media'>
           <img id='storage-edit-picture' class='storage-edit-picture hidden' alt='Produktbild' />
         </div>
-        <div class='storage-edit-details'>
-          <p><strong>Produkt:</strong> <span id='storage-edit-name'>-</span></p>
-          <p><strong>Produkt-ID:</strong> <span id='storage-edit-product-id'>-</span></p>
-          <p><strong>Bestands-ID:</strong> <span id='storage-edit-stock-id'>-</span></p>
-          <p><strong>Lagerort:</strong> <span id='storage-edit-location'>-</span></p>
-          <p><strong>Menge:</strong> <span id='storage-edit-current-amount'>-</span></p>
-          <p><strong>MHD:</strong> <span id='storage-edit-current-best-before'>-</span></p>
-        </div>
         <div class='storage-edit-attributes'>
           <div class='storage-edit-attribute-row'>
             <label for='storage-edit-amount'>Menge</label>
@@ -323,6 +315,10 @@
           <div class='storage-edit-attribute-row'>
             <label for='storage-edit-best-before'>MHD</label>
             <input id='storage-edit-best-before' type='date' />
+          </div>
+          <div class='storage-edit-attribute-row'>
+            <label for='storage-edit-location-select'>Lagerort</label>
+            <select id='storage-edit-location-select'></select>
           </div>
           <div class='storage-edit-attribute-row'>
             <label for='storage-edit-calories'>Kalorien (kcal)</label>

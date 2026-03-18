@@ -105,6 +105,7 @@ class StockProductConsumeRequest(BaseModel):
 class StockProductUpdateRequest(BaseModel):
     amount: float = Field(..., ge=0)
     best_before_date: str = ""
+    location_id: int | None = Field(default=None, ge=1)
     calories: float | None = Field(default=None, ge=0)
     carbs: float | None = Field(default=None, ge=0)
     fat: float | None = Field(default=None, ge=0)
