@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.2.8
+
+- UI (Notify-Tab): Geräte-Gruppen mit nur einem Treffer werden jetzt automatisch in die Gruppe `Sonstige` verschoben, damit die Gruppierung kompakter bleibt.
+- Pflege: Add-on-Version auf `7.2.8` erhöht.
+
 ## 7.2.7
 
 - UI (Produktsuche): Nährwertdetails wieder aus der Variantenauswahl entfernt; die Produktsuche zeigt erneut nur die Produktkarten ohne zusätzliche Nährwertzeile.
