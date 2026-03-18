@@ -76,3 +76,17 @@ def test_repository_config_yaml_matches_config_json():
     )
 
     assert config_yaml == config_json
+
+
+def test_addon_apparmor_profile_exists_and_matches_slug():
+    repo_root = Path(__file__).resolve().parents[2]
+    apparmor_path = repo_root / "grocy_ai_assistant" / "apparmor.txt"
+
+    content = apparmor_path.read_text(encoding="utf-8")
+
+    assert apparmor_path.exists()
+    assert "profile grocy_ai_assistant" in content
+    assert "/app/** rix," in content
+    assert "/data/** rwk," in content
+    assert "/config/** rwk," in content
+    assert "network," in content
