@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.2.16
+
+- UI (Bestand bearbeiten): Die nicht bearbeitbare Attributliste mit Produkt-ID, Bestands-ID, Lagerort, Menge und MHD wurde aus dem Produkt-Bearbeiten-Popup entfernt, sodass nur noch die editierbaren Felder angezeigt werden.
+- Pflege: Add-on-Version auf `7.2.16` erhöht.
+
 ## 7.2.15
 
 - Fix (Suche/Einkaufsliste): Der Button `Zurücksetzen` im MHD-Popup entfernt das auf der Einkaufsliste gesetzte Datum jetzt vollständig, sodass wieder `MHD wählen` angezeigt wird.
