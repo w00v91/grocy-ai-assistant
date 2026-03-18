@@ -6,6 +6,7 @@ All notable changes to this project are documented in this file.
 
 - Fix (Einkaufsliste/Produkt-Popup): Das Shopping-List-API-Response enthält wieder das Feld `sugar`, sodass Zucker im Produkt-Popup zuverlässig angezeigt wird.
 - Test: Dashboard-API-Test ergänzt, der das `sugar`-Feld für Einkaufslisten-Produkte absichert.
+- UI (Notify-Tab): Geräte-Gruppen mit nur einem Treffer werden jetzt automatisch in die Gruppe `Sonstige` verschoben, damit die Gruppierung kompakter bleibt.
 - Pflege: Add-on-Version auf `7.2.8` erhöht.
 
 ## 7.2.7
