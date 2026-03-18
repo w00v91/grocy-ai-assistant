@@ -2239,12 +2239,6 @@ function openStorageEditModal(stockId) {
   storageEditingItem = stockItem;
   storageEditingTargetId = normalizedStockId;
   document.getElementById('storage-edit-modal-title').textContent = `Bestand ändern: ${stockItem.name}`;
-  document.getElementById('storage-edit-name').textContent = stockItem.name || '-';
-  document.getElementById('storage-edit-product-id').textContent = String(stockItem.id || '-');
-  document.getElementById('storage-edit-stock-id').textContent = String(stockItem.stock_id || '-');
-  document.getElementById('storage-edit-location').textContent = stockItem.location_name || '-';
-  document.getElementById('storage-edit-current-amount').textContent = formatBadgeValue(stockItem.amount, '0');
-  document.getElementById('storage-edit-current-best-before').textContent = formatBadgeValue(stockItem.best_before_date, '-');
   document.getElementById('storage-edit-amount').value = String(stockItem.amount || '0').replace(',', '.');
   document.getElementById('storage-edit-best-before').value = stockItem.best_before_date || '';
   renderStorageEditLocationOptions(stockItem.location_id, stockItem.location_name || '');
