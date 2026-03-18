@@ -210,7 +210,7 @@ body.modal-open {
   display: grid;
   grid-template-columns: 1fr;
   gap: 0.8rem;
-  margin-bottom: 1rem;
+  margin-bottom: 0;
 }
 
 .notification-options-card {
@@ -1388,6 +1388,10 @@ img {
 
 .shopping-modal-save-row {
   margin-top: 0.7rem;
+}
+
+#shopping-item-modal .shopping-modal-save-row {
+  margin-bottom: 0.8rem;
 }
 
 .shopping-modal-content {
