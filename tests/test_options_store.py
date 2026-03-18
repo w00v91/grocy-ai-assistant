@@ -24,12 +24,17 @@ def test_parse_and_dump_simple_yaml_roundtrip():
     assert options_store.parse_simple_yaml(dumped) == payload
 
 
-def test_load_addon_options_prefers_yaml_and_falls_back_to_json(tmp_path, monkeypatch):
+def test_load_addon_options_prefers_yaml_then_legacy_json_then_repository_yaml(tmp_path, monkeypatch):
     yaml_path = tmp_path / "options.yaml"
     json_path = tmp_path / "options.json"
+    repository_yaml_path = tmp_path / "repository-options.yaml"
 
     monkeypatch.setattr(options_store, "ADDON_OPTIONS_YAML_PATH", yaml_path)
     monkeypatch.setattr(options_store, "LEGACY_ADDON_OPTIONS_JSON_PATH", json_path)
+    monkeypatch.setattr(options_store, "REPOSITORY_OPTIONS_YAML_PATH", repository_yaml_path)
+
+    repository_yaml_path.write_text('api_key: "repo-default"\n', encoding="utf-8")
+    assert options_store.load_addon_options() == {"api_key": "repo-default"}
 
     json_path.write_text(json.dumps({"api_key": "legacy-json"}), encoding="utf-8")
     assert options_store.load_addon_options() == {"api_key": "legacy-json"}
