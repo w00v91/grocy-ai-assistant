@@ -38,9 +38,6 @@ options:
   generate_missing_product_images_on_startup: false
   initial_info_sync: false
   debug_mode: false
-options_description:
-  generate_missing_product_images_on_startup: "Generiere Produktbilder beim Startup"
-  initial_info_sync: "Generiere einmalig Nährwertinfos & geschätzte MHDs"
 schema:
   api_key: "str"
   grocy_api_key: "str"
