@@ -325,6 +325,23 @@ def test_dashboard_search_variants_returns_partial_matches(client, monkeypatch):
                 },
             ]
 
+        def get_product_nutrition_map(self, product_ids):
+            assert set(product_ids) == {1, 2}
+            return {
+                1: {
+                    "carbs": "12.3",
+                    "fat": "0.4",
+                    "protein": "0.3",
+                    "sugar": "10.1",
+                },
+                2: {
+                    "carbs": "2.1",
+                    "fat": "0",
+                    "protein": "0",
+                    "sugar": "1.5",
+                },
+            }
+
     monkeypatch.setattr(routes, "GrocyClient", FakeGrocyClient)
     response = client.get(
         "/api/dashboard/search-variants?q=apf",
@@ -338,6 +355,9 @@ def test_dashboard_search_variants_returns_partial_matches(client, monkeypatch):
         "Apfelessig",
     ]
     assert response.json()[0]["source"] == "input"
+    assert response.json()[1]["carbs"] == "12.3"
+    assert response.json()[1]["sugar"] == "10.1"
+    assert response.json()[2]["fat"] == "0"
 
 
 def test_dashboard_search_variants_ignores_amount_prefix(client, monkeypatch):
@@ -362,6 +382,9 @@ def test_dashboard_search_variants_ignores_amount_prefix(client, monkeypatch):
                     "picture_url": "files/productpictures/apfel.jpg",
                 }
             ]
+
+        def get_product_nutrition_map(self, product_ids):
+            return {1: {"carbs": "12", "fat": "", "protein": "", "sugar": ""}}
 
     monkeypatch.setattr(routes, "GrocyClient", FakeGrocyClient)
     response = client.get(
@@ -390,6 +413,9 @@ def test_dashboard_search_variants_without_ai_does_not_call_detector(
             assert query == "oliven"
             return [{"id": 1, "name": "Oliven", "picture_url": ""}]
 
+        def get_product_nutrition_map(self, product_ids):
+            return {1: {"carbs": "", "fat": "", "protein": "", "sugar": ""}}
+
     monkeypatch.setattr(routes, "GrocyClient", FakeGrocyClient)
     monkeypatch.setattr(routes, "IngredientDetector", FakeDetector)
 
@@ -400,7 +426,17 @@ def test_dashboard_search_variants_without_ai_does_not_call_detector(
 
     assert response.status_code == 200
     assert response.json() == [
-        {"id": 1, "name": "Oliven", "picture_url": "", "source": "grocy"}
+        {
+            "id": 1,
+            "name": "Oliven",
+            "picture_url": "",
+            "source": "grocy",
+            "calories": "",
+            "carbs": "",
+            "fat": "",
+            "protein": "",
+            "sugar": "",
+        }
     ]
 
 
@@ -424,6 +460,18 @@ def test_dashboard_search_variants_includes_ai_suggestions_not_in_grocy(
                 return [{"id": 1, "name": "Haferflocken", "picture_url": ""}]
             return []
 
+        def get_product_nutrition_map(self, product_ids):
+            if set(product_ids) == {1}:
+                return {
+                    1: {
+                        "carbs": "56",
+                        "fat": "7",
+                        "protein": "13",
+                        "sugar": "1",
+                    }
+                }
+            return {}
+
     monkeypatch.setattr(routes, "GrocyClient", FakeGrocyClient)
     monkeypatch.setattr(routes, "IngredientDetector", FakeDetector)
 
@@ -434,10 +482,50 @@ def test_dashboard_search_variants_includes_ai_suggestions_not_in_grocy(
 
     assert response.status_code == 200
     assert response.json() == [
-        {"id": None, "name": "hafer", "picture_url": "", "source": "input"},
-        {"id": 1, "name": "Haferflocken", "picture_url": "", "source": "grocy"},
-        {"id": None, "name": "Haferdrink", "picture_url": "", "source": "ai"},
-        {"id": None, "name": "Haferjoghurt", "picture_url": "", "source": "ai"},
+        {
+            "id": None,
+            "name": "hafer",
+            "picture_url": "",
+            "source": "input",
+            "calories": "",
+            "carbs": "",
+            "fat": "",
+            "protein": "",
+            "sugar": "",
+        },
+        {
+            "id": 1,
+            "name": "Haferflocken",
+            "picture_url": "",
+            "source": "grocy",
+            "calories": "",
+            "carbs": "56",
+            "fat": "7",
+            "protein": "13",
+            "sugar": "1",
+        },
+        {
+            "id": None,
+            "name": "Haferdrink",
+            "picture_url": "",
+            "source": "ai",
+            "calories": "",
+            "carbs": "",
+            "fat": "",
+            "protein": "",
+            "sugar": "",
+        },
+        {
+            "id": None,
+            "name": "Haferjoghurt",
+            "picture_url": "",
+            "source": "ai",
+            "calories": "",
+            "carbs": "",
+            "fat": "",
+            "protein": "",
+            "sugar": "",
+        },
     ]
 
 
@@ -461,6 +549,9 @@ def test_dashboard_search_variants_without_include_ai_returns_grocy_only(
                 return [{"id": 1, "name": "Haferflocken", "picture_url": ""}]
             return []
 
+        def get_product_nutrition_map(self, product_ids):
+            return {1: {"carbs": "", "fat": "", "protein": "", "sugar": ""}}
+
     monkeypatch.setattr(routes, "GrocyClient", FakeGrocyClient)
     monkeypatch.setattr(routes, "IngredientDetector", FakeDetector)
 
@@ -471,8 +562,28 @@ def test_dashboard_search_variants_without_include_ai_returns_grocy_only(
 
     assert response.status_code == 200
     assert response.json() == [
-        {"id": None, "name": "hafer", "picture_url": "", "source": "input"},
-        {"id": 1, "name": "Haferflocken", "picture_url": "", "source": "grocy"},
+        {
+            "id": None,
+            "name": "hafer",
+            "picture_url": "",
+            "source": "input",
+            "calories": "",
+            "carbs": "",
+            "fat": "",
+            "protein": "",
+            "sugar": "",
+        },
+        {
+            "id": 1,
+            "name": "Haferflocken",
+            "picture_url": "",
+            "source": "grocy",
+            "calories": "",
+            "carbs": "",
+            "fat": "",
+            "protein": "",
+            "sugar": "",
+        },
     ]
 
 
@@ -674,6 +785,9 @@ def test_dashboard_search_returns_fallback_variants_for_incomplete_query(
                 return [{"id": 1, "name": "Apfel", "picture_url": ""}]
             return []
 
+        def get_product_nutrition_map(self, product_ids):
+            return {1: {"carbs": "12", "fat": "", "protein": "", "sugar": "10"}}
+
     monkeypatch.setattr(routes, "IngredientDetector", FakeDetector)
     monkeypatch.setattr(routes, "GrocyClient", FakeGrocyClient)
 
@@ -689,6 +803,8 @@ def test_dashboard_search_returns_fallback_variants_for_incomplete_query(
     assert payload["action"] == "variant_selection_required"
     assert [item["name"] for item in payload["variants"]] == ["apf", "Apfel"]
     assert payload["variants"][0]["source"] == "input"
+    assert payload["variants"][1]["carbs"] == "12"
+    assert payload["variants"][1]["sugar"] == "10"
 
 
 def test_dashboard_search_creates_product_when_only_ai_variant_would_exist(

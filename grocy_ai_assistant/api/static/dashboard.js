@@ -988,6 +988,16 @@ function renderVariants(items, options = {}) {
     const productId = item.id ?? '';
     const source = item.source || 'grocy';
     const sourceLabel = source === 'ai' ? 'KI-Vorschlag' : (source === 'input' ? 'Neu anlegen' : 'Grocy');
+    const nutritionItems = [
+      ['Kalorien', item.calories],
+      ['Kohlenhydrate', item.carbs],
+      ['Fett', item.fat],
+      ['Protein', item.protein],
+      ['Zucker', item.sugar],
+    ].filter(([, value]) => String(value || '').trim() !== '');
+    const nutritionMarkup = nutritionItems.length
+      ? `<div class="muted variant-nutrition">${nutritionItems.map(([label, value]) => `${escapeHtml(label)}: ${escapeHtml(String(value))}`).join(' · ')}</div>`
+      : '';
     const amountBadge = hasParsedAmount
       ? `<span class="variant-amount-badge" aria-label="Menge ${parsedAmount}">${parsedAmount}</span>`
       : '';
@@ -998,6 +1008,7 @@ function renderVariants(items, options = {}) {
         <img src="${toImageSource(item.picture_url)}" alt="${item.name}" loading="lazy" />
         <div><strong>${item.name}</strong></div>
         <small class="muted">${sourceLabel}</small>
+        ${nutritionMarkup}
       </button>
     </div>
   `;
@@ -1183,6 +1194,7 @@ function showShoppingItemDetails(item) {
         <li><span>Kohlenhydrate</span><strong>${formatValue(item.carbs)}</strong></li>
         <li><span>Fett</span><strong>${formatValue(item.fat)}</strong></li>
         <li><span>Protein</span><strong>${formatValue(item.protein)}</strong></li>
+        <li><span>Zucker</span><strong>${formatValue(item.sugar)}</strong></li>
         <li><span>Notiz</span><strong>${formatValue(item.note)}</strong></li>
       </ul>
     </section>

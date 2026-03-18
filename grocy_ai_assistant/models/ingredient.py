@@ -71,6 +71,7 @@ class ShoppingListItemResponse(BaseModel):
     carbs: str = ""
     fat: str = ""
     protein: str = ""
+    sugar: str = ""
 
 
 class ProductVariantResponse(BaseModel):
@@ -78,6 +79,11 @@ class ProductVariantResponse(BaseModel):
     name: str
     picture_url: str = ""
     source: str = "grocy"
+    calories: str = ""
+    carbs: str = ""
+    fat: str = ""
+    protein: str = ""
+    sugar: str = ""
 
 
 class StockProductResponse(BaseModel):

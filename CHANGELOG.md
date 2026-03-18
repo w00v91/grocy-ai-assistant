@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.2.6
+
+- UI (Produktsuche): Gefundene Produktvarianten zeigen jetzt zusätzlich Kalorien sowie Nährwert-Userfields (`carbohydrates`, `fat`, `protein`, `sugar`) direkt in der Produktauswahl an.
+- Fix (Einkaufsliste/Produkt-Popup): Das Produktdetail-Popup liest Nährwerte für Einkaufslisten-Einträge jetzt aus den Grocy-Userfields und zeigt dabei auch Zucker an.
+- Test: API- und Unit-Tests ergänzt, die die Nährwert-Anreicherung für Suchvarianten und Einkaufslisten-Produkte absichern.
+- Pflege: Add-on-Version auf `7.2.6` erhöht.
+
 ## 7.2.5
 
 - Verbesserung (Startup/Info-Sync Delta): Für den initialen Info-Sync wird ein lokaler Delta-Status pro Produkt gespeichert. Unveränderte Produkte ohne fehlende Felder werden beim nächsten Lauf übersprungen, statt erneut im Detail geladen zu werden.

@@ -939,8 +939,11 @@ def prefetch_initial_recipe_suggestions(settings: Settings) -> dict | None:
 
 
 def _variant_from_grocy_product(
-    product: dict, settings: Settings
+    product: dict,
+    settings: Settings,
+    nutrition: dict[str, str] | None = None,
 ) -> ProductVariantResponse:
+    nutrition = nutrition or {}
     return ProductVariantResponse(
         id=product.get("id"),
         name=product.get("name") or "Unbekanntes Produkt",
@@ -949,6 +952,11 @@ def _variant_from_grocy_product(
             settings,
         ),
         source="grocy",
+        calories=str(product.get("calories") or ""),
+        carbs=str(nutrition.get("carbs") or ""),
+        fat=str(nutrition.get("fat") or ""),
+        protein=str(nutrition.get("protein") or ""),
+        sugar=str(nutrition.get("sugar") or ""),
     )
 
 
@@ -961,9 +969,27 @@ def _build_fallback_variants(
 ) -> list[ProductVariantResponse]:
     variants: list[ProductVariantResponse] = []
     seen_names: set[str] = set()
+    grocy_products = grocy_client.search_products_by_partial_name(product_name)
+    get_nutrition_map = getattr(grocy_client, "get_product_nutrition_map", None)
+    nutrition_map = (
+        get_nutrition_map(
+            [
+                int(product.get("id"))
+                for product in grocy_products
+                if product.get("id") is not None
+            ]
+        )
+        if callable(get_nutrition_map)
+        else {}
+    )
 
-    for product in grocy_client.search_products_by_partial_name(product_name):
-        variant = _variant_from_grocy_product(product, settings)
+    for product in grocy_products:
+        product_id = int(product.get("id")) if product.get("id") is not None else 0
+        variant = _variant_from_grocy_product(
+            product,
+            settings,
+            nutrition_map.get(product_id),
+        )
         normalized_name = variant.name.casefold()
         if normalized_name in seen_names:
             continue
@@ -977,8 +1003,29 @@ def _build_fallback_variants(
             if not suggested_name:
                 continue
 
-            for product in grocy_client.search_products_by_partial_name(suggested_name):
-                variant = _variant_from_grocy_product(product, settings)
+            suggested_products = grocy_client.search_products_by_partial_name(
+                suggested_name
+            )
+            suggested_nutrition_map = (
+                get_nutrition_map(
+                    [
+                        int(product.get("id"))
+                        for product in suggested_products
+                        if product.get("id") is not None
+                    ]
+                )
+                if callable(get_nutrition_map)
+                else {}
+            )
+
+            for product in suggested_products:
+                product_id = int(product.get("id")) if product.get("id") is not None else 0
+                variant = _variant_from_grocy_product(
+                    product,
+                    settings,
+                    suggested_nutrition_map.get(product_id)
+                    or nutrition_map.get(product_id),
+                )
                 normalized_name = variant.name.casefold()
                 if normalized_name in seen_names:
                     continue

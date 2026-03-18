@@ -955,6 +955,12 @@ img {
   z-index: 2;
 }
 
+.variant-nutrition {
+  margin-top: 0.45rem;
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
 
 
 .shopping-item-meta {
