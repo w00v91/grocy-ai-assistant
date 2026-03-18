@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.2.16
+
+- UI (Benachrichtigungen): Der Abstand zwischen `Geräteverwaltung` und `Benachrichtigungsregeln` ist jetzt an die übrigen Kartenabstände im Tab angeglichen.
+- UI (Suche/Produkt-Popup): Nach dem Button `Speichern` gibt es im Produkt-Popup jetzt zusätzlichen Abstand vor den Detailkarten.
+- Pflege: Add-on-Version auf `7.2.16` erhöht.
+
 ## 7.2.15
 
 - Fix (Suche/Einkaufsliste): Der Button `Zurücksetzen` im MHD-Popup entfernt das auf der Einkaufsliste gesetzte Datum jetzt vollständig, sodass wieder `MHD wählen` angezeigt wird.
