@@ -1183,6 +1183,7 @@ function showShoppingItemDetails(item) {
         <li><span>Kohlenhydrate</span><strong>${formatValue(item.carbs)}</strong></li>
         <li><span>Fett</span><strong>${formatValue(item.fat)}</strong></li>
         <li><span>Protein</span><strong>${formatValue(item.protein)}</strong></li>
+        <li><span>Zucker</span><strong>${formatValue(item.sugar)}</strong></li>
         <li><span>Notiz</span><strong>${formatValue(item.note)}</strong></li>
       </ul>
     </section>
