@@ -62,3 +62,23 @@ def test_addon_config_contains_initial_info_sync_option():
 
     assert config["options"]["initial_info_sync"] is False
     assert config["schema"]["initial_info_sync"] == "bool"
+
+
+def test_repository_options_yaml_matches_config_defaults():
+    repo_root = Path(__file__).resolve().parents[2]
+    config = json.loads((repo_root / "grocy_ai_assistant" / "config.json").read_text())
+    options_yaml = (repo_root / "grocy_ai_assistant" / "options.yaml").read_text(encoding="utf-8")
+
+    expected_lines = []
+    for key, value in config["options"].items():
+        if isinstance(value, bool):
+            rendered = "true" if value else "false"
+        elif isinstance(value, (int, float)) and not isinstance(value, bool):
+            rendered = str(value)
+        elif value is None:
+            rendered = "null"
+        else:
+            rendered = json.dumps(str(value), ensure_ascii=False)
+        expected_lines.append(f"{key}: {rendered}")
+
+    assert options_yaml == "\n".join(expected_lines) + "\n"

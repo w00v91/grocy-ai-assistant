@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.2.12
+
+- Neu (Konfiguration): Default-App-Optionen liegen jetzt zusätzlich als versionierte `grocy_ai_assistant/options.yaml` im Repository vor.
+- Änderung (App-Konfiguration): Das Laden der Add-on-Optionen nutzt nach `/data/options.yaml` und dem Legacy-Fallback auf `options.json` jetzt auch die Repository-Datei `grocy_ai_assistant/options.yaml`.
+- Test: Konfigurationstests ergänzt, die sicherstellen, dass `options.yaml` mit den Default-Optionen aus `config.json` synchron bleibt.
+- Pflege: Add-on-Version auf `7.2.12` erhöht.
+
 ## 7.2.11
 
 - Verbesserung (Add-on-Übersetzungen): Die App-Optionen nutzen jetzt vollständige Home-Assistant-Übersetzungen mit `name` und `description` für alle Schema-Felder, einschließlich `dashboard_polling_interval_seconds` und `initial_info_sync`.

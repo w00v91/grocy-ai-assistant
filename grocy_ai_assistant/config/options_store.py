@@ -6,6 +6,7 @@ from typing import Any
 
 ADDON_OPTIONS_YAML_PATH = Path("/data/options.yaml")
 LEGACY_ADDON_OPTIONS_JSON_PATH = Path("/data/options.json")
+REPOSITORY_OPTIONS_YAML_PATH = Path(__file__).resolve().parents[1] / "options.yaml"
 
 
 def _parse_scalar(raw_value: str) -> Any:
@@ -73,18 +74,25 @@ def dump_simple_yaml(data: dict[str, Any]) -> str:
     return "\n".join(lines) + "\n"
 
 
+def _load_yaml_options(path: Path) -> dict[str, Any]:
+    payload = parse_simple_yaml(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise ValueError(f"{path.name} enthält kein Objekt")
+    return payload
+
+
 def load_addon_options() -> dict[str, Any]:
     if ADDON_OPTIONS_YAML_PATH.exists():
-        payload = parse_simple_yaml(ADDON_OPTIONS_YAML_PATH.read_text(encoding="utf-8"))
-        if not isinstance(payload, dict):
-            raise ValueError("options.yaml enthält kein Objekt")
-        return payload
+        return _load_yaml_options(ADDON_OPTIONS_YAML_PATH)
 
     if LEGACY_ADDON_OPTIONS_JSON_PATH.exists():
         payload = json.loads(LEGACY_ADDON_OPTIONS_JSON_PATH.read_text(encoding="utf-8"))
         if not isinstance(payload, dict):
             raise ValueError("options.json enthält kein Objekt")
         return payload
+
+    if REPOSITORY_OPTIONS_YAML_PATH.exists():
+        return _load_yaml_options(REPOSITORY_OPTIONS_YAML_PATH)
 
     return {}
 

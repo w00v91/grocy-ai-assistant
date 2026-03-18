@@ -1,0 +1,17 @@
+api_key: "DEIN_KI_KEY"
+grocy_api_key: "DEIN_GROCY_KEY"
+grocy_base_url: "http://homeassistant.local:9192/api"
+ollama_url: "http://76e18fb5_ollama:11434/api/generate"
+ollama_model: "llama3"
+ollama_llava_model: "llava"
+scanner_barcode_fallback_seconds: 5
+scanner_llava_min_confidence: 75
+scanner_llava_timeout_seconds: 45
+dashboard_polling_interval_seconds: 5
+notification_global_enabled: true
+image_generation_enabled: false
+openai_api_key: "DEIN_OPENAI_KEY"
+openai_image_model: "gpt-image-1"
+generate_missing_product_images_on_startup: false
+initial_info_sync: false
+debug_mode: false
