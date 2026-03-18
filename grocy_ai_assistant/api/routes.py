@@ -1184,7 +1184,6 @@ def dashboard_add_existing_product(
             before_items=before_items,
         )
 
-
         after_items = (
             grocy_client.get_shopping_list() if supports_amount_reconciliation else []
         )
@@ -1207,20 +1206,27 @@ def dashboard_add_existing_product(
         target_item_id: int | None = None
         expected_amount: float | None = None
 
-        new_item_ids = [item_id for item_id in after_amounts if item_id not in before_amounts]
+        new_item_ids = [
+            item_id for item_id in after_amounts if item_id not in before_amounts
+        ]
         if new_item_ids:
             target_item_id = max(new_item_ids)
             expected_amount = float(amount)
         else:
-            shared_item_ids = [item_id for item_id in after_amounts if item_id in before_amounts]
+            shared_item_ids = [
+                item_id for item_id in after_amounts if item_id in before_amounts
+            ]
             if shared_item_ids:
                 target_item_id = max(
                     shared_item_ids,
                     key=lambda item_id: abs(
-                        after_amounts.get(item_id, 0.0) - before_amounts.get(item_id, 0.0)
+                        after_amounts.get(item_id, 0.0)
+                        - before_amounts.get(item_id, 0.0)
                     ),
                 )
-                expected_amount = before_amounts.get(target_item_id, 0.0) + float(amount)
+                expected_amount = before_amounts.get(target_item_id, 0.0) + float(
+                    amount
+                )
 
         if (
             supports_amount_reconciliation
@@ -2726,11 +2732,11 @@ def _safe_notification_id(user_id: str) -> str:
 
 
 def _discover_notification_targets_from_env() -> list[NotificationTargetModel]:
-    configured = (
-        Path("/data/options.json").read_text(encoding="utf-8")
-        if Path("/data/options.json").exists()
-        else ""
-    )
+    configured = ""
+    for candidate in (Path("/data/options.yaml"), Path("/data/options.json")):
+        if candidate.exists():
+            configured = candidate.read_text(encoding="utf-8")
+            break
     service_names = re.findall(r"mobile_app_[a-zA-Z0-9_]+", configured)
     targets: list[NotificationTargetModel] = []
     seen: set[str] = set()
@@ -2841,7 +2847,7 @@ def _load_notification_overview(request: Request) -> NotificationOverviewRespons
         overview.devices = merged_devices
         store.save_overview_for_user(user_id, overview)
 
-    # Global activation is controlled by add-on app options (options.json).
+    # Global activation is controlled by add-on app options (options.yaml).
     overview.settings.enabled = bool(get_settings().notification_global_enabled)
     return overview
 

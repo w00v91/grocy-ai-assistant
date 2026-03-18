@@ -6,6 +6,8 @@ from pathlib import Path
 
 from pydantic import BaseModel, Field
 
+from grocy_ai_assistant.config.options_store import load_addon_options
+
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 ADDON_CONFIG_PATH = PROJECT_ROOT / "grocy_ai_assistant" / "config.json"
@@ -75,12 +77,10 @@ logger = logging.getLogger(__name__)
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
-    options_path = "/data/options.json"
-    if os.path.exists(options_path):
-        try:
-            with open(options_path, "r", encoding="utf-8") as file:
-                payload = json.load(file)
-                return Settings(**payload)
-        except Exception as error:
-            logger.error("Fehler beim Lesen der options.json: %s", error)
+    try:
+        payload = load_addon_options()
+        if payload:
+            return Settings(**payload)
+    except Exception as error:
+        logger.error("Fehler beim Lesen der options.yaml: %s", error)
     return Settings()

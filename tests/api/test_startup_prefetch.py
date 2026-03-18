@@ -1,7 +1,9 @@
-from fastapi.testclient import TestClient
 import json
 
+from fastapi.testclient import TestClient
+
 import grocy_ai_assistant.api.main as api_main
+from grocy_ai_assistant.config import options_store
 from grocy_ai_assistant.config.settings import Settings
 
 
@@ -74,14 +76,10 @@ def test_product_image_cache_wait_for_initial_refresh_signals_after_refresh(
 
 
 def test_startup_batch_disables_option_after_completion(monkeypatch, tmp_path):
-    options_path = tmp_path / "options.json"
+    options_path = tmp_path / "options.yaml"
     options_path.write_text(
-        json.dumps(
-            {
-                "generate_missing_product_images_on_startup": True,
-                "initial_info_sync": True,
-            }
-        ),
+        "generate_missing_product_images_on_startup: true\n"
+        "initial_info_sync: true\n",
         encoding="utf-8",
     )
 
@@ -102,7 +100,12 @@ def test_startup_batch_disables_option_after_completion(monkeypatch, tmp_path):
         def generate_product_image(self, product_name: str) -> str:
             return f"/tmp/{product_name}.png"
 
-    monkeypatch.setattr(api_main, "ADDON_OPTIONS_PATH", options_path)
+    monkeypatch.setattr(options_store, "ADDON_OPTIONS_YAML_PATH", options_path)
+    monkeypatch.setattr(
+        options_store,
+        "LEGACY_ADDON_OPTIONS_JSON_PATH",
+        tmp_path / "legacy-options.json",
+    )
     monkeypatch.setattr(api_main, "GrocyClient", DummyGrocyClient)
     monkeypatch.setattr(api_main, "IngredientDetector", DummyDetector)
 
@@ -116,7 +119,7 @@ def test_startup_batch_disables_option_after_completion(monkeypatch, tmp_path):
 
     api_main._generate_missing_product_images_on_startup(settings)
 
-    stored = json.loads(options_path.read_text(encoding="utf-8"))
+    stored = options_store.parse_simple_yaml(options_path.read_text(encoding="utf-8"))
     assert stored["generate_missing_product_images_on_startup"] is False
     assert stored["initial_info_sync"] is True
 
@@ -176,9 +179,11 @@ def test_startup_batch_skips_when_flag_disabled(monkeypatch):
     api_main._generate_missing_product_images_on_startup(settings)
 
 
-def test_startup_initial_info_sync_updates_missing_fields(monkeypatch):
+def test_startup_initial_info_sync_updates_missing_fields(monkeypatch, tmp_path):
     updated: list[dict] = []
     best_before_updates: list[tuple[int, int]] = []
+    tmp_state_path = tmp_path / "initial-info-sync-state.json"
+    tmp_options_path = tmp_path / "options.yaml"
 
     class DummyGrocyClient:
         def __init__(self, _settings):
@@ -238,6 +243,13 @@ def test_startup_initial_info_sync_updates_missing_fields(monkeypatch):
 
     monkeypatch.setattr(api_main, "GrocyClient", DummyGrocyClient)
     monkeypatch.setattr(api_main, "IngredientDetector", DummyDetector)
+    monkeypatch.setattr(api_main, "INITIAL_INFO_SYNC_STATE_PATH", tmp_state_path)
+    monkeypatch.setattr(options_store, "ADDON_OPTIONS_YAML_PATH", tmp_options_path)
+    monkeypatch.setattr(
+        options_store,
+        "LEGACY_ADDON_OPTIONS_JSON_PATH",
+        tmp_path / "legacy-options.json",
+    )
 
     settings = Settings(
         api_key="k",
@@ -271,14 +283,10 @@ def test_startup_initial_info_sync_updates_missing_fields(monkeypatch):
 def test_startup_initial_info_sync_disables_option_after_completion(
     monkeypatch, tmp_path
 ):
-    options_path = tmp_path / "options.json"
+    options_path = tmp_path / "options.yaml"
     options_path.write_text(
-        json.dumps(
-            {
-                "generate_missing_product_images_on_startup": True,
-                "initial_info_sync": True,
-            }
-        ),
+        "generate_missing_product_images_on_startup: true\n"
+        "initial_info_sync: true\n",
         encoding="utf-8",
     )
 
@@ -318,7 +326,12 @@ def test_startup_initial_info_sync_disables_option_after_completion(
                 "default_best_before_days": 365,
             }
 
-    monkeypatch.setattr(api_main, "ADDON_OPTIONS_PATH", options_path)
+    monkeypatch.setattr(options_store, "ADDON_OPTIONS_YAML_PATH", options_path)
+    monkeypatch.setattr(
+        options_store,
+        "LEGACY_ADDON_OPTIONS_JSON_PATH",
+        tmp_path / "legacy-options.json",
+    )
     monkeypatch.setattr(api_main, "GrocyClient", DummyGrocyClient)
     monkeypatch.setattr(api_main, "IngredientDetector", DummyDetector)
 
@@ -331,7 +344,7 @@ def test_startup_initial_info_sync_disables_option_after_completion(
 
     api_main._run_initial_info_sync_on_startup(settings)
 
-    stored = json.loads(options_path.read_text(encoding="utf-8"))
+    stored = options_store.parse_simple_yaml(options_path.read_text(encoding="utf-8"))
     assert stored["initial_info_sync"] is False
     assert stored["generate_missing_product_images_on_startup"] is True
 
