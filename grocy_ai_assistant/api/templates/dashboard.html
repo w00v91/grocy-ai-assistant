@@ -186,7 +186,10 @@
         <h3 id='mhd-modal-title'>MHD auswählen</h3>
         <label for='mhd-date-input'>Haltbarkeitsdatum</label>
         <input id='mhd-date-input' type='date' />
-        <button class='success-button' type='button' onclick='saveMhdPickerDate()'>Speichern</button>
+        <div class='shopping-modal-save-row'>
+          <button class='secondary-button' type='button' onclick='resetMhdPickerDate()'>Zurücksetzen</button>
+          <button class='success-button' type='button' onclick='saveMhdPickerDate()'>Speichern</button>
+        </div>
       </section>
     </div>
 

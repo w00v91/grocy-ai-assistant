@@ -1393,6 +1393,40 @@ async function saveMhdPickerDate() {
   }
 }
 
+async function resetMhdPickerDate() {
+  const key = ensureApiKey();
+  const status = getShoppingStatusElement();
+
+  if (!key) {
+    status.textContent = 'Kein API-Key angegeben.';
+    return;
+  }
+  if (!activeMhdShoppingListId) {
+    status.textContent = 'Einkaufslisten-Eintrag fehlt.';
+    return;
+  }
+
+  status.textContent = 'Setze MHD zurück...';
+  try {
+    const res = await fetch(buildApiUrl(`/api/dashboard/shopping-list/item/${activeMhdShoppingListId}/best-before/reset`), {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${key}` },
+    });
+    const payload = await parseJsonSafe(res);
+
+    if (!res.ok) {
+      status.textContent = getErrorMessage(payload, 'MHD konnte nicht zurückgesetzt werden.');
+      return;
+    }
+
+    status.textContent = payload.message || 'MHD zurückgesetzt.';
+    closeMhdPicker();
+    await loadShoppingList();
+  } catch (_) {
+    status.textContent = 'MHD konnte nicht zurückgesetzt werden (Netzwerk-/Ingress-Fehler).';
+  }
+}
+
 async function closeShoppingItemDetails() {
   const modal = document.getElementById('shopping-item-modal');
   const input = document.getElementById('shopping-item-note-input');

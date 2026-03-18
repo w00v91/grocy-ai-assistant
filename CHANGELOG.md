@@ -2,6 +2,20 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.2.15
+
+- Fix (Suche/Einkaufsliste): Der Button `Zurücksetzen` im MHD-Popup entfernt das auf der Einkaufsliste gesetzte Datum jetzt vollständig, sodass wieder `MHD wählen` angezeigt wird.
+- API (Einkaufsliste): Der Reset-Endpoint leert das Einkaufslisten-MHD jetzt statt ein Standarddatum neu zu berechnen.
+- Test: Dashboard-API-Test auf das Leeren des MHDs angepasst.
+- Pflege: Add-on-Version auf `7.2.15` erhöht.
+
+## 7.2.14
+
+- UI (Suche/Einkaufsliste): Im MHD-Popup der Einkaufsliste gibt es jetzt zusätzlich den Button `Zurücksetzen`, der das MHD eines Eintrags wieder auf den Standardwert setzt.
+- API (Einkaufsliste): Neuer Endpoint `POST /api/dashboard/shopping-list/item/{shopping_list_id}/best-before/reset` zum serverseitigen Zurücksetzen auf das aufgelöste Standard-MHD.
+- Test: Dashboard-API-Test für das Zurücksetzen des MHDs in der Einkaufsliste ergänzt.
+- Pflege: Add-on-Version auf `7.2.14` erhöht.
+
 ## 7.2.13
 
 - Änderung (Konfiguration): Die Repository-Konfiguration liegt jetzt vollständig als `grocy_ai_assistant/config.yaml` vor und spiegelt alle Werte aus `config.json`.
