@@ -26,6 +26,9 @@ configuration:
   scanner_llava_timeout_seconds:
     name: "03 · Scanner · LLaVA Timeout (Sek.)"
     description: "Maximale Wartezeit in Sekunden für LLaVA-Scanneranfragen."
+  dashboard_polling_interval_seconds:
+    name: "04 · Dashboard · Aktualisierungsintervall (Sek.)"
+    description: "Legt fest, in welchem Abstand das Dashboard seine Daten automatisch neu lädt."
   notification_global_enabled:
     name: "04 · Benachrichtigungen · Global aktiv"
     description: "Aktiviert/deaktiviert Benachrichtigungen global für das Add-on."
@@ -41,6 +44,9 @@ configuration:
   generate_missing_product_images_on_startup:
     name: "05 · Bilder · Fehlende Bilder beim Start erzeugen"
     description: "Erzeugt beim Add-on-Start automatisch fehlende Produktbilder."
+  initial_info_sync:
+    name: "05 · Bilder & Infos · Einmaliger Info-Sync beim Start"
+    description: "Analysiert beim nächsten Add-on-Start bestehende Produkte einmalig und ergänzt fehlende Nährwerte sowie geschätzte MHD-Tage."
   debug_mode:
     name: "06 · Wartung · Debug-Modus"
     description: "Aktiviert ausführliche Debug-Logs zur Fehlersuche."

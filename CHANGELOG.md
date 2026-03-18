@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## 7.2.11
+
+- Verbesserung (Add-on-Übersetzungen): Die App-Optionen nutzen jetzt vollständige Home-Assistant-Übersetzungen mit `name` und `description` für alle Schema-Felder, einschließlich `dashboard_polling_interval_seconds` und `initial_info_sync`.
+- Pflege: Add-on-Version auf `7.2.11` erhöht.
+
 ## 7.2.9
 
 - Verbesserung (Startup-Optionen): Die einmaligen Startup-Optionen `initial_info_sync` und `generate_missing_product_images_on_startup` werden nach erfolgreichem Abschluss automatisch in der Add-on-Konfiguration wieder deaktiviert.
