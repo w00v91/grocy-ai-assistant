@@ -29,6 +29,13 @@ def _load_yaml_file(path: Path) -> dict[str, Any]:
     return payload
 
 
+def _load_yaml_options(path: Path) -> dict[str, Any]:
+    payload = parse_simple_yaml(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise ValueError(f"{path.name} enthält kein Objekt")
+    return payload
+
+
 def load_addon_options() -> dict[str, Any]:
     if ADDON_OPTIONS_YAML_PATH.exists():
         return _load_yaml_file(ADDON_OPTIONS_YAML_PATH)
