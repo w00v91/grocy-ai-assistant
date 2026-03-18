@@ -4,6 +4,8 @@ All notable changes to this project are documented in this file.
 
 ## 7.2.16
 
+- Dokumentation (Add-on): Neue `grocy_ai_assistant/DOCS.md` im Stil aktueller Home-Assistant-Add-ons ergänzt.
+- Pflege (Dokumentation): README um Verweis auf die Add-on-Dokumentation erweitert und Versionsstand aktualisiert.
 - UI (Bestand bearbeiten): Die nicht bearbeitbare Attributliste mit Produkt-ID, Bestands-ID, Lagerort, Menge und MHD wurde aus dem Produkt-Bearbeiten-Popup entfernt, sodass nur noch die editierbaren Felder angezeigt werden.
 - UI (Benachrichtigungen): Der Abstand zwischen `Geräteverwaltung` und `Benachrichtigungsregeln` ist jetzt an die übrigen Kartenabstände im Tab angeglichen.
 - UI (Suche/Produkt-Popup): Nach dem Button `Speichern` gibt es im Produkt-Popup jetzt zusätzlichen Abstand vor den Detailkarten.
