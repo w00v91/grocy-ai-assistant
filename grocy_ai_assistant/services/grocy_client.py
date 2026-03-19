@@ -53,8 +53,7 @@ class GrocyClient:
             return False
 
         return any(
-            query_candidate in product_candidate
-            or product_candidate in query_candidate
+            query_candidate in product_candidate or product_candidate in query_candidate
             for query_candidate in query_candidates
             for product_candidate in product_candidates
         )
@@ -422,6 +421,24 @@ class GrocyClient:
                 return product
 
         return None
+
+    def set_product_barcode(self, product_id: int, barcode: str) -> None:
+        normalized_barcode = "".join(ch for ch in str(barcode or "") if ch.isdigit())
+        if len(normalized_barcode) < 8:
+            return
+
+        response = requests.post(
+            f"{self.settings.grocy_base_url}/objects/product_barcodes",
+            headers=self.headers,
+            json={
+                "product_id": int(product_id),
+                "barcode": normalized_barcode,
+                "qu_id": 1,
+                "amount": 1,
+            },
+            timeout=30,
+        )
+        response.raise_for_status()
 
     def get_products_without_picture(self) -> list[Dict[str, Any]]:
         products = self._get_all_products()

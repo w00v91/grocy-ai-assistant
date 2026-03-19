@@ -253,6 +253,8 @@ let scannerKnownDevices = [];
 let scannerScanStartedAt = 0;
 let scannerLastLightCheckAt = 0;
 let scannerRotationDegrees = 0;
+let scannerResultPayload = null;
+let scannerCreateInFlight = false;
 const scannerDigitalZoomFactor = 1.35;
 const scannerStableDetectionThreshold = 2;
 const scannerFocusRefreshMs = 2000;
@@ -2795,10 +2797,27 @@ function renderScannerResult(payload) {
   if (!container) return;
 
   if (!payload || !payload.found) {
+    scannerResultPayload = null;
     container.classList.add('hidden');
     container.innerHTML = '';
     return;
   }
+
+  scannerResultPayload = payload;
+  const canCreateDetectedProduct = payload.source !== 'Grocy' && payload.source !== 'scanner_created';
+  const actionMarkup = canCreateDetectedProduct
+    ? `
+      <button
+        id="scanner-create-product-button"
+        type="button"
+        class="success-button scanner-create-product-button"
+        onclick="createProductFromScannerResult()"
+        ${scannerCreateInFlight ? 'disabled' : ''}
+      >
+        ${scannerCreateInFlight ? 'Lege Produkt an…' : '➕ Erkanntes Produkt anlegen'}
+      </button>
+    `
+    : '';
 
   container.classList.remove('hidden');
   container.innerHTML = `
@@ -2810,7 +2829,70 @@ function renderScannerResult(payload) {
       <li><strong>Nährwert-Grad:</strong> ${payload.nutrition_grade || '-'}</li>
       <li><strong>Zutaten:</strong> ${payload.ingredients_text || '-'}</li>
     </ul>
+    ${actionMarkup}
   `;
+}
+
+async function createProductFromScannerResult() {
+  const key = ensureApiKey();
+  const status = getScannerStatusElement();
+  const payload = scannerResultPayload;
+
+  if (!key) {
+    status.textContent = 'Kein API-Key angegeben.';
+    return;
+  }
+
+  if (!payload || !payload.found) {
+    status.textContent = 'Kein erfasstes Produkt zum Anlegen vorhanden.';
+    return;
+  }
+
+  if (payload.source === 'Grocy') {
+    status.textContent = 'Dieses Produkt existiert bereits in Grocy.';
+    return;
+  }
+
+  if (scannerCreateInFlight) return;
+  scannerCreateInFlight = true;
+  renderScannerResult(payload);
+  status.textContent = `Lege ${payload.product_name || 'Produkt'} über den Scanner an...`;
+
+  try {
+    const res = await fetch(buildApiUrl('/api/dashboard/scanner/create-product'), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${key}`,
+      },
+      body: JSON.stringify({
+        product_name: payload.product_name || '',
+        source: payload.source || 'scanner',
+        barcode: payload.barcode || '',
+        brand: payload.brand || '',
+        quantity: payload.quantity || '',
+        ingredients_text: payload.ingredients_text || '',
+        nutrition_grade: payload.nutrition_grade || '',
+        hint: payload.hint || '',
+      }),
+    });
+    const createPayload = await parseJsonSafe(res);
+
+    if (!res.ok) {
+      status.textContent = getErrorMessage(createPayload, 'Produkt konnte nicht angelegt werden.');
+      return;
+    }
+
+    status.textContent = createPayload.message || 'Produkt wurde angelegt.';
+    scannerResultPayload = { ...payload, source: 'scanner_created' };
+    renderScannerResult(scannerResultPayload);
+    await loadShoppingList();
+  } catch (_) {
+    status.textContent = 'Produkt konnte nicht angelegt werden (Netzwerk-/Ingress-Fehler).';
+  } finally {
+    scannerCreateInFlight = false;
+    renderScannerResult(scannerResultPayload);
+  }
 }
 
 
@@ -2911,7 +2993,9 @@ async function queryLlavaWithCurrentFrame(reason = 'manual') {
       brand: payload.brand || '-',
       quantity: payload.hint || '-',
       ingredients_text: payload.hint || '-',
+      hint: payload.hint || '',
       nutrition_grade: payload.source || 'LLaVA',
+      source: payload.source || 'ollama_llava',
     });
   } catch (error) {
     if (error?.name === 'AbortError') {

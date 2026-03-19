@@ -964,7 +964,9 @@ def test_best_before_date_is_extracted_from_shopping_list_note(monkeypatch):
     assert result[0]["note"] == "Bio"
 
 
-def test_enrich_shopping_items_does_not_use_stock_best_before_date_without_note(monkeypatch):
+def test_enrich_shopping_items_does_not_use_stock_best_before_date_without_note(
+    monkeypatch,
+):
     def fake_get(url, *args, **kwargs):
         if url.endswith("/objects/products"):
             return FakeResponse([{"id": 5, "name": "Milch"}])
@@ -1151,6 +1153,41 @@ def test_find_product_by_barcode_falls_back_on_primary_bad_request(monkeypatch):
     }
 
 
+def test_set_product_barcode_posts_product_barcode_object(monkeypatch):
+    captured = {}
+
+    def fake_post(url, headers=None, json=None, timeout=None):
+        captured["url"] = url
+        captured["headers"] = headers
+        captured["json"] = json
+        captured["timeout"] = timeout
+        return FakeResponse({"created_object_id": 55})
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.services.grocy_client.requests.post", fake_post
+    )
+
+    client = GrocyClient(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+        )
+    )
+
+    client.set_product_barcode(product_id=12, barcode="4008 4004 08400")
+
+    assert captured["url"].endswith("/objects/product_barcodes")
+    assert captured["json"] == {
+        "product_id": 12,
+        "barcode": "4008400408400",
+        "qu_id": 1,
+        "amount": 1,
+    }
+    assert captured["timeout"] == 30
+
+
 def test_get_recipe_ingredients_includes_unit_attribution(monkeypatch):
     def fake_get(url, *args, **kwargs):
         if url.endswith("/objects/recipes_pos"):
@@ -1243,7 +1280,6 @@ def test_get_stock_products_includes_nutrition_values(monkeypatch):
     assert result[0]["fat"] == "3.2"
     assert result[0]["protein"] == "8"
     assert result[0]["sugar"] == "4"
-
 
 
 def test_get_stock_products_returns_stock_id(monkeypatch):
@@ -1405,13 +1441,9 @@ def test_consume_stock_product_uses_product_and_stock_id(monkeypatch):
     assert called["json"] == {"amount": 1.5, "stock_entry_id": 77}
 
 
-
-
-
-
 def test_resolve_stock_entry_id_for_product_prefers_location_match(monkeypatch):
     def fake_get(url, headers, timeout, params=None):
-        if url.endswith('/objects/stock'):
+        if url.endswith("/objects/stock"):
             return FakeResponse(
                 [
                     {"id": 11, "product_id": 42, "location_id": 1},
@@ -1434,8 +1466,14 @@ def test_resolve_stock_entry_id_for_product_prefers_location_match(monkeypatch):
     )
 
     assert client.resolve_stock_entry_id_for_product(product_id=42, location_id=2) == 12
-    assert client.resolve_stock_entry_id_for_product(product_id=42, location_id=999) == 11
-    assert client.resolve_stock_entry_id_for_product(product_id=999, location_id=2) is None
+    assert (
+        client.resolve_stock_entry_id_for_product(product_id=42, location_id=999) == 11
+    )
+    assert (
+        client.resolve_stock_entry_id_for_product(product_id=999, location_id=2) is None
+    )
+
+
 def test_add_product_to_stock_posts_stock_add(monkeypatch):
     captured = {}
 
@@ -1457,10 +1495,14 @@ def test_add_product_to_stock_posts_stock_add(monkeypatch):
         )
     )
 
-    client.add_product_to_stock(product_id=42, amount=3.5, best_before_date="2026-01-31")
+    client.add_product_to_stock(
+        product_id=42, amount=3.5, best_before_date="2026-01-31"
+    )
 
     assert captured["url"].endswith("/stock/products/42/add")
     assert captured["json"] == {"amount": 3.5, "best_before_date": "2026-01-31"}
+
+
 def test_update_stock_entry_updates_amount_and_best_before(monkeypatch):
     called = {}
 
@@ -1811,7 +1853,11 @@ def test_update_product_nutrition_skips_on_non_unknown_400(monkeypatch):
     assert len(calls) == 1
     assert calls[0][0].endswith("/objects/products/42")
     assert calls[0][1] == {"calories": 123}
-def test_update_product_nutrition_skips_userfields_when_endpoint_unavailable(monkeypatch):
+
+
+def test_update_product_nutrition_skips_userfields_when_endpoint_unavailable(
+    monkeypatch,
+):
     calls = []
 
     class UnsupportedUserfieldsResponse:
@@ -1908,9 +1954,7 @@ def test_get_shopping_list_enriches_nutrition_from_userfields(monkeypatch):
                 ]
             )
         if url.endswith("/stock"):
-            return FakeResponse(
-                [{"product_id": 42, "location_id": 3, "amount": 1}]
-            )
+            return FakeResponse([{"product_id": 42, "location_id": 3, "amount": 1}])
         if url.endswith("/objects/locations"):
             return FakeResponse([{"id": 3, "name": "Kühlschrank"}])
         if url.endswith("/userfields/products/42"):
@@ -2624,7 +2668,9 @@ def test_resolve_best_before_date_prefers_explicit_value():
     )
 
 
-def test_resolve_best_before_date_uses_global_fallback_when_no_defaults_available(monkeypatch):
+def test_resolve_best_before_date_uses_global_fallback_when_no_defaults_available(
+    monkeypatch,
+):
     client = GrocyClient(
         Settings(
             api_key="x",
@@ -2633,7 +2679,9 @@ def test_resolve_best_before_date_uses_global_fallback_when_no_defaults_availabl
             grocy_api_key="g",
         )
     )
-    monkeypatch.setattr(client, "_get_product_default_best_before_days", lambda _pid: None)
+    monkeypatch.setattr(
+        client, "_get_product_default_best_before_days", lambda _pid: None
+    )
 
     expected = (
         datetime.now().date() + timedelta(days=GrocyClient.FALLBACK_BEST_BEFORE_DAYS)

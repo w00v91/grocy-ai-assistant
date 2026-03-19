@@ -1446,6 +1446,7 @@ def test_dashboard_exposes_scanner_logic_in_js(client):
     assert "function startBarcodeScanner()" in static_response.text
     assert "BarcodeDetector" in static_response.text
     assert "function lookupBarcode(barcode)" in static_response.text
+    assert "function createProductFromScannerResult()" in static_response.text
 
 
 def test_dashboard_barcode_lookup_returns_product_data(client, monkeypatch):
@@ -1831,6 +1832,106 @@ def test_dashboard_scanner_llava_endpoint_returns_429_when_busy(client, monkeypa
     )
 
     assert response.status_code == 429
+
+
+def test_dashboard_scanner_create_product_uses_scanner_metadata(client, monkeypatch):
+    calls = {}
+
+    class FakeGrocyClient:
+        def __init__(self, settings):
+            self.settings = settings
+
+        def get_locations(self):
+            return [{"id": 7, "name": "Vorrat"}]
+
+        def get_quantity_units(self):
+            return {4: "Stück"}
+
+        def create_product(self, payload):
+            calls["created"] = payload
+            return 321
+
+        def update_product_nutrition(
+            self,
+            product_id,
+            calories=None,
+            carbs=None,
+            fat=None,
+            protein=None,
+            sugar=None,
+        ):
+            calls["nutrition"] = {
+                "product_id": product_id,
+                "calories": calories,
+                "carbs": carbs,
+                "fat": fat,
+                "protein": protein,
+                "sugar": sugar,
+            }
+
+        def get_product_default_best_before_days(self, product_id):
+            calls["default_days_lookup"] = product_id
+            return None
+
+        def set_product_default_best_before_days(self, product_id, days):
+            calls["default_days_set"] = (product_id, days)
+
+        def set_product_barcode(self, product_id, barcode):
+            calls["barcode"] = (product_id, barcode)
+
+        def add_product_to_shopping_list(self, product_id, amount, best_before_date=""):
+            calls["added"] = (product_id, amount, best_before_date)
+
+    monkeypatch.setattr(routes, "GrocyClient", FakeGrocyClient)
+
+    response = client.post(
+        "/api/dashboard/scanner/create-product",
+        headers={"Authorization": "Bearer test-api-key"},
+        json={
+            "product_name": "Haferdrink",
+            "source": "OpenFoodFacts",
+            "barcode": "4008400408400",
+            "brand": "Oatly",
+            "quantity": "1 l",
+            "ingredients_text": "Wasser, Hafer",
+            "nutrition_grade": "B",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "success": True,
+        "action": "created_and_added",
+        "message": "Haferdrink wurde neu angelegt und zur Einkaufsliste hinzugefügt.",
+        "product_id": 321,
+        "variants": [],
+    }
+    assert calls["created"] == {
+        "name": "Haferdrink",
+        "description": (
+            "Marke: Oatly\n"
+            "Menge: 1 l\n"
+            "Nutrition-Grade: B\n"
+            "Zutaten: Wasser, Hafer\n"
+            "Quelle: OpenFoodFacts"
+        ),
+        "location_id": 7,
+        "qu_id_purchase": 4,
+        "qu_id_stock": 4,
+        "default_best_before_days": 0,
+    }
+    assert calls["nutrition"] == {
+        "product_id": 321,
+        "calories": 0,
+        "carbs": 0,
+        "fat": 0,
+        "protein": 0,
+        "sugar": 0,
+    }
+    assert calls["default_days_lookup"] == 321
+    assert calls["default_days_set"] == (321, 0)
+    assert calls["barcode"] == (321, "4008400408400")
+    assert calls["added"] == (321, 1, "")
 
 
 def test_recipe_suggestions_strip_html_from_grocy_and_ai_fields(client, monkeypatch):

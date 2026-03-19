@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- Scanner-Popup ergänzt einen Button, der erkannte OpenFoodFacts-/LLaVA-Produkte direkt über den bestehenden Anlegeprozess neu erstellt und zur Einkaufsliste hinzufügt.
+- Scanner-Anlage übernimmt erkannte Barcode-/Produktattribute direkt in die Produktbeschreibung und speichert erkannte Barcodes zusätzlich in Grocy, ohne weitere KI-Nachfrage zur Produkterstellung.
+- Versionsstände für Add-on und Integration auf `7.2.30` erhöht.
+
 ## [7.2.29]
 
 ### Changed
