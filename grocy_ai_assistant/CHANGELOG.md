@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [7.2.20]
+
+### Changed
+
+- `CHANGELOG.md` verschoben.
+- Optionen angepasst.
+- `config.json` entfernt.
+- Translations geändert.
+
 ## [7.2.18]
 
 ### Changed
