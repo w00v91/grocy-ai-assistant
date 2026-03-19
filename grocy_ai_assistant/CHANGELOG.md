@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [7.2.21]
+
+### Fixed
+
+- Add-on-Optionen werden beim Laden jetzt aus dem neuen verschachtelten `options.yaml`-Layout (`grocy`, `ollama`, `scanner`, `cloud_ai`) in das bisherige Laufzeitformat überführt.
+- Startup-Flags werden beim automatischen Zurücksetzen wieder im neuen gruppierten `options.yaml`-Layout gespeichert, damit die geänderte Add-on-Struktur konsistent bleibt.
+- Tests für Options-Loading und Startup-Flag-Reset auf das neue YAML-Layout erweitert.
+
+
 ## [7.2.20]
 
 ### Changed
