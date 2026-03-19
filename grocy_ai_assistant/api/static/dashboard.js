@@ -2829,6 +2829,7 @@ function renderScannerResult(payload) {
       <li><strong>Nährwert-Grad:</strong> ${payload.nutrition_grade || '-'}</li>
       <li><strong>Zutaten:</strong> ${payload.ingredients_text || '-'}</li>
     </ul>
+    ${actionMarkup}
   `;
 }
 

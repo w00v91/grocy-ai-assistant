@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [7.2.31]
+
 ### Changed
 
 - Scanner-Popup ergänzt einen Button, der erkannte OpenFoodFacts-/LLaVA-Produkte direkt über den bestehenden Anlegeprozess neu erstellt und zur Einkaufsliste hinzufügt.
