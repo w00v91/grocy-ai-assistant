@@ -8,42 +8,45 @@ configuration:
   grocy_base_url:
     name: "01 · General · Grocy base URL"
     description: "Base URL of the Grocy API, e.g. http://homeassistant.local:9192/api."
-  ollama_url:
-    name: "02 · Ollama · Generate endpoint"
-    description: "URL of the Ollama generate endpoint for AI requests."
-  ollama_model:
-    name: "02 · Ollama · Default model"
-    description: "Ollama model used for general detection."
-  ollama_llava_model:
-    name: "02 · Ollama · Vision model (LLaVA)"
-    description: "Ollama LLaVA model used for image-based detection."
-  scanner_barcode_fallback_seconds:
-    name: "03 · Scanner · Barcode fallback (sec)"
-    description: "Delay in seconds before switching to fallback scanner logic."
-  scanner_llava_min_confidence:
-    name: "03 · Scanner · LLaVA minimum confidence (%)"
-    description: "Minimum confidence in percent for LLaVA scanner results."
-  scanner_llava_timeout_seconds:
-    name: "03 · Scanner · LLaVA timeout (sec)"
-    description: "Maximum wait time in seconds for LLaVA scanner requests."
+  ollama:
+    ollama_url:
+      name: "02 · Ollama · Generate endpoint"
+      description: "URL of the Ollama generate endpoint for AI requests."
+    ollama_model:
+      name: "02 · Ollama · Default model"
+      description: "Ollama model used for general detection."
+    ollama_llava_model:
+      name: "02 · Ollama · Vision model (LLaVA)"
+      description: "Ollama LLaVA model used for image-based detection."
+  scanner:
+    scanner_barcode_fallback_seconds:
+      name: "03 · Scanner · Barcode fallback (sec)"
+      description: "Delay in seconds before switching to fallback scanner logic."
+    scanner_llava_min_confidence:
+      name: "03 · Scanner · LLaVA minimum confidence (%)"
+      description: "Minimum confidence in percent for LLaVA scanner results."
+    scanner_llava_timeout_seconds:
+      name: "03 · Scanner · LLaVA timeout (sec)"
+      description: "Maximum wait time in seconds for LLaVA scanner requests."
   dashboard_polling_interval_seconds:
     name: "04 · Dashboard · Refresh interval (sec)"
     description: "Defines how often the dashboard automatically refreshes its data."
   notification_global_enabled:
     name: "04 · Notifications · Globally enabled"
     description: "Globally enables/disables notifications for this add-on."
-  image_generation_enabled:
-    name: "05 · Images · Image generation enabled"
-    description: "Enables AI-based generation of missing product images."
-  openai_api_key:
-    name: "05 · Images · OpenAI API key"
-    description: "OpenAI API key used for image generation."
-  openai_image_model:
-    name: "05 · Images · OpenAI image model"
-    description: "OpenAI model name used for image generation (e.g. gpt-image-1)."
-  generate_missing_product_images_on_startup:
-    name: "05 · Images · Generate missing images on startup"
-    description: "Automatically generates missing product images when the add-on starts."
+  cloud_ai:
+    image_generation_enabled:
+      name: "05 · Images · Image generation enabled"
+      description: "Enables AI-based generation of missing product images."
+    openai_api_key:
+      name: "05 · Images · OpenAI API key"
+      description: "OpenAI API key used for image generation."
+    openai_image_model:
+      name: "05 · Images · OpenAI image model"
+      description: "OpenAI model name used for image generation (e.g. gpt-image-1)."
+    generate_missing_product_images_on_startup:
+      name: "05 · Images · Generate missing images on startup"
+      description: "Automatically generates missing product images when the add-on starts."
   initial_info_sync:
     name: "05 · Images & Info · One-time info sync on startup"
     description: "On the next add-on start, analyzes existing products once and fills in missing nutrition values and estimated best-before days."
