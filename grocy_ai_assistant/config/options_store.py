@@ -171,7 +171,7 @@ def load_addon_options() -> dict[str, Any]:
         payload = json.loads(LEGACY_ADDON_OPTIONS_JSON_PATH.read_text(encoding="utf-8"))
         if not isinstance(payload, dict):
             raise ValueError("options.json enthält kein Objekt")
-        return payload
+        return _normalize_option_layout(payload)
 
     if REPOSITORY_CONFIG_YAML_PATH.exists():
         payload = _load_yaml_file(REPOSITORY_CONFIG_YAML_PATH)

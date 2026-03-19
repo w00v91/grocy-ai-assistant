@@ -1,5 +1,3 @@
-import json
-
 from grocy_ai_assistant.config import options_store
 
 
@@ -24,15 +22,11 @@ def test_parse_and_dump_simple_yaml_roundtrip():
     assert options_store.parse_simple_yaml(dumped) == payload
 
 
-def test_load_addon_options_prefers_yaml_then_legacy_json_then_repository_config_yaml(
-    tmp_path, monkeypatch
-):
+def test_load_addon_options_prefers_yaml_then_repository_config_yaml(tmp_path, monkeypatch):
     yaml_path = tmp_path / "options.yaml"
-    json_path = tmp_path / "options.json"
     repository_config_path = tmp_path / "config.yaml"
 
     monkeypatch.setattr(options_store, "ADDON_OPTIONS_YAML_PATH", yaml_path)
-    monkeypatch.setattr(options_store, "LEGACY_ADDON_OPTIONS_JSON_PATH", json_path)
     monkeypatch.setattr(
         options_store, "REPOSITORY_CONFIG_YAML_PATH", repository_config_path
     )
@@ -53,9 +47,6 @@ options:
         "grocy_api_key": "repo-grocy",
         "image_generation_enabled": True,
     }
-
-    json_path.write_text(json.dumps({"api_key": "legacy-json"}), encoding="utf-8")
-    assert options_store.load_addon_options() == {"api_key": "legacy-json"}
 
     yaml_path.write_text(
         """options:
