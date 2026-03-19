@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [7.2.26]
+
+### Fixed
+
+- Gruppierte Add-on-Optionen aus dem Home-Assistant-Layout werden jetzt auch nach einer Dateiänderung zuverlässig neu in die Laufzeit-Settings geladen.
+- Regressionstests decken jetzt zusätzlich das Nachladen geänderter verschachtelter YAML-Gruppen wie `grocy` und `cloud_ai` über `get_settings()` ab.
+
+## [7.2.24]
+
+### Fixed
+
+- Verschachtelte bekannte Optionswerte aus dem neuen `options.yaml`-Layout werden jetzt auch dann geladen, wenn sie innerhalb zusätzlicher Zwischenblöcke liegen.
+- Regressionstests decken jetzt zusätzlich tiefere verschachtelte Gruppen wie `profile.grocy.grocy_api_key` und `profile.cloud_ai.openai_api_key` ab.
+
 ## [7.2.23]
 
 ### Fixed

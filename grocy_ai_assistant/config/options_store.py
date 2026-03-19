@@ -66,14 +66,13 @@ def _load_yaml_file(path: Path) -> dict[str, Any]:
 
 
 def _extract_options_payload(payload: dict[str, Any]) -> dict[str, Any]:
-    options_payload = payload.get("options")
-    if isinstance(options_payload, dict):
-        return options_payload
-    return payload
+    extracted_payload = payload
+    while isinstance(extracted_payload.get("options"), dict):
+        extracted_payload = extracted_payload["options"]
+    return extracted_payload
 
 
-def _normalize_option_layout(payload: dict[str, Any]) -> dict[str, Any]:
-    payload = _extract_options_payload(payload)
+def _collect_root_option_values(payload: dict[str, Any]) -> dict[str, Any]:
     normalized: dict[str, Any] = {}
 
     for option_key in _TOP_LEVEL_OPTION_KEYS:
@@ -91,6 +90,37 @@ def _normalize_option_layout(payload: dict[str, Any]) -> dict[str, Any]:
         for option_key in option_keys:
             if option_key in group_payload:
                 normalized[option_key] = group_payload[option_key]
+
+    return normalized
+
+
+def _collect_nested_option_values(payload: Any) -> dict[str, Any]:
+    normalized: dict[str, Any] = {}
+    if not isinstance(payload, dict):
+        return normalized
+
+    for value in payload.values():
+        if not isinstance(value, dict):
+            continue
+
+        nested_root_values = _collect_root_option_values(value)
+        for option_key, option_value in nested_root_values.items():
+            normalized.setdefault(option_key, option_value)
+
+        nested_values = _collect_nested_option_values(value)
+        for option_key, option_value in nested_values.items():
+            normalized.setdefault(option_key, option_value)
+
+    return normalized
+
+
+def _normalize_option_layout(payload: dict[str, Any]) -> dict[str, Any]:
+    payload = _extract_options_payload(payload)
+    normalized = _collect_root_option_values(payload)
+
+    nested_values = _collect_nested_option_values(payload)
+    for option_key, option_value in nested_values.items():
+        normalized.setdefault(option_key, option_value)
 
     for key, value in payload.items():
         if key in _ALL_MAPPED_OPTION_KEYS or key in _GROUPED_OPTION_KEYS:
@@ -141,7 +171,7 @@ def load_addon_options() -> dict[str, Any]:
         payload = json.loads(LEGACY_ADDON_OPTIONS_JSON_PATH.read_text(encoding="utf-8"))
         if not isinstance(payload, dict):
             raise ValueError("options.json enthält kein Objekt")
-        return payload
+        return _normalize_option_layout(payload)
 
     if REPOSITORY_CONFIG_YAML_PATH.exists():
         payload = _load_yaml_file(REPOSITORY_CONFIG_YAML_PATH)

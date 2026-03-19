@@ -6,7 +6,8 @@ from pathlib import Path
 
 from pydantic import BaseModel, Field
 
-from grocy_ai_assistant.config.options_store import load_addon_options, parse_simple_yaml
+from grocy_ai_assistant.config import options_store
+from grocy_ai_assistant.config.options_store import parse_simple_yaml
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -78,12 +79,37 @@ class Settings(BaseModel):
 logger = logging.getLogger(__name__)
 
 
-@lru_cache(maxsize=1)
-def get_settings() -> Settings:
+def _settings_cache_token() -> tuple[str, int | None, int | None]:
+    for path in (
+        options_store.ADDON_OPTIONS_YAML_PATH,
+        options_store.LEGACY_ADDON_OPTIONS_JSON_PATH,
+        options_store.REPOSITORY_CONFIG_YAML_PATH,
+    ):
+        try:
+            stat_result = path.stat()
+        except OSError:
+            continue
+        return (str(path), stat_result.st_mtime_ns, stat_result.st_size)
+    return ("defaults", None, None)
+
+
+@lru_cache(maxsize=4)
+def _get_settings_cached(cache_token: tuple[str, int | None, int | None]) -> Settings:
     try:
-        payload = load_addon_options()
+        payload = options_store.load_addon_options()
         if payload:
             return Settings(**payload)
     except Exception as error:
         logger.error("Fehler beim Lesen der options.yaml: %s", error)
     return Settings()
+
+
+def get_settings() -> Settings:
+    return _get_settings_cached(_settings_cache_token())
+
+
+def _clear_get_settings_cache() -> None:
+    _get_settings_cached.cache_clear()
+
+
+get_settings.cache_clear = _clear_get_settings_cache  # type: ignore[attr-defined]
