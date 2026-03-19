@@ -38,13 +38,69 @@ def test_load_addon_options_prefers_yaml_then_legacy_json_then_repository_config
     )
 
     repository_config_path.write_text(
-        'name: Grocy AI Assistant\noptions:\n  api_key: repo-default\n',
+        """name: Grocy AI Assistant
+options:
+  api_key: repo-default
+  grocy:
+    grocy_api_key: repo-grocy
+  cloud_ai:
+    image_generation_enabled: true
+""",
         encoding="utf-8",
     )
-    assert options_store.load_addon_options() == {"api_key": "repo-default"}
+    assert options_store.load_addon_options() == {
+        "api_key": "repo-default",
+        "grocy_api_key": "repo-grocy",
+        "image_generation_enabled": True,
+    }
 
     json_path.write_text(json.dumps({"api_key": "legacy-json"}), encoding="utf-8")
     assert options_store.load_addon_options() == {"api_key": "legacy-json"}
 
-    yaml_path.write_text('api_key: yaml-wins\n', encoding="utf-8")
-    assert options_store.load_addon_options() == {"api_key": "yaml-wins"}
+    yaml_path.write_text(
+        """api_key: yaml-wins
+grocy:
+  grocy_api_key: yaml-grocy
+scanner:
+  scanner_llava_timeout_seconds: 45
+""",
+        encoding="utf-8",
+    )
+    assert options_store.load_addon_options() == {
+        "api_key": "yaml-wins",
+        "grocy_api_key": "yaml-grocy",
+        "scanner_llava_timeout_seconds": 45,
+    }
+
+
+def test_save_addon_options_writes_grouped_yaml_layout(tmp_path, monkeypatch):
+    yaml_path = tmp_path / "options.yaml"
+    monkeypatch.setattr(options_store, "ADDON_OPTIONS_YAML_PATH", yaml_path)
+
+    options_store.save_addon_options(
+        {
+            "api_key": "yaml-wins",
+            "notification_global_enabled": True,
+            "grocy_api_key": "yaml-grocy",
+            "grocy_base_url": "http://grocy.local/api",
+            "initial_info_sync": False,
+            "scanner_llava_timeout_seconds": 45,
+            "image_generation_enabled": True,
+            "generate_missing_product_images_on_startup": False,
+        }
+    )
+
+    assert options_store.parse_simple_yaml(yaml_path.read_text(encoding="utf-8")) == {
+        "api_key": "yaml-wins",
+        "notification_global_enabled": True,
+        "grocy": {
+            "grocy_api_key": "yaml-grocy",
+            "grocy_base_url": "http://grocy.local/api",
+        },
+        "ollama": {"initial_info_sync": False},
+        "scanner": {"scanner_llava_timeout_seconds": 45},
+        "cloud_ai": {
+            "image_generation_enabled": True,
+            "generate_missing_product_images_on_startup": False,
+        },
+    }
