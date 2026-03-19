@@ -78,8 +78,10 @@ def test_product_image_cache_wait_for_initial_refresh_signals_after_refresh(
 def test_startup_batch_disables_option_after_completion(monkeypatch, tmp_path):
     options_path = tmp_path / "options.yaml"
     options_path.write_text(
-        "generate_missing_product_images_on_startup: true\n"
-        "initial_info_sync: true\n",
+        "cloud_ai:\n"
+        "  generate_missing_product_images_on_startup: true\n"
+        "ollama:\n"
+        "  initial_info_sync: true\n",
         encoding="utf-8",
     )
 
@@ -120,8 +122,8 @@ def test_startup_batch_disables_option_after_completion(monkeypatch, tmp_path):
     api_main._generate_missing_product_images_on_startup(settings)
 
     stored = options_store.parse_simple_yaml(options_path.read_text(encoding="utf-8"))
-    assert stored["generate_missing_product_images_on_startup"] is False
-    assert stored["initial_info_sync"] is True
+    assert stored["cloud_ai"]["generate_missing_product_images_on_startup"] is False
+    assert stored["ollama"]["initial_info_sync"] is True
 
 
 def test_startup_batch_generates_images_for_products_without_picture(monkeypatch):
@@ -285,8 +287,10 @@ def test_startup_initial_info_sync_disables_option_after_completion(
 ):
     options_path = tmp_path / "options.yaml"
     options_path.write_text(
-        "generate_missing_product_images_on_startup: true\n"
-        "initial_info_sync: true\n",
+        "cloud_ai:\n"
+        "  generate_missing_product_images_on_startup: true\n"
+        "ollama:\n"
+        "  initial_info_sync: true\n",
         encoding="utf-8",
     )
 
@@ -345,8 +349,8 @@ def test_startup_initial_info_sync_disables_option_after_completion(
     api_main._run_initial_info_sync_on_startup(settings)
 
     stored = options_store.parse_simple_yaml(options_path.read_text(encoding="utf-8"))
-    assert stored["initial_info_sync"] is False
-    assert stored["generate_missing_product_images_on_startup"] is True
+    assert stored["ollama"]["initial_info_sync"] is False
+    assert stored["cloud_ai"]["generate_missing_product_images_on_startup"] is True
 
 
 def test_startup_initial_info_sync_skips_when_flag_disabled(monkeypatch):

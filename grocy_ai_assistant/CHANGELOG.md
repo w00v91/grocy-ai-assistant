@@ -4,6 +4,30 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [7.2.23]
+
+### Fixed
+
+- `options.yaml` mit zusätzlichem Top-Level-Block `options:` wird jetzt ebenfalls korrekt entpackt, sodass verschachtelte Werte wie `grocy.grocy_api_key` und `grocy.grocy_base_url` wieder zuverlässig in die Laufzeit-Settings gelangen.
+- Beim Speichern bleiben bestehende `options:`-Wrapper und zusätzliche Metadaten in `options.yaml` erhalten.
+- Regressionstests decken jetzt sowohl das Laden als auch das Speichern des gewrappten Layouts ab.
+
+## [7.2.22]
+
+### Fixed
+
+- Produktbild- und Lager-Cache starten ohne `grocy_api_key` jetzt ohne Hintergrund-Thread und ohne vermeidbare Warnmeldungen beim App-Start.
+- Zusätzliche Unit-Tests decken das threadlose Startverhalten der Caches ohne Grocy-Zugangsdaten ab.
+
+## [7.2.21]
+
+### Fixed
+
+- Add-on-Optionen werden beim Laden jetzt aus dem neuen verschachtelten `options.yaml`-Layout (`grocy`, `ollama`, `scanner`, `cloud_ai`) in das bisherige Laufzeitformat überführt.
+- Startup-Flags werden beim automatischen Zurücksetzen wieder im neuen gruppierten `options.yaml`-Layout gespeichert, damit die geänderte Add-on-Struktur konsistent bleibt.
+- Tests für Options-Loading und Startup-Flag-Reset auf das neue YAML-Layout erweitert.
+
+
 ## [7.2.20]
 
 ### Changed

@@ -2,6 +2,23 @@ from grocy_ai_assistant.config.settings import Settings
 from grocy_ai_assistant.services.product_image_cache import ProductImageCache
 
 
+
+
+def test_product_image_cache_start_skips_background_thread_without_grocy_key(tmp_path):
+    cache = ProductImageCache(
+        Settings(grocy_api_key=""),
+        cache_dir=str(tmp_path),
+        refresh_interval_seconds=3600,
+    )
+
+    cache.start()
+    try:
+        assert cache._refresh_thread is None
+        assert cache.wait_for_initial_refresh(timeout=0.1) is True
+    finally:
+        cache.stop()
+
+
 def test_get_cached_image_downloads_and_reads(monkeypatch, tmp_path):
     settings = Settings(
         grocy_base_url="http://homeassistant.local:9192/api", grocy_api_key="x"

@@ -44,6 +44,13 @@ class ProductImageCache:
 
         self._stop_event.clear()
         self._initial_refresh_done.clear()
+        if not self._settings.grocy_api_key:
+            logger.info(
+                "Produktbild-Cache wird nicht gestartet: grocy_api_key fehlt"
+            )
+            self._initial_refresh_done.set()
+            return
+
         self._refresh_thread = threading.Thread(
             target=self._refresh_loop,
             name="grocy-product-image-cache-refresh",
