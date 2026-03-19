@@ -9,6 +9,12 @@ from homeassistant.helpers.event import async_call_later
 
 from .addon_client import AddonClient
 from .const import DEFAULT_ADDON_BASE_URL, DOMAIN, INTEGRATION_VERSION
+from .entity_payloads import (
+    build_analysis_status_payload,
+    build_barcode_status_payload,
+    build_error_status_payload,
+    build_llava_status_payload,
+)
 from .services import (
     DATA_NOTIFICATION_MANAGER,
     NotificationManager,
@@ -69,6 +75,36 @@ def _product_input_entity_id(hass: HomeAssistant, entry: ConfigEntry) -> str:
         "text",
         "product_input",
         f"text.{DOMAIN}_produkt_name",
+    )
+
+
+def _analysis_status_sensor_entity_id(hass: HomeAssistant, entry: ConfigEntry) -> str:
+    return _get_entity_id(
+        hass,
+        entry.entry_id,
+        "sensor",
+        "analysis_status",
+        f"sensor.{DOMAIN}_analyse_status",
+    )
+
+
+def _barcode_status_sensor_entity_id(hass: HomeAssistant, entry: ConfigEntry) -> str:
+    return _get_entity_id(
+        hass,
+        entry.entry_id,
+        "sensor",
+        "barcode_lookup_status",
+        f"sensor.{DOMAIN}_barcode_scanner_status",
+    )
+
+
+def _llava_status_sensor_entity_id(hass: HomeAssistant, entry: ConfigEntry) -> str:
+    return _get_entity_id(
+        hass,
+        entry.entry_id,
+        "sensor",
+        "llava_scan_status",
+        f"sensor.{DOMAIN}_llava_scanner_status",
     )
 
 
@@ -149,14 +185,41 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             },
         )
 
-    async def add_product_via_ai_service(call):
-        """Analyze a product through the add-on and sync it to Grocy shopping list."""
+    def _set_analysis_status(state: str, attributes: dict) -> None:
+        hass.states.async_set(
+            _analysis_status_sensor_entity_id(hass, entry),
+            state,
+            attributes,
+        )
+
+    def _set_barcode_status(state: str, attributes: dict) -> None:
+        hass.states.async_set(
+            _barcode_status_sensor_entity_id(hass, entry),
+            state,
+            attributes,
+        )
+
+    def _set_llava_status(state: str, attributes: dict) -> None:
+        hass.states.async_set(
+            _llava_status_sensor_entity_id(hass, entry),
+            state,
+            attributes,
+        )
+
+    def _build_active_client() -> AddonClient:
         current_entry = hass.config_entries.async_get_entry(entry.entry_id)
         if current_entry is None:
-            _LOGGER.error("Config entry %s was not found", entry.entry_id)
-            return
+            raise RuntimeError(f"Config entry {entry.entry_id} wurde nicht gefunden")
 
         active_conf = {**current_entry.data, **current_entry.options}
+        return AddonClient(
+            active_conf.get("addon_base_url", DEFAULT_ADDON_BASE_URL),
+            active_conf.get("api_key", ""),
+            integration_version=INTEGRATION_VERSION,
+        )
+
+    async def add_product_via_ai_service(call):
+        """Analyze a product through the add-on and sync it to Grocy shopping list."""
         product_name = (call.data.get("name") or "").strip()
 
         if not product_name:
@@ -167,13 +230,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             _set_response_state(
                 "Kein Produktname übergeben", "mdi:alert-circle", reset_after=True
             )
+            _set_analysis_status(
+                *build_error_status_payload(
+                    source="dashboard_search",
+                    error="Kein Produktname übergeben",
+                )
+            )
             return
 
-        client = AddonClient(
-            active_conf.get("addon_base_url", DEFAULT_ADDON_BASE_URL),
-            active_conf.get("api_key", ""),
-            integration_version=INTEGRATION_VERSION,
-        )
+        client = _build_active_client()
 
         _set_response_state("KI analysiert…", "mdi:progress-clock")
         start_time = time.perf_counter()
@@ -185,6 +250,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             if payload.get("_http_status") != 200:
                 raise RuntimeError(payload.get("detail") or "Unbekannter API-Fehler")
 
+            _set_analysis_status(
+                *build_analysis_status_payload(
+                    query=product_name,
+                    payload=payload,
+                    duration_ms=duration_ms,
+                )
+            )
             _set_response_state(
                 payload.get("message", "Vorgang abgeschlossen"),
                 "mdi:check-circle",
@@ -193,13 +265,90 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             hass.states.async_set(_product_input_entity_id(hass, entry), "")
         except Exception as error:
             _LOGGER.error("Fehler beim Add-on Aufruf: %s", error)
+            _set_analysis_status(
+                *build_error_status_payload(
+                    source="dashboard_search",
+                    error=error,
+                    extra={"query": product_name},
+                )
+            )
             _set_response_state(
                 f"Fehler: {error}", "mdi:alert-circle", reset_after=True
+            )
+
+    async def barcode_lookup_service(call):
+        barcode = str(call.data.get("barcode") or "").strip()
+        if not barcode:
+            _set_barcode_status(
+                *build_error_status_payload(
+                    source="barcode_lookup",
+                    error="Kein Barcode übergeben",
+                )
+            )
+            return
+
+        client = _build_active_client()
+        start_time = time.perf_counter()
+        try:
+            payload = await client.lookup_barcode(barcode)
+            duration_ms = (time.perf_counter() - start_time) * 1000
+            if payload.get("_http_status") != 200:
+                raise RuntimeError(
+                    payload.get("detail") or "Barcode-Lookup fehlgeschlagen"
+                )
+            _set_barcode_status(
+                *build_barcode_status_payload(
+                    barcode=barcode,
+                    payload=payload,
+                    duration_ms=duration_ms,
+                )
+            )
+        except Exception as error:
+            _set_barcode_status(
+                *build_error_status_payload(
+                    source="barcode_lookup",
+                    error=error,
+                    extra={"barcode": barcode},
+                )
+            )
+
+    async def scanner_llava_service(call):
+        image_base64 = str(call.data.get("image_base64") or "").strip()
+        if not image_base64:
+            _set_llava_status(
+                *build_error_status_payload(
+                    source="scanner_llava",
+                    error="Keine Bilddaten übergeben",
+                )
+            )
+            return
+
+        client = _build_active_client()
+        start_time = time.perf_counter()
+        try:
+            payload = await client.scan_image_with_llava(image_base64)
+            duration_ms = (time.perf_counter() - start_time) * 1000
+            if payload.get("_http_status") != 200:
+                raise RuntimeError(payload.get("detail") or "LLaVA-Scan fehlgeschlagen")
+            _set_llava_status(
+                *build_llava_status_payload(
+                    payload=payload,
+                    duration_ms=duration_ms,
+                )
+            )
+        except Exception as error:
+            _set_llava_status(
+                *build_error_status_payload(
+                    source="scanner_llava",
+                    error=error,
+                )
             )
 
     hass.services.async_register(
         DOMAIN, "add_product_via_ai", add_product_via_ai_service
     )
+    hass.services.async_register(DOMAIN, "barcode_lookup", barcode_lookup_service)
+    hass.services.async_register(DOMAIN, "scanner_llava_analyze", scanner_llava_service)
 
     manager = NotificationManager(hass, entry.entry_id)
     await manager.async_initialize()
@@ -232,6 +381,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     )
 
     hass.services.async_remove(DOMAIN, "add_product_via_ai")
+    hass.services.async_remove(DOMAIN, "barcode_lookup")
+    hass.services.async_remove(DOMAIN, "scanner_llava_analyze")
     hass.services.async_remove(DOMAIN, "notification_emit_event")
     hass.services.async_remove(DOMAIN, "notification_test_device")
     hass.services.async_remove(DOMAIN, "notification_test_all")

@@ -4,6 +4,25 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [7.2.28]
+
+### Changed
+
+- Repository arbeitet wieder ausschließlich mit `grocy_ai_assistant/config.yaml`; die versehentlich ergänzte `config.json` wurde entfernt und die zugehörigen Tests/Dokumentationshinweise wurden auf YAML als Single Source of Truth umgestellt.
+- Versionsstände für Add-on und Integration auf `7.2.28` erhöht.
+
+## [7.2.27]
+
+### Added
+
+- Home-Assistant-Integration ergänzt neue Sensorsummen für offene Einkaufslisten-Einträge, gesamte Lagerprodukte, bald ablaufende Lagerprodukte sowie Top-Rezeptvorschläge inklusive Variante nur aus bald ablaufenden Produkten.
+- Neue Statussensoren für Analyse, Barcode-Lookup und LLaVA-Scanner speichern das letzte Ergebnis inklusive Detailattributen; ergänzende Services für Barcode- und LLaVA-Aufrufe aktualisieren diese Sensoren direkt aus Home Assistant.
+- Home-Assistant-Integration ergänzt neue Sensorsummen und Statussensoren; die Add-on-Metadaten bleiben in `grocy_ai_assistant/config.yaml` als zentrale Repository-Konfiguration.
+
+### Changed
+
+- Integrationsversion auf `7.2.27` erhöht und mit Manifest-/Add-on-Metadaten synchronisiert.
+
 ## [7.2.26]
 
 ### Fixed

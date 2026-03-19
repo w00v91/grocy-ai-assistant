@@ -1,5 +1,5 @@
 name: Grocy AI Assistant
-version: 7.2.26
+version: 7.2.28
 slug: grocy_ai_assistant
 dependencies:
 - a0d49513_grocy
@@ -24,43 +24,35 @@ options:
   api_key: DEIN_KI_KEY
   notification_global_enabled: true
   dashboard_polling_interval_seconds: 5
-  grocy:
-    grocy_api_key: DEIN_GROCY_KEY
-    grocy_base_url: http://homeassistant.local:9192/api
-  ollama:
-    ollama_url: http://76e18fb5_ollama:11434/api/generate
-    ollama_model: llama3
-    ollama_llava_model: llava
-    initial_info_sync: false
-  scanner:
-    scanner_barcode_fallback_seconds: 5
-    scanner_llava_min_confidence: 75
-    scanner_llava_timeout_seconds: 45
-  cloud_ai:
-    image_generation_enabled: false
-    openai_api_key: DEIN_OPENAI_KEY
-    openai_image_model: gpt-image-1
-    generate_missing_product_images_on_startup: false
   debug_mode: false
+  grocy_api_key: DEIN_GROCY_KEY
+  grocy_base_url: http://homeassistant.local:9192/api
+  ollama_url: http://76e18fb5_ollama:11434/api/generate
+  ollama_model: llama3
+  ollama_llava_model: llava
+  initial_info_sync: false
+  scanner_barcode_fallback_seconds: 5
+  scanner_llava_min_confidence: 75
+  scanner_llava_timeout_seconds: 45
+  image_generation_enabled: false
+  openai_api_key: DEIN_OPENAI_KEY
+  openai_image_model: gpt-image-1
+  generate_missing_product_images_on_startup: false
 schema:
   api_key: str
   notification_global_enabled: bool
   dashboard_polling_interval_seconds: int(1,60)
-  grocy:
-    grocy_api_key: str
-    grocy_base_url: str
-  ollama:
-    ollama_url: str
-    ollama_model: str
-    ollama_llava_model: str
-    initial_info_sync: bool
-  scanner:
-    scanner_barcode_fallback_seconds: int(1,30)
-    scanner_llava_min_confidence: int(1,100)
-    scanner_llava_timeout_seconds: int(10,120)
-  cloud_ai:
-    image_generation_enabled: bool
-    openai_api_key: password
-    openai_image_model: str
-    generate_missing_product_images_on_startup: bool
   debug_mode: bool
+  grocy_api_key: str
+  grocy_base_url: str
+  ollama_url: str
+  ollama_model: str
+  ollama_llava_model: str
+  initial_info_sync: bool
+  scanner_barcode_fallback_seconds: int(1,30)
+  scanner_llava_min_confidence: int(1,100)
+  scanner_llava_timeout_seconds: int(10,120)
+  image_generation_enabled: bool
+  openai_api_key: password
+  openai_image_model: str
+  generate_missing_product_images_on_startup: bool

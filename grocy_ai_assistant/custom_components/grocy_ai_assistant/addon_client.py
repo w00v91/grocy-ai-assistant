@@ -14,24 +14,83 @@ class AddonClient:
         if integration_version:
             self._headers["X-HA-Integration-Version"] = integration_version
 
-    async def get_status(self) -> dict:
-        timeout = aiohttp.ClientTimeout(total=10)
+    async def _request_json(
+        self,
+        method: str,
+        path: str,
+        *,
+        json_payload: dict | None = None,
+        timeout_seconds: int = 30,
+    ) -> dict | list:
+        timeout = aiohttp.ClientTimeout(total=timeout_seconds)
         async with aiohttp.ClientSession(timeout=timeout) as session:
-            async with session.get(
-                f"{self._base_url}/api/status", headers=self._headers
+            request = session.get if method.upper() == "GET" else session.post
+            request_kwargs = {"headers": self._headers}
+            if method.upper() != "GET":
+                request_kwargs["json"] = json_payload
+            async with request(
+                f"{self._base_url}{path}",
+                **request_kwargs,
             ) as response:
                 payload = await response.json()
-                payload["_http_status"] = response.status
-                return payload
+                if isinstance(payload, dict):
+                    payload["_http_status"] = response.status
+                    return payload
+                return {
+                    "items": payload,
+                    "_http_status": response.status,
+                }
+
+    async def get_status(self) -> dict:
+        return await self._request_json("GET", "/api/status", timeout_seconds=10)
 
     async def dashboard_search(self, product_name: str) -> dict:
-        timeout = aiohttp.ClientTimeout(total=180)
-        async with aiohttp.ClientSession(timeout=timeout) as session:
-            async with session.post(
-                f"{self._base_url}/api/dashboard/search",
-                json={"name": product_name},
-                headers=self._headers,
-            ) as response:
-                payload = await response.json()
-                payload["_http_status"] = response.status
-                return payload
+        return await self._request_json(
+            "POST",
+            "/api/dashboard/search",
+            json_payload={"name": product_name},
+            timeout_seconds=180,
+        )
+
+    async def get_shopping_list(self) -> dict:
+        return await self._request_json(
+            "GET", "/api/dashboard/shopping-list", timeout_seconds=30
+        )
+
+    async def get_stock_products(self) -> dict:
+        return await self._request_json(
+            "GET", "/api/dashboard/stock-products", timeout_seconds=30
+        )
+
+    async def get_recipe_suggestions(
+        self,
+        *,
+        soon_expiring_only: bool = False,
+        expiring_within_days: int = 3,
+    ) -> dict:
+        payload = {
+            "soon_expiring_only": bool(soon_expiring_only),
+            "expiring_within_days": max(1, int(expiring_within_days)),
+        }
+        return await self._request_json(
+            "POST",
+            "/api/dashboard/recipe-suggestions",
+            json_payload=payload,
+            timeout_seconds=60,
+        )
+
+    async def lookup_barcode(self, barcode: str) -> dict:
+        normalized_barcode = str(barcode or "").strip()
+        return await self._request_json(
+            "GET",
+            f"/api/dashboard/barcode/{normalized_barcode}",
+            timeout_seconds=30,
+        )
+
+    async def scan_image_with_llava(self, image_base64: str) -> dict:
+        return await self._request_json(
+            "POST",
+            "/api/dashboard/scanner/llava",
+            json_payload={"image_base64": image_base64},
+            timeout_seconds=180,
+        )
