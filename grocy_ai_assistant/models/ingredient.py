@@ -10,6 +10,19 @@ class AnalyzeProductRequest(BaseModel):
     force_create: bool = False
 
 
+class ScannerProductCreateRequest(BaseModel):
+    product_name: str = Field(..., min_length=1)
+    source: str = "scanner"
+    barcode: str = ""
+    brand: str = ""
+    quantity: str = ""
+    ingredients_text: str = ""
+    nutrition_grade: str = ""
+    hint: str = ""
+    amount: float = Field(default=1, gt=0)
+    best_before_date: str = ""
+
+
 class ExistingProductAddRequest(BaseModel):
     product_id: int
     product_name: str = Field(..., min_length=1)
