@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime, timezone
 
 from homeassistant.components.sensor import SensorEntity, SensorStateClass
 from homeassistant.helpers.entity import EntityCategory
@@ -59,12 +60,48 @@ class _PollingAddonSensor(_BaseAddonSensor):
     def __init__(self, entry):
         super().__init__(entry)
         self._debug_mode = bool(entry.options.get(CONF_DEBUG_MODE, False))
+        self._has_successful_update = False
+
+    @staticmethod
+    def _updated_at() -> str:
+        return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+
+    def _set_success_state(self, *, attributes: dict | None = None) -> None:
+        merged_attributes = dict(attributes or {})
+        merged_attributes["last_update_success"] = True
+        merged_attributes.pop("last_error", None)
+        merged_attributes.pop("http_status", None)
+        self._attr_extra_state_attributes = merged_attributes
+        self._attr_available = True
+        self._has_successful_update = True
+
+    def _set_failure_state(
+        self,
+        *,
+        error: Exception | str,
+        http_status: int | None = None,
+        fallback_native_value=None,
+    ) -> None:
+        merged_attributes = dict(getattr(self, "_attr_extra_state_attributes", {}) or {})
+        merged_attributes.update(
+            {
+                "last_update_success": False,
+                "last_error": str(error),
+                "updated_at": self._updated_at(),
+            }
+        )
+        if http_status is not None:
+            merged_attributes["http_status"] = http_status
+        self._attr_extra_state_attributes = merged_attributes
+        if not self._has_successful_update and fallback_native_value is not None:
+            self._attr_native_value = fallback_native_value
+        self._attr_available = self._has_successful_update or fallback_native_value is not None
 
     async def async_update(self):
         try:
             await self._async_update_native_value()
         except Exception as error:
-            self._attr_available = False
+            self._set_failure_state(error=error)
             if self._debug_mode:
                 _LOGGER.debug("Sensorabfrage fehlgeschlagen (%s): %s", self.name, error)
 
@@ -198,14 +235,18 @@ class GrocyAIShoppingListOpenCountSensor(_PollingAddonSensor):
 
     async def _async_update_native_value(self):
         payload = await self._build_client().get_shopping_list()
-        self._attr_available = payload.get("_http_status") == 200
-        if not self._attr_available:
-            self._attr_native_value = None
+        http_status = payload.get("_http_status")
+        if http_status != 200:
+            self._set_failure_state(
+                error=payload.get("detail") or f"HTTP {http_status}",
+                http_status=http_status,
+                fallback_native_value=0,
+            )
             return
 
         count, attributes = build_shopping_list_summary(payload.get("items") or [])
         self._attr_native_value = count
-        self._attr_extra_state_attributes = attributes
+        self._set_success_state(attributes=attributes)
 
 
 class GrocyAIStockProductCountSensor(_PollingAddonSensor):
@@ -218,14 +259,18 @@ class GrocyAIStockProductCountSensor(_PollingAddonSensor):
 
     async def _async_update_native_value(self):
         payload = await self._build_client().get_stock_products()
-        self._attr_available = payload.get("_http_status") == 200
-        if not self._attr_available:
-            self._attr_native_value = None
+        http_status = payload.get("_http_status")
+        if http_status != 200:
+            self._set_failure_state(
+                error=payload.get("detail") or f"HTTP {http_status}",
+                http_status=http_status,
+                fallback_native_value=0,
+            )
             return
 
         count, attributes = build_stock_summary(payload.get("items") or [])
         self._attr_native_value = count
-        self._attr_extra_state_attributes = attributes
+        self._set_success_state(attributes=attributes)
 
 
 class GrocyAIExpiringStockProductCountSensor(_PollingAddonSensor):
@@ -238,9 +283,13 @@ class GrocyAIExpiringStockProductCountSensor(_PollingAddonSensor):
 
     async def _async_update_native_value(self):
         payload = await self._build_client().get_stock_products()
-        self._attr_available = payload.get("_http_status") == 200
-        if not self._attr_available:
-            self._attr_native_value = None
+        http_status = payload.get("_http_status")
+        if http_status != 200:
+            self._set_failure_state(
+                error=payload.get("detail") or f"HTTP {http_status}",
+                http_status=http_status,
+                fallback_native_value=0,
+            )
             return
 
         count, attributes = build_expiring_stock_summary(
@@ -248,7 +297,7 @@ class GrocyAIExpiringStockProductCountSensor(_PollingAddonSensor):
             expiring_within_days=DEFAULT_EXPIRING_WITHIN_DAYS,
         )
         self._attr_native_value = count
-        self._attr_extra_state_attributes = attributes
+        self._set_success_state(attributes=attributes)
 
 
 class _RecipeSuggestionSensor(_PollingAddonSensor):
@@ -265,9 +314,13 @@ class _RecipeSuggestionSensor(_PollingAddonSensor):
             soon_expiring_only=self._soon_expiring_only,
             expiring_within_days=DEFAULT_EXPIRING_WITHIN_DAYS,
         )
-        self._attr_available = payload.get("_http_status") == 200
-        if not self._attr_available:
-            self._attr_native_value = "Fehler"
+        http_status = payload.get("_http_status")
+        if http_status != 200:
+            self._set_failure_state(
+                error=payload.get("detail") or f"HTTP {http_status}",
+                http_status=http_status,
+                fallback_native_value="Keine Vorschläge",
+            )
             return
 
         state, attributes = build_recipe_summary(
@@ -276,7 +329,7 @@ class _RecipeSuggestionSensor(_PollingAddonSensor):
             expiring_within_days=DEFAULT_EXPIRING_WITHIN_DAYS,
         )
         self._attr_native_value = state
-        self._attr_extra_state_attributes = attributes
+        self._set_success_state(attributes=attributes)
 
 
 class GrocyAITopRecipeSuggestionSensor(_RecipeSuggestionSensor):
