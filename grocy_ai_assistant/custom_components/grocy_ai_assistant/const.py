@@ -1,7 +1,7 @@
 """Constants for the Grocy AI Assistant integration."""
 
 DOMAIN = "grocy_ai_assistant"
-INTEGRATION_VERSION = "7.1.1"
+INTEGRATION_VERSION = "7.2.29"
 DEFAULT_ADDON_INGRESS_PATH = "/api/hassio_ingress/grocy_ai_assistant/"
 DEFAULT_ADDON_BASE_URL = DEFAULT_ADDON_INGRESS_PATH
 

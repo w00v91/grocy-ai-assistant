@@ -54,3 +54,26 @@ notification_test_all:
 notification_test_persistent:
   name: Test als Persistent Notification
   description: Sendet eine Test-Nachricht in Home Assistant als persistent_notification.
+
+barcode_lookup:
+  name: Barcode nachschlagen
+  description: Führt einen Barcode-Lookup über das Grocy AI Add-on aus und aktualisiert den Barcode-Statussensor mit dem letzten Ergebnis.
+  fields:
+    barcode:
+      name: Barcode
+      description: Die zu suchende Barcode-Nummer.
+      required: true
+      example: "4008400402222"
+      selector:
+        text:
+
+scanner_llava_analyze:
+  name: Bild per LLaVA analysieren
+  description: Übergibt ein Base64-kodiertes Bild an den LLaVA-Scanner und aktualisiert den Scanner-Statussensor mit dem letzten Ergebnis.
+  fields:
+    image_base64:
+      name: Bilddaten (Base64)
+      description: Base64-kodiertes Bild ohne Dateipfad.
+      required: true
+      selector:
+        text:

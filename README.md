@@ -117,14 +117,14 @@ black .
 
 Dieses Repository enthält zwei relevante Versionsdomänen:
 
-- Add-on-Metadaten in `grocy_ai_assistant/config.json` und gespiegelt in `grocy_ai_assistant/config.yaml`
+- Add-on-Metadaten in `grocy_ai_assistant/config.yaml`
 - Integrationsversion in `grocy_ai_assistant/custom_components/grocy_ai_assistant/manifest.json`
 
 Zusätzlich nutzt die Integration eine Konstante in `const.py`, die synchron zur Manifest-Version gehalten wird.
 
 Aktueller Stand:
 
-- **Add-on:** `7.2.16`
+- **Add-on:** `7.2.29`
 - **Integration:** siehe `manifest.json` der Home-Assistant-Integration
 
 ## Add-on-Dokumentation
