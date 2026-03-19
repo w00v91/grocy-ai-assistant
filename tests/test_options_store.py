@@ -137,3 +137,50 @@ metadata:
         },
         "metadata": {"source": "supervisor"},
     }
+
+
+def test_load_addon_options_reads_mapped_values_from_deeply_nested_yaml_layout(
+    tmp_path, monkeypatch
+):
+    yaml_path = tmp_path / "options.yaml"
+
+    monkeypatch.setattr(options_store, "ADDON_OPTIONS_YAML_PATH", yaml_path)
+    monkeypatch.setattr(
+        options_store, "LEGACY_ADDON_OPTIONS_JSON_PATH", tmp_path / "options.json"
+    )
+    monkeypatch.setattr(
+        options_store, "REPOSITORY_CONFIG_YAML_PATH", tmp_path / "config.yaml"
+    )
+
+    yaml_path.write_text(
+        """options:
+  profile:
+    grocy:
+      grocy_api_key: nested-grocy-key
+      grocy_base_url: http://grocy.local/api
+    cloud_ai:
+      openai_api_key: nested-openai-key
+  scanner:
+    scanner_llava_timeout_seconds: 60
+  api_key: top-level-key
+  metadata:
+    source: supervisor
+""",
+        encoding="utf-8",
+    )
+
+    assert options_store.load_addon_options() == {
+        "api_key": "top-level-key",
+        "grocy_api_key": "nested-grocy-key",
+        "grocy_base_url": "http://grocy.local/api",
+        "scanner_llava_timeout_seconds": 60,
+        "openai_api_key": "nested-openai-key",
+        "profile": {
+            "grocy": {
+                "grocy_api_key": "nested-grocy-key",
+                "grocy_base_url": "http://grocy.local/api",
+            },
+            "cloud_ai": {"openai_api_key": "nested-openai-key"},
+        },
+        "metadata": {"source": "supervisor"},
+    }

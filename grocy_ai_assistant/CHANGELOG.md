@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [7.2.24]
+
+### Fixed
+
+- Verschachtelte bekannte Optionswerte aus dem neuen `options.yaml`-Layout werden jetzt auch dann geladen, wenn sie innerhalb zusätzlicher Zwischenblöcke liegen.
+- Regressionstests decken jetzt zusätzlich tiefere verschachtelte Gruppen wie `profile.grocy.grocy_api_key` und `profile.cloud_ai.openai_api_key` ab.
+
 ## [7.2.23]
 
 ### Fixed
