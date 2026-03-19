@@ -58,11 +58,12 @@ options:
     assert options_store.load_addon_options() == {"api_key": "legacy-json"}
 
     yaml_path.write_text(
-        """api_key: yaml-wins
-grocy:
-  grocy_api_key: yaml-grocy
-scanner:
-  scanner_llava_timeout_seconds: 45
+        """options:
+  api_key: yaml-wins
+  grocy:
+    grocy_api_key: yaml-grocy
+  scanner:
+    scanner_llava_timeout_seconds: 45
 """,
         encoding="utf-8",
     )
@@ -103,4 +104,36 @@ def test_save_addon_options_writes_grouped_yaml_layout(tmp_path, monkeypatch):
             "image_generation_enabled": True,
             "generate_missing_product_images_on_startup": False,
         },
+    }
+
+
+
+def test_save_addon_options_preserves_wrapped_options_layout(tmp_path, monkeypatch):
+    yaml_path = tmp_path / "options.yaml"
+    yaml_path.write_text(
+        """options:
+  grocy:
+    grocy_api_key: old-key
+metadata:
+  source: supervisor
+""",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(options_store, "ADDON_OPTIONS_YAML_PATH", yaml_path)
+
+    options_store.save_addon_options(
+        {
+            "grocy_api_key": "new-key",
+            "grocy_base_url": "http://grocy.local/api",
+        }
+    )
+
+    assert options_store.parse_simple_yaml(yaml_path.read_text(encoding="utf-8")) == {
+        "options": {
+            "grocy": {
+                "grocy_api_key": "new-key",
+                "grocy_base_url": "http://grocy.local/api",
+            }
+        },
+        "metadata": {"source": "supervisor"},
     }

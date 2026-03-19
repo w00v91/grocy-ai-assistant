@@ -65,7 +65,15 @@ def _load_yaml_file(path: Path) -> dict[str, Any]:
     return payload
 
 
+def _extract_options_payload(payload: dict[str, Any]) -> dict[str, Any]:
+    options_payload = payload.get("options")
+    if isinstance(options_payload, dict):
+        return options_payload
+    return payload
+
+
 def _normalize_option_layout(payload: dict[str, Any]) -> dict[str, Any]:
+    payload = _extract_options_payload(payload)
     normalized: dict[str, Any] = {}
 
     for option_key in _TOP_LEVEL_OPTION_KEYS:
@@ -116,6 +124,15 @@ def _nest_option_layout(payload: dict[str, Any]) -> dict[str, Any]:
     return nested
 
 
+def _wrap_saved_options_if_needed(payload: dict[str, Any], nested_options: dict[str, Any]) -> dict[str, Any]:
+    options_payload = payload.get("options")
+    if isinstance(options_payload, dict):
+        wrapped_payload = dict(payload)
+        wrapped_payload["options"] = nested_options
+        return wrapped_payload
+    return nested_options
+
+
 def load_addon_options() -> dict[str, Any]:
     if ADDON_OPTIONS_YAML_PATH.exists():
         return _normalize_option_layout(_load_yaml_file(ADDON_OPTIONS_YAML_PATH))
@@ -137,6 +154,15 @@ def load_addon_options() -> dict[str, Any]:
 
 
 def save_addon_options(data: dict[str, Any]) -> None:
+    nested_options = _nest_option_layout(data)
+    payload_to_write: dict[str, Any] = nested_options
+
+    if ADDON_OPTIONS_YAML_PATH.exists():
+        existing_payload = _load_yaml_file(ADDON_OPTIONS_YAML_PATH)
+        payload_to_write = _wrap_saved_options_if_needed(
+            existing_payload, nested_options
+        )
+
     ADDON_OPTIONS_YAML_PATH.write_text(
-        dump_simple_yaml(_nest_option_layout(data)), encoding="utf-8"
+        dump_simple_yaml(payload_to_write), encoding="utf-8"
     )

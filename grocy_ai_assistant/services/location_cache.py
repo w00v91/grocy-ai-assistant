@@ -30,6 +30,10 @@ class LocationCache:
             return
 
         self._stop_event.clear()
+        if not self._settings.grocy_api_key:
+            logger.info("Lager-Cache wird nicht gestartet: grocy_api_key fehlt")
+            return
+
         self._refresh_thread = threading.Thread(
             target=self._refresh_loop,
             name="grocy-location-cache-refresh",
