@@ -40,17 +40,17 @@ configuration:
       description: "Maximale Wartezeit in Sekunden für LLaVA-Scanneranfragen."
   cloud_ai:
     image_generation_enabled:
-      name: "05 · Bilder · Bildgenerierung aktiv"
+      name: "Bildgenerierung aktiv"
       description: "Aktiviert die KI-gestützte Generierung fehlender Produktbilder."
     openai_api_key:
-      name: "05 · Bilder · OpenAI API-Key"
+      name: "OpenAI API-Key"
       description: "OpenAI API-Schlüssel für die Bildgenerierung."
     openai_image_model:
-      name: "05 · Bilder · OpenAI Bildmodell"
+      name: "OpenAI Bildmodell"
       description: "OpenAI-Modellname für die Bildgenerierung (z. B. gpt-image-1)."
     generate_missing_product_images_on_startup:
-      name: "05 · Bilder · Fehlende Bilder beim Start erzeugen"
+      name: "Fehlende Bilder beim Start erzeugen"
       description: "Erzeugt beim Add-on-Start automatisch fehlende Produktbilder."
   debug_mode:
-    name: "06 · Wartung · Debug-Modus"
+    name: "Debug-Modus"
     description: "Aktiviert ausführliche Debug-Logs zur Fehlersuche."
