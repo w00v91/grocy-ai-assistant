@@ -1,5 +1,3 @@
-import json
-
 from grocy_ai_assistant.config import options_store
 
 
@@ -24,15 +22,11 @@ def test_parse_and_dump_simple_yaml_roundtrip():
     assert options_store.parse_simple_yaml(dumped) == payload
 
 
-def test_load_addon_options_prefers_yaml_then_legacy_json_then_repository_config_yaml(
-    tmp_path, monkeypatch
-):
+def test_load_addon_options_prefers_yaml_then_repository_config_yaml(tmp_path, monkeypatch):
     yaml_path = tmp_path / "options.yaml"
-    json_path = tmp_path / "options.json"
     repository_config_path = tmp_path / "config.yaml"
 
     monkeypatch.setattr(options_store, "ADDON_OPTIONS_YAML_PATH", yaml_path)
-    monkeypatch.setattr(options_store, "LEGACY_ADDON_OPTIONS_JSON_PATH", json_path)
     monkeypatch.setattr(
         options_store, "REPOSITORY_CONFIG_YAML_PATH", repository_config_path
     )
@@ -53,9 +47,6 @@ options:
         "grocy_api_key": "repo-grocy",
         "image_generation_enabled": True,
     }
-
-    json_path.write_text(json.dumps({"api_key": "legacy-json"}), encoding="utf-8")
-    assert options_store.load_addon_options() == {"api_key": "legacy-json"}
 
     yaml_path.write_text(
         """options:
@@ -134,6 +125,53 @@ metadata:
                 "grocy_api_key": "new-key",
                 "grocy_base_url": "http://grocy.local/api",
             }
+        },
+        "metadata": {"source": "supervisor"},
+    }
+
+
+def test_load_addon_options_reads_mapped_values_from_deeply_nested_yaml_layout(
+    tmp_path, monkeypatch
+):
+    yaml_path = tmp_path / "options.yaml"
+
+    monkeypatch.setattr(options_store, "ADDON_OPTIONS_YAML_PATH", yaml_path)
+    monkeypatch.setattr(
+        options_store, "LEGACY_ADDON_OPTIONS_JSON_PATH", tmp_path / "options.json"
+    )
+    monkeypatch.setattr(
+        options_store, "REPOSITORY_CONFIG_YAML_PATH", tmp_path / "config.yaml"
+    )
+
+    yaml_path.write_text(
+        """options:
+  profile:
+    grocy:
+      grocy_api_key: nested-grocy-key
+      grocy_base_url: http://grocy.local/api
+    cloud_ai:
+      openai_api_key: nested-openai-key
+  scanner:
+    scanner_llava_timeout_seconds: 60
+  api_key: top-level-key
+  metadata:
+    source: supervisor
+""",
+        encoding="utf-8",
+    )
+
+    assert options_store.load_addon_options() == {
+        "api_key": "top-level-key",
+        "grocy_api_key": "nested-grocy-key",
+        "grocy_base_url": "http://grocy.local/api",
+        "scanner_llava_timeout_seconds": 60,
+        "openai_api_key": "nested-openai-key",
+        "profile": {
+            "grocy": {
+                "grocy_api_key": "nested-grocy-key",
+                "grocy_base_url": "http://grocy.local/api",
+            },
+            "cloud_ai": {"openai_api_key": "nested-openai-key"},
         },
         "metadata": {"source": "supervisor"},
     }

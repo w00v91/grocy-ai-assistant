@@ -40,3 +40,40 @@ def test_default_ollama_url_uses_docker_host_fallback(monkeypatch):
         settings._default_ollama_url()
         == "http://host.docker.internal:11434/api/generate"
     )
+
+
+def test_get_settings_reloads_nested_grouped_options_when_yaml_changes(
+    tmp_path, monkeypatch
+):
+    options_path = tmp_path / "options.yaml"
+    repository_config_path = tmp_path / "config.yaml"
+
+    options_path.write_text(
+        """grocy:
+  grocy_api_key: first-key
+""",
+        encoding="utf-8",
+    )
+    repository_config_path.write_text("options: {}\n", encoding="utf-8")
+
+    monkeypatch.setattr(options_store, "ADDON_OPTIONS_YAML_PATH", options_path)
+    monkeypatch.setattr(
+        options_store, "REPOSITORY_CONFIG_YAML_PATH", repository_config_path
+    )
+    settings.get_settings.cache_clear()
+
+    initial_settings = settings.get_settings()
+    assert initial_settings.grocy_api_key == "first-key"
+
+    options_path.write_text(
+        """grocy:
+  grocy_api_key: second-key
+cloud_ai:
+  image_generation_enabled: true
+""",
+        encoding="utf-8",
+    )
+
+    reloaded_settings = settings.get_settings()
+    assert reloaded_settings.grocy_api_key == "second-key"
+    assert reloaded_settings.image_generation_enabled is True
