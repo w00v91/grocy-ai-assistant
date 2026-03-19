@@ -41,6 +41,7 @@ from grocy_ai_assistant.models.ingredient import (
     ShoppingListAmountUpdateRequest,
     ScannerLlavaRequest,
     ScannerLlavaResponse,
+    ScannerProductCreateRequest,
     StockProductConsumeRequest,
     StockProductResponse,
     StockProductUpdateRequest,
@@ -696,6 +697,141 @@ def _generate_and_attach_product_picture(
         )
 
 
+def _get_default_location_id(grocy_client: GrocyClient) -> int:
+    try:
+        locations = grocy_client.get_locations()
+    except Exception:
+        locations = []
+
+    for location in locations:
+        location_id = _safe_int(location.get("id"))
+        if location_id is not None and location_id > 0:
+            return location_id
+
+    return 1
+
+
+def _get_default_quantity_unit_id(grocy_client: GrocyClient) -> int:
+    try:
+        quantity_units = grocy_client.get_quantity_units()
+    except Exception:
+        quantity_units = {}
+
+    for unit_id in quantity_units.keys():
+        normalized_unit_id = _safe_int(unit_id)
+        if normalized_unit_id is not None and normalized_unit_id > 0:
+            return normalized_unit_id
+
+    return 1
+
+
+def _build_scanner_product_description(payload: ScannerProductCreateRequest) -> str:
+    description_lines: list[str] = []
+    if payload.brand:
+        description_lines.append(f"Marke: {payload.brand}")
+    if payload.quantity:
+        description_lines.append(f"Menge: {payload.quantity}")
+    if payload.hint:
+        description_lines.append(f"Hinweis: {payload.hint}")
+    if payload.nutrition_grade:
+        description_lines.append(f"Nutrition-Grade: {payload.nutrition_grade}")
+    if payload.ingredients_text:
+        description_lines.append(f"Zutaten: {payload.ingredients_text}")
+
+    source_label = str(payload.source or "").strip()
+    if source_label:
+        description_lines.append(f"Quelle: {source_label}")
+
+    return "\n".join(line for line in description_lines if line).strip()
+
+
+def _create_and_add_product_to_shopping_list(
+    *,
+    product_name: str,
+    amount: float,
+    best_before_date: str,
+    product_data: dict[str, Any],
+    detector: IngredientDetector,
+    grocy_client: GrocyClient,
+    settings: Settings,
+    barcode: str = "",
+) -> DashboardSearchResponse:
+    normalized_new_product_name = _normalize_new_product_name(product_name)
+    product_data["name"] = normalized_new_product_name or product_name
+
+    product_payload = {
+        key: value
+        for key, value in product_data.items()
+        if key not in {"calories", "carbohydrates", "fat", "protein", "sugar"}
+    }
+    created_object_id = grocy_client.create_product(product_payload)
+    grocy_client.update_product_nutrition(
+        product_id=created_object_id,
+        calories=product_data.get("calories"),
+        carbs=product_data.get("carbohydrates"),
+        fat=product_data.get("fat"),
+        protein=product_data.get("protein"),
+        sugar=product_data.get("sugar"),
+    )
+    existing_default_best_before_days = (
+        grocy_client.get_product_default_best_before_days(created_object_id)
+    )
+    if not existing_default_best_before_days:
+        grocy_client.set_product_default_best_before_days(
+            created_object_id,
+            product_data.get("default_best_before_days"),
+        )
+
+    normalized_barcode = _normalize_barcode_for_lookup(barcode)
+    if len(normalized_barcode) >= 8:
+        try:
+            grocy_client.set_product_barcode(created_object_id, normalized_barcode)
+        except Exception as error:
+            logger.warning(
+                "Barcode %s konnte dem Produkt %s nicht zugewiesen werden: %s",
+                normalized_barcode,
+                created_object_id,
+                error,
+            )
+
+    _generate_and_attach_product_picture(
+        product_name=product_name,
+        product_id=created_object_id,
+        detector=detector,
+        grocy_client=grocy_client,
+        settings=settings,
+    )
+    resolved_best_before_date = _resolve_best_before_date_for_product(
+        grocy_client,
+        product_id=created_object_id,
+        best_before_date=best_before_date,
+        default_best_before_days=product_data.get("default_best_before_days"),
+    )
+    before_items = (
+        grocy_client.get_shopping_list()
+        if hasattr(grocy_client, "get_shopping_list")
+        else None
+    )
+    grocy_client.add_product_to_shopping_list(
+        created_object_id,
+        amount=amount,
+        best_before_date=resolved_best_before_date,
+    )
+    _reconcile_shopping_list_amount_after_add(
+        grocy_client,
+        product_id=created_object_id,
+        requested_amount=float(amount),
+        before_items=before_items,
+    )
+
+    return DashboardSearchResponse(
+        success=True,
+        action="created_and_added",
+        message=f"{product_name} wurde neu angelegt und zur Einkaufsliste hinzugefügt.",
+        product_id=created_object_id,
+    )
+
+
 def _build_stock_signature(
     stock_products: list[dict],
 ) -> tuple[tuple[str, str, str, str, str], ...]:
@@ -1345,75 +1481,14 @@ def dashboard_search(
             )
         else:
             product_data = detector.analyze_product_name(product_name)
-        # Bei expliziter Neuanlage muss der eingegebene Name bestehen bleiben,
-        # auch wenn der KI-Detektor ähnliche Produkte vorschlägt.
-        normalized_new_product_name = _normalize_new_product_name(product_name)
-        product_data["name"] = normalized_new_product_name or product_name
-
-        product_payload = {
-            key: value
-            for key, value in product_data.items()
-            if key
-            not in {
-                "calories",
-                "carbohydrates",
-                "fat",
-                "protein",
-                "sugar",
-            }
-        }
-        created_object_id = grocy_client.create_product(product_payload)
-        grocy_client.update_product_nutrition(
-            product_id=created_object_id,
-            calories=product_data.get("calories"),
-            carbs=product_data.get("carbohydrates"),
-            fat=product_data.get("fat"),
-            protein=product_data.get("protein"),
-            sugar=product_data.get("sugar"),
-        )
-        existing_default_best_before_days = (
-            grocy_client.get_product_default_best_before_days(created_object_id)
-        )
-        if not existing_default_best_before_days:
-            grocy_client.set_product_default_best_before_days(
-                created_object_id,
-                product_data.get("default_best_before_days"),
-            )
-        _generate_and_attach_product_picture(
+        return _create_and_add_product_to_shopping_list(
             product_name=product_name,
-            product_id=created_object_id,
+            amount=amount,
+            best_before_date=payload.best_before_date,
+            product_data=product_data,
             detector=detector,
             grocy_client=grocy_client,
             settings=settings,
-        )
-        resolved_best_before_date = _resolve_best_before_date_for_product(
-            grocy_client,
-            product_id=created_object_id,
-            best_before_date=payload.best_before_date,
-            default_best_before_days=product_data.get("default_best_before_days"),
-        )
-        before_items = (
-            grocy_client.get_shopping_list()
-            if hasattr(grocy_client, "get_shopping_list")
-            else None
-        )
-        grocy_client.add_product_to_shopping_list(
-            created_object_id,
-            amount=amount,
-            best_before_date=resolved_best_before_date,
-        )
-        _reconcile_shopping_list_amount_after_add(
-            grocy_client,
-            product_id=created_object_id,
-            requested_amount=float(amount),
-            before_items=before_items,
-        )
-
-        return DashboardSearchResponse(
-            success=True,
-            action="created_and_added",
-            message=f"{product_name} wurde neu angelegt und zur Einkaufsliste hinzugefügt.",
-            product_id=created_object_id,
         )
     except Exception as error:
         log_api_error(
@@ -1553,6 +1628,65 @@ def dashboard_scanner_llava(
         ) from error
     finally:
         _release_llava_request_slot()
+
+
+@router.post(
+    "/api/dashboard/scanner/create-product", response_model=DashboardSearchResponse
+)
+def dashboard_scanner_create_product(
+    payload: ScannerProductCreateRequest,
+    request: Request,
+    _: None = Depends(require_auth),
+    settings: Settings = Depends(get_settings),
+):
+    if not settings.grocy_api_key:
+        raise HTTPException(
+            status_code=500, detail="grocy_api_key fehlt in Add-on Optionen"
+        )
+
+    product_name = _normalize_new_product_name(payload.product_name)
+    if not product_name:
+        raise HTTPException(status_code=400, detail="Bitte Produktname eingeben")
+
+    detector = IngredientDetector(settings)
+    grocy_client = GrocyClient(settings)
+
+    try:
+        product_data = {
+            "name": product_name,
+            "description": _build_scanner_product_description(payload),
+            "location_id": _get_default_location_id(grocy_client),
+            "qu_id_purchase": _get_default_quantity_unit_id(grocy_client),
+            "qu_id_stock": _get_default_quantity_unit_id(grocy_client),
+            "calories": 0,
+            "carbohydrates": 0,
+            "fat": 0,
+            "protein": 0,
+            "sugar": 0,
+            "default_best_before_days": 0,
+        }
+        return _create_and_add_product_to_shopping_list(
+            product_name=product_name,
+            amount=payload.amount,
+            best_before_date=payload.best_before_date,
+            product_data=product_data,
+            detector=detector,
+            grocy_client=grocy_client,
+            settings=settings,
+            barcode=payload.barcode,
+        )
+    except Exception as error:
+        log_api_error(
+            logger,
+            request=request,
+            status_code=500,
+            message=str(error),
+            exc=error,
+        )
+        raise HTTPException(
+            status_code=500,
+            detail="Produkt konnte nicht aus dem Scanner angelegt werden",
+        ) from error
 
 
 @router.get("/api/dashboard/product-picture")
