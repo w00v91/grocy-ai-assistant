@@ -2795,29 +2795,29 @@ function evaluateScannerLight(video, canvas) {
 function renderScannerResult(payload) {
   const container = document.getElementById('scanner-result');
   if (!container) return;
+  const createButton = document.getElementById('scanner-create-product-button');
 
   if (!payload || !payload.found) {
     scannerResultPayload = null;
     container.classList.add('hidden');
     container.innerHTML = '';
+    if (createButton) {
+      createButton.classList.add('hidden');
+      createButton.disabled = false;
+      createButton.textContent = '➕ Erkanntes Produkt anlegen';
+    }
     return;
   }
 
   scannerResultPayload = payload;
   const canCreateDetectedProduct = payload.source !== 'Grocy' && payload.source !== 'scanner_created';
-  const actionMarkup = canCreateDetectedProduct
-    ? `
-      <button
-        id="scanner-create-product-button"
-        type="button"
-        class="success-button scanner-create-product-button"
-        onclick="createProductFromScannerResult()"
-        ${scannerCreateInFlight ? 'disabled' : ''}
-      >
-        ${scannerCreateInFlight ? 'Lege Produkt an…' : '➕ Erkanntes Produkt anlegen'}
-      </button>
-    `
-    : '';
+  if (createButton) {
+    createButton.classList.toggle('hidden', !canCreateDetectedProduct);
+    createButton.disabled = scannerCreateInFlight;
+    createButton.textContent = scannerCreateInFlight
+      ? 'Lege Produkt an…'
+      : '➕ Erkanntes Produkt anlegen';
+  }
 
   container.classList.remove('hidden');
   container.innerHTML = `

@@ -1437,6 +1437,7 @@ def test_dashboard_contains_scanner_modal_trigger(client):
     assert "id='open-scanner-modal-button'" in response.text
     assert "openScannerModal()" in response.text
     assert "id='scanner-modal'" in response.text
+    assert "id='scanner-create-product-button'" in response.text
 
 
 def test_dashboard_exposes_scanner_logic_in_js(client):
