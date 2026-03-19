@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [7.2.32]
+- Fix (Home-Assistant-Integration/Sensoren): Polling-Sensoren für Einkaufslisten-, Lager- und Rezeptdaten bleiben bei API-Fehlern mit Fallback-Werten bzw. zuletzt erfolgreichem Stand verfügbar und markieren Fehler stattdessen in den Attributen `last_update_success`, `last_error` und `http_status`.
+- Test: Unit-Tests für Sensor-Fallbacks bei HTTP-Fehlern und Ausnahmen ergänzt.
+- Versionsstände für Add-on und Integration auf `7.2.32` erhöht.
+
 ## [7.2.31]
 
 ### Changed
