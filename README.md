@@ -124,7 +124,7 @@ Zusätzlich nutzt die Integration eine Konstante in `const.py`, die synchron zur
 
 Aktueller Stand:
 
-- **Add-on:** `7.2.28`
+- **Add-on:** `7.2.29`
 - **Integration:** siehe `manifest.json` der Home-Assistant-Integration
 
 ## Add-on-Dokumentation

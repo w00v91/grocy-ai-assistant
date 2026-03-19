@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [7.2.29]
+
+### Changed
+
+- `grocy_ai_assistant/config.yaml` nutzt wieder das ursprüngliche verschachtelte Layout für `grocy`, `ollama`, `scanner` und `cloud_ai`; die YAML-Tests wurden entsprechend auf das gruppierte Schema zurückgestellt.
+- Versionsstände für Add-on und Integration auf `7.2.29` erhöht.
+
 ## [7.2.28]
 
 ### Changed

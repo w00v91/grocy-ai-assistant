@@ -24,20 +24,26 @@ def test_addon_config_yaml_contains_global_notification_toggle():
     assert config["schema"]["notification_global_enabled"] == "bool"
 
 
-def test_addon_config_yaml_contains_image_generation_options():
+def test_addon_config_yaml_contains_grouped_image_generation_options():
     config = _load_config()
 
-    assert config["options"]["image_generation_enabled"] is False
-    assert config["schema"]["image_generation_enabled"] == "bool"
-    assert config["schema"]["openai_api_key"] == "password"
-    assert config["options"]["openai_image_model"] == "gpt-image-1"
+    assert config["options"]["cloud_ai"]["image_generation_enabled"] is False
+    assert config["schema"]["cloud_ai"]["image_generation_enabled"] == "bool"
+    assert config["schema"]["cloud_ai"]["openai_api_key"] == "password"
+    assert config["options"]["cloud_ai"]["openai_image_model"] == "gpt-image-1"
 
 
-def test_addon_config_yaml_contains_startup_batch_image_option():
+def test_addon_config_yaml_contains_grouped_startup_batch_image_option():
     config = _load_config()
 
-    assert config["options"]["generate_missing_product_images_on_startup"] is False
-    assert config["schema"]["generate_missing_product_images_on_startup"] == "bool"
+    assert (
+        config["options"]["cloud_ai"]["generate_missing_product_images_on_startup"]
+        is False
+    )
+    assert (
+        config["schema"]["cloud_ai"]["generate_missing_product_images_on_startup"]
+        == "bool"
+    )
 
 
 def test_addon_config_yaml_enables_supervisor_and_homeassistant_api():
@@ -47,19 +53,21 @@ def test_addon_config_yaml_enables_supervisor_and_homeassistant_api():
     assert config["hassio_api"] is True
 
 
-def test_addon_config_yaml_contains_initial_info_sync_option():
+def test_addon_config_yaml_contains_grouped_initial_info_sync_option():
     config = _load_config()
 
-    assert config["options"]["initial_info_sync"] is False
-    assert config["schema"]["initial_info_sync"] == "bool"
+    assert config["options"]["ollama"]["initial_info_sync"] is False
+    assert config["schema"]["ollama"]["initial_info_sync"] == "bool"
 
 
-def test_repository_config_yaml_contains_expected_defaults():
+def test_repository_config_yaml_contains_expected_grouped_defaults():
     config = _load_config()
 
-    assert config["version"] == "7.2.28"
-    assert config["options"]["grocy_api_key"] == "DEIN_GROCY_KEY"
-    assert config["schema"]["grocy_api_key"] == "str"
+    assert config["version"] == "7.2.29"
+    assert config["options"]["grocy"]["grocy_api_key"] == "DEIN_GROCY_KEY"
+    assert config["schema"]["grocy"]["grocy_api_key"] == "str"
+    assert config["options"]["debug_mode"] is False
+    assert config["schema"]["debug_mode"] == "bool"
 
 
 def test_addon_apparmor_profile_exists_and_matches_slug():
