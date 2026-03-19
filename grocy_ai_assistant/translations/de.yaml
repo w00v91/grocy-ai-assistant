@@ -1,13 +1,20 @@
 configuration:
   api_key:
-    name: "01 · Allgemein · KI API-Key"
+    name: "KI API-Key"
     description: "API-Schlüssel für die primäre KI-Verarbeitung (Text/Erkennung)."
-  grocy_api_key:
-    name: "01 · Allgemein · Grocy API-Key"
-    description: "API-Schlüssel deiner Grocy-Instanz."
-  grocy_base_url:
-    name: "01 · Allgemein · Grocy Basis-URL"
-    description: "Basis-URL der Grocy-API, z. B. http://homeassistant.local:9192/api."
+  dashboard_polling_interval_seconds:
+    name: "Aktualisierungsintervall (Sek.)"
+    description: "Legt fest, in welchem Abstand das Dashboard seine Daten automatisch neu lädt."
+  notification_global_enabled:
+    name: "Benachrichtigungen · Global aktiv"
+    description: "Aktiviert/deaktiviert Benachrichtigungen global für das Add-on."
+  grocy:
+    grocy_api_key:
+      name: "Grocy API-Key"
+      description: "API-Schlüssel deiner Grocy-Instanz."
+    grocy_base_url:
+      name: "Grocy Basis-URL"
+      description: "Basis-URL der Grocy-API, z. B. http://homeassistant.local:9192/api."
   ollama:
     ollama_url:
       name: "Generate-Endpoint"
@@ -18,6 +25,9 @@ configuration:
     ollama_llava_model:
       name: "Vision-Modell (LLaVA)"
       description: "Ollama-LLaVA-Modell für bildbasierte Erkennung."
+    initial_info_sync:
+      name: "Einmaliger Info-Sync beim Start"
+      description: "Analysiert beim nächsten Add-on-Start bestehende Produkte einmalig und ergänzt fehlende Nährwerte sowie geschätzte MHD-Tage."
   scanner:
     scanner_barcode_fallback_seconds:
       name: "Barcode-Fallback (Sek.)"
@@ -28,12 +38,6 @@ configuration:
     scanner_llava_timeout_seconds:
       name: "LLaVA Timeout (Sek.)"
       description: "Maximale Wartezeit in Sekunden für LLaVA-Scanneranfragen."
-  dashboard_polling_interval_seconds:
-    name: "04 · Dashboard · Aktualisierungsintervall (Sek.)"
-    description: "Legt fest, in welchem Abstand das Dashboard seine Daten automatisch neu lädt."
-  notification_global_enabled:
-    name: "04 · Benachrichtigungen · Global aktiv"
-    description: "Aktiviert/deaktiviert Benachrichtigungen global für das Add-on."
   cloud_ai:
     image_generation_enabled:
       name: "05 · Bilder · Bildgenerierung aktiv"
@@ -47,9 +51,6 @@ configuration:
     generate_missing_product_images_on_startup:
       name: "05 · Bilder · Fehlende Bilder beim Start erzeugen"
       description: "Erzeugt beim Add-on-Start automatisch fehlende Produktbilder."
-  initial_info_sync:
-    name: "05 · Bilder & Infos · Einmaliger Info-Sync beim Start"
-    description: "Analysiert beim nächsten Add-on-Start bestehende Produkte einmalig und ergänzt fehlende Nährwerte sowie geschätzte MHD-Tage."
   debug_mode:
     name: "06 · Wartung · Debug-Modus"
     description: "Aktiviert ausführliche Debug-Logs zur Fehlersuche."
