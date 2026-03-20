@@ -64,8 +64,18 @@ Standardmäßig läuft der Service dann auf `http://localhost:8000`.
 
 ## Wichtige API-Endpunkte
 
-- `GET /api/status` – Status, Versionen, Kompatibilitätsprüfung Integration ↔ Add-on
-- `POST /api/analyze_product` – Produktanalyse
+### Integrations-/Service-API
+
+- `GET /api/v1/health` – schlanker Health-Check für die Integration
+- `GET /api/v1/capabilities` – unterstützte Backend-Funktionen und Defaults
+- `GET /api/v1/status` – Status, Versionen, Kompatibilitätsprüfung Integration ↔ Add-on
+- `POST /api/v1/scan/image` – Bildanalyse via LLaVA
+- `POST /api/v1/grocy/sync` – Produktanalyse und Grocy-Synchronisierung
+- `POST /api/v1/catalog/rebuild` – Katalog-/Cache-Aktualisierung
+- `POST /api/v1/notifications/test` – Test einer persistenten Benachrichtigung
+
+### Dashboard-/UI-API
+
 - `POST /api/dashboard/search` – Dashboard-Produktsuche/Anlage inkl. Einkaufsliste
 - `GET /api/dashboard/shopping-list` – Einkaufsliste laden
 - `GET /` – Dashboard
@@ -84,6 +94,13 @@ Wesentliche Schlüssel:
 - `ollama_llava_model`
 - `scanner_barcode_fallback_seconds`
 - `scanner_llava_min_confidence`
+
+## Kopplung Add-on ↔ Integration
+
+- Das Add-on hostet den eigentlichen Backend-Service auf Port `8000`.
+- Die Home-Assistant-Integration spricht primär die dedizierte `/api/v1/...`-API an.
+- Ingress (`/api/hassio_ingress/...`) bleibt für die Weboberfläche/Panel-Nutzung vorgesehen.
+- Add-on-seitige Home-Assistant-Aufrufe laufen nur bei Bedarf über den Supervisor-Proxy.
 
 ## Architektur- und Struktur-Checks
 

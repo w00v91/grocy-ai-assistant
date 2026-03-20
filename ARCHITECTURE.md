@@ -29,7 +29,14 @@ grocy_ai_assistant/
 - `services/`
   - Kapselt externe Kommunikation mit Grocy (inkl. Caches/HTTP-Zugriff).
 - `custom_components/`
-  - Home-Assistant-seitige Integration (Panel, Sensor, Add-on Kommunikation).
+  - Home-Assistant-seitige Integration (Config Flow, Sensoren, Buttons, Services, Add-on Kommunikation).
+
+## Add-on ↔ Integration
+
+- Das Add-on ist der laufende Backend-Service und stellt eine dedizierte HTTP-API unter `/api/v1/...` bereit.
+- Die Integration nutzt diese Service-API für Status, Scan, Sync und Katalogaktionen.
+- Dashboard-/Ingress-Endpunkte bleiben der Weboberfläche vorbehalten.
+- Direkte Python-Imports zwischen Add-on und Integration sind nicht vorgesehen.
 
 
 ## Notification-Subsystem (Home-Assistant-seitig)
@@ -69,4 +76,3 @@ Datei: `tests/architecture/test_layering.py`
 - Utility-Funktionen mit zentraler Bedeutung (z. B. Barcode-Normalisierung) dürfen nur einmal pro Modul definiert werden.
 - Gleichartige Endpoint-Flows (`/api/dashboard/search` und `/api/dashboard/search-variants`) sollen gemeinsame Helper (`_build_fallback_variants`, `_extract_amount_prefixed_product_input`) nutzen.
 - Bei Verhaltensänderungen in Query-Parametern (z. B. `include_ai`) müssen API-Tests explizit beide Modi abdecken.
-

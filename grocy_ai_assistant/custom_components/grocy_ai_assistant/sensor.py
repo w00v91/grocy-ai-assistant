@@ -6,6 +6,7 @@ from homeassistant.helpers.entity import EntityCategory
 
 from .addon_client import AddonClient
 from .const import (
+    CONF_API_BASE_URL,
     CONF_DEBUG_MODE,
     DEFAULT_ADDON_BASE_URL,
     INTEGRATION_VERSION,
@@ -50,7 +51,10 @@ class _BaseAddonSensor(SensorEntity):
     def _build_client(self) -> AddonClient:
         conf = {**self._entry.data, **self._entry.options}
         return AddonClient(
-            conf.get("addon_base_url", DEFAULT_ADDON_BASE_URL),
+            conf.get(
+                CONF_API_BASE_URL,
+                conf.get("addon_base_url", DEFAULT_ADDON_BASE_URL),
+            ),
             conf.get("api_key", ""),
             integration_version=INTEGRATION_VERSION,
         )
