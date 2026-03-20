@@ -1,7 +1,17 @@
 import aiohttp
 from urllib.parse import urlencode
 
-DEFAULT_ADDON_API_URL = "http://grocy_ai_assistant:8000"
+DEFAULT_ADDON_API_URL = "http://local-grocy-ai-assistant:8000"
+FALLBACK_ADDON_API_URLS = (
+    DEFAULT_ADDON_API_URL,
+    "http://grocy-ai-assistant:8000",
+    "http://grocy_ai_assistant:8000",
+)
+_ADDON_URL_HINT = (
+    "Setze in der Integration die API-Basis-URL auf den Home-Assistant-App-Hostnamen "
+    "im Format http://{repo}-{slug}:8000 (Unterstriche durch Bindestriche ersetzen), "
+    "z. B. http://local-grocy-ai-assistant:8000."
+)
 
 
 class AddonClient:
@@ -10,10 +20,24 @@ class AddonClient:
     def __init__(
         self, base_url: str, api_key: str, integration_version: str | None = None
     ):
-        self._base_url = (base_url or DEFAULT_ADDON_API_URL).rstrip("/")
+        normalized_base_url = (base_url or "").strip().rstrip("/")
+        self._base_url = normalized_base_url or DEFAULT_ADDON_API_URL
         self._headers = {"Authorization": f"Bearer {api_key}"}
         if integration_version:
             self._headers["X-HA-Integration-Version"] = integration_version
+
+    def _candidate_base_urls(self) -> list[str]:
+        if self._base_url:
+            normalized_base_url = self._base_url.rstrip("/")
+            if normalized_base_url not in FALLBACK_ADDON_API_URLS:
+                return [normalized_base_url]
+
+        candidates: list[str] = []
+        for candidate in (self._base_url, *FALLBACK_ADDON_API_URLS):
+            normalized_candidate = (candidate or "").rstrip("/")
+            if normalized_candidate and normalized_candidate not in candidates:
+                candidates.append(normalized_candidate)
+        return candidates
 
     async def _request_json(
         self,

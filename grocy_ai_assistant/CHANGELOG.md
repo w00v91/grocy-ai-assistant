@@ -11,6 +11,9 @@ All notable changes to this project will be documented in this file.
 - Changed (Home-Assistant-Integration): `AddonClient` verwendet für Shopping-Liste, Lager, Rezepte und Barcode-Lookups jetzt die neuen `/api/v1/...`-Endpunkte statt Dashboard-Routen.
 - Test: API- und Unit-Tests für die neuen v1-Endpunkte sowie die umgestellte Integration ergänzt.
 - Versionsstände für Add-on und Integration auf `7.4.0` erhöht.
+- Fix (Home-Assistant-Integration/Add-on-Kommunikation): Die Default-API-URL der Integration nutzt jetzt den für lokale Home-Assistant-App-Installationen gültigen DNS-Namen `http://local-grocy-ai-assistant:8000` statt des ungültigen Hostnamens mit Unterstrich.
+- Fix (Home-Assistant-Integration/Add-on-Kommunikation): Der Add-on-Client probiert bei Verbindungsfehlern mehrere naheliegende interne Hostnamen aus und liefert anschließend eine konkrete Fehlermeldung mit dem erwarteten Home-Assistant-Hostname-Format.
+- Changed (Versioning): Bumped add-on and integration versions to `7.3.3`.
 
 ## [7.3.2]
 

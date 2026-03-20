@@ -100,6 +100,7 @@ Wesentliche Schlüssel:
 - Das Add-on hostet den eigentlichen Backend-Service auf Port `8000`.
 - Die Home-Assistant-Integration spricht primär die dedizierte `/api/v1/...`-API an.
 - Ingress (`/api/hassio_ingress/...`) bleibt für die Weboberfläche/Panel-Nutzung vorgesehen.
+- Für die interne API-Kommunikation muss als Hostname das Home-Assistant-App-Schema `{repo}-{slug}` verwendet werden. Bei lokaler Installation dieses Add-ons ist das standardmäßig `http://local-grocy-ai-assistant:8000`.
 - Add-on-seitige Home-Assistant-Aufrufe laufen nur bei Bedarf über den Supervisor-Proxy.
 
 ## Architektur- und Struktur-Checks

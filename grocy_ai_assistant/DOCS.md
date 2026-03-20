@@ -81,6 +81,7 @@ debug_mode: false
 ## Hinweise zur Nutzung
 
 - Die Weboberfläche läuft über **Ingress** auf Port `8000`.
+- Für die interne Kommunikation anderer Home-Assistant-Apps mit diesem Add-on muss der interne App-Hostname verwendet werden. Bei lokaler Installation lautet dieser Hostname in der Regel `local-grocy-ai-assistant`, also z. B. `http://local-grocy-ai-assistant:8000`.
 - Die Home-Assistant-Integration nutzt für Maschinenkommunikation die dedizierte lokale Add-on-API (`/api/v1/...`).
 - Das Add-on nutzt die Home-Assistant- und Supervisor-API.
 - Optionen wie `generate_missing_product_images_on_startup` und `initial_info_sync` sind für einmalige Startvorgänge gedacht.
