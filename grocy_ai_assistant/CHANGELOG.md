@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Changed (Home-Assistant-Integration/Panel): Das native Panel rendert das Dashboard jetzt in fachlich getrennten Web-Komponenten für Shopping, Rezepte, Lager, Benachrichtigungen, Modals und Scanner, statt nur eine statische Platzhalter-Seite anzuzeigen.
+- Changed (Dashboard/Migration): Die Shopping-Ansicht läuft bereits nativ über einen reaktiven Store inklusive Ladezuständen, Statusmeldungen, Button-Aktionen, Debounce-Suche, Modals und Polling; die übrigen Tabs bleiben tabweise über dedizierte Fallback-Komponenten an das Legacy-Dashboard angebunden.
+- Changed (Dashboard/Migration): `dashboard.html` und das alte `dashboard.js` bleiben als Übergangs-/Fallback-Schicht bestehen, bis Rezepte, Lager, Benachrichtigungen und Scanner vollständig nativ gerendert werden.
+- Test: Native Panel-Module per `node --check` geprüft und relevante Python-Unit-Tests für Panel- sowie Versionsmetadaten ausgeführt; Versionsstände auf `7.4.8` erhöht.
+
 - Fix (API/Ingress): Interne Add-on-Hostnamen ohne DNS-Suffix wie `local-grocy-ai-assistant` oder `grocy-ai-assistant` werden nicht mehr fälschlich als externe Hosts behandelt, sodass `/api/v1/...` aus Home Assistant nicht mehr per HTTPS-307 umgeleitet wird.
 - Fix (API/Rezeptvorschläge): Rezeptvorschläge werden jetzt auch für `soon_expiring_only`-Abfragen gecacht, damit die drei Home-Assistant-Rezeptsensoren nicht bei jedem Poll erneut eine KI-Generierung auslösen.
 - Test: API-Tests decken interne Hostnamen ohne Punkt sowie den Cache-Hit für bald ablaufende Rezeptabfragen ab.
