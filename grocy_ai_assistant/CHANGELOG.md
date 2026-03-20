@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [7.4.2]
+
+- Fix (Home-Assistant-Integration): Die interne Add-on-Auflösung nutzt jetzt zusätzlich die Supervisor-API (`/addons` und `/addons/<addon>/info`), um bei GitHub-/Repository-Installationen den tatsächlich vergebenen Add-on-Hostnamen samt Container-IP dynamisch zu ermitteln.
+- Fix (Home-Assistant-Integration): Wenn DNS für den Supervisor-gelieferten Hostnamen scheitert, versucht der Add-on-Client anschließend automatisch die vom Supervisor gemeldete Container-IP auf dem Ingress-Port.
+- Test: Unit-Tests decken jetzt sowohl die Supervisor-basierte Auflösung eines gehashten Add-on-Hostnamens als auch den IP-Fallback bei DNS-Fehlern ab.
+- Versionsstände für Add-on und Integration auf `7.4.2` erhöht.
+
 ## [7.4.1]
 
 - Fix (Home-Assistant-Integration): Die Konfigurationsmaske fragt keine manuelle API-Basis-URL mehr ab; die Add-on-Kommunikation wird wieder intern über bekannte Home-Assistant-App-Hostnamen aufgelöst.

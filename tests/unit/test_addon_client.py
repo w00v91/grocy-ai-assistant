@@ -20,7 +20,7 @@ AddonClient = addon_client_module.AddonClient
 
 
 class FakeResponse:
-    def __init__(self, status: int, payload: dict):
+    def __init__(self, status: int, payload):
         self.status = status
         self._payload = payload
 
@@ -35,10 +35,11 @@ class FakeResponse:
 
 
 class FakeSession:
-    def __init__(self, timeout, *, fail_urls=None):
+    def __init__(self, timeout, *, fail_urls=None, response_map=None):
         self.timeout = timeout
         self.calls = []
         self.fail_urls = set(fail_urls or [])
+        self.response_map = dict(response_map or {})
 
     async def __aenter__(self):
         return self
@@ -49,12 +50,20 @@ class FakeSession:
     def get(self, url, headers):
         if url in self.fail_urls:
             raise aiohttp.ClientConnectionError(f"failed to connect to {url}")
+        if url in self.response_map:
+            status, payload = self.response_map[url]
+            self.calls.append(("GET", url, headers, None))
+            return FakeResponse(status, payload)
         self.calls.append(("GET", url, headers, None))
         return FakeResponse(200, {"status": "Verbunden"})
 
     def post(self, url, json, headers):
         if url in self.fail_urls:
             raise aiohttp.ClientConnectionError(f"failed to connect to {url}")
+        if url in self.response_map:
+            status, payload = self.response_map[url]
+            self.calls.append(("POST", url, headers, json))
+            return FakeResponse(status, payload)
         self.calls.append(("POST", url, headers, json))
         return FakeResponse(200, {"success": True, "message": "ok"})
 
@@ -156,6 +165,107 @@ def test_addon_client_falls_back_to_secondary_internal_host(monkeypatch):
 
     assert payload == {"status": "Verbunden", "_http_status": 200}
     assert sessions[0].calls[0][1] == "http://grocy-ai-assistant:8000/api/v1/status"
+
+
+def test_addon_client_discovers_hashed_addon_hostname_via_supervisor(monkeypatch):
+    sessions = []
+
+    def fake_client_session(*, timeout):
+        session = FakeSession(
+            timeout,
+            fail_urls={
+                "http://local-grocy-ai-assistant:8000/api/v1/status",
+                "http://grocy-ai-assistant:8000/api/v1/status",
+                "http://grocy_ai_assistant:8000/api/v1/status",
+            },
+            response_map={
+                "http://supervisor/addons": (
+                    200,
+                    {"data": {"addons": [{"slug": "a0d49513_grocy_ai_assistant"}]}},
+                ),
+                "http://supervisor/addons/a0d49513_grocy_ai_assistant/info": (
+                    200,
+                    {
+                        "data": {
+                            "hostname": "a0d49513-grocy-ai-assistant",
+                            "ip_address": "172.30.33.5",
+                            "ingress_port": 8000,
+                        }
+                    },
+                ),
+                "http://a0d49513-grocy-ai-assistant:8000/api/v1/status": (
+                    200,
+                    {"status": "Verbunden"},
+                ),
+            },
+        )
+        sessions.append(session)
+        return session
+
+    monkeypatch.setattr(
+        addon_client_module.aiohttp, "ClientSession", fake_client_session
+    )
+    monkeypatch.setenv("SUPERVISOR_TOKEN", "supervisor-token")
+    monkeypatch.setenv("SUPERVISOR_URL", "http://supervisor")
+
+    client = AddonClient(base_url="", api_key="secret")
+    payload = asyncio.run(client.get_status())
+
+    assert payload == {"status": "Verbunden", "_http_status": 200}
+    assert sessions[0].calls[0][1] == "http://supervisor/addons"
+    assert sessions[0].calls[0][2] == {"Authorization": "Bearer supervisor-token"}
+    assert (
+        sessions[0].calls[1][1]
+        == "http://supervisor/addons/a0d49513_grocy_ai_assistant/info"
+    )
+    assert (
+        sessions[0].calls[2][1]
+        == "http://a0d49513-grocy-ai-assistant:8000/api/v1/status"
+    )
+
+
+def test_addon_client_uses_supervisor_ip_when_hostname_dns_fails(monkeypatch):
+    sessions = []
+
+    def fake_client_session(*, timeout):
+        session = FakeSession(
+            timeout,
+            fail_urls={"http://a0d49513-grocy-ai-assistant:8000/api/v1/status"},
+            response_map={
+                "http://supervisor/addons": (
+                    200,
+                    {"data": {"addons": [{"slug": "a0d49513_grocy_ai_assistant"}]}},
+                ),
+                "http://supervisor/addons/a0d49513_grocy_ai_assistant/info": (
+                    200,
+                    {
+                        "data": {
+                            "hostname": "a0d49513-grocy-ai-assistant",
+                            "ip_address": "172.30.33.5",
+                            "ingress_port": 8000,
+                        }
+                    },
+                ),
+                "http://172.30.33.5:8000/api/v1/status": (
+                    200,
+                    {"status": "Verbunden"},
+                ),
+            },
+        )
+        sessions.append(session)
+        return session
+
+    monkeypatch.setattr(
+        addon_client_module.aiohttp, "ClientSession", fake_client_session
+    )
+    monkeypatch.setenv("SUPERVISOR_TOKEN", "supervisor-token")
+    monkeypatch.setenv("SUPERVISOR_URL", "http://supervisor")
+
+    client = AddonClient(base_url="", api_key="secret")
+    payload = asyncio.run(client.get_status())
+
+    assert payload == {"status": "Verbunden", "_http_status": 200}
+    assert sessions[0].calls[2][1] == "http://172.30.33.5:8000/api/v1/status"
 
 
 def test_addon_client_uses_v1_machine_endpoints_for_read_operations(monkeypatch):
