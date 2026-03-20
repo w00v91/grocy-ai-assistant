@@ -4,6 +4,7 @@ from homeassistant.components.button import ButtonEntity
 
 from .addon_client import AddonClient
 from .const import CONF_API_BASE_URL, DEFAULT_ADDON_BASE_URL, INTEGRATION_VERSION
+from .entity import build_device_info
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -34,6 +35,10 @@ class _BaseAddonButton(ButtonEntity):
             conf.get("api_key", ""),
             integration_version=INTEGRATION_VERSION,
         )
+
+    @property
+    def device_info(self):
+        return build_device_info(self._entry.entry_id)
 
 
 class GrocyAICatalogRebuildButton(_BaseAddonButton):

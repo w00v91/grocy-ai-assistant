@@ -11,6 +11,7 @@ from .const import (
     DEFAULT_ADDON_BASE_URL,
     INTEGRATION_VERSION,
 )
+from .entity import build_device_info
 from .entity_payloads import (
     DEFAULT_EXPIRING_WITHIN_DAYS,
     build_expiring_stock_summary,
@@ -59,6 +60,10 @@ class _BaseAddonSensor(SensorEntity):
             conf.get("api_key", ""),
             integration_version=INTEGRATION_VERSION,
         )
+
+    @property
+    def device_info(self):
+        return build_device_info(self._entry.entry_id)
 
 
 class _PollingAddonSensor(_BaseAddonSensor):
@@ -187,6 +192,7 @@ class GrocyAIUpdateRequiredSensor(_PollingAddonSensor):
 
 class _StaticStatusSensor(SensorEntity):
     def __init__(self, entry, *, name: str, unique_suffix: str, icon: str):
+        self._entry = entry
         self._attr_name = name
         self._attr_unique_id = f"{entry.entry_id}_{unique_suffix}"
         self._attr_native_value = "Bereit"
@@ -196,6 +202,10 @@ class _StaticStatusSensor(SensorEntity):
     @property
     def should_poll(self):
         return False
+
+    @property
+    def device_info(self):
+        return build_device_info(self._entry.entry_id)
 
 
 class GrocyAIResponseSensor(_StaticStatusSensor):
@@ -207,14 +217,6 @@ class GrocyAIResponseSensor(_StaticStatusSensor):
             icon="mdi:comment-text-outline",
         )
 
-    @property
-    def device_info(self):
-        return {
-            "identifiers": {("domain", "grocy_ai_assistant")},
-            "name": "Grocy AI Assistant",
-            "manufacturer": "Eigene Integration",
-        }
-
     async def async_added_to_hass(self):
         _LOGGER.info("Response Sensor registriert und bereit.")
 
@@ -223,6 +225,7 @@ class GrocyAILastResponseTimeSensor(SensorEntity):
     """Diagnostic sensor containing the duration of the latest AI request."""
 
     def __init__(self, entry):
+        self._entry = entry
         self._attr_name = "Grocy AI KI Antwortzeit (letzte Anfrage)"
         self._attr_unique_id = f"{entry.entry_id}_ai_response_time_last_ms"
         self._attr_native_value = None
@@ -231,11 +234,16 @@ class GrocyAILastResponseTimeSensor(SensorEntity):
         self._attr_icon = "mdi:timer-outline"
         self._attr_entity_category = EntityCategory.DIAGNOSTIC
 
+    @property
+    def device_info(self):
+        return build_device_info(self._entry.entry_id)
+
 
 class GrocyAIAverageResponseTimeSensor(SensorEntity):
     """Diagnostic sensor containing the average duration of AI requests."""
 
     def __init__(self, entry):
+        self._entry = entry
         self._attr_name = "Grocy AI KI Antwortzeit (Durchschnitt)"
         self._attr_unique_id = f"{entry.entry_id}_ai_response_time_avg_ms"
         self._attr_native_value = None
@@ -243,6 +251,10 @@ class GrocyAIAverageResponseTimeSensor(SensorEntity):
         self._attr_state_class = SensorStateClass.MEASUREMENT
         self._attr_icon = "mdi:chart-line"
         self._attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    @property
+    def device_info(self):
+        return build_device_info(self._entry.entry_id)
 
 
 class GrocyAIShoppingListOpenCountSensor(_PollingAddonSensor):

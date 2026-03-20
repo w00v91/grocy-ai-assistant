@@ -4,6 +4,8 @@ from homeassistant.components.text import TextEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
+from .entity import build_device_info
+
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -29,3 +31,7 @@ class GrocyProductInput(TextEntity):
         self._attr_native_value = value
         _LOGGER.debug("Updated product input text (length=%s)", len(value))
         self.async_write_ha_state()
+
+    @property
+    def device_info(self):
+        return build_device_info(self._entry.entry_id)
