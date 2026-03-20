@@ -3615,6 +3615,21 @@ def _render_dashboard(settings: Settings, request: Request):
             "scanner_llava_timeout_seconds": settings.scanner_llava_timeout_seconds,
             "ha_user_id": _resolve_dashboard_user_id(request),
             "dashboard_polling_interval_seconds": settings.dashboard_polling_interval_seconds,
+            "theme_source": "home-assistant-parent",
+            "theme_bridge_mode": "same-origin-css-vars",
+            "theme_var_names": ",".join(
+                [
+                    "primary-background-color",
+                    "secondary-background-color",
+                    "card-background-color",
+                    "primary-text-color",
+                    "secondary-text-color",
+                    "divider-color",
+                    "primary-color",
+                    "error-color",
+                    "success-color",
+                ]
+            ),
         },
     )
 

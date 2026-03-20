@@ -41,6 +41,18 @@ def test_dashboard_references_external_template_assets(client):
     assert "/dashboard-static/dashboard.js" in response.text
 
 
+def test_dashboard_exposes_home_assistant_theme_bridge_metadata(client):
+    response = client.get("/")
+
+    assert response.status_code == 200
+    assert 'data-theme-source="home-assistant-parent"' in response.text
+    assert 'data-theme-bridge-mode="same-origin-css-vars"' in response.text
+    assert (
+        'data-ha-theme-vars="primary-background-color,secondary-background-color,card-background-color,primary-text-color,secondary-text-color,divider-color,primary-color,error-color,success-color"'
+        in response.text
+    )
+
+
 def test_dashboard_prefills_configured_api_key(client):
     response = client.get("/")
 
@@ -520,23 +532,31 @@ def test_dashboard_detects_ingress_prefix_from_location(client):
     assert "return `${ingressPrefix}${normalizedPath}`;" in static_response.text
 
 
-def test_dashboard_contains_darkmode_toggle_in_top_right(client):
+def test_dashboard_syncs_home_assistant_theme_instead_of_manual_darkmode_toggle(
+    client,
+):
     response = client.get("/")
 
     assert response.status_code == 200
-    assert "id='theme-toggle'" in response.text
+    assert "id='theme-badge'" in response.text
+    assert "HA Theme" in response.text
+    assert "toggleTheme()" not in response.text
 
     static_response = client.get("/dashboard-static/dashboard.css")
     assert static_response.status_code == 200
     assert "position: relative;" in static_response.text
-    assert "background: transparent;" in static_response.text
-    assert "toggleTheme()" in response.text
-    assert "aria-label='Zu Darkmode wechseln'" in response.text
-    assert ">☾</button>" in response.text
+    assert "--bg-primary: var(--ha-primary-background-color" in static_response.text
+    assert "--accent-primary: var(--ha-primary-color" in static_response.text
+    assert ":root[data-theme='dark']" not in static_response.text
 
     js_response = client.get("/dashboard-static/dashboard.js")
     assert js_response.status_code == 200
-    assert "localStorage.setItem(themeStorageKey, nextTheme);" in js_response.text
+    assert "function syncThemeFromHomeAssistant()" in js_response.text
+    assert "window.parent.getComputedStyle(element)" in js_response.text
+    assert (
+        "HA_THEME_MESSAGE_TYPE = 'grocy-ai-assistant:ha-theme-sync'" in js_response.text
+    )
+    assert "localStorage.setItem(themeStorageKey, nextTheme);" not in js_response.text
 
 
 def test_product_picture_uses_app_cache_when_available(client):
