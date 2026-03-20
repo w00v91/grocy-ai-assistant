@@ -8,6 +8,14 @@ All notable changes to this project will be documented in this file.
 - Fix (API/Rezeptvorschläge): Rezeptvorschläge werden jetzt auch für `soon_expiring_only`-Abfragen gecacht, damit die drei Home-Assistant-Rezeptsensoren nicht bei jedem Poll erneut eine KI-Generierung auslösen.
 - Test: API-Tests decken interne Hostnamen ohne Punkt sowie den Cache-Hit für bald ablaufende Rezeptabfragen ab.
 - Versionsstände für Add-on und Integration auf `7.4.6` erhöht.
+- Changed (Home-Assistant-Integration/Panel): `custom_components/grocy_ai_assistant/panel.py` registriert das Sidebar-Panel jetzt nativ über ein eigenes Frontend-Modul statt über ein `iframe`-Panel.
+- Added (Home-Assistant-Integration/Panel): Neues Frontend-Bundle unter `custom_components/grocy_ai_assistant/panel/frontend/` rendert eine native Home-Assistant-Ansicht und zeigt dabei `hass`-, Routing- und Theme-Kontext direkt im Modul an.
+- Test: `tests/unit/test_panel.py` prüft nun die Registrierung des nativen Panel-Moduls samt statischem Bundle-Pfad; Versionsmetadaten wurden auf `7.4.7` erhöht.
+
+- Changed (Dashboard/Architektur): `dashboard.js` lädt jetzt ein separates API-Client-, DOM- und Store-Modul, sodass die bisherige HTML-Seite dieselbe Logik weiterhin nutzt, die spätere native Home-Assistant-Oberfläche aber auf klar getrennte Zustands-/API-Bausteine aufsetzen kann.
+- Changed (Dashboard/State): Zuvor globale Dashboard-Zustände für Tabs, Ladeindikatoren, Polling, Storage-Bearbeitung, Scanner sowie Shopping-Modalfluss wurden in einen zentralen Store verschoben und für die Altseite zusätzlich unter `window.__grocyDashboardState`/`window.__grocyDashboardStore` sichtbar gemacht.
+- Changed (Dashboard/API): Alle direkten `/api/dashboard/...`-HTTP-Aufrufe laufen jetzt über `dashboard-api-client.js`, während `dashboard-dom.js` wiederkehrende DOM-Umschaltungen wie Busy-Indikator, Tab-Sichtbarkeit und Scroll-Locking kapselt.
+- Test: Dashboard-Frontend per `node --check` für die neuen ES-Module geprüft und Versionsmetadaten auf `7.4.6` angehoben.
 
 - Changed (Dashboard/UI): `dashboard.css` bündelt jetzt wiederkehrende Oberflächenwerte wie Card-Padding, Control-Höhen, Border-Radien, Flächen und Elevation in semantischen Tokens und mappt diese soweit möglich auf Home-Assistant-Variablen mit Fallbacks.
 - Changed (Dashboard/UI): Topbar, Karten, Bottom-Tabbar, Formularfelder, Buttons und Modals verwenden nun die neuen Surface-/Spacing-/Radius-Tokens konsistent, damit Light-/Dark-Mode näher am Home-Assistant-Look bleibt.

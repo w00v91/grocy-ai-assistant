@@ -4,10 +4,31 @@ import types
 from pathlib import Path
 
 
+class _StaticPathConfig:
+    def __init__(self, url_path, path, cache_headers=True):
+        self.url_path = url_path
+        self.path = path
+        self.cache_headers = cache_headers
+
+
+class _FakeHTTP:
+    def __init__(self):
+        self.static_path_calls = []
+
+    async def async_register_static_paths(self, configs):
+        self.static_path_calls.append(configs)
+
+
+class _FakeHass:
+    def __init__(self):
+        self.http = _FakeHTTP()
+
+
 def _load_panel_module(monkeypatch):
     homeassistant = types.ModuleType("homeassistant")
     components = types.ModuleType("homeassistant.components")
-    frontend = types.ModuleType("homeassistant.components.frontend")
+    http = types.ModuleType("homeassistant.components.http")
+    panel_custom = types.ModuleType("homeassistant.components.panel_custom")
     core = types.ModuleType("homeassistant.core")
 
     calls = []
@@ -15,12 +36,16 @@ def _load_panel_module(monkeypatch):
     def fake_register(*args, **kwargs):
         calls.append((args, kwargs))
 
-    frontend.async_register_built_in_panel = fake_register
+    http.StaticPathConfig = _StaticPathConfig
+    panel_custom.async_register_panel = fake_register
     core.HomeAssistant = object
 
     monkeypatch.setitem(sys.modules, "homeassistant", homeassistant)
     monkeypatch.setitem(sys.modules, "homeassistant.components", components)
-    monkeypatch.setitem(sys.modules, "homeassistant.components.frontend", frontend)
+    monkeypatch.setitem(sys.modules, "homeassistant.components.http", http)
+    monkeypatch.setitem(
+        sys.modules, "homeassistant.components.panel_custom", panel_custom
+    )
     monkeypatch.setitem(sys.modules, "homeassistant.core", core)
 
     package_name = "grocy_ai_assistant.custom_components.grocy_ai_assistant"
@@ -49,75 +74,43 @@ def _load_panel_module(monkeypatch):
     return module, calls
 
 
-def test_panel_uses_ingress_for_absolute_http_urls(monkeypatch):
+def test_panel_registers_native_module(monkeypatch):
     panel_module, calls = _load_panel_module(monkeypatch)
 
     import asyncio
 
-    asyncio.run(panel_module.async_setup(object(), "http://example.local:8000"))
+    hass = _FakeHass()
+    asyncio.run(panel_module.async_setup(hass, "http://example.local:8000"))
 
     _, kwargs = calls[0]
-    assert kwargs["config"]["url"] == "/api/hassio_ingress/grocy_ai_assistant/"
+    assert kwargs["frontend_url_path"] == "grocy-ai"
+    assert kwargs["webcomponent_name"] == "grocy-ai-dashboard-panel"
+    assert kwargs["module_url"] == "/grocy_ai_assistant_panel/grocy-ai-dashboard.js"
+    assert kwargs["sidebar_title"] == "Grocy AI"
+    assert kwargs["sidebar_icon"] == "mdi:brain"
+    assert (
+        kwargs["config"]["legacy_dashboard_url"]
+        == "/api/hassio_ingress/grocy_ai_assistant/"
+    )
 
 
-def test_panel_uses_ingress_for_absolute_https_urls(monkeypatch):
-    panel_module, calls = _load_panel_module(monkeypatch)
-
-    import asyncio
-
-    asyncio.run(panel_module.async_setup(object(), "https://example.org/dashboard"))
-
-    _, kwargs = calls[0]
-    assert kwargs["config"]["url"] == "/api/hassio_ingress/grocy_ai_assistant/"
-
-
-def test_panel_adds_trailing_slash_for_ingress_paths(monkeypatch):
-    panel_module, calls = _load_panel_module(monkeypatch)
+def test_panel_registers_static_bundle_directory(monkeypatch):
+    panel_module, _ = _load_panel_module(monkeypatch)
 
     import asyncio
 
+    hass = _FakeHass()
     asyncio.run(
         panel_module.async_setup(
-            object(), "/api/hassio_ingress/71139b3d_grocy_ai_assistant"
+            hass,
+            "/api/hassio_ingress/71139b3d_grocy_ai_assistant",
         )
     )
 
-    _, kwargs = calls[0]
-    assert kwargs["config"]["url"] == "/api/hassio_ingress/71139b3d_grocy_ai_assistant/"
-
-
-def test_panel_uses_ingress_for_localhost_urls(monkeypatch):
-    panel_module, calls = _load_panel_module(monkeypatch)
-
-    import asyncio
-
-    asyncio.run(panel_module.async_setup(object(), "http://localhost:8000"))
-
-    _, kwargs = calls[0]
-    assert kwargs["config"]["url"] == "/api/hassio_ingress/grocy_ai_assistant/"
-
-
-def test_panel_normalizes_absolute_ingress_urls(monkeypatch):
-    panel_module, calls = _load_panel_module(monkeypatch)
-
-    import asyncio
-
-    asyncio.run(
-        panel_module.async_setup(
-            object(), "http://supervisor/api/hassio_ingress/71139b3d_grocy_ai_assistant"
-        )
+    configs = hass.http.static_path_calls[0]
+    assert len(configs) == 1
+    assert configs[0].url_path == "/grocy_ai_assistant_panel"
+    assert configs[0].path.endswith(
+        "custom_components/grocy_ai_assistant/panel/frontend"
     )
-
-    _, kwargs = calls[0]
-    assert kwargs["config"]["url"] == "/api/hassio_ingress/71139b3d_grocy_ai_assistant/"
-
-
-def test_panel_uses_ingress_for_loopback_ip_urls(monkeypatch):
-    panel_module, calls = _load_panel_module(monkeypatch)
-
-    import asyncio
-
-    asyncio.run(panel_module.async_setup(object(), "http://127.0.0.1:8000"))
-
-    _, kwargs = calls[0]
-    assert kwargs["config"]["url"] == "/api/hassio_ingress/grocy_ai_assistant/"
+    assert configs[0].cache_headers is False
