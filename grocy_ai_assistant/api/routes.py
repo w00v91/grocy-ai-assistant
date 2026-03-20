@@ -570,10 +570,12 @@ def _reconcile_shopping_list_amount_after_add(
     except Exception:
         return
 
+    normalized_product_id = _safe_int(product_id)
+
     def _amount_by_item_id(items: list[dict]) -> dict[int, float]:
         amounts: dict[int, float] = {}
         for item in items:
-            if item.get("product_id") != product_id:
+            if _safe_int(item.get("product_id")) != normalized_product_id:
                 continue
             item_id = _safe_int(item.get("id"))
             if item_id is None:
@@ -1324,10 +1326,12 @@ def dashboard_add_existing_product(
             grocy_client.get_shopping_list() if supports_amount_reconciliation else []
         )
 
+        normalized_product_id = _safe_int(payload.product_id)
+
         def _amount_by_item_id(items: list[dict]) -> dict[int, float]:
             amounts: dict[int, float] = {}
             for item in items:
-                if item.get("product_id") != payload.product_id:
+                if _safe_int(item.get("product_id")) != normalized_product_id:
                     continue
                 item_id = _safe_int(item.get("id"))
                 if item_id is None:
