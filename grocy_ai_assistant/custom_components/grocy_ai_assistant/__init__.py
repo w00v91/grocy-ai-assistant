@@ -8,7 +8,13 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.event import async_call_later
 
 from .addon_client import AddonClient
-from .const import DEFAULT_ADDON_BASE_URL, DOMAIN, INTEGRATION_VERSION
+from .const import (
+    CONF_API_BASE_URL,
+    DEFAULT_ADDON_BASE_URL,
+    DEFAULT_ADDON_PANEL_URL,
+    DOMAIN,
+    INTEGRATION_VERSION,
+)
 from .entity_payloads import (
     build_analysis_status_payload,
     build_barcode_status_payload,
@@ -108,12 +114,30 @@ def _llava_status_sensor_entity_id(hass: HomeAssistant, entry: ConfigEntry) -> s
     )
 
 
+def _resolve_api_base_url(config: dict) -> str:
+    return (
+        config.get(CONF_API_BASE_URL)
+        or config.get("addon_base_url")
+        or DEFAULT_ADDON_BASE_URL
+    )
+
+
+def _migrate_entry_payload(payload: dict) -> dict:
+    migrated = dict(payload)
+    if CONF_API_BASE_URL not in migrated and migrated.get("addon_base_url"):
+        migrated[CONF_API_BASE_URL] = migrated["addon_base_url"]
+    migrated.setdefault("panel_url", DEFAULT_ADDON_PANEL_URL)
+    return migrated
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up the integration."""
     entry.async_on_unload(entry.add_update_listener(async_update_options))
 
     hass.data.setdefault(DOMAIN, {})
-    hass.data[DOMAIN][entry.entry_id] = {**entry.data, **entry.options}
+    hass.data[DOMAIN][entry.entry_id] = _migrate_entry_payload(
+        {**entry.data, **entry.options}
+    )
 
     _LOGGER.info("Setting up Grocy AI Assistant for entry %s", entry.entry_id)
 
@@ -213,7 +237,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
         active_conf = {**current_entry.data, **current_entry.options}
         return AddonClient(
-            active_conf.get("addon_base_url", DEFAULT_ADDON_BASE_URL),
+            _resolve_api_base_url(active_conf),
             active_conf.get("api_key", ""),
             integration_version=INTEGRATION_VERSION,
         )
@@ -244,7 +268,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         start_time = time.perf_counter()
 
         try:
-            payload = await client.dashboard_search(product_name)
+            payload = await client.sync_product(product_name)
             duration_ms = (time.perf_counter() - start_time) * 1000
             _set_response_timing_states(duration_ms)
             if payload.get("_http_status") != 200:
@@ -326,7 +350,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         client = _build_active_client()
         start_time = time.perf_counter()
         try:
-            payload = await client.scan_image_with_llava(image_base64)
+            payload = await client.scan_image(image_base64)
             duration_ms = (time.perf_counter() - start_time) * 1000
             if payload.get("_http_status") != 200:
                 raise RuntimeError(payload.get("detail") or "LLaVA-Scan fehlgeschlagen")
@@ -347,8 +371,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.services.async_register(
         DOMAIN, "add_product_via_ai", add_product_via_ai_service
     )
+    hass.services.async_register(DOMAIN, "sync_product", add_product_via_ai_service)
     hass.services.async_register(DOMAIN, "barcode_lookup", barcode_lookup_service)
     hass.services.async_register(DOMAIN, "scanner_llava_analyze", scanner_llava_service)
+    hass.services.async_register(DOMAIN, "scan_image", scanner_llava_service)
 
     manager = NotificationManager(hass, entry.entry_id)
     await manager.async_initialize()
@@ -357,7 +383,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     ] = manager
     await async_setup_notification_services(hass, manager)
 
-    await hass.config_entries.async_forward_entry_setups(entry, ["sensor", "text"])
+    await hass.config_entries.async_forward_entry_setups(
+        entry, ["sensor", "text", "button"]
+    )
     return True
 
 
@@ -381,8 +409,10 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     )
 
     hass.services.async_remove(DOMAIN, "add_product_via_ai")
+    hass.services.async_remove(DOMAIN, "sync_product")
     hass.services.async_remove(DOMAIN, "barcode_lookup")
     hass.services.async_remove(DOMAIN, "scanner_llava_analyze")
+    hass.services.async_remove(DOMAIN, "scan_image")
     hass.services.async_remove(DOMAIN, "notification_emit_event")
     hass.services.async_remove(DOMAIN, "notification_test_device")
     hass.services.async_remove(DOMAIN, "notification_test_all")
@@ -391,7 +421,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         entry.entry_id, None
     )
     unload_ok = await hass.config_entries.async_unload_platforms(
-        entry, ["sensor", "text"]
+        entry, ["sensor", "text", "button"]
     )
     async_remove_panel(hass, "grocy-ai")
     _LOGGER.debug("Unload entry %s result: %s", entry.entry_id, unload_ok)
