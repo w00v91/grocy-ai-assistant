@@ -1,5 +1,7 @@
 import { createDashboardApiClient, getErrorMessage } from './dashboard-api-client.js';
 import { createDashboardStore } from './dashboard-store.js';
+import { buildPanelUrlWithTab, DEFAULT_TAB, resolveTabFromLocation, TAB_ORDER } from './tab-routing.js';
+import { createShoppingSearchController, SEARCH_FLOW_STATES } from './shopping-search-controller.js';
 
 const PANEL_SLUG = 'grocy-ai';
 const PANEL_TITLE = 'Grocy AI';
@@ -7,7 +9,6 @@ const PANEL_ICON = 'mdi:brain';
 const DEFAULT_LEGACY_URL = '/api/hassio_ingress/grocy_ai_assistant/';
 const STYLE_URL = new URL('./grocy-ai-dashboard.css', import.meta.url);
 const MIGRATED_TABS = new Set(['shopping']);
-const TAB_ORDER = ['shopping', 'recipes', 'storage', 'notifications'];
 const TAB_LABELS = {
   shopping: '🛒 Einkauf',
   recipes: '🍳 Rezepte',
@@ -74,20 +75,15 @@ function formatAmount(value) {
 
 function createInitialState() {
   return {
-    activeTab: 'shopping',
+    activeTab: DEFAULT_TAB,
     topbarStatus: 'Bereit.',
     pendingRequests: 0,
     shopping: {
       status: 'Bereit.',
-      query: '',
-      variants: [],
-      variantsLoading: false,
-      variantsVisible: false,
       list: [],
       listLoading: false,
       listLoaded: false,
       pollTimer: null,
-      variantDebounce: null,
       detailModal: {
         open: false,
         itemId: null,
@@ -210,6 +206,14 @@ class GrocyAIShoppingTab extends HTMLElement {
         this._boundInput(event);
       }
     });
+    this.addEventListener('submit', (event) => {
+      if (!event.target.matches('[data-role="shopping-search-form"]')) return;
+      event.preventDefault();
+      this.dispatchEvent(new CustomEvent('shopping-submit-query', {
+        bubbles: true,
+        composed: true,
+      }));
+    });
     this.addEventListener('click', (event) => {
       const actionTarget = event.target.closest('[data-action]');
       if (!actionTarget) return;
@@ -231,6 +235,8 @@ class GrocyAIShoppingTab extends HTMLElement {
     const model = this._viewModel || {};
     const variants = Array.isArray(model.variants) ? model.variants : [];
     const items = Array.isArray(model.list) ? model.list : [];
+    const hasVariants = Boolean(model.isLoadingVariants) || variants.length > 0;
+    const showSearchStatus = model.statusMessage && model.flowState !== SEARCH_FLOW_STATES.ERROR;
 
     this.innerHTML = `
       <section class="tab-view${model.active ? '' : ' hidden'}">
@@ -241,30 +247,53 @@ class GrocyAIShoppingTab extends HTMLElement {
               <span class="scanner-barcode-icon" aria-hidden="true"></span>
             </button>
           </div>
-          <div class="search-row">
+          <form class="search-row" data-role="shopping-search-form">
             <div class="search-input-wrapper">
               <input
                 data-role="shopping-query"
                 value="${escapeHtml(model.query || '')}"
-                placeholder="z.B. Hafermilch 1L"
+                placeholder="z.B. 2 Hafermilch"
               />
-              <button class="clear-input-button${model.query ? ' visible' : ''}" type="button" data-action="shopping-clear-query" aria-label="Sucheingabe löschen">×</button>
+              <button class="clear-input-button${model.clearButtonVisible ? ' visible' : ''}" type="button" data-action="shopping-clear-query" aria-label="Sucheingabe löschen">×</button>
             </div>
-          </div>
-          <section class="variant-section${model.variantsVisible ? '' : ' hidden'}">
+            <button class="primary-button" type="submit" ${model.isSubmitting ? 'disabled' : ''}>${model.isSubmitting ? 'Prüfe…' : 'Suchen'}</button>
+          </form>
+          ${showSearchStatus ? `<p class="tab-status">${escapeHtml(model.statusMessage)}</p>` : ''}
+          ${model.errorMessage ? `<p class="tab-status">Fehler: ${escapeHtml(model.errorMessage)}</p>` : ''}
+          <section class="variant-section${hasVariants ? '' : ' hidden'}">
             <div class="section-header section-header-stacked">
-              <h3>Gefundene Produktvarianten</h3>
-              ${model.variantsLoading ? '<span class="muted">Suche läuft…</span>' : ''}
+              <div>
+                <h3>Gefundene Produktvarianten</h3>
+                ${model.parsedAmount ? `<p class="muted">Erkannte Menge: ${escapeHtml(formatAmount(model.parsedAmount))}</p>` : ''}
+              </div>
+              ${model.isLoadingVariants ? '<span class="muted">Suche läuft…</span>' : ''}
             </div>
             <div class="variant-grid">
               ${variants.length
-                ? variants.map((variant) => `
-                    <article class="variant-card">
-                      <strong>${escapeHtml(variant.product_name || variant.name || 'Unbekanntes Produkt')}</strong>
-                      <div class="muted">${escapeHtml(formatAmount(variant.amount || variant.default_amount || '1'))}</div>
-                      <button class="primary-button" type="button" data-action="shopping-add-variant" data-product-id="${escapeHtml(variant.product_id || variant.id || '')}" data-product-name="${escapeHtml(variant.product_name || variant.name || '')}" data-amount="${escapeHtml(formatAmount(variant.amount || variant.default_amount || '1'))}">Zur Liste</button>
-                    </article>
-                  `).join('')
+                ? variants.map((variant) => {
+                    const variantName = variant.product_name || variant.name || 'Unbekanntes Produkt';
+                    const variantAmount = model.parsedAmount || variant.amount || variant.default_amount || '1';
+                    const variantSource = variant.source || 'grocy';
+                    const sourceLabel = variantSource === 'ai'
+                      ? 'KI-Vorschlag'
+                      : (variantSource === 'input' ? 'Neu anlegen' : 'Grocy');
+                    return `
+                      <article class="variant-card">
+                        <strong>${escapeHtml(variantName)}</strong>
+                        <div class="muted">${escapeHtml(formatAmount(variantAmount))}</div>
+                        <div class="muted">${escapeHtml(sourceLabel)}</div>
+                        <button
+                          class="primary-button"
+                          type="button"
+                          data-action="shopping-select-variant"
+                          data-product-id="${escapeHtml(variant.product_id || variant.id || '')}"
+                          data-product-name="${escapeHtml(variantName)}"
+                          data-product-source="${escapeHtml(variantSource)}"
+                          data-amount="${escapeHtml(formatAmount(variantAmount))}"
+                        >Zur Liste</button>
+                      </article>
+                    `;
+                  }).join('')
                 : '<p class="muted">Keine Varianten gefunden.</p>'}
             </div>
           </section>
@@ -487,9 +516,17 @@ class GrocyAIDashboardPanel extends HTMLElement {
     this._panel = null;
     this._narrow = false;
     this._unsubscribe = null;
+    this._searchUnsubscribe = null;
     this._shoppingPollIntervalMs = DEFAULT_POLLING_INTERVAL_MS;
     this._store = createDashboardStore(createInitialState());
     this._api = createDashboardApiClient({ apiBasePath: this._getLegacyDashboardUrl() });
+    this._handlePopState = () => this._syncActiveTabFromLocation({ updateUrl: false });
+    this._shoppingSearch = createShoppingSearchController({
+      api: this._api,
+      onShoppingListChanged: async () => {
+        await this._loadShoppingList({ silent: true });
+      },
+    });
   }
 
   connectedCallback() {
@@ -512,13 +549,19 @@ class GrocyAIDashboardPanel extends HTMLElement {
     `;
 
     this._bindEvents();
+    window.addEventListener('popstate', this._handlePopState);
     this._unsubscribe = this._store.subscribe((state) => this._renderState(state));
     this._applyRouteState({ syncHistory: false, announce: false });
+    this._syncActiveTabFromLocation({ replaceUrl: true });
+    this._searchUnsubscribe = this._shoppingSearch.subscribe(() => this._renderState(this._store.getState()));
     this._loadShoppingList();
   }
 
   disconnectedCallback() {
     this._unsubscribe?.();
+    window.removeEventListener('popstate', this._handlePopState);
+    this._searchUnsubscribe?.();
+    this._shoppingSearch.dispose();
     this._stopShoppingPolling();
   }
 
@@ -531,12 +574,14 @@ class GrocyAIDashboardPanel extends HTMLElement {
   set route(value) {
     this._route = value;
     this._applyRouteState({ syncHistory: false, announce: false });
+    this._syncActiveTabFromLocation({ replaceUrl: true });
     this._renderState(this._store.getState());
   }
 
   set panel(value) {
     this._panel = value;
     this._api = createDashboardApiClient({ apiBasePath: this._getLegacyDashboardUrl() });
+    this._shoppingSearch.setApi(this._api);
     this._renderState(this._store.getState());
   }
 
@@ -552,8 +597,9 @@ class GrocyAIDashboardPanel extends HTMLElement {
     root.addEventListener('tab-change', (event) => this._switchTab(event.detail.tab));
     root.addEventListener('shopping-query-change', (event) => this._updateShoppingQuery(event.detail.query));
     root.addEventListener('shopping-clear-query', () => this._clearShoppingQuery());
+    root.addEventListener('shopping-submit-query', () => this._submitShoppingQuery());
     root.addEventListener('shopping-refresh', () => this._loadShoppingList());
-    root.addEventListener('shopping-add-variant', (event) => this._addVariantToShoppingList(event.detail));
+    root.addEventListener('shopping-select-variant', (event) => this._selectShoppingVariant(event.detail));
     root.addEventListener('shopping-open-detail', (event) => this._openShoppingDetail(event.detail.itemId));
     root.addEventListener('shopping-close-detail', () => this._closeShoppingDetail());
     root.addEventListener('shopping-modal-input', (event) => this._updateShoppingModalInput(event.detail));
@@ -575,10 +621,14 @@ class GrocyAIDashboardPanel extends HTMLElement {
   _renderState(state) {
     if (!this.shadowRoot) return;
 
+    const searchState = this._shoppingSearch.getState();
     const migratedCount = MIGRATED_TABS.size;
     const totalCount = TAB_ORDER.length;
+    const topbarStatus = state.pendingRequests > 0 && searchState.flowState === SEARCH_FLOW_STATES.SUBMITTING
+      ? searchState.statusMessage
+      : state.topbarStatus;
     this.shadowRoot.querySelector('grocy-ai-topbar').viewModel = {
-      status: state.topbarStatus,
+      status: topbarStatus,
       busy: state.pendingRequests > 0,
       migratedCount,
       totalCount,
@@ -591,6 +641,7 @@ class GrocyAIDashboardPanel extends HTMLElement {
     };
     this.shadowRoot.querySelector('grocy-ai-shopping-tab').viewModel = {
       ...state.shopping,
+      ...searchState,
       active: state.activeTab === 'shopping',
     };
     this.shadowRoot.querySelector('grocy-ai-recipes-tab').viewModel = {
@@ -635,6 +686,21 @@ class GrocyAIDashboardPanel extends HTMLElement {
       topbarStatus: announce ? `${TAB_LABELS[normalizedTab]} geöffnet.` : this._store.getState().topbarStatus,
     });
     if (normalizedTab === 'shopping') {
+    if (!TAB_ORDER.includes(tab)) return;
+
+    const normalizedTab = tab;
+    const currentState = this._store.getState();
+    const stateChanged = currentState.activeTab !== normalizedTab;
+
+    if (stateChanged || options.forceStatus) {
+      this._store.patch({ activeTab: normalizedTab, topbarStatus: `${TAB_LABELS[normalizedTab]} geöffnet.` });
+    }
+
+    if (options.updateUrl !== false) {
+      this._updateBrowserUrlForTab(normalizedTab, { replace: Boolean(options.replaceUrl) });
+    }
+
+    if (normalizedTab === DEFAULT_TAB) {
       this._startShoppingPolling();
       if (!this._store.getState().shopping.listLoaded) {
         this._loadShoppingList();
@@ -645,6 +711,27 @@ class GrocyAIDashboardPanel extends HTMLElement {
     if (syncHistory) {
       this._syncBrowserUrl(normalizedTab);
     }
+  }
+
+  _syncActiveTabFromLocation(options = {}) {
+    const resolvedTab = resolveTabFromLocation(window.location, this._route);
+    const currentUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+    const expectedUrl = buildPanelUrlWithTab(window.location, resolvedTab);
+    const shouldUpdateUrl = options.updateUrl !== false && currentUrl !== expectedUrl;
+
+    this._switchTab(resolvedTab, {
+      updateUrl: shouldUpdateUrl,
+      replaceUrl: options.replaceUrl || shouldUpdateUrl,
+    });
+  }
+
+  _updateBrowserUrlForTab(tab, { replace = false } = {}) {
+    const nextUrl = buildPanelUrlWithTab(window.location, tab);
+    const currentUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+    if (nextUrl === currentUrl) return;
+
+    const method = replace ? 'replaceState' : 'pushState';
+    window.history[method]({ tab }, '', nextUrl);
   }
 
   _updateShoppingState(partial) {
@@ -658,52 +745,36 @@ class GrocyAIDashboardPanel extends HTMLElement {
   }
 
   _updateShoppingQuery(query) {
-    const nextQuery = String(query || '');
-    const currentTimer = this._store.getState().shopping.variantDebounce;
-    if (currentTimer) window.clearTimeout(currentTimer);
-
-    const timer = window.setTimeout(() => {
-      this._searchVariants(nextQuery);
-      this._updateShoppingState({ variantDebounce: null });
-    }, 250);
-
-    this._updateShoppingState({ query: nextQuery, variantDebounce: timer });
+    this._shoppingSearch.actions.setQuery(query);
   }
 
   _clearShoppingQuery() {
-    const currentTimer = this._store.getState().shopping.variantDebounce;
-    if (currentTimer) window.clearTimeout(currentTimer);
-    this._updateShoppingState({
-      query: '',
-      variants: [],
-      variantsVisible: false,
-      variantsLoading: false,
-      variantDebounce: null,
+    this._shoppingSearch.actions.clearQuery();
+  }
+
+  async _submitShoppingQuery() {
+    await this._runRequest(async () => {
+      const result = await this._shoppingSearch.actions.searchProduct();
+      const searchState = this._shoppingSearch.getState();
+      this._store.patch({ topbarStatus: searchState.errorMessage || searchState.statusMessage });
+      if (!result.ok && searchState.errorMessage) {
+        throw new Error(searchState.errorMessage);
+      }
+    }, {
+      onError: () => {},
     });
   }
 
-  async _searchVariants(query) {
-    const normalizedQuery = String(query || '').trim();
-    if (!normalizedQuery) {
-      this._updateShoppingState({ variants: [], variantsVisible: false, variantsLoading: false });
-      return;
-    }
-
-    this._updateShoppingState({ variantsLoading: true, variantsVisible: true, status: 'Suche Varianten…' });
+  async _selectShoppingVariant(detail) {
     await this._runRequest(async () => {
-      const { response, payload } = await this._api.searchVariants(normalizedQuery);
-      if (!response.ok) throw new Error(getErrorMessage(payload, 'Produktvarianten konnten nicht geladen werden.'));
-      this._updateShoppingState({
-        variants: Array.isArray(payload) ? payload : [],
-        variantsVisible: true,
-        variantsLoading: false,
-        status: 'Produktvarianten geladen.',
-      });
-      this._store.patch({ topbarStatus: 'Produktvarianten geladen.' });
+      const result = await this._shoppingSearch.actions.selectVariant(detail);
+      const searchState = this._shoppingSearch.getState();
+      this._store.patch({ topbarStatus: searchState.errorMessage || searchState.statusMessage });
+      if (!result.ok && searchState.errorMessage) {
+        throw new Error(searchState.errorMessage);
+      }
     }, {
-      onError: (message) => {
-        this._updateShoppingState({ variantsLoading: false, status: `Fehler: ${message}` });
-      },
+      onError: () => {},
     });
   }
 
@@ -727,30 +798,6 @@ class GrocyAIDashboardPanel extends HTMLElement {
     });
   }
 
-  async _addVariantToShoppingList(detail) {
-    const productId = Number(detail.productId);
-    if (!Number.isFinite(productId) || productId <= 0) {
-      this._updateShoppingState({ status: 'Ungültige Produkt-ID.' });
-      return;
-    }
-
-    this._updateShoppingState({ status: 'Produkt wird zur Einkaufsliste hinzugefügt…' });
-    await this._runRequest(async () => {
-      const { response, payload } = await this._api.addExistingProduct({
-        product_id: productId,
-        product_name: detail.productName,
-        amount: Number(detail.amount || '1') || 1,
-      });
-      if (!response.ok) throw new Error(getErrorMessage(payload, 'Produkt konnte nicht hinzugefügt werden.'));
-      this._store.patch({ topbarStatus: 'Produkt hinzugefügt.' });
-      this._updateShoppingState({ status: 'Produkt hinzugefügt.' });
-      await this._loadShoppingList({ silent: true });
-    }, {
-      onError: (message) => {
-        this._updateShoppingState({ status: `Fehler: ${message}` });
-      },
-    });
-  }
 
   _openShoppingDetail(itemId) {
     const item = this._store.getState().shopping.list.find((entry) => String(entry.id) === String(itemId));

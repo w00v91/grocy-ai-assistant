@@ -1,3 +1,4 @@
+import asyncio
 import importlib.util
 import sys
 import types
@@ -22,26 +23,34 @@ class _FakeHTTP:
 class _FakeHass:
     def __init__(self):
         self.http = _FakeHTTP()
+        self.data = {}
 
 
 def _load_panel_module(monkeypatch):
     homeassistant = types.ModuleType("homeassistant")
     components = types.ModuleType("homeassistant.components")
+    frontend = types.ModuleType("homeassistant.components.frontend")
     http = types.ModuleType("homeassistant.components.http")
     panel_custom = types.ModuleType("homeassistant.components.panel_custom")
     core = types.ModuleType("homeassistant.core")
 
-    calls = []
+    register_calls = []
+    remove_calls = []
 
     def fake_register(*args, **kwargs):
-        calls.append((args, kwargs))
+        register_calls.append((args, kwargs))
 
+    def fake_remove(*args, **kwargs):
+        remove_calls.append((args, kwargs))
+
+    frontend.async_remove_panel = fake_remove
     http.StaticPathConfig = _StaticPathConfig
     panel_custom.async_register_panel = fake_register
     core.HomeAssistant = object
 
     monkeypatch.setitem(sys.modules, "homeassistant", homeassistant)
     monkeypatch.setitem(sys.modules, "homeassistant.components", components)
+    monkeypatch.setitem(sys.modules, "homeassistant.components.frontend", frontend)
     monkeypatch.setitem(sys.modules, "homeassistant.components.http", http)
     monkeypatch.setitem(
         sys.modules, "homeassistant.components.panel_custom", panel_custom
@@ -55,6 +64,7 @@ def _load_panel_module(monkeypatch):
 
     const_module = types.ModuleType(f"{package_name}.const")
     const_module.DEFAULT_ADDON_INGRESS_PATH = "/api/hassio_ingress/grocy_ai_assistant/"
+    const_module.DOMAIN = "grocy_ai_assistant"
     monkeypatch.setitem(sys.modules, f"{package_name}.const", const_module)
 
     module_path = (
@@ -71,18 +81,18 @@ def _load_panel_module(monkeypatch):
     module = importlib.util.module_from_spec(spec)
     assert spec and spec.loader
     spec.loader.exec_module(module)
-    return module, calls
+    return module, register_calls, remove_calls
 
 
-def test_panel_registers_native_module(monkeypatch):
-    panel_module, calls = _load_panel_module(monkeypatch)
-
-    import asyncio
+def test_panel_registers_native_module_metadata(monkeypatch):
+    panel_module, register_calls, remove_calls = _load_panel_module(monkeypatch)
 
     hass = _FakeHass()
     asyncio.run(panel_module.async_setup(hass, "http://example.local:8000"))
 
-    _, kwargs = calls[0]
+    assert remove_calls[0][0] == (hass, "grocy-ai")
+
+    _, kwargs = register_calls[0]
     assert kwargs["frontend_url_path"] == "grocy-ai"
     assert kwargs["webcomponent_name"] == "grocy-ai-dashboard-panel"
     assert kwargs["module_url"] == "/grocy_ai_assistant_panel/grocy-ai-dashboard.js"
@@ -96,20 +106,25 @@ def test_panel_registers_native_module(monkeypatch):
     assert kwargs["config"]["panel_title"] == "Grocy AI"
     assert kwargs["config"]["panel_icon"] == "mdi:brain"
 
+    assert kwargs["sidebar_icon"] == "mdi:fridge-outline"
+    assert kwargs["config"]["page_title"] == "Grocy AI"
+    assert kwargs["config"]["route"] == "/grocy-ai"
+    assert kwargs["config"]["sidebar_title"] == "Grocy AI"
+    assert kwargs["config"]["sidebar_icon"] == "mdi:fridge-outline"
 
-def test_panel_registers_static_bundle_directory(monkeypatch):
-    panel_module, _ = _load_panel_module(monkeypatch)
 
-    import asyncio
+def test_panel_registers_static_bundle_route_once(monkeypatch):
+    panel_module, _, _ = _load_panel_module(monkeypatch)
 
     hass = _FakeHass()
     asyncio.run(
         panel_module.async_setup(
-            hass,
-            "/api/hassio_ingress/71139b3d_grocy_ai_assistant",
+            hass, "/api/hassio_ingress/71139b3d_grocy_ai_assistant"
         )
     )
+    asyncio.run(panel_module.async_setup(hass, "/api/hassio_ingress/other"))
 
+    assert len(hass.http.static_path_calls) == 1
     configs = hass.http.static_path_calls[0]
     assert len(configs) == 1
     assert configs[0].url_path == "/grocy_ai_assistant_panel"
@@ -117,3 +132,18 @@ def test_panel_registers_static_bundle_directory(monkeypatch):
         "custom_components/grocy_ai_assistant/panel/frontend"
     )
     assert configs[0].cache_headers is False
+
+
+def test_panel_unload_removes_sidebar_entry_when_last_registration_is_gone(monkeypatch):
+    panel_module, _, remove_calls = _load_panel_module(monkeypatch)
+
+    hass = _FakeHass()
+    asyncio.run(panel_module.async_setup(hass, "/api/hassio_ingress/first"))
+    asyncio.run(panel_module.async_setup(hass, "/api/hassio_ingress/second"))
+
+    asyncio.run(panel_module.async_unload(hass))
+    assert [call[0] for call in remove_calls].count((hass, "grocy-ai")) == 2
+
+    asyncio.run(panel_module.async_unload(hass))
+    assert [call[0] for call in remove_calls].count((hass, "grocy-ai")) == 3
+    assert panel_module._PANEL_STATE_KEY not in hass.data["grocy_ai_assistant"]

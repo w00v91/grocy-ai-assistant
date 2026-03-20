@@ -1,6 +1,7 @@
 import { createDashboardApiClient, getErrorMessage } from './dashboard-api-client.js';
 import { updateBusyIndicator, renderTabSelection, lockBodyScroll as applyBodyScrollLock, unlockBodyScroll as releaseBodyScrollLock } from './dashboard-dom.js';
 import { createDashboardStore } from './dashboard-store.js';
+import { parseAmountPrefixedSearch, shouldShowClearButton } from './dashboard-shopping-search-helpers.js';
 
 const rootElement = document.documentElement;
 const configuredApiKey = rootElement.dataset.configuredApiKey || '';
@@ -949,7 +950,7 @@ function toImageSource(url, options = {}) {
 function updateClearButtonVisibility() {
   const clearButton = document.getElementById('clear-name');
   const nameInput = document.getElementById('name');
-  clearButton.classList.toggle('visible', Boolean(nameInput.value));
+  clearButton.classList.toggle('visible', shouldShowClearButton(nameInput.value));
 }
 
 function clearSearchInput() {
@@ -999,24 +1000,6 @@ function getShoppingAmount() {
 function getShoppingBestBeforeDate() {
   const dateInput = document.getElementById('best-before-date');
   return String(dateInput?.value || '').trim();
-}
-
-function parseAmountPrefixedSearch(rawValue) {
-  const value = String(rawValue || '').trim();
-  const match = value.match(/^(\d+(?:[.,]\d+)?)\s+(.+)$/);
-  if (!match) {
-    return { productName: value, amountFromName: null };
-  }
-
-  const parsedAmount = Number(match[1].replace(',', '.'));
-  if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
-    return { productName: value, amountFromName: null };
-  }
-
-  return {
-    productName: match[2].trim(),
-    amountFromName: parsedAmount,
-  };
 }
 
 function renderShoppingList(items) {
