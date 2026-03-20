@@ -66,6 +66,10 @@ class _PollingAddonSensor(_BaseAddonSensor):
         self._debug_mode = bool(entry.options.get(CONF_DEBUG_MODE, False))
         self._has_successful_update = False
 
+    @property
+    def _error_fallback_native_value(self):
+        return None
+
     @staticmethod
     def _updated_at() -> str:
         return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
@@ -105,7 +109,10 @@ class _PollingAddonSensor(_BaseAddonSensor):
         try:
             await self._async_update_native_value()
         except Exception as error:
-            self._set_failure_state(error=error)
+            self._set_failure_state(
+                error=error,
+                fallback_native_value=self._error_fallback_native_value,
+            )
             if self._debug_mode:
                 _LOGGER.debug("Sensorabfrage fehlgeschlagen (%s): %s", self.name, error)
 
@@ -123,6 +130,10 @@ class GrocyAISensor(_PollingAddonSensor):
         self._attr_native_value = "Initialisiere..."
         self._attr_icon = "mdi:robot"
         self._attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    @property
+    def _error_fallback_native_value(self):
+        return "Offline"
 
     async def _async_update_native_value(self):
         payload = await self._build_client().get_status()
@@ -150,6 +161,10 @@ class GrocyAIUpdateRequiredSensor(_PollingAddonSensor):
         self._attr_native_value = "Nein"
         self._attr_icon = "mdi:update"
         self._attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    @property
+    def _error_fallback_native_value(self):
+        return "Unbekannt"
 
     async def _async_update_native_value(self):
         payload = await self._build_client().get_status()
@@ -237,6 +252,10 @@ class GrocyAIShoppingListOpenCountSensor(_PollingAddonSensor):
         self._attr_native_value = 0
         self._attr_icon = "mdi:cart-outline"
 
+    @property
+    def _error_fallback_native_value(self):
+        return 0
+
     async def _async_update_native_value(self):
         payload = await self._build_client().get_shopping_list()
         http_status = payload.get("_http_status")
@@ -261,6 +280,10 @@ class GrocyAIStockProductCountSensor(_PollingAddonSensor):
         self._attr_native_value = 0
         self._attr_icon = "mdi:fridge-outline"
 
+    @property
+    def _error_fallback_native_value(self):
+        return 0
+
     async def _async_update_native_value(self):
         payload = await self._build_client().get_stock_products()
         http_status = payload.get("_http_status")
@@ -284,6 +307,10 @@ class GrocyAIExpiringStockProductCountSensor(_PollingAddonSensor):
         self._attr_unique_id = f"{entry.entry_id}_stock_products_expiring_count"
         self._attr_native_value = 0
         self._attr_icon = "mdi:calendar-alert-outline"
+
+    @property
+    def _error_fallback_native_value(self):
+        return 0
 
     async def _async_update_native_value(self):
         payload = await self._build_client().get_stock_products()
@@ -312,6 +339,10 @@ class _RecipeSuggestionSensor(_PollingAddonSensor):
         self._attr_unique_id = f"{entry.entry_id}_{suffix}"
         self._attr_native_value = "Keine Vorschläge"
         self._attr_icon = "mdi:chef-hat"
+
+    @property
+    def _error_fallback_native_value(self):
+        return "Keine Vorschläge"
 
     async def _async_update_native_value(self):
         payload = await self._build_client().get_recipe_suggestions(

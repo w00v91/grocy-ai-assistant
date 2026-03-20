@@ -154,3 +154,52 @@ def test_recipe_sensor_exposes_default_state_instead_of_unavailable_on_http_erro
     assert sensor.extra_state_attributes["last_update_success"] is False
     assert sensor.extra_state_attributes["last_error"] == "Rezeptdienst nicht bereit"
     assert sensor.extra_state_attributes["http_status"] == 503
+
+
+def test_status_sensor_uses_offline_fallback_on_initial_exception():
+    sensor = sensor_module.GrocyAISensor(_FakeEntry())
+    sensor._build_client = lambda: types.SimpleNamespace(
+        get_status=_raise_runtime_error("Status-Endpunkt nicht erreichbar")
+    )
+
+    asyncio.run(sensor.async_update())
+
+    assert sensor.available is True
+    assert sensor.native_value == "Offline"
+    assert sensor.extra_state_attributes["last_update_success"] is False
+    assert sensor.extra_state_attributes["last_error"] == "Status-Endpunkt nicht erreichbar"
+
+
+def test_update_required_sensor_uses_unknown_fallback_on_initial_exception():
+    sensor = sensor_module.GrocyAIUpdateRequiredSensor(_FakeEntry())
+    sensor._build_client = lambda: types.SimpleNamespace(
+        get_status=_raise_runtime_error("Status-Endpunkt nicht erreichbar")
+    )
+
+    asyncio.run(sensor.async_update())
+
+    assert sensor.available is True
+    assert sensor.native_value == "Unbekannt"
+    assert sensor.extra_state_attributes["last_update_success"] is False
+    assert sensor.extra_state_attributes["last_error"] == "Status-Endpunkt nicht erreichbar"
+
+
+def test_expiring_stock_sensor_uses_zero_fallback_on_initial_exception():
+    sensor = sensor_module.GrocyAIExpiringStockProductCountSensor(_FakeEntry())
+    sensor._build_client = lambda: types.SimpleNamespace(
+        get_stock_products=_raise_runtime_error("Lager-Endpunkt nicht erreichbar")
+    )
+
+    asyncio.run(sensor.async_update())
+
+    assert sensor.available is True
+    assert sensor.native_value == 0
+    assert sensor.extra_state_attributes["last_update_success"] is False
+    assert sensor.extra_state_attributes["last_error"] == "Lager-Endpunkt nicht erreichbar"
+
+
+def _raise_runtime_error(message: str):
+    async def _raiser():
+        raise RuntimeError(message)
+
+    return _raiser
