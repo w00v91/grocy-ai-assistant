@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [7.4.1]
+
+- Fix (Home-Assistant-Integration): Die Konfigurationsmaske fragt keine manuelle API-Basis-URL mehr ab; die Add-on-Kommunikation wird wieder intern über bekannte Home-Assistant-App-Hostnamen aufgelöst.
+- Fix (Home-Assistant-Integration): Loopback-Adressen wie `localhost` oder `127.0.0.1` werden im Add-on-Client automatisch auf interne Add-on-Hostnamen umgebogen, damit bestehende Installationen bei Service-Aufrufen nicht mehr an `localhost:8000` scheitern.
+- Test: Unit-Tests decken jetzt sowohl die automatische Loopback-Korrektur als auch den Fallback auf alternative interne Add-on-Hostnamen ab.
+- Versionsstände für Add-on und Integration auf `7.4.1` erhöht.
+
 ## [7.4.0]
 
 - Changed (API/Maschinenschnittstelle): `/api/v1/...` deckt jetzt auch Einkaufslisten-, Lager-, Rezept- und Barcode-Funktionen ab (`/shopping-list`, `/stock`, `/recipes`, `/barcode/{barcode}`) und bündelt damit die von der Home-Assistant-Integration genutzten Lesezugriffe in einer sauberen Service-API.
