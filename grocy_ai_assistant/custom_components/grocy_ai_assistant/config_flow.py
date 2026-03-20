@@ -6,12 +6,10 @@ import voluptuous as vol
 
 from .const import (
     CONF_API_KEY,
-    CONF_API_BASE_URL,
     CONF_DASHBOARD_POLLING_INTERVAL_SECONDS,
     CONF_DEBUG_MODE,
     DEFAULT_DASHBOARD_POLLING_INTERVAL_SECONDS,
     CONF_PANEL_URL,
-    DEFAULT_ADDON_API_URL,
     DEFAULT_ADDON_PANEL_URL,
     DOMAIN,
 )
@@ -48,7 +46,6 @@ class GrocyAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             data_schema=vol.Schema(
                 {
                     vol.Required(CONF_API_KEY): str,
-                    vol.Required(CONF_API_BASE_URL, default=DEFAULT_ADDON_API_URL): str,
                     vol.Optional(CONF_PANEL_URL, default=DEFAULT_ADDON_PANEL_URL): str,
                 }
             ),
@@ -82,16 +79,6 @@ class GrocyAIOptionsFlowHandler(config_entries.OptionsFlow):
                         CONF_API_KEY,
                         default=_safe_str(
                             options.get(CONF_API_KEY, data.get(CONF_API_KEY)),
-                        ),
-                    ): str,
-                    vol.Required(
-                        CONF_API_BASE_URL,
-                        default=_safe_str(
-                            options.get(
-                                CONF_API_BASE_URL,
-                                data.get(CONF_API_BASE_URL, data.get("addon_base_url")),
-                            ),
-                            DEFAULT_ADDON_API_URL,
                         ),
                     ): str,
                     vol.Optional(
