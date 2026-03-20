@@ -1,7 +1,6 @@
 import logging
 import time
 
-from homeassistant.components.frontend import async_remove_panel
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import entity_registry as er
@@ -141,9 +140,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     )
 
     _LOGGER.info("Setting up Grocy AI Assistant for entry %s", entry.entry_id)
-
-    # Cleanup legacy sidebar panel from previous integration versions.
-    async_remove_panel(hass, "grocy-ai")
 
     await dashboard_panel.async_setup(
         hass,
@@ -429,6 +425,6 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     unload_ok = await hass.config_entries.async_unload_platforms(
         entry, ["sensor", "text", "button"]
     )
-    async_remove_panel(hass, "grocy-ai")
+    await dashboard_panel.async_unload(hass)
     _LOGGER.debug("Unload entry %s result: %s", entry.entry_id, unload_ok)
     return unload_ok

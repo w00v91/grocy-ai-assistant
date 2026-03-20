@@ -2,7 +2,7 @@ import { createDashboardApiClient, getErrorMessage } from './dashboard-api-clien
 import { createDashboardStore } from './dashboard-store.js';
 
 const PANEL_SLUG = 'grocy-ai';
-const PANEL_TITLE = 'Grocy AI Dashboard';
+const PANEL_TITLE = 'Grocy AI';
 const DEFAULT_LEGACY_URL = '/api/hassio_ingress/grocy_ai_assistant/';
 const STYLE_URL = new URL('./grocy-ai-dashboard.css', import.meta.url);
 const MIGRATED_TABS = new Set(['shopping']);

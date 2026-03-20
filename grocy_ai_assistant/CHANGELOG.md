@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Changed (Home-Assistant-Integration/Panel): Die Integration registriert das native Dashboard jetzt zentral als echtes Home-Assistant-Panel mit festem Slug `grocy-ai`, Sidebar-Metadaten und statischer Frontend-Route statt auf Ingress-/iframe-URLs in der Registrierung zu fokussieren.
+- Changed (Home-Assistant-Integration/Panel): Setup und Unload des Panels laufen nun über dedizierte `panel.py`-Hilfen mit Referenzzählung, damit der Sidebar-Eintrag beim Laden automatisch erscheint und beim letzten Entladen sauber entfernt wird.
+- Test: `tests/unit/test_panel.py` prüft jetzt Panel-Metadaten, die registrierte Modul-Route sowie das Entfernen des Sidebar-Eintrags; Versionsstände wurden auf `7.4.10` erhöht.
+
 - Changed (Dashboard/UI): Topbar, Tabs, Kartencontainer, Dialoge sowie Formular- und Statusflächen des Legacy-Dashboards orientieren sich jetzt an Home-Assistant-Surface-, Button- und Feldmustern statt an eigenständigem Glassmorphism-/Gradient-Styling.
 - Changed (Dashboard/Theme): Das Dashboard nutzt nur noch die vom Home-Assistant-Parent synchronisierten Theme-Variablen; das visuelle Theme-Badge und die Beobachtung von `data-theme` entfallen zugunsten HA-nativer Variablen-Mappings.
 - Test: `node --check` für das Dashboard-Skript ausgeführt und Versionsstände für Add-on und Integration auf `7.4.9` erhöht.
