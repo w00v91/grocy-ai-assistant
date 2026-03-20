@@ -4,76 +4,49 @@
 }
 
 :root {
-  color-scheme: light;
-  --bg-primary: #f4f7fb;
-  --bg-secondary: #e9eff7;
-  --bg-card: #ffffff;
-  --bg-card-soft: #f5f8fd;
-  --text-primary: #0f172a;
-  --text-muted: #64748b;
-  --accent-primary: #1d4ed8;
-  --accent-secondary: #4338ca;
-  --accent-primary-soft: rgba(29, 78, 216, 0.11);
-  --border-soft: #dbe5f3;
+  color-scheme: var(--ha-color-scheme, light dark);
+  --bg-primary: var(--ha-primary-background-color, var(--primary-background-color, #f4f7fb));
+  --bg-secondary: var(--ha-secondary-background-color, var(--secondary-background-color, #e9eff7));
+  --bg-card: var(--ha-card-background-color, var(--card-background-color, #ffffff));
+  --bg-card-soft: color-mix(in srgb, var(--bg-card) 88%, var(--bg-secondary));
+  --text-primary: var(--ha-primary-text-color, var(--primary-text-color, #0f172a));
+  --text-muted: var(--ha-secondary-text-color, var(--secondary-text-color, #64748b));
+  --accent-primary: var(--ha-primary-color, var(--primary-color, #1d4ed8));
+  --accent-secondary: color-mix(in srgb, var(--accent-primary) 78%, var(--text-primary));
+  --accent-primary-soft: color-mix(in srgb, var(--accent-primary) 16%, transparent);
+  --border-soft: var(--ha-divider-color, var(--divider-color, #dbe5f3));
   --shadow-card: 0 14px 34px rgba(15, 23, 42, 0.08);
   --shadow-soft: 0 8px 20px rgba(15, 23, 42, 0.08);
   --radius-xl: 16px;
   --radius-pill: 999px;
-  --bg-gradient: radial-gradient(circle at top, #ffffff 0%, #f4f7fb 45%, #e7efff 100%);
+  --bg-gradient: radial-gradient(
+    circle at top,
+    color-mix(in srgb, var(--bg-card) 92%, white) 0%,
+    var(--bg-primary) 45%,
+    color-mix(in srgb, var(--bg-secondary) 84%, var(--accent-primary) 16%) 100%
+  );
   --text: var(--text-primary);
   --card-bg: var(--bg-card);
   --card-border: var(--border-soft);
   --item-bg: var(--bg-card-soft);
   --item-border: var(--border-soft);
   --muted: var(--text-muted);
-  --input-border: #cbd5e1;
-  --input-bg: #ffffff;
-  --input-bg-focus: #ffffff;
+  --input-border: color-mix(in srgb, var(--border-soft) 74%, var(--text-primary) 16%);
+  --input-bg: color-mix(in srgb, var(--bg-card) 94%, var(--bg-primary));
+  --input-bg-focus: var(--bg-card);
   --input-shadow: 0 2px 10px rgba(15, 23, 42, 0.05);
   --input-shadow-focus: 0 0 0 3px rgba(15, 23, 42, 0.12);
-  --badge-bg: #e7eef9;
-  --badge-text: #1e3a8a;
-  --image-bg: #e2e8f0;
+  --badge-bg: color-mix(in srgb, var(--accent-primary) 12%, var(--card-bg));
+  --badge-text: color-mix(in srgb, var(--accent-primary) 72%, var(--text-primary));
+  --image-bg: color-mix(in srgb, var(--bg-secondary) 80%, var(--border-soft));
   --modal-backdrop-bg: rgba(15, 23, 42, 0.7);
-  --text-on-accent: #eff6ff;
-  --danger-bg: #b4232d;
-  --danger-bg-hover: #991b1b;
-  --danger-border: rgba(127, 29, 29, 0.2);
-  --success-bg: #1f7a36;
-  --success-bg-hover: #166534;
-  --success-border: rgba(21, 101, 52, 0.28);
-}
-
-:root[data-theme='dark'] {
-  color-scheme: dark;
-  --bg-primary: #020617;
-  --bg-secondary: #0f172a;
-  --bg-card: #0b1426;
-  --bg-card-soft: #111f38;
-  --text-primary: #e2e8f0;
-  --text-muted: #94a3b8;
-  --accent-primary: #60a5fa;
-  --accent-secondary: #818cf8;
-  --accent-primary-soft: rgba(96, 165, 250, 0.16);
-  --border-soft: rgba(148, 163, 184, 0.25);
-  --shadow-card: 0 16px 36px rgba(0, 0, 0, 0.36);
-  --shadow-soft: 0 10px 22px rgba(0, 0, 0, 0.32);
-  --bg-gradient: radial-gradient(circle at top, #0f172a 0%, #020617 65%);
-  --input-border: rgba(148, 163, 184, 0.35);
-  --input-bg: #111827;
-  --input-bg-focus: #172036;
-  --input-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
-  --input-shadow-focus: 0 0 0 3px rgba(148, 163, 184, 0.25);
-  --badge-bg: #1d2b48;
-  --badge-text: #bfdbfe;
-  --image-bg: #1e293b;
-  --text-on-accent: #0b1120;
-  --danger-bg: #ef4444;
-  --danger-bg-hover: #dc2626;
-  --danger-border: rgba(248, 113, 113, 0.28);
-  --success-bg: #22c55e;
-  --success-bg-hover: #16a34a;
-  --success-border: rgba(74, 222, 128, 0.35);
+  --text-on-accent: var(--ha-primary-background-color, var(--primary-background-color, #eff6ff));
+  --danger-bg: var(--ha-error-color, var(--error-color, #b4232d));
+  --danger-bg-hover: color-mix(in srgb, var(--danger-bg) 84%, black);
+  --danger-border: color-mix(in srgb, var(--danger-bg) 28%, transparent);
+  --success-bg: var(--ha-success-color, var(--success-color, #1f7a36));
+  --success-bg-hover: color-mix(in srgb, var(--success-bg) 84%, black);
+  --success-border: color-mix(in srgb, var(--success-bg) 28%, transparent);
 }
 
 html {
@@ -141,41 +114,30 @@ body.modal-open {
   width: 100%;
   position: fixed;
 }
-.theme-toggle {
+.theme-badge {
   position: relative;
   z-index: 1;
-  width: 2.35rem;
-  height: 2.35rem;
-  border: 0;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--badge-bg) 65%, transparent);
-  color: var(--accent-primary);
+  min-height: 2.35rem;
+  padding: 0.4rem 0.85rem;
+  border: 1px solid color-mix(in srgb, var(--card-border) 88%, transparent);
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--badge-bg) 72%, transparent);
+  color: var(--badge-text);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   margin-left: auto;
   margin-top: 0.15rem;
   flex-shrink: 0;
-  font-size: 1.25rem;
-  line-height: 1;
+  font-size: 0.85rem;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: 0.02em;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  cursor: pointer;
-  transition: transform 0.18s ease, color 0.18s ease;
+  text-transform: uppercase;
 }
 
-.theme-toggle:hover {
-  transform: translateY(-1px);
-}
-
-.theme-toggle:active {
-  transform: translateY(0);
-}
-
-.theme-toggle:focus-visible {
-  outline: 2px solid var(--accent-primary);
-  outline-offset: 2px;
-}
 .container {
   width: min(900px, 100%);
   margin: 2rem auto;
@@ -847,9 +809,9 @@ img {
   .topbar-status {
     font-size: 1rem;
   }
-  .theme-toggle {
-    width: 2.2rem;
-    height: 2.2rem;
+  .theme-badge {
+    min-height: 2.2rem;
+    padding-inline: 0.75rem;
     margin-top: 0.1rem;
   }
   .expiring-search-controls {

@@ -2,10 +2,28 @@ const rootElement = document.documentElement;
 const configuredApiKey = rootElement.dataset.configuredApiKey || '';
 const apiBasePath = rootElement.dataset.apiBasePath || '';
 const dashboardPollingIntervalSeconds = Number.parseInt(rootElement.dataset.dashboardPollingIntervalSeconds || '5', 10);
-const themeStorageKey = 'grocy-dashboard-theme';
+const haThemeSource = rootElement.dataset.themeSource || 'home-assistant-parent';
+const haThemeBridgeMode = rootElement.dataset.themeBridgeMode || 'same-origin-css-vars';
+const haThemeVarNames = (rootElement.dataset.haThemeVars || '')
+  .split(',')
+  .map((name) => name.trim())
+  .filter(Boolean);
 let apiKey = configuredApiKey || '';
 const ingressPrefixMatch = window.location.pathname.match(/^\/api\/hassio_ingress\/[^\/]+/);
 const ingressPrefix = ingressPrefixMatch ? ingressPrefixMatch[0] : '';
+const HA_THEME_MESSAGE_TYPE = 'grocy-ai-assistant:ha-theme-sync';
+const HA_THEME_SOURCE_SELECTORS = ['home-assistant', 'body', 'html'];
+const HA_THEME_VARIABLE_MAPPINGS = {
+  '--primary-background-color': '--ha-primary-background-color',
+  '--secondary-background-color': '--ha-secondary-background-color',
+  '--card-background-color': '--ha-card-background-color',
+  '--primary-text-color': '--ha-primary-text-color',
+  '--secondary-text-color': '--ha-secondary-text-color',
+  '--divider-color': '--ha-divider-color',
+  '--primary-color': '--ha-primary-color',
+  '--error-color': '--ha-error-color',
+  '--success-color': '--ha-success-color',
+};
 
 let pendingRequests = 0;
 let activeRecipeItem = null;
@@ -725,29 +743,201 @@ async function testNotificationPersistent() {
   await loadNotificationOverview();
 }
 
-function applyTheme(theme) {
-  const root = document.documentElement;
-  const toggle = document.getElementById('theme-toggle');
+function readCssCustomProperty(style, propertyName) {
+  return style?.getPropertyValue(propertyName)?.trim() || '';
+}
 
-  if (theme === 'dark') {
-    root.setAttribute('data-theme', 'dark');
-    toggle.textContent = '☀️';
-    toggle.setAttribute('aria-label', 'Zu Lightmode wechseln');
-    toggle.setAttribute('title', 'Zu Lightmode wechseln');
+function parseColorChannels(value) {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (!normalized) return null;
+
+  const hexMatch = normalized.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
+  if (hexMatch) {
+    const hex = hexMatch[1];
+    if (hex.length === 3) {
+      return hex.split('').map((channel) => Number.parseInt(channel + channel, 16));
+    }
+    return [
+      Number.parseInt(hex.slice(0, 2), 16),
+      Number.parseInt(hex.slice(2, 4), 16),
+      Number.parseInt(hex.slice(4, 6), 16),
+    ];
+  }
+
+  const rgbMatch = normalized.match(/^rgba?\(([^)]+)\)$/);
+  if (!rgbMatch) return null;
+
+  const channels = rgbMatch[1]
+    .split(',')
+    .slice(0, 3)
+    .map((channel) => Number.parseFloat(channel.trim()));
+  if (channels.length !== 3 || channels.some((channel) => !Number.isFinite(channel))) {
+    return null;
+  }
+  return channels;
+}
+
+function inferColorScheme(backgroundColor) {
+  const channels = parseColorChannels(backgroundColor);
+  if (!channels) {
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+      ? 'dark'
+      : 'light';
+  }
+
+  const [red, green, blue] = channels;
+  const luminance = (0.2126 * red + 0.7152 * green + 0.0722 * blue) / 255;
+  return luminance < 0.5 ? 'dark' : 'light';
+}
+
+function getHomeAssistantSourceDocument() {
+  try {
+    if (window.parent && window.parent !== window && window.parent.document) {
+      return window.parent.document;
+    }
+  } catch (_) {
+    return null;
+  }
+
+  return null;
+}
+
+function getHomeAssistantThemeStyleSources(sourceDocument) {
+  if (!sourceDocument) return [];
+
+  return HA_THEME_SOURCE_SELECTORS
+    .map((selector) => {
+      if (selector === 'html') return sourceDocument.documentElement;
+      if (selector === 'body') return sourceDocument.body;
+      return sourceDocument.querySelector(selector);
+    })
+    .filter(Boolean)
+    .map((element) => window.parent.getComputedStyle(element));
+}
+
+function readHomeAssistantThemeSnapshot() {
+  const sourceDocument = getHomeAssistantSourceDocument();
+  const styleSources = getHomeAssistantThemeStyleSources(sourceDocument);
+  if (!styleSources.length) return null;
+
+  const allowedSourceNames = new Set(
+    haThemeVarNames.map((name) => `--${name}`).filter((name) => name !== '--')
+  );
+  const variables = {};
+  Object.entries(HA_THEME_VARIABLE_MAPPINGS).forEach(([sourceName, targetName]) => {
+    if (allowedSourceNames.size && !allowedSourceNames.has(sourceName)) return;
+    const value = styleSources
+      .map((style) => readCssCustomProperty(style, sourceName))
+      .find(Boolean);
+    if (value) {
+      variables[targetName] = value;
+    }
+  });
+
+  const hasThemeVariables = Object.keys(variables).length > 0;
+  if (!hasThemeVariables) return null;
+
+  const declaredColorScheme = styleSources
+    .map((style) => String(style?.colorScheme || '').trim().toLowerCase())
+    .find((value) => value === 'dark' || value === 'light');
+  const backgroundColor = variables['--ha-primary-background-color'] || styleSources
+    .map((style) => String(style?.backgroundColor || '').trim())
+    .find(Boolean);
+
+  return {
+    colorScheme: declaredColorScheme || inferColorScheme(backgroundColor),
+    variables,
+  };
+}
+
+function updateThemeBadge(colorScheme, sourceLabel = 'HA Theme') {
+  const badge = document.getElementById('theme-badge');
+  if (!badge) return;
+
+  const normalizedScheme = colorScheme === 'dark' ? 'Dark' : 'Light';
+  badge.textContent = `${sourceLabel} · ${normalizedScheme}`;
+}
+
+function applyHomeAssistantThemeSnapshot(snapshot) {
+  if (!snapshot) return false;
+
+  Object.entries(snapshot.variables || {}).forEach(([targetName, value]) => {
+    rootElement.style.setProperty(targetName, value);
+  });
+
+  const colorScheme = snapshot.colorScheme === 'dark' ? 'dark' : 'light';
+  rootElement.style.setProperty('--ha-color-scheme', colorScheme);
+  rootElement.setAttribute('data-theme-source', haThemeSource);
+  rootElement.setAttribute('data-theme-bridge-mode', haThemeBridgeMode);
+  rootElement.setAttribute('data-ha-color-scheme', colorScheme);
+  rootElement.setAttribute('data-ha-theme-ready', 'true');
+  updateThemeBadge(colorScheme);
+  return true;
+}
+
+function syncThemeFromHomeAssistant() {
+  return applyHomeAssistantThemeSnapshot(readHomeAssistantThemeSnapshot());
+}
+
+function observeHomeAssistantTheme() {
+  const sourceDocument = getHomeAssistantSourceDocument();
+  if (!sourceDocument || typeof MutationObserver === 'undefined') {
+    updateThemeBadge('light', 'Lokales Theme');
     return;
   }
 
-  root.removeAttribute('data-theme');
-  toggle.textContent = '☾';
-  toggle.setAttribute('aria-label', 'Zu Darkmode wechseln');
-  toggle.setAttribute('title', 'Zu Darkmode wechseln');
-}
+  const watchedElements = HA_THEME_SOURCE_SELECTORS
+    .map((selector) => {
+      if (selector === 'html') return sourceDocument.documentElement;
+      if (selector === 'body') return sourceDocument.body;
+      return sourceDocument.querySelector(selector);
+    })
+    .filter(Boolean);
 
-function toggleTheme() {
-  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-  const nextTheme = isDark ? 'light' : 'dark';
-  localStorage.setItem(themeStorageKey, nextTheme);
-  applyTheme(nextTheme);
+  const observer = new MutationObserver(() => {
+    syncThemeFromHomeAssistant();
+  });
+
+  watchedElements.forEach((element) => {
+    observer.observe(element, {
+      attributes: true,
+      attributeFilter: ['class', 'style', 'data-theme', 'data-color-scheme'],
+    });
+  });
+
+  syncThemeFromHomeAssistant();
+
+  if (window.matchMedia) {
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    if (typeof mediaQuery.addEventListener === 'function') {
+      mediaQuery.addEventListener('change', () => {
+        syncThemeFromHomeAssistant();
+      });
+    } else if (typeof mediaQuery.addListener === 'function') {
+      mediaQuery.addListener(() => {
+        syncThemeFromHomeAssistant();
+      });
+    }
+  }
+
+  window.addEventListener('message', (event) => {
+    const payload = event?.data;
+    if (!payload || payload.type !== HA_THEME_MESSAGE_TYPE || typeof payload.variables !== 'object') {
+      return;
+    }
+
+    applyHomeAssistantThemeSnapshot({
+      colorScheme: payload.colorScheme,
+      variables: Object.entries(payload.variables).reduce((accumulator, [name, value]) => {
+        if (typeof value !== 'string') return accumulator;
+        const targetName = HA_THEME_VARIABLE_MAPPINGS[name];
+        if (targetName) {
+          accumulator[targetName] = value;
+        }
+        return accumulator;
+      }, {}),
+    });
+  });
 }
 
 function ensureApiKey() {
@@ -1794,8 +1984,8 @@ document.getElementById('shopping-search-form')?.addEventListener('submit', asyn
 });
 
 
-const savedTheme = localStorage.getItem(themeStorageKey) || 'light';
-applyTheme(savedTheme);
+syncThemeFromHomeAssistant();
+observeHomeAssistantTheme();
 updateClearButtonVisibility();
 const addMissingButton = document.getElementById('recipe-add-missing-button');
 if (addMissingButton) addMissingButton.addEventListener('click', addMissingRecipeProducts);
