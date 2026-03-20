@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [7.3.2]
+
+- Fix (Home-Assistant-Integration/Sensoren): Status-, Update-, Einkaufslisten-, Lager- und Rezeptsensoren bleiben jetzt auch dann verfügbar, wenn der erste API-Aufruf des Add-ons mit einer Exception fehlschlägt; stattdessen werden Fallback-Werte wie `Offline`, `Unbekannt`, `0` oder `Keine Vorschläge` gesetzt.
+- Test: Zusätzliche Unit-Tests decken Initialfehler für Status-, Update- und Lager-Sensoren ab.
+- Versionsstände für Add-on und Integration auf `7.3.2` erhöht.
+
 ## [7.3.1]
 
 - Fix (API): `/api/v1/health` und `/api/v1/capabilities` sind jetzt ohne Bearer-Token direkt erreichbar, damit die lokale Add-on-Service-API unter `host:8000/...` für Discovery und Debugging nutzbar ist.
