@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Changed (Home-Assistant-Integration/Geräteregistrierung): Alle Sensoren, Buttons und das Texteingabefeld nutzen jetzt dieselbe `device_info` wie `Grocy AI Response`, damit die Entitäten Home-Assistant-konform gemeinsam unter einem Gerät erscheinen.
+- Test: Unit-Tests prüfen die gemeinsame Gerätezurodnung für Sensor-, Button- und Text-Entitäten.
+- Versionsstände für Add-on und Integration auf `7.4.3` erhöht.
+
 ## [7.4.2]
 
 - Fix (Home-Assistant-Integration): Die interne Add-on-Auflösung nutzt jetzt zusätzlich die Supervisor-API (`/addons` und `/addons/<addon>/info`), um bei GitHub-/Repository-Installationen den tatsächlich vergebenen Add-on-Hostnamen samt Container-IP dynamisch zu ermitteln.
