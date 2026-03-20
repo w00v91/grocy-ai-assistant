@@ -1,6 +1,16 @@
 import aiohttp
 
-DEFAULT_ADDON_API_URL = "http://grocy_ai_assistant:8000"
+DEFAULT_ADDON_API_URL = "http://local-grocy-ai-assistant:8000"
+FALLBACK_ADDON_API_URLS = (
+    DEFAULT_ADDON_API_URL,
+    "http://grocy-ai-assistant:8000",
+    "http://grocy_ai_assistant:8000",
+)
+_ADDON_URL_HINT = (
+    "Setze in der Integration die API-Basis-URL auf den Home-Assistant-App-Hostnamen "
+    "im Format http://{repo}-{slug}:8000 (Unterstriche durch Bindestriche ersetzen), "
+    "z. B. http://local-grocy-ai-assistant:8000."
+)
 
 
 class AddonClient:
@@ -9,10 +19,24 @@ class AddonClient:
     def __init__(
         self, base_url: str, api_key: str, integration_version: str | None = None
     ):
-        self._base_url = (base_url or DEFAULT_ADDON_API_URL).rstrip("/")
+        normalized_base_url = (base_url or "").strip().rstrip("/")
+        self._base_url = normalized_base_url or DEFAULT_ADDON_API_URL
         self._headers = {"Authorization": f"Bearer {api_key}"}
         if integration_version:
             self._headers["X-HA-Integration-Version"] = integration_version
+
+    def _candidate_base_urls(self) -> list[str]:
+        if self._base_url:
+            normalized_base_url = self._base_url.rstrip("/")
+            if normalized_base_url not in FALLBACK_ADDON_API_URLS:
+                return [normalized_base_url]
+
+        candidates: list[str] = []
+        for candidate in (self._base_url, *FALLBACK_ADDON_API_URLS):
+            normalized_candidate = (candidate or "").rstrip("/")
+            if normalized_candidate and normalized_candidate not in candidates:
+                candidates.append(normalized_candidate)
+        return candidates
 
     async def _request_json(
         self,
@@ -23,23 +47,37 @@ class AddonClient:
         timeout_seconds: int = 30,
     ) -> dict | list:
         timeout = aiohttp.ClientTimeout(total=timeout_seconds)
-        async with aiohttp.ClientSession(timeout=timeout) as session:
-            request = session.get if method.upper() == "GET" else session.post
-            request_kwargs = {"headers": self._headers}
-            if method.upper() != "GET":
-                request_kwargs["json"] = json_payload
-            async with request(
-                f"{self._base_url}{path}",
-                **request_kwargs,
-            ) as response:
-                payload = await response.json()
-                if isinstance(payload, dict):
-                    payload["_http_status"] = response.status
-                    return payload
-                return {
-                    "items": payload,
-                    "_http_status": response.status,
-                }
+        last_error: Exception | None = None
+
+        for base_url in self._candidate_base_urls():
+            try:
+                async with aiohttp.ClientSession(timeout=timeout) as session:
+                    request = session.get if method.upper() == "GET" else session.post
+                    request_kwargs = {"headers": self._headers}
+                    if method.upper() != "GET":
+                        request_kwargs["json"] = json_payload
+                    async with request(
+                        f"{base_url}{path}",
+                        **request_kwargs,
+                    ) as response:
+                        payload = await response.json()
+                        if isinstance(payload, dict):
+                            payload["_http_status"] = response.status
+                            return payload
+                        return {
+                            "items": payload,
+                            "_http_status": response.status,
+                        }
+            except aiohttp.ClientConnectorError as error:
+                last_error = error
+                continue
+
+        if last_error is not None:
+            raise RuntimeError(
+                f"Add-on API nicht erreichbar ({last_error}). {_ADDON_URL_HINT}"
+            ) from last_error
+
+        raise RuntimeError(f"Add-on API nicht erreichbar. {_ADDON_URL_HINT}")
 
     async def get_status(self) -> dict:
         return await self._request_json("GET", "/api/v1/status", timeout_seconds=10)
