@@ -92,6 +92,9 @@ def test_panel_registers_native_module(monkeypatch):
         kwargs["config"]["legacy_dashboard_url"]
         == "/api/hassio_ingress/grocy_ai_assistant/"
     )
+    assert kwargs["config"]["panel_path"] == "/grocy-ai"
+    assert kwargs["config"]["panel_title"] == "Grocy AI"
+    assert kwargs["config"]["panel_icon"] == "mdi:brain"
 
 
 def test_panel_registers_static_bundle_directory(monkeypatch):
