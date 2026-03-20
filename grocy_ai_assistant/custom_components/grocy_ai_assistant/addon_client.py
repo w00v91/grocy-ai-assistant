@@ -1,5 +1,9 @@
-import aiohttp
+import asyncio
+from ipaddress import ip_address
 from urllib.parse import urlencode
+from urllib.parse import urlparse
+
+import aiohttp
 
 DEFAULT_ADDON_API_URL = "http://local-grocy-ai-assistant:8000"
 FALLBACK_ADDON_API_URLS = (
@@ -20,18 +24,35 @@ class AddonClient:
     def __init__(
         self, base_url: str, api_key: str, integration_version: str | None = None
     ):
-        normalized_base_url = (base_url or "").strip().rstrip("/")
+        normalized_base_url = self._normalize_base_url(base_url)
         self._base_url = normalized_base_url or DEFAULT_ADDON_API_URL
         self._headers = {"Authorization": f"Bearer {api_key}"}
         if integration_version:
             self._headers["X-HA-Integration-Version"] = integration_version
 
-    def _candidate_base_urls(self) -> list[str]:
-        if self._base_url:
-            normalized_base_url = self._base_url.rstrip("/")
-            if normalized_base_url not in FALLBACK_ADDON_API_URLS:
-                return [normalized_base_url]
+    @staticmethod
+    def _normalize_base_url(base_url: str | None) -> str:
+        normalized_base_url = (base_url or "").strip().rstrip("/")
+        if not normalized_base_url:
+            return DEFAULT_ADDON_API_URL
+        if AddonClient._is_loopback_url(normalized_base_url):
+            return DEFAULT_ADDON_API_URL
+        return normalized_base_url
 
+    @staticmethod
+    def _is_loopback_url(url: str) -> bool:
+        parsed_url = urlparse(url)
+        hostname = (parsed_url.hostname or "").strip()
+        if not hostname:
+            return False
+        if hostname.lower() == "localhost":
+            return True
+        try:
+            return ip_address(hostname).is_loopback
+        except ValueError:
+            return False
+
+    def _candidate_base_urls(self) -> list[str]:
         candidates: list[str] = []
         for candidate in (self._base_url, *FALLBACK_ADDON_API_URLS):
             normalized_candidate = (candidate or "").rstrip("/")
@@ -58,23 +79,34 @@ class AddonClient:
             }
             if filtered_query:
                 request_path = f"{path}?{urlencode(filtered_query)}"
+        last_error: Exception | None = None
         async with aiohttp.ClientSession(timeout=timeout) as session:
             request = session.get if method.upper() == "GET" else session.post
             request_kwargs = {"headers": self._headers}
             if method.upper() != "GET":
                 request_kwargs["json"] = json_payload
-            async with request(
-                f"{self._base_url}{request_path}",
-                **request_kwargs,
-            ) as response:
-                payload = await response.json()
-                if isinstance(payload, dict):
-                    payload["_http_status"] = response.status
-                    return payload
-                return {
-                    "items": payload,
-                    "_http_status": response.status,
-                }
+
+            for candidate_base_url in self._candidate_base_urls():
+                try:
+                    async with request(
+                        f"{candidate_base_url}{request_path}",
+                        **request_kwargs,
+                    ) as response:
+                        payload = await response.json()
+                        if isinstance(payload, dict):
+                            payload["_http_status"] = response.status
+                            return payload
+                        return {
+                            "items": payload,
+                            "_http_status": response.status,
+                        }
+                except (aiohttp.ClientError, asyncio.TimeoutError) as error:
+                    last_error = error
+                    continue
+
+        if last_error is not None:
+            raise last_error
+        raise RuntimeError("Die Add-on-API konnte nicht erreicht werden")
 
     async def get_status(self) -> dict:
         return await self._request_json("GET", "/api/v1/status", timeout_seconds=10)
