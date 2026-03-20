@@ -6,6 +6,13 @@ All notable changes to this project will be documented in this file.
 
 - Changed (Home-Assistant-Integration/Panel): Das native Dashboard liest den initialen Bereich jetzt stabil über `?tab=` oder einen Routenabschnitt (`/grocy-ai/<tab>`) und synchronisiert Tab-Wechsel per History-API zurück in die URL, inklusive Fallback auf `shopping`.
 - Test: Neue Frontend-Unit-Tests decken direkte Aufrufe wie `.../grocy-ai?tab=storage` und `.../grocy-ai?tab=notifications` sowie den URL-Aufbau für Browser-Navigation ab; Versionsstände auf `7.4.10` erhöht.
+- Changed (Home-Assistant-Integration/Panel): Die Integration registriert das native Dashboard jetzt zentral als echtes Home-Assistant-Panel mit festem Slug `grocy-ai`, Sidebar-Metadaten und statischer Frontend-Route statt auf Ingress-/iframe-URLs in der Registrierung zu fokussieren.
+- Changed (Home-Assistant-Integration/Panel): Setup und Unload des Panels laufen nun über dedizierte `panel.py`-Hilfen mit Referenzzählung, damit der Sidebar-Eintrag beim Laden automatisch erscheint und beim letzten Entladen sauber entfernt wird.
+- Test: `tests/unit/test_panel.py` prüft jetzt Panel-Metadaten, die registrierte Modul-Route sowie das Entfernen des Sidebar-Eintrags; Versionsstände wurden auf `7.4.10` erhöht.
+- Changed (Home-Assistant-Integration/Panel): Die native Shopping-Suche nutzt jetzt einen UI-unabhängigen Search-Controller mit reaktivem Store für `query`, erkannte Mengenpräfixe, Varianten, Lade-/Submit-Status sowie fachliche Status- und Fehlermeldungen.
+- Changed (Dashboard/Migration): Die bestehende Suchlogik aus `dashboard.js` wurde für die native HA-UI als klarer State-Flow `idle -> typing -> loading_variants -> variants_ready -> submitting -> success/error` übernommen; Variantenauswahl, KI-/Input-Vorschläge und die bestehenden `/api/dashboard/...`-Endpoints bleiben unverändert.
+- Changed (Dashboard/Legacy): Mengenpräfix-Parsing und Clear-Button-Regel der Legacy-Suche sind in ein kleines Hilfsmodul ausgelagert, damit die fachlichen Suchregeln außerhalb von `dashboard.js` wiederverwendbar bleiben.
+- Test: `node --check` für das Legacy-Dashboard, den nativen HA-Panel-Code und den neuen Search-Controller ausgeführt; relevante Unit-Tests sowie Versionsstände auf `7.4.10` aktualisiert.
 
 - Changed (Dashboard/UI): Topbar, Tabs, Kartencontainer, Dialoge sowie Formular- und Statusflächen des Legacy-Dashboards orientieren sich jetzt an Home-Assistant-Surface-, Button- und Feldmustern statt an eigenständigem Glassmorphism-/Gradient-Styling.
 - Changed (Dashboard/Theme): Das Dashboard nutzt nur noch die vom Home-Assistant-Parent synchronisierten Theme-Variablen; das visuelle Theme-Badge und die Beobachtung von `data-theme` entfallen zugunsten HA-nativer Variablen-Mappings.
