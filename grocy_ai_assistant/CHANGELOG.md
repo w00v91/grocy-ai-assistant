@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Changed (Home-Assistant-Integration/Panel): Die Integration registriert das native Dashboard jetzt zentral als echtes Home-Assistant-Panel mit festem Slug `grocy-ai`, Sidebar-Metadaten und statischer Frontend-Route statt auf Ingress-/iframe-URLs in der Registrierung zu fokussieren.
+- Changed (Home-Assistant-Integration/Panel): Setup und Unload des Panels laufen nun über dedizierte `panel.py`-Hilfen mit Referenzzählung, damit der Sidebar-Eintrag beim Laden automatisch erscheint und beim letzten Entladen sauber entfernt wird.
+- Test: `tests/unit/test_panel.py` prüft jetzt Panel-Metadaten, die registrierte Modul-Route sowie das Entfernen des Sidebar-Eintrags; Versionsstände wurden auf `7.4.10` erhöht.
 - Changed (Home-Assistant-Integration/Panel): Die native Shopping-Suche nutzt jetzt einen UI-unabhängigen Search-Controller mit reaktivem Store für `query`, erkannte Mengenpräfixe, Varianten, Lade-/Submit-Status sowie fachliche Status- und Fehlermeldungen.
 - Changed (Dashboard/Migration): Die bestehende Suchlogik aus `dashboard.js` wurde für die native HA-UI als klarer State-Flow `idle -> typing -> loading_variants -> variants_ready -> submitting -> success/error` übernommen; Variantenauswahl, KI-/Input-Vorschläge und die bestehenden `/api/dashboard/...`-Endpoints bleiben unverändert.
 - Changed (Dashboard/Legacy): Mengenpräfix-Parsing und Clear-Button-Regel der Legacy-Suche sind in ein kleines Hilfsmodul ausgelagert, damit die fachlichen Suchregeln außerhalb von `dashboard.js` wiederverwendbar bleiben.
