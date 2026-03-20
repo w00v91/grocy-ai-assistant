@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [7.2.33]
+
+- Fix (Produktauswahl/Neu anlegen): Mengen-Badges aus der Varianten-Auswahl werden jetzt auch beim ersten Anlegen eines neuen Produkts zuverlässig auf die Einkaufsliste übernommen, selbst wenn Grocy `product_id` als String zurückliefert.
+- Test: API-Test ergänzt, der `force_create` mit Mengenpräfix und String-`product_id` für neu angelegte Einkaufslisteneinträge absichert.
+
 ## [7.2.32]
 - Fix (Home-Assistant-Integration/Sensoren): Polling-Sensoren für Einkaufslisten-, Lager- und Rezeptdaten bleiben bei API-Fehlern mit Fallback-Werten bzw. zuletzt erfolgreichem Stand verfügbar und markieren Fehler stattdessen in den Attributen `last_update_success`, `last_error` und `http_status`.
 - Test: Unit-Tests für Sensor-Fallbacks bei HTTP-Fehlern und Ausnahmen ergänzt.
