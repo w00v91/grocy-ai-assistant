@@ -149,7 +149,7 @@ def test_shopping_list_sensor_preserves_last_successful_value_after_exception():
 
 
 def test_recipe_sensor_exposes_default_state_instead_of_unavailable_on_http_error():
-    sensor = sensor_module.GrocyAITopRecipeSuggestionSensor(_FakeEntry())
+    sensor = sensor_module.GrocyAITopAIRecipeSuggestionSensor(_FakeEntry())
     sensor._build_client = lambda: _StaticClient(
         {"_http_status": 503, "detail": "Rezeptdienst nicht bereit"}
     )
@@ -161,6 +161,34 @@ def test_recipe_sensor_exposes_default_state_instead_of_unavailable_on_http_erro
     assert sensor.extra_state_attributes["last_update_success"] is False
     assert sensor.extra_state_attributes["last_error"] == "Rezeptdienst nicht bereit"
     assert sensor.extra_state_attributes["http_status"] == 503
+
+
+def test_top_grocy_recipe_sensor_only_exposes_best_matching_grocy_recipe():
+    sensor = sensor_module.GrocyAITopGrocyRecipeSuggestionSensor(_FakeEntry())
+    sensor._build_client = lambda: _StaticClient(
+        {
+            "_http_status": 200,
+            "selected_products": ["Tomate"],
+            "grocy_recipes": [
+                {"title": "Tomaten Pasta", "source": "grocy"},
+                {"title": "Tomaten Suppe", "source": "grocy"},
+            ],
+            "ai_recipes": [
+                {"title": "Tomatensalat", "source": "ai"},
+            ],
+        }
+    )
+
+    asyncio.run(sensor.async_update())
+
+    assert sensor.available is True
+    assert sensor.native_value == "Tomaten Pasta"
+    assert sensor.extra_state_attributes["source"] == "grocy"
+    assert sensor.extra_state_attributes["recipes_count"] == 1
+    assert sensor.extra_state_attributes["grocy_recipes"] == [
+        {"title": "Tomaten Pasta", "source": "grocy"}
+    ]
+    assert sensor.extra_state_attributes["ai_recipes"] == []
 
 
 def test_status_sensor_uses_offline_fallback_on_initial_exception():

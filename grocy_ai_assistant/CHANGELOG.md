@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Changed (Home-Assistant-Integration/Sensoren): Der bisherige Sensor `Grocy AI Top Rezeptvorschlag` wurde in die zwei getrennten Sensoren `Grocy AI Top KI Rezeptvorschlag` und `Grocy AI Top Grocy Rezeptvorschlag` aufgeteilt.
+- Changed (Home-Assistant-Integration/Sensoren): Beide neuen Topsensoren zeigen jetzt jeweils nur noch den besten Vorschlag ihrer Quelle an, inklusive quellspezifischer Attributdaten für genau ein Rezept.
+- Test: Unit-Tests decken die neue quellspezifische Rezeptauswahl sowie die reduzierten Sensorattribute ab.
 - Changed (Home-Assistant-Integration/Geräteregistrierung): Alle Sensoren, Buttons und das Texteingabefeld nutzen jetzt dieselbe `device_info` wie `Grocy AI Response`, damit die Entitäten Home-Assistant-konform gemeinsam unter einem Gerät erscheinen.
 - Test: Unit-Tests prüfen die gemeinsame Gerätezurodnung für Sensor-, Button- und Text-Entitäten.
 - Versionsstände für Add-on und Integration auf `7.4.3` erhöht.

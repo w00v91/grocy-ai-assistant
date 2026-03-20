@@ -109,6 +109,31 @@ def test_build_recipe_summary_prefers_first_grocy_recipe_as_top_recipe():
     assert attributes["recipes_count"] == 2
 
 
+def test_build_recipe_summary_filters_to_single_ai_recipe_for_ai_sensor():
+    state, attributes = build_recipe_summary(
+        {
+            "selected_products": ["Tomate"],
+            "grocy_recipes": [
+                {"title": "Tomaten Pasta", "source": "grocy"},
+            ],
+            "ai_recipes": [
+                {"title": "Tomatensuppe", "source": "ai"},
+                {"title": "Tomaten-Curry", "source": "ai"},
+            ],
+        },
+        soon_expiring_only=False,
+        expiring_within_days=3,
+        source="ai",
+    )
+
+    assert state == "Tomatensuppe"
+    assert attributes["source"] == "ai"
+    assert attributes["top_recipe"]["source"] == "ai"
+    assert attributes["grocy_recipes"] == []
+    assert attributes["ai_recipes"] == [{"title": "Tomatensuppe", "source": "ai"}]
+    assert attributes["recipes_count"] == 1
+
+
 def test_build_analysis_status_payload_contains_last_result_attributes():
     state, attributes = build_analysis_status_payload(
         query="Milch",
