@@ -4,10 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Changed (Dashboard/UI): `dashboard.css` bündelt jetzt wiederkehrende Oberflächenwerte wie Card-Padding, Control-Höhen, Border-Radien, Flächen und Elevation in semantischen Tokens und mappt diese soweit möglich auf Home-Assistant-Variablen mit Fallbacks.
+- Changed (Dashboard/UI): Topbar, Karten, Bottom-Tabbar, Formularfelder, Buttons und Modals verwenden nun die neuen Surface-/Spacing-/Radius-Tokens konsistent, damit Light-/Dark-Mode näher am Home-Assistant-Look bleibt.
+- Test: Versionsmetadaten und Add-on-Konfiguration wurden auf `7.4.5` angehoben bzw. im Test synchronisiert.
+
 - Changed (Dashboard/Theme): Das iframe-Dashboard übernimmt Home-Assistant-Themefarben jetzt explizit aus dem Parent-Dokument statt auf eine isolierte iframe-Vererbung zu hoffen.
 - Changed (Dashboard/UI): Die manuelle Light/Dark-Umschaltung wurde durch einen Home-Assistant-Theme-Statusbadge ersetzt; die Dashboard-CSS nutzt nun HA-nahe Farbvariablen mit Fallbacks.
 - Test: API-Tests prüfen jetzt die Theme-Bridge-Metadaten im HTML sowie die neue Theme-Synchronisation in CSS/JavaScript.
-- Versionsstände für Add-on und Integration auf `7.4.4` erhöht.
+- Versionsstände für Add-on und Integration auf `7.4.5` erhöht.
 
 - Changed (Home-Assistant-Integration/Sensoren): Der bisherige Sensor `Grocy AI Top Rezeptvorschlag` wurde in die zwei getrennten Sensoren `Grocy AI Top KI Rezeptvorschlag` und `Grocy AI Top Grocy Rezeptvorschlag` aufgeteilt.
 - Changed (Home-Assistant-Integration/Sensoren): Beide neuen Topsensoren zeigen jetzt jeweils nur noch den besten Vorschlag ihrer Quelle an, inklusive quellspezifischer Attributdaten für genau ein Rezept.
