@@ -34,7 +34,8 @@ async def async_setup_entry(hass, entry, async_add_entities):
             GrocyAIShoppingListOpenCountSensor(entry),
             GrocyAIStockProductCountSensor(entry),
             GrocyAIExpiringStockProductCountSensor(entry),
-            GrocyAITopRecipeSuggestionSensor(entry),
+            GrocyAITopAIRecipeSuggestionSensor(entry),
+            GrocyAITopGrocyRecipeSuggestionSensor(entry),
             GrocyAISoonExpiringRecipeSuggestionSensor(entry),
             GrocyAIAnalysisStatusSensor(entry),
             GrocyAIBarcodeLookupStatusSensor(entry),
@@ -332,9 +333,18 @@ class GrocyAIExpiringStockProductCountSensor(_PollingAddonSensor):
 
 
 class _RecipeSuggestionSensor(_PollingAddonSensor):
-    def __init__(self, entry, *, soon_expiring_only: bool, name: str, suffix: str):
+    def __init__(
+        self,
+        entry,
+        *,
+        soon_expiring_only: bool,
+        name: str,
+        suffix: str,
+        source: str | None = None,
+    ):
         super().__init__(entry)
         self._soon_expiring_only = soon_expiring_only
+        self._source = source
         self._attr_name = name
         self._attr_unique_id = f"{entry.entry_id}_{suffix}"
         self._attr_native_value = "Keine Vorschläge"
@@ -362,18 +372,31 @@ class _RecipeSuggestionSensor(_PollingAddonSensor):
             payload,
             soon_expiring_only=self._soon_expiring_only,
             expiring_within_days=DEFAULT_EXPIRING_WITHIN_DAYS,
+            source=self._source,
         )
         self._attr_native_value = state
         self._set_success_state(attributes=attributes)
 
 
-class GrocyAITopRecipeSuggestionSensor(_RecipeSuggestionSensor):
+class GrocyAITopAIRecipeSuggestionSensor(_RecipeSuggestionSensor):
     def __init__(self, entry):
         super().__init__(
             entry,
             soon_expiring_only=False,
-            name="Grocy AI Top Rezeptvorschlag",
-            suffix="recipe_suggestion_top",
+            name="Grocy AI Top KI Rezeptvorschlag",
+            suffix="recipe_suggestion_top_ai",
+            source="ai",
+        )
+
+
+class GrocyAITopGrocyRecipeSuggestionSensor(_RecipeSuggestionSensor):
+    def __init__(self, entry):
+        super().__init__(
+            entry,
+            soon_expiring_only=False,
+            name="Grocy AI Top Grocy Rezeptvorschlag",
+            suffix="recipe_suggestion_top_grocy",
+            source="grocy",
         )
 
 

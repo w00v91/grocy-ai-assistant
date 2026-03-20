@@ -28,10 +28,23 @@ def _sorted_unique(values: list[str]) -> list[str]:
     return sorted({value for value in values if value})
 
 
-def _select_top_recipe(payload: dict[str, Any]) -> dict[str, Any] | None:
-    grocy_recipes = list(payload.get("grocy_recipes") or [])
-    ai_recipes = list(payload.get("ai_recipes") or [])
-    for recipe in [*grocy_recipes, *ai_recipes]:
+def _select_top_recipe(
+    payload: dict[str, Any],
+    *,
+    source: str | None = None,
+) -> dict[str, Any] | None:
+    grocy_recipes = [dict(recipe) for recipe in payload.get("grocy_recipes") or []]
+    ai_recipes = [dict(recipe) for recipe in payload.get("ai_recipes") or []]
+    recipes = [*grocy_recipes, *ai_recipes]
+    if source:
+        normalized_source = source.strip().casefold()
+        recipes = [
+            recipe
+            for recipe in recipes
+            if str(recipe.get("source") or "").strip().casefold() == normalized_source
+        ]
+
+    for recipe in recipes:
         title = str(recipe.get("title") or "").strip()
         if title:
             return recipe
@@ -123,8 +136,9 @@ def build_recipe_summary(
     *,
     soon_expiring_only: bool,
     expiring_within_days: int = DEFAULT_EXPIRING_WITHIN_DAYS,
+    source: str | None = None,
 ) -> tuple[str, dict[str, Any]]:
-    top_recipe = _select_top_recipe(payload)
+    top_recipe = _select_top_recipe(payload, source=source)
     state = (
         str(top_recipe.get("title") or "Keine Vorschläge")
         if top_recipe
@@ -132,9 +146,19 @@ def build_recipe_summary(
     )
     grocy_recipes = [dict(recipe) for recipe in payload.get("grocy_recipes") or []]
     ai_recipes = [dict(recipe) for recipe in payload.get("ai_recipes") or []]
+    if source:
+        normalized_source = source.strip().casefold()
+        if normalized_source == "grocy":
+            ai_recipes = []
+            grocy_recipes = grocy_recipes[:1] if top_recipe else []
+        elif normalized_source == "ai":
+            grocy_recipes = []
+            ai_recipes = ai_recipes[:1] if top_recipe else []
+
     return state, {
         "soon_expiring_only": soon_expiring_only,
         "expiring_within_days": max(1, int(expiring_within_days)),
+        "source": source or "",
         "selected_products": list(payload.get("selected_products") or []),
         "top_recipe": dict(top_recipe) if top_recipe else {},
         "grocy_recipes": grocy_recipes,

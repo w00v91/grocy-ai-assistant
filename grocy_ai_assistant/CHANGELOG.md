@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Changed (Home-Assistant-Integration/Sensoren): Der bisherige Sensor `Grocy AI Top Rezeptvorschlag` wurde in die zwei getrennten Sensoren `Grocy AI Top KI Rezeptvorschlag` und `Grocy AI Top Grocy Rezeptvorschlag` aufgeteilt.
+- Changed (Home-Assistant-Integration/Sensoren): Beide neuen Topsensoren zeigen jetzt jeweils nur noch den besten Vorschlag ihrer Quelle an, inklusive quellspezifischer Attributdaten für genau ein Rezept.
+- Test: Unit-Tests decken die neue quellspezifische Rezeptauswahl sowie die reduzierten Sensorattribute ab.
+- Versionsstände für Add-on und Integration auf `7.4.3` erhöht.
+
 ## [7.4.2]
 
 - Fix (Home-Assistant-Integration): Die interne Add-on-Auflösung nutzt jetzt zusätzlich die Supervisor-API (`/addons` und `/addons/<addon>/info`), um bei GitHub-/Repository-Installationen den tatsächlich vergebenen Add-on-Hostnamen samt Container-IP dynamisch zu ermitteln.
