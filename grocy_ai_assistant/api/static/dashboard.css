@@ -15,10 +15,48 @@
   --accent-secondary: color-mix(in srgb, var(--accent-primary) 78%, var(--text-primary));
   --accent-primary-soft: color-mix(in srgb, var(--accent-primary) 16%, transparent);
   --border-soft: var(--ha-divider-color, var(--divider-color, #dbe5f3));
-  --shadow-card: 0 14px 34px rgba(15, 23, 42, 0.08);
-  --shadow-soft: 0 8px 20px rgba(15, 23, 42, 0.08);
-  --radius-xl: 16px;
+  --shadow-card: var(--ha-card-box-shadow, 0 14px 34px rgba(15, 23, 42, 0.08));
+  --shadow-soft: var(--ha-card-box-shadow, 0 8px 20px rgba(15, 23, 42, 0.08));
+  --radius-xl: var(--ha-card-border-radius, 16px);
+  --radius-lg: var(--ha-card-border-radius, 14px);
+  --radius-md: calc(var(--radius-xl) - 4px);
+  --radius-sm: calc(var(--radius-xl) - 6px);
   --radius-pill: 999px;
+  --space-2xs: 0.25rem;
+  --space-xs: 0.5rem;
+  --space-sm: 0.75rem;
+  --space-md: 1rem;
+  --space-lg: 1.25rem;
+  --space-xl: 1.5rem;
+  --surface-page: var(--bg-primary);
+  --surface-card: var(--bg-card);
+  --surface-card-soft: var(--bg-card-soft);
+  --surface-raised: color-mix(in srgb, var(--surface-card) 88%, transparent);
+  --surface-overlay: color-mix(in srgb, var(--surface-card) 94%, var(--surface-page));
+  --surface-interactive: color-mix(in srgb, var(--surface-card-soft) 70%, var(--surface-card));
+  --surface-badge: color-mix(in srgb, var(--accent-primary) 12%, var(--surface-card));
+  --surface-modal-backdrop: rgba(15, 23, 42, 0.7);
+  --card-padding: var(--ha-card-padding, var(--space-lg));
+  --card-padding-compact: var(--ha-card-padding, var(--space-md));
+  --floating-padding: var(--space-sm);
+  --tabbar-padding: 0.28rem;
+  --field-padding-block: 0.7rem;
+  --field-padding-inline: 0.9rem;
+  --field-padding-multiple: 0.45rem;
+  --control-height: 2.75rem;
+  --control-height-compact: 2.35rem;
+  --icon-button-size: 2.35rem;
+  --icon-button-size-sm: 2rem;
+  --modal-content-width: min(980px, calc(100% - 1.5rem));
+  --modal-content-width-form: min(760px, calc(100% - 1.5rem));
+  --modal-content-width-compact: min(520px, calc(100% - 1.5rem));
+  --modal-margin-block: min(8vh, 4rem);
+  --modal-padding-top: 3rem;
+  --elevation-card: var(--shadow-card);
+  --elevation-floating: var(--shadow-soft);
+  --elevation-active: 0 8px 18px color-mix(in srgb, var(--accent-primary) 36%, transparent);
+  --backdrop-blur-sm: 8px;
+  --backdrop-blur-md: 10px;
   --bg-gradient: radial-gradient(
     circle at top,
     color-mix(in srgb, var(--bg-card) 92%, white) 0%,
@@ -26,20 +64,20 @@
     color-mix(in srgb, var(--bg-secondary) 84%, var(--accent-primary) 16%) 100%
   );
   --text: var(--text-primary);
-  --card-bg: var(--bg-card);
+  --card-bg: var(--surface-card);
   --card-border: var(--border-soft);
-  --item-bg: var(--bg-card-soft);
+  --item-bg: var(--surface-card-soft);
   --item-border: var(--border-soft);
   --muted: var(--text-muted);
   --input-border: color-mix(in srgb, var(--border-soft) 74%, var(--text-primary) 16%);
-  --input-bg: color-mix(in srgb, var(--bg-card) 94%, var(--bg-primary));
-  --input-bg-focus: var(--bg-card);
+  --input-bg: var(--surface-interactive);
+  --input-bg-focus: var(--surface-card);
   --input-shadow: 0 2px 10px rgba(15, 23, 42, 0.05);
   --input-shadow-focus: 0 0 0 3px rgba(15, 23, 42, 0.12);
-  --badge-bg: color-mix(in srgb, var(--accent-primary) 12%, var(--card-bg));
+  --badge-bg: var(--surface-badge);
   --badge-text: color-mix(in srgb, var(--accent-primary) 72%, var(--text-primary));
   --image-bg: color-mix(in srgb, var(--bg-secondary) 80%, var(--border-soft));
-  --modal-backdrop-bg: rgba(15, 23, 42, 0.7);
+  --modal-backdrop-bg: var(--surface-modal-backdrop);
   --text-on-accent: var(--ha-primary-background-color, var(--primary-background-color, #eff6ff));
   --danger-bg: var(--ha-error-color, var(--error-color, #b4232d));
   --danger-bg-hover: color-mix(in srgb, var(--danger-bg) 84%, black);
@@ -75,11 +113,12 @@ body {
 .topbar-content {
   min-width: 0;
   width: 100%;
-  padding: 1rem 1.1rem;
-  background: color-mix(in srgb, var(--card-bg) 82%, transparent);
+  padding: var(--card-padding-compact);
+  background: var(--surface-raised);
   border: 1px solid color-mix(in srgb, var(--card-border) 90%, transparent);
   border-radius: var(--radius-xl);
-  backdrop-filter: blur(8px);
+  box-shadow: var(--elevation-floating);
+  backdrop-filter: blur(var(--backdrop-blur-sm));
 }
 
 .topbar-heading-row {
@@ -117,7 +156,7 @@ body.modal-open {
 .theme-badge {
   position: relative;
   z-index: 1;
-  min-height: 2.35rem;
+  min-height: var(--control-height-compact);
   padding: 0.4rem 0.85rem;
   border: 1px solid color-mix(in srgb, var(--card-border) 88%, transparent);
   border-radius: var(--radius-pill);
@@ -133,8 +172,8 @@ body.modal-open {
   font-weight: 700;
   line-height: 1.2;
   letter-spacing: 0.02em;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(var(--backdrop-blur-md));
+  -webkit-backdrop-filter: blur(var(--backdrop-blur-md));
   text-transform: uppercase;
 }
 
@@ -157,14 +196,15 @@ body.modal-open {
   bottom: 0.75rem;
   transform: translateX(-50%);
   width: min(380px, calc(100% - 1rem));
-  padding: 0.28rem;
-  background: color-mix(in srgb, var(--card-bg) 80%, transparent);
+  padding: var(--tabbar-padding);
+  background: var(--surface-raised);
   border: 1px solid var(--card-border);
   border-radius: var(--radius-pill);
+  box-shadow: var(--elevation-floating);
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 0.25rem;
-  backdrop-filter: blur(10px);
+  gap: var(--space-2xs);
+  backdrop-filter: blur(var(--backdrop-blur-md));
   z-index: 40;
 }
 
@@ -178,7 +218,7 @@ body.modal-open {
 .notification-options-card {
   background: var(--item-bg);
   border: 1px solid var(--item-border);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   padding: 0.85rem;
   margin-bottom: 1rem;
 }
@@ -436,7 +476,7 @@ body.modal-open {
 }
 
 .notification-rule-modal-content {
-  width: min(760px, calc(100% - 1.5rem));
+  width: var(--modal-content-width-form);
 }
 
 .notification-rule-modal-description {
@@ -461,27 +501,28 @@ body.modal-open {
 }
 
 .tab-button {
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   border: 1px solid transparent;
   background: transparent;
   color: var(--text);
   font-weight: 700;
   font-size: 0.9rem;
-  min-height: 36px;
+  min-height: calc(var(--control-height) - 0.5rem);
   padding: 0.3rem 0.5rem;
 }
 
 .tab-button.active {
   background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
   color: var(--text-on-accent);
-  box-shadow: 0 8px 18px color-mix(in srgb, var(--accent-primary) 36%, transparent);
+  box-shadow: var(--elevation-active);
 }
 
 .card {
   background: var(--card-bg);
   border: 1px solid var(--card-border);
   border-radius: var(--radius-xl);
-  padding: 1.25rem;
+  padding: var(--card-padding);
+  box-shadow: var(--elevation-card);
 }
 .hidden {
   display: none;
@@ -508,10 +549,10 @@ h1, h2 { margin: 0 0 0.75rem; }
 
 .scanner-popup-button {
   margin-left: auto;
-  width: 2.35rem;
-  height: 2.35rem;
+  width: var(--icon-button-size);
+  height: var(--icon-button-size);
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: transparent;
   color: var(--text);
   cursor: pointer;
@@ -568,7 +609,7 @@ h1, h2 { margin: 0 0 0.75rem; }
 }
 
 .scanner-modal-content {
-  width: min(760px, calc(100% - 1.5rem));
+  width: var(--modal-content-width-form);
 }
 
 
@@ -600,7 +641,7 @@ h1, h2 { margin: 0 0 0.75rem; }
 .location-dropdown {
   background: var(--item-bg);
   border: 1px solid var(--item-border);
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
 }
 
@@ -684,18 +725,20 @@ input,
 select,
 textarea,
 button {
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   border: 1px solid var(--input-border);
-  padding: 0.7rem 0.9rem;
+  padding: var(--field-padding-block) var(--field-padding-inline);
   font-size: 1rem;
 }
 
 input,
 select,
 textarea {
+  min-height: var(--control-height);
   background: var(--item-bg);
   color: var(--text);
-  transition: border-color 0.18s ease, background-color 0.18s ease;
+  box-shadow: var(--input-shadow);
+  transition: border-color 0.18s ease, background-color 0.18s ease, box-shadow 0.18s ease;
 }
 
 textarea {
@@ -711,6 +754,7 @@ textarea:focus {
   outline: none;
   border-color: color-mix(in srgb, var(--accent-primary) 45%, var(--input-border));
   background: var(--input-bg-focus);
+  box-shadow: var(--input-shadow-focus);
 }
 
 input::placeholder,
@@ -727,12 +771,14 @@ textarea {
   min-width: 0;
 }
 button {
+  min-height: var(--control-height);
   background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
   color: var(--text-on-accent);
   cursor: pointer;
   font-weight: 600;
   border: 1px solid color-mix(in srgb, var(--accent-primary) 55%, transparent);
-  transition: transform 0.16s ease, filter 0.2s ease;
+  box-shadow: var(--elevation-floating);
+  transition: transform 0.16s ease, filter 0.2s ease, box-shadow 0.2s ease;
 }
 
 button:hover {
@@ -759,7 +805,7 @@ li {
   gap: 0.8rem;
   background: var(--item-bg);
   border: 1px solid var(--item-border);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   padding: 0.6rem 0.8rem;
 }
 img {
@@ -787,8 +833,8 @@ img {
     padding-bottom: 5rem;
   }
   .card {
-    border-radius: 14px;
-    padding: 1rem;
+    border-radius: var(--radius-lg);
+    padding: var(--card-padding-compact);
   }
   .search-row {
     flex-direction: column;
@@ -885,7 +931,7 @@ img {
 .variant-card {
   background: var(--item-bg);
   border: 1px solid var(--item-border);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   padding: 0.6rem;
   text-align: center;
 }
@@ -970,7 +1016,7 @@ img {
 }
 
 .recipe-create-modal-content {
-  max-width: 760px;
+  max-width: var(--modal-content-width-form);
 }
 
 .recipe-create-methods {
@@ -991,7 +1037,7 @@ img {
 .recipe-create-panel {
   border: 1px solid var(--item-border);
   background: var(--item-bg);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   padding: 0.75rem;
 }
 
@@ -1019,7 +1065,7 @@ img {
   align-items: center;
   background: var(--item-bg);
   border: 1px solid var(--item-border);
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   padding: 0.5rem 0.6rem;
 }
 
@@ -1051,7 +1097,7 @@ img {
   gap: 0.65rem;
   cursor: pointer;
   padding: 0.45rem;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
 }
 .recipe-item:hover {
   background: var(--item-bg);
@@ -1248,7 +1294,7 @@ img {
 }
 
 .storage-edit-modal-content {
-  max-width: 520px;
+  max-width: var(--modal-content-width-compact);
 }
 
 .storage-edit-media {
@@ -1258,7 +1304,7 @@ img {
 .storage-edit-picture {
   width: 100%;
   height: auto;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   object-fit: cover;
   border: 1px solid var(--item-border);
   display: block;
@@ -1349,8 +1395,8 @@ img {
 
 .shopping-modal-content {
   position: relative;
-  margin: min(8vh, 4rem) auto;
-  width: min(980px, calc(100% - 1.5rem));
+  margin: var(--modal-margin-block) auto;
+  width: var(--modal-content-width);
   max-height: calc(100dvh - min(16vh, 8rem));
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -1361,9 +1407,10 @@ img {
   position: absolute;
   right: 0.7rem;
   top: 0.7rem;
-  width: 2rem;
-  height: 2rem;
-  border-radius: 999px;
+  width: var(--icon-button-size-sm);
+  height: var(--icon-button-size-sm);
+  min-height: var(--icon-button-size-sm);
+  border-radius: var(--radius-pill);
   border: none;
   background: var(--badge-bg);
   color: var(--text);
@@ -1371,18 +1418,19 @@ img {
 }
 
 .recipe-modal-content {
-  padding-top: 3rem;
+  padding-top: var(--modal-padding-top);
 }
 
 .recipe-modal-close {
   top: 0.9rem;
   right: 0.9rem;
-  width: 2.35rem;
-  height: 2.35rem;
+  width: var(--icon-button-size);
+  height: var(--icon-button-size);
+  min-height: var(--icon-button-size);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: color-mix(in srgb, var(--badge-bg) 70%, var(--card-bg));
+  background: color-mix(in srgb, var(--badge-bg) 70%, var(--surface-card));
   border: 1px solid var(--item-border);
   font-size: 1.2rem;
   line-height: 1;
@@ -1401,7 +1449,7 @@ img {
 .shopping-detail-half {
   background: var(--item-bg);
   border: 1px solid var(--item-border);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   padding: 0.75rem;
 }
 .shopping-detail-half h4 { margin: 0 0 0.5rem; }
@@ -1429,7 +1477,7 @@ img {
 .recipe-modal-image-wrapper {
   margin: -0.25rem -0.25rem 0.9rem;
   min-height: 180px;
-  border-radius: 14px;
+  border-radius: var(--radius-lg);
   overflow: hidden;
   border: 1px solid var(--item-border);
   background: linear-gradient(150deg, color-mix(in srgb, var(--item-bg) 82%, transparent), color-mix(in srgb, var(--badge-bg) 78%, transparent));
@@ -1450,7 +1498,7 @@ img {
 .scanner-video {
   width: 100%;
   max-height: 320px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: #000;
   margin: 0;
   object-fit: contain;
@@ -1481,7 +1529,7 @@ img {
   width: min(72%, 420px);
   height: min(38%, 170px);
   border: 2px solid color-mix(in srgb, var(--accent-primary) 82%, #fff);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   box-shadow: 0 0 0 200vmax rgba(0, 0, 0, 0.28);
 }
 
