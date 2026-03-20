@@ -7,6 +7,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.event import async_call_later
 
+from . import panel as dashboard_panel
 from .addon_client import AddonClient
 from .const import (
     CONF_API_BASE_URL,
@@ -143,6 +144,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Cleanup legacy sidebar panel from previous integration versions.
     async_remove_panel(hass, "grocy-ai")
+
+    await dashboard_panel.async_setup(
+        hass,
+        hass.data[DOMAIN][entry.entry_id].get("panel_url", DEFAULT_ADDON_PANEL_URL),
+    )
 
     response_reset_unsubs = hass.data[DOMAIN].setdefault("_response_reset_unsubs", {})
     response_timing_stats = hass.data[DOMAIN].setdefault("_response_timing_stats", {})
