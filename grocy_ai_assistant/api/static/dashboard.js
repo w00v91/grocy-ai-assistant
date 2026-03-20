@@ -826,14 +826,6 @@ function readHomeAssistantThemeSnapshot() {
   };
 }
 
-function updateThemeBadge(colorScheme, sourceLabel = 'HA Theme') {
-  const badge = document.getElementById('theme-badge');
-  if (!badge) return;
-
-  const normalizedScheme = colorScheme === 'dark' ? 'Dark' : 'Light';
-  badge.textContent = `${sourceLabel} · ${normalizedScheme}`;
-}
-
 function applyHomeAssistantThemeSnapshot(snapshot) {
   if (!snapshot) return false;
 
@@ -847,7 +839,6 @@ function applyHomeAssistantThemeSnapshot(snapshot) {
   rootElement.setAttribute('data-theme-bridge-mode', haThemeBridgeMode);
   rootElement.setAttribute('data-ha-color-scheme', colorScheme);
   rootElement.setAttribute('data-ha-theme-ready', 'true');
-  updateThemeBadge(colorScheme);
   return true;
 }
 
@@ -857,10 +848,7 @@ function syncThemeFromHomeAssistant() {
 
 function observeHomeAssistantTheme() {
   const sourceDocument = getHomeAssistantSourceDocument();
-  if (!sourceDocument || typeof MutationObserver === 'undefined') {
-    updateThemeBadge('light', 'Lokales Theme');
-    return;
-  }
+  if (!sourceDocument || typeof MutationObserver === 'undefined') return;
 
   const watchedElements = HA_THEME_SOURCE_SELECTORS
     .map((selector) => {
@@ -877,7 +865,7 @@ function observeHomeAssistantTheme() {
   watchedElements.forEach((element) => {
     observer.observe(element, {
       attributes: true,
-      attributeFilter: ['class', 'style', 'data-theme', 'data-color-scheme'],
+      attributeFilter: ['class', 'style', 'data-color-scheme'],
     });
   });
 
