@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Changed (Home-Assistant-Integration/Panel): Die native Shopping-Suche nutzt jetzt einen UI-unabhängigen Search-Controller mit reaktivem Store für `query`, erkannte Mengenpräfixe, Varianten, Lade-/Submit-Status sowie fachliche Status- und Fehlermeldungen.
+- Changed (Dashboard/Migration): Die bestehende Suchlogik aus `dashboard.js` wurde für die native HA-UI als klarer State-Flow `idle -> typing -> loading_variants -> variants_ready -> submitting -> success/error` übernommen; Variantenauswahl, KI-/Input-Vorschläge und die bestehenden `/api/dashboard/...`-Endpoints bleiben unverändert.
+- Changed (Dashboard/Legacy): Mengenpräfix-Parsing und Clear-Button-Regel der Legacy-Suche sind in ein kleines Hilfsmodul ausgelagert, damit die fachlichen Suchregeln außerhalb von `dashboard.js` wiederverwendbar bleiben.
+- Test: `node --check` für das Legacy-Dashboard, den nativen HA-Panel-Code und den neuen Search-Controller ausgeführt; relevante Unit-Tests sowie Versionsstände auf `7.4.10` aktualisiert.
+
 - Changed (Dashboard/UI): Topbar, Tabs, Kartencontainer, Dialoge sowie Formular- und Statusflächen des Legacy-Dashboards orientieren sich jetzt an Home-Assistant-Surface-, Button- und Feldmustern statt an eigenständigem Glassmorphism-/Gradient-Styling.
 - Changed (Dashboard/Theme): Das Dashboard nutzt nur noch die vom Home-Assistant-Parent synchronisierten Theme-Variablen; das visuelle Theme-Badge und die Beobachtung von `data-theme` entfallen zugunsten HA-nativer Variablen-Mappings.
 - Test: `node --check` für das Dashboard-Skript ausgeführt und Versionsstände für Add-on und Integration auf `7.4.9` erhöht.
