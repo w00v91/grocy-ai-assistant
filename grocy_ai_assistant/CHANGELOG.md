@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Changed (Home-Assistant-Integration/Panel): Das native Dashboard liest den initialen Bereich jetzt stabil über `?tab=` oder einen Routenabschnitt (`/grocy-ai/<tab>`) und synchronisiert Tab-Wechsel per History-API zurück in die URL, inklusive Fallback auf `shopping`.
+- Test: Neue Frontend-Unit-Tests decken direkte Aufrufe wie `.../grocy-ai?tab=storage` und `.../grocy-ai?tab=notifications` sowie den URL-Aufbau für Browser-Navigation ab; Versionsstände auf `7.4.10` erhöht.
+
 - Changed (Dashboard/UI): Topbar, Tabs, Kartencontainer, Dialoge sowie Formular- und Statusflächen des Legacy-Dashboards orientieren sich jetzt an Home-Assistant-Surface-, Button- und Feldmustern statt an eigenständigem Glassmorphism-/Gradient-Styling.
 - Changed (Dashboard/Theme): Das Dashboard nutzt nur noch die vom Home-Assistant-Parent synchronisierten Theme-Variablen; das visuelle Theme-Badge und die Beobachtung von `data-theme` entfallen zugunsten HA-nativer Variablen-Mappings.
 - Test: `node --check` für das Dashboard-Skript ausgeführt und Versionsstände für Add-on und Integration auf `7.4.9` erhöht.

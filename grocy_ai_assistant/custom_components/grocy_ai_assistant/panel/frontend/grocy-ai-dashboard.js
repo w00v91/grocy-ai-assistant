@@ -1,12 +1,12 @@
 import { createDashboardApiClient, getErrorMessage } from './dashboard-api-client.js';
 import { createDashboardStore } from './dashboard-store.js';
+import { buildPanelUrlWithTab, DEFAULT_TAB, resolveTabFromLocation, TAB_ORDER } from './tab-routing.js';
 
 const PANEL_SLUG = 'grocy-ai';
 const PANEL_TITLE = 'Grocy AI Dashboard';
 const DEFAULT_LEGACY_URL = '/api/hassio_ingress/grocy_ai_assistant/';
 const STYLE_URL = new URL('./grocy-ai-dashboard.css', import.meta.url);
 const MIGRATED_TABS = new Set(['shopping']);
-const TAB_ORDER = ['shopping', 'recipes', 'storage', 'notifications'];
 const TAB_LABELS = {
   shopping: '🛒 Einkauf',
   recipes: '🍳 Rezepte',
@@ -31,7 +31,7 @@ function formatAmount(value) {
 
 function createInitialState() {
   return {
-    activeTab: 'shopping',
+    activeTab: DEFAULT_TAB,
     topbarStatus: 'Bereit.',
     pendingRequests: 0,
     shopping: {
@@ -419,6 +419,7 @@ class GrocyAIDashboardPanel extends HTMLElement {
     this._shoppingPollIntervalMs = DEFAULT_POLLING_INTERVAL_MS;
     this._store = createDashboardStore(createInitialState());
     this._api = createDashboardApiClient({ apiBasePath: this._getLegacyDashboardUrl() });
+    this._handlePopState = () => this._syncActiveTabFromLocation({ updateUrl: false });
   }
 
   connectedCallback() {
@@ -441,12 +442,14 @@ class GrocyAIDashboardPanel extends HTMLElement {
     `;
 
     this._bindEvents();
+    window.addEventListener('popstate', this._handlePopState);
     this._unsubscribe = this._store.subscribe((state) => this._renderState(state));
-    this._loadShoppingList();
+    this._syncActiveTabFromLocation({ replaceUrl: true });
   }
 
   disconnectedCallback() {
     this._unsubscribe?.();
+    window.removeEventListener('popstate', this._handlePopState);
     this._stopShoppingPolling();
   }
 
@@ -458,6 +461,7 @@ class GrocyAIDashboardPanel extends HTMLElement {
 
   set route(value) {
     this._route = value;
+    this._syncActiveTabFromLocation({ replaceUrl: true });
     this._renderState(this._store.getState());
   }
 
@@ -549,10 +553,22 @@ class GrocyAIDashboardPanel extends HTMLElement {
     };
   }
 
-  _switchTab(tab) {
+  _switchTab(tab, options = {}) {
     if (!TAB_ORDER.includes(tab)) return;
-    this._store.patch({ activeTab: tab, topbarStatus: `${TAB_LABELS[tab]} geöffnet.` });
-    if (tab === 'shopping') {
+
+    const normalizedTab = tab;
+    const currentState = this._store.getState();
+    const stateChanged = currentState.activeTab !== normalizedTab;
+
+    if (stateChanged || options.forceStatus) {
+      this._store.patch({ activeTab: normalizedTab, topbarStatus: `${TAB_LABELS[normalizedTab]} geöffnet.` });
+    }
+
+    if (options.updateUrl !== false) {
+      this._updateBrowserUrlForTab(normalizedTab, { replace: Boolean(options.replaceUrl) });
+    }
+
+    if (normalizedTab === DEFAULT_TAB) {
       this._startShoppingPolling();
       if (!this._store.getState().shopping.listLoaded) {
         this._loadShoppingList();
@@ -560,6 +576,27 @@ class GrocyAIDashboardPanel extends HTMLElement {
     } else {
       this._stopShoppingPolling();
     }
+  }
+
+  _syncActiveTabFromLocation(options = {}) {
+    const resolvedTab = resolveTabFromLocation(window.location, this._route);
+    const currentUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+    const expectedUrl = buildPanelUrlWithTab(window.location, resolvedTab);
+    const shouldUpdateUrl = options.updateUrl !== false && currentUrl !== expectedUrl;
+
+    this._switchTab(resolvedTab, {
+      updateUrl: shouldUpdateUrl,
+      replaceUrl: options.replaceUrl || shouldUpdateUrl,
+    });
+  }
+
+  _updateBrowserUrlForTab(tab, { replace = false } = {}) {
+    const nextUrl = buildPanelUrlWithTab(window.location, tab);
+    const currentUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+    if (nextUrl === currentUrl) return;
+
+    const method = replace ? 'replaceState' : 'pushState';
+    window.history[method]({ tab }, '', nextUrl);
   }
 
   _updateShoppingState(partial) {
