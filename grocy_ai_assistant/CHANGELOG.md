@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Fix (Home-Assistant-Integration/Add-on-Kommunikation): Die Default-API-URL der Integration nutzt jetzt den für lokale Home-Assistant-App-Installationen gültigen DNS-Namen `http://local-grocy-ai-assistant:8000` statt des ungültigen Hostnamens mit Unterstrich.
+- Fix (Home-Assistant-Integration/Add-on-Kommunikation): Der Add-on-Client probiert bei Verbindungsfehlern mehrere naheliegende interne Hostnamen aus und liefert anschließend eine konkrete Fehlermeldung mit dem erwarteten Home-Assistant-Hostname-Format.
+- Changed (Versioning): Bumped add-on and integration versions to `7.3.3`.
+
 ## [7.3.2]
 
 - Fix (Home-Assistant-Integration/Sensoren): Status-, Update-, Einkaufslisten-, Lager- und Rezeptsensoren bleiben jetzt auch dann verfügbar, wenn der erste API-Aufruf des Add-ons mit einer Exception fehlschlägt; stattdessen werden Fallback-Werte wie `Offline`, `Unbekannt`, `0` oder `Keine Vorschläge` gesetzt.

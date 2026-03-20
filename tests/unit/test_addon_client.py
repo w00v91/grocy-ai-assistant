@@ -104,4 +104,4 @@ def test_addon_client_uses_default_internal_api_url(monkeypatch):
 
     method, url, _, _ = sessions[0].calls[0]
     assert method == "GET"
-    assert url == "http://grocy_ai_assistant:8000/api/v1/status"
+    assert url == "http://local-grocy-ai-assistant:8000/api/v1/status"
