@@ -96,5 +96,12 @@ export function createDashboardApiClient({ apiBasePath = '' } = {}) {
         method: 'DELETE',
       });
     },
+    searchProduct(payload) {
+      return request('/api/dashboard/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+    },
   };
 }
