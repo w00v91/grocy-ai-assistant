@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Changed (Home-Assistant-Integration/Panel): Das native Panel rendert das Dashboard jetzt in fachlich getrennten Web-Komponenten für Shopping, Rezepte, Lager, Benachrichtigungen, Modals und Scanner, statt nur eine statische Platzhalter-Seite anzuzeigen.
+- Changed (Dashboard/Migration): Die Shopping-Ansicht läuft bereits nativ über einen reaktiven Store inklusive Ladezuständen, Statusmeldungen, Button-Aktionen, Debounce-Suche, Modals und Polling; die übrigen Tabs bleiben tabweise über dedizierte Fallback-Komponenten an das Legacy-Dashboard angebunden.
+- Changed (Dashboard/Migration): `dashboard.html` und das alte `dashboard.js` bleiben als Übergangs-/Fallback-Schicht bestehen, bis Rezepte, Lager, Benachrichtigungen und Scanner vollständig nativ gerendert werden.
+- Test: Native Panel-Module per `node --check` geprüft und relevante Python-Unit-Tests für Panel- sowie Versionsmetadaten ausgeführt; Versionsstände auf `7.4.8` erhöht.
+
 - Changed (Home-Assistant-Integration/Panel): `custom_components/grocy_ai_assistant/panel.py` registriert das Sidebar-Panel jetzt nativ über ein eigenes Frontend-Modul statt über ein `iframe`-Panel.
 - Added (Home-Assistant-Integration/Panel): Neues Frontend-Bundle unter `custom_components/grocy_ai_assistant/panel/frontend/` rendert eine native Home-Assistant-Ansicht und zeigt dabei `hass`-, Routing- und Theme-Kontext direkt im Modul an.
 - Test: `tests/unit/test_panel.py` prüft nun die Registrierung des nativen Panel-Moduls samt statischem Bundle-Pfad; Versionsmetadaten wurden auf `7.4.7` erhöht.
