@@ -6,6 +6,8 @@ def test_is_external_host_detection():
     assert _is_external_host("8.8.8.8") is True
     assert _is_external_host("localhost:8000") is False
     assert _is_external_host("192.168.1.5:8123") is False
+    assert _is_external_host("local-grocy-ai-assistant:8000") is False
+    assert _is_external_host("grocy-ai-assistant:8000") is False
 
 
 def test_redirects_external_http_to_https(client):

@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Fix (API/Ingress): Interne Add-on-Hostnamen ohne DNS-Suffix wie `local-grocy-ai-assistant` oder `grocy-ai-assistant` werden nicht mehr fälschlich als externe Hosts behandelt, sodass `/api/v1/...` aus Home Assistant nicht mehr per HTTPS-307 umgeleitet wird.
+- Fix (API/Rezeptvorschläge): Rezeptvorschläge werden jetzt auch für `soon_expiring_only`-Abfragen gecacht, damit die drei Home-Assistant-Rezeptsensoren nicht bei jedem Poll erneut eine KI-Generierung auslösen.
+- Test: API-Tests decken interne Hostnamen ohne Punkt sowie den Cache-Hit für bald ablaufende Rezeptabfragen ab.
+- Versionsstände für Add-on und Integration auf `7.4.6` erhöht.
+
 - Changed (Dashboard/UI): `dashboard.css` bündelt jetzt wiederkehrende Oberflächenwerte wie Card-Padding, Control-Höhen, Border-Radien, Flächen und Elevation in semantischen Tokens und mappt diese soweit möglich auf Home-Assistant-Variablen mit Fallbacks.
 - Changed (Dashboard/UI): Topbar, Karten, Bottom-Tabbar, Formularfelder, Buttons und Modals verwenden nun die neuen Surface-/Spacing-/Radius-Tokens konsistent, damit Light-/Dark-Mode näher am Home-Assistant-Look bleibt.
 - Test: Versionsmetadaten und Add-on-Konfiguration wurden auf `7.4.5` angehoben bzw. im Test synchronisiert.

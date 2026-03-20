@@ -544,6 +544,8 @@ def _is_external_host(host: str) -> bool:
         return False
     if normalized_host in {"localhost", "::1"}:
         return False
+    if "." not in normalized_host:
+        return False
     if normalized_host.endswith(".local"):
         return False
     try:

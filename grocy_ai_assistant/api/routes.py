@@ -703,6 +703,97 @@ def _get_recipe_suggestion_cache(request: Request):
     return getattr(request.app.state, "recipe_suggestion_cache", None)
 
 
+def _normalize_recipe_cache_entries(cache: dict | None) -> list[dict]:
+    if not isinstance(cache, dict):
+        return []
+
+    entries = cache.get("entries")
+    if isinstance(entries, list):
+        return [entry for entry in entries if isinstance(entry, dict)]
+
+    if "response" in cache:
+        return [cache]
+
+    return []
+
+
+def _build_recipe_cache_key(
+    *,
+    location_ids: list[int],
+    selected_ids: set[int],
+    soon_expiring_only: bool,
+    expiring_within_days: int,
+) -> dict[str, object]:
+    return {
+        "location_ids": sorted(int(location_id) for location_id in location_ids),
+        "selected_ids": sorted(int(product_id) for product_id in selected_ids),
+        "soon_expiring_only": bool(soon_expiring_only),
+        "expiring_within_days": max(1, min(int(expiring_within_days), 30)),
+    }
+
+
+def _get_cached_recipe_suggestion_response(
+    cache: dict | None,
+    *,
+    stock_signature: str,
+    cache_key: dict[str, object],
+) -> dict | None:
+    for entry in _normalize_recipe_cache_entries(cache):
+        if (
+            entry.get("stock_signature") == stock_signature
+            and entry.get("response")
+            and entry.get("location_ids") == cache_key["location_ids"]
+            and entry.get("selected_ids", []) == cache_key["selected_ids"]
+            and bool(entry.get("soon_expiring_only")) == cache_key["soon_expiring_only"]
+            and int(entry.get("expiring_within_days", 3))
+            == cache_key["expiring_within_days"]
+        ):
+            return entry.get("response")
+    return None
+
+
+def _store_cached_recipe_suggestion_response(
+    cache: dict | None,
+    *,
+    stock_signature: str,
+    cache_key: dict[str, object],
+    response_payload: dict,
+) -> None:
+    if cache is None:
+        return
+
+    entries = _normalize_recipe_cache_entries(cache)
+    normalized_entry = {
+        "location_ids": list(cache_key["location_ids"]),
+        "selected_ids": list(cache_key["selected_ids"]),
+        "soon_expiring_only": bool(cache_key["soon_expiring_only"]),
+        "expiring_within_days": int(cache_key["expiring_within_days"]),
+        "stock_signature": stock_signature,
+        "response": response_payload,
+    }
+
+    entries = [
+        entry
+        for entry in entries
+        if not (
+            entry.get("location_ids") == normalized_entry["location_ids"]
+            and entry.get("selected_ids", []) == normalized_entry["selected_ids"]
+            and bool(entry.get("soon_expiring_only"))
+            == normalized_entry["soon_expiring_only"]
+            and int(
+                entry.get(
+                    "expiring_within_days",
+                    normalized_entry["expiring_within_days"],
+                )
+            )
+            == normalized_entry["expiring_within_days"]
+        )
+    ]
+    entries.append(normalized_entry)
+    cache.clear()
+    cache["entries"] = entries
+
+
 def _generate_and_attach_product_picture(
     product_name: str,
     product_id: int,
@@ -1096,10 +1187,23 @@ def prefetch_initial_recipe_suggestions(settings: Settings) -> dict | None:
     payload = (
         response.model_dump() if hasattr(response, "model_dump") else response.dict()
     )
+    cache_key = _build_recipe_cache_key(
+        location_ids=[],
+        selected_ids=set(),
+        soon_expiring_only=False,
+        expiring_within_days=3,
+    )
     return {
-        "location_ids": [],
-        "stock_signature": _build_stock_signature(stock_products),
-        "response": payload,
+        "entries": [
+            {
+                "location_ids": cache_key["location_ids"],
+                "selected_ids": cache_key["selected_ids"],
+                "soon_expiring_only": cache_key["soon_expiring_only"],
+                "expiring_within_days": cache_key["expiring_within_days"],
+                "stock_signature": _build_stock_signature(stock_products),
+                "response": payload,
+            }
+        ]
     }
 
 
@@ -2624,20 +2728,25 @@ def dashboard_recipe_suggestions(
                 if product_id in expiring_product_ids
             }
 
-        if (
-            not payload.location_ids
-            and not selected_ids
-            and not payload.soon_expiring_only
-        ):
-            cache = _get_recipe_suggestion_cache(request)
-            stock_signature = _build_stock_signature(stock_products)
-            if cache:
-                cached_payload = cache.get("response")
-                if cache.get("stock_signature") == stock_signature and cached_payload:
-                    logger.info(
-                        "Nutze initialen Rezeptvorschlags-Cache (Bestand unverändert)"
-                    )
-                    return RecipeSuggestionResponse(**cached_payload)
+        cache = _get_recipe_suggestion_cache(request)
+        stock_signature = _build_stock_signature(stock_products)
+        cache_key = _build_recipe_cache_key(
+            location_ids=payload.location_ids,
+            selected_ids=selected_ids,
+            soon_expiring_only=payload.soon_expiring_only,
+            expiring_within_days=payload.expiring_within_days,
+        )
+        cached_payload = _get_cached_recipe_suggestion_response(
+            cache,
+            stock_signature=stock_signature,
+            cache_key=cache_key,
+        )
+        if cached_payload:
+            logger.info(
+                "Nutze Rezeptvorschlags-Cache (Bestand unverändert, soon_expiring_only=%s)",
+                payload.soon_expiring_only,
+            )
+            return RecipeSuggestionResponse(**cached_payload)
 
         response = _generate_recipe_suggestions(
             stock_products=stock_products,
@@ -2646,20 +2755,17 @@ def dashboard_recipe_suggestions(
             settings=settings,
         )
 
-        if (
-            not payload.location_ids
-            and not selected_ids
-            and not payload.soon_expiring_only
-        ):
-            cache = _get_recipe_suggestion_cache(request)
-            if cache is not None:
-                cache["location_ids"] = []
-                cache["stock_signature"] = _build_stock_signature(stock_products)
-                cache["response"] = (
+        if cache is not None:
+            _store_cached_recipe_suggestion_response(
+                cache,
+                stock_signature=stock_signature,
+                cache_key=cache_key,
+                response_payload=(
                     response.model_dump()
                     if hasattr(response, "model_dump")
                     else response.dict()
-                )
+                ),
+            )
 
         return response
     except HTTPException:
