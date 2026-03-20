@@ -3,11 +3,11 @@ import os
 import re
 import threading
 import time
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
+from typing import Any
 from urllib.parse import ParseResult, quote, unquote, urlencode, urlparse, urlunparse
 from uuid import uuid4
-from typing import Any
 
 import requests
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
@@ -50,6 +50,8 @@ from grocy_ai_assistant.models.addon_api import (
     AddonCapabilitiesResponse,
     AddonCatalogRebuildResponse,
     AddonHealthResponse,
+    AddonLastScanResponse,
+    AddonStatusResponse,
 )
 from grocy_ai_assistant.models.notification import (
     NotificationDeviceUpdateRequest,
@@ -76,6 +78,10 @@ NOTIFICATION_STORAGE_PATH = Path("/data/notification_dashboard.json")
 LLAVA_REQUEST_LOCK = threading.Lock()
 LLAVA_REQUEST_IN_FLIGHT = False
 LLAVA_REQUEST_STARTED_AT = 0.0
+LAST_SCAN_RESULT: dict[str, Any] = {
+    "updated_at": "",
+    "result": None,
+}
 
 
 def _call_homeassistant_service(
@@ -258,6 +264,22 @@ def _build_mobile_notification_user_error(raw_error: str | None) -> str:
             "Home Assistant ist derzeit nicht erreichbar."
         )
     return "Mobile Benachrichtigung konnte nicht zugestellt werden. Bitte Add-on-Log prüfen."
+
+
+def _parse_csv_int_values(raw_value: str) -> list[int]:
+    values: list[int] = []
+    for chunk in str(raw_value or "").split(","):
+        candidate = chunk.strip()
+        if candidate.isdigit():
+            values.append(int(candidate))
+    return values
+
+
+def _store_last_scan_result(result: ScannerLlavaResponse) -> None:
+    LAST_SCAN_RESULT["updated_at"] = datetime.now(timezone.utc).isoformat()
+    LAST_SCAN_RESULT["result"] = (
+        result.model_dump() if hasattr(result, "model_dump") else result.dict()
+    )
 
 
 def _infer_mobile_platform(service_id: str, platform_hint: str = "") -> str:
@@ -1184,7 +1206,7 @@ def require_auth(
         raise HTTPException(status_code=401, detail="Unauthorized")
 
 
-@router.get("/api/status")
+@router.get("/api/status", response_model=AddonStatusResponse)
 def get_status(
     _: None = Depends(require_auth),
     integration_version: str | None = Header(
@@ -1235,14 +1257,22 @@ def get_capabilities(
             "notifications_test": True,
             "recipe_suggestions": True,
             "barcode_lookup": True,
+            "shopping_list": bool(settings.grocy_api_key),
+            "stock_overview": bool(settings.grocy_api_key),
+            "last_scan": True,
         },
         endpoints=[
             "/api/v1/health",
             "/api/v1/capabilities",
             "/api/v1/status",
+            "/api/v1/shopping-list",
+            "/api/v1/stock",
+            "/api/v1/recipes",
+            "/api/v1/barcode/{barcode}",
             "/api/v1/scan/image",
             "/api/v1/grocy/sync",
             "/api/v1/catalog/rebuild",
+            "/api/v1/last-scan",
             "/api/v1/notifications/test",
         ],
         defaults={
@@ -1253,11 +1283,58 @@ def get_capabilities(
     )
 
 
-@router.get("/api/v1/status")
+@router.get("/api/v1/status", response_model=AddonStatusResponse)
 def get_status_v1(
     payload: dict = Depends(get_status),
 ):
     return payload
+
+
+@router.get("/api/v1/shopping-list", response_model=list[ShoppingListItemResponse])
+def shopping_list_v1(
+    request: Request,
+    _: None = Depends(require_auth),
+    settings: Settings = Depends(get_settings),
+):
+    return dashboard_shopping_list(request, None, settings)
+
+
+@router.get("/api/v1/stock", response_model=list[StockProductResponse])
+def stock_v1(
+    request: Request,
+    location_ids: str = "",
+    include_all_products: bool = False,
+    q: str = "",
+    _: None = Depends(require_auth),
+    settings: Settings = Depends(get_settings),
+):
+    return dashboard_stock_products(
+        request,
+        location_ids=location_ids,
+        include_all_products=include_all_products,
+        q=q,
+        _=None,
+        settings=settings,
+    )
+
+
+@router.get("/api/v1/recipes", response_model=RecipeSuggestionResponse)
+def recipes_v1(
+    request: Request,
+    product_ids: str = "",
+    location_ids: str = "",
+    soon_expiring_only: bool = False,
+    expiring_within_days: int = Query(default=3, ge=1, le=30),
+    _: None = Depends(require_auth),
+    settings: Settings = Depends(get_settings),
+):
+    payload = RecipeSuggestionRequest(
+        product_ids=_parse_csv_int_values(product_ids),
+        location_ids=_parse_csv_int_values(location_ids),
+        soon_expiring_only=soon_expiring_only,
+        expiring_within_days=expiring_within_days,
+    )
+    return dashboard_recipe_suggestions(payload, request, None, settings)
 
 
 @router.post("/api/analyze_product", response_model=AnalyzeProductResponse)
@@ -1647,6 +1724,16 @@ def dashboard_barcode_lookup(
         ) from error
 
 
+@router.get("/api/v1/barcode/{barcode}", response_model=BarcodeProductResponse)
+def barcode_lookup_v1(
+    barcode: str,
+    request: Request,
+    _: None = Depends(require_auth),
+    settings: Settings = Depends(get_settings),
+):
+    return dashboard_barcode_lookup(barcode, request, None, settings)
+
+
 @router.post("/api/dashboard/scanner/llava", response_model=ScannerLlavaResponse)
 def dashboard_scanner_llava(
     payload: ScannerLlavaRequest,
@@ -1673,14 +1760,18 @@ def dashboard_scanner_llava(
             image_base64, timeout_seconds=llava_timeout_seconds
         )
         if not any(detection.values()):
-            return ScannerLlavaResponse(success=False)
+            response = ScannerLlavaResponse(success=False)
+            _store_last_scan_result(response)
+            return response
 
-        return ScannerLlavaResponse(
+        response = ScannerLlavaResponse(
             success=True,
             product_name=detection.get("product_name", ""),
             brand=detection.get("brand", ""),
             hint=detection.get("hint", ""),
         )
+        _store_last_scan_result(response)
+        return response
     except Exception as error:
         log_api_error(
             logger,
@@ -1704,6 +1795,18 @@ def scan_image_v1(
     settings: Settings = Depends(get_settings),
 ):
     return dashboard_scanner_llava(payload, request, None, settings)
+
+
+@router.get("/api/v1/last-scan", response_model=AddonLastScanResponse)
+def last_scan_v1(
+    _: None = Depends(require_auth),
+):
+    result = LAST_SCAN_RESULT.get("result")
+    return AddonLastScanResponse(
+        available=bool(result),
+        updated_at=str(LAST_SCAN_RESULT.get("updated_at") or ""),
+        result=result if isinstance(result, dict) else None,
+    )
 
 
 @router.post("/api/v1/catalog/rebuild", response_model=AddonCatalogRebuildResponse)

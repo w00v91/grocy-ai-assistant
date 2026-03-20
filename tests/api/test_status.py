@@ -98,8 +98,15 @@ def test_capabilities_exposes_supported_v1_contract(client):
     assert payload["service"] == "grocy_ai_assistant"
     assert payload["features"]["scan_image"] is True
     assert payload["features"]["grocy_sync"] is True
+    assert payload["features"]["shopping_list"] is True
+    assert payload["features"]["stock_overview"] is True
     assert "/api/v1/grocy/sync" in payload["endpoints"]
     assert "/api/v1/scan/image" in payload["endpoints"]
+    assert "/api/v1/shopping-list" in payload["endpoints"]
+    assert "/api/v1/stock" in payload["endpoints"]
+    assert "/api/v1/recipes" in payload["endpoints"]
+    assert "/api/v1/barcode/{barcode}" in payload["endpoints"]
+    assert "/api/v1/last-scan" in payload["endpoints"]
 
 
 def test_v1_status_mirrors_legacy_status_payload(client):

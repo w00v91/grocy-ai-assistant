@@ -104,4 +104,39 @@ def test_addon_client_uses_default_internal_api_url(monkeypatch):
 
     method, url, _, _ = sessions[0].calls[0]
     assert method == "GET"
-    assert url == "http://local-grocy-ai-assistant:8000/api/v1/status"
+    assert url == "http://grocy_ai_assistant:8000/api/v1/status"
+
+
+def test_addon_client_uses_v1_machine_endpoints_for_read_operations(monkeypatch):
+    sessions = []
+
+    def fake_client_session(*, timeout):
+        session = FakeSession(timeout)
+        sessions.append(session)
+        return session
+
+    monkeypatch.setattr(
+        addon_client_module.aiohttp, "ClientSession", fake_client_session
+    )
+
+    client = AddonClient(base_url="http://localhost:8000", api_key="secret")
+
+    asyncio.run(client.get_shopping_list())
+    asyncio.run(client.get_stock_products())
+    asyncio.run(
+        client.get_recipe_suggestions(
+            soon_expiring_only=True,
+            expiring_within_days=5,
+        )
+    )
+    asyncio.run(client.lookup_barcode("4008400408400"))
+
+    assert sessions[0].calls[0][1] == "http://localhost:8000/api/v1/shopping-list"
+    assert sessions[1].calls[0][1] == "http://localhost:8000/api/v1/stock"
+    assert (
+        sessions[2].calls[0][1]
+        == "http://localhost:8000/api/v1/recipes?soon_expiring_only=True&expiring_within_days=5"
+    )
+    assert (
+        sessions[3].calls[0][1] == "http://localhost:8000/api/v1/barcode/4008400408400"
+    )
