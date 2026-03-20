@@ -9,6 +9,10 @@ All notable changes to this project will be documented in this file.
 - Changed (Dashboard/Migration): `dashboard.html` und das alte `dashboard.js` bleiben als Übergangs-/Fallback-Schicht bestehen, bis Rezepte, Lager, Benachrichtigungen und Scanner vollständig nativ gerendert werden.
 - Test: Native Panel-Module per `node --check` geprüft und relevante Python-Unit-Tests für Panel- sowie Versionsmetadaten ausgeführt; Versionsstände auf `7.4.8` erhöht.
 
+- Fix (API/Ingress): Interne Add-on-Hostnamen ohne DNS-Suffix wie `local-grocy-ai-assistant` oder `grocy-ai-assistant` werden nicht mehr fälschlich als externe Hosts behandelt, sodass `/api/v1/...` aus Home Assistant nicht mehr per HTTPS-307 umgeleitet wird.
+- Fix (API/Rezeptvorschläge): Rezeptvorschläge werden jetzt auch für `soon_expiring_only`-Abfragen gecacht, damit die drei Home-Assistant-Rezeptsensoren nicht bei jedem Poll erneut eine KI-Generierung auslösen.
+- Test: API-Tests decken interne Hostnamen ohne Punkt sowie den Cache-Hit für bald ablaufende Rezeptabfragen ab.
+- Versionsstände für Add-on und Integration auf `7.4.6` erhöht.
 - Changed (Home-Assistant-Integration/Panel): `custom_components/grocy_ai_assistant/panel.py` registriert das Sidebar-Panel jetzt nativ über ein eigenes Frontend-Modul statt über ein `iframe`-Panel.
 - Added (Home-Assistant-Integration/Panel): Neues Frontend-Bundle unter `custom_components/grocy_ai_assistant/panel/frontend/` rendert eine native Home-Assistant-Ansicht und zeigt dabei `hass`-, Routing- und Theme-Kontext direkt im Modul an.
 - Test: `tests/unit/test_panel.py` prüft nun die Registrierung des nativen Panel-Moduls samt statischem Bundle-Pfad; Versionsmetadaten wurden auf `7.4.7` erhöht.
