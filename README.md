@@ -66,8 +66,8 @@ Standardmäßig läuft der Service dann auf `http://localhost:8000`.
 
 ### Integrations-/Service-API
 
-- `GET /api/v1/health` – schlanker Health-Check für die Integration
-- `GET /api/v1/capabilities` – unterstützte Backend-Funktionen und Defaults
+- `GET /api/v1/health` – schlanker, direkt erreichbarer Health-Check für die Integration
+- `GET /api/v1/capabilities` – direkt erreichbare Übersicht unterstützter Backend-Funktionen und Defaults
 - `GET /api/v1/status` – Status, Versionen, Kompatibilitätsprüfung Integration ↔ Add-on
 - `POST /api/v1/scan/image` – Bildanalyse via LLaVA
 - `POST /api/v1/grocy/sync` – Produktanalyse und Grocy-Synchronisierung

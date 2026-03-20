@@ -1215,7 +1215,6 @@ def get_status(
 
 @router.get("/api/v1/health", response_model=AddonHealthResponse)
 def get_health(
-    _: None = Depends(require_auth),
     settings: Settings = Depends(get_settings),
 ):
     return AddonHealthResponse(
@@ -1226,7 +1225,6 @@ def get_health(
 
 @router.get("/api/v1/capabilities", response_model=AddonCapabilitiesResponse)
 def get_capabilities(
-    _: None = Depends(require_auth),
     settings: Settings = Depends(get_settings),
 ):
     return AddonCapabilitiesResponse(
