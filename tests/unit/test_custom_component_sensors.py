@@ -36,6 +36,11 @@ class _FakeEntityCategory:
     DIAGNOSTIC = "diagnostic"
 
 
+class _FakeDeviceInfo(dict):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+
 class _FakeEntry:
     entry_id = "entry-1"
     data = {}
@@ -52,6 +57,7 @@ def _ensure_stubbed_homeassistant_modules():
     ha_sensor.SensorEntity = _FakeSensorEntity
     ha_sensor.SensorStateClass = _FakeSensorStateClass
     ha_entity.EntityCategory = _FakeEntityCategory
+    ha_entity.DeviceInfo = _FakeDeviceInfo
 
     sys.modules.setdefault("homeassistant", ha_module)
     sys.modules.setdefault("homeassistant.components", ha_components)
@@ -81,6 +87,7 @@ def _load_sensor_module():
     sys.modules[PACKAGE_NAME] = package
 
     _load_module(f"{PACKAGE_NAME}.const", "const.py")
+    _load_module(f"{PACKAGE_NAME}.entity", "entity.py")
     _load_module(f"{PACKAGE_NAME}.entity_payloads", "entity_payloads.py")
     _load_module(f"{PACKAGE_NAME}.addon_client", "addon_client.py")
     return _load_module(f"{PACKAGE_NAME}.sensor", "sensor.py")
@@ -196,6 +203,22 @@ def test_expiring_stock_sensor_uses_zero_fallback_on_initial_exception():
     assert sensor.native_value == 0
     assert sensor.extra_state_attributes["last_update_success"] is False
     assert sensor.extra_state_attributes["last_error"] == "Lager-Endpunkt nicht erreichbar"
+
+
+def test_all_sensor_types_share_the_entry_device_info():
+    response_sensor = sensor_module.GrocyAIResponseSensor(_FakeEntry())
+    shopping_sensor = sensor_module.GrocyAIShoppingListOpenCountSensor(_FakeEntry())
+    average_sensor = sensor_module.GrocyAIAverageResponseTimeSensor(_FakeEntry())
+
+    expected = {
+        "identifiers": {("grocy_ai_assistant", "entry-1")},
+        "name": "Grocy AI Assistant",
+        "manufacturer": "Eigene Integration",
+    }
+
+    assert response_sensor.device_info == expected
+    assert shopping_sensor.device_info == expected
+    assert average_sensor.device_info == expected
 
 
 def _raise_runtime_error(message: str):
