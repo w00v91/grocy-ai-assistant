@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Changed (Home-Assistant-Integration/Panel): Das native Dashboard liest den initialen Bereich jetzt stabil über `?tab=` oder einen Routenabschnitt (`/grocy-ai/<tab>`) und synchronisiert Tab-Wechsel per History-API zurück in die URL, inklusive Fallback auf `shopping`.
+- Test: Neue Frontend-Unit-Tests decken direkte Aufrufe wie `.../grocy-ai?tab=storage` und `.../grocy-ai?tab=notifications` sowie den URL-Aufbau für Browser-Navigation ab; Versionsstände auf `7.4.10` erhöht.
 - Changed (Home-Assistant-Integration/Panel): Die Integration registriert das native Dashboard jetzt zentral als echtes Home-Assistant-Panel mit festem Slug `grocy-ai`, Sidebar-Metadaten und statischer Frontend-Route statt auf Ingress-/iframe-URLs in der Registrierung zu fokussieren.
 - Changed (Home-Assistant-Integration/Panel): Setup und Unload des Panels laufen nun über dedizierte `panel.py`-Hilfen mit Referenzzählung, damit der Sidebar-Eintrag beim Laden automatisch erscheint und beim letzten Entladen sauber entfernt wird.
 - Test: `tests/unit/test_panel.py` prüft jetzt Panel-Metadaten, die registrierte Modul-Route sowie das Entfernen des Sidebar-Eintrags; Versionsstände wurden auf `7.4.10` erhöht.
