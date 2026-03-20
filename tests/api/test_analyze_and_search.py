@@ -759,6 +759,94 @@ def test_dashboard_search_creates_product_when_only_ai_variant_would_exist(
     assert payload["action"] == "created_and_added"
 
 
+def test_dashboard_search_force_create_corrects_amount_for_new_item_with_string_product_id(
+    client, monkeypatch
+):
+    class FakeDetector:
+        def __init__(self, settings):
+            self.settings = settings
+
+        def analyze_product_name(self, name, locations=None):
+            return {
+                "name": name,
+                "description": "neu",
+                "location_id": 1,
+                "qu_id_purchase": 2,
+                "qu_id_stock": 2,
+            }
+
+        def suggest_similar_products(self, name):
+            return []
+
+    class FakeGrocyClient:
+        shopping_items = []
+        update_calls = []
+
+        def __init__(self, settings):
+            self.settings = settings
+
+        def find_product_by_name(self, name):
+            return None
+
+        def search_products_by_partial_name(self, query):
+            return []
+
+        def create_product(self, payload):
+            return 42
+
+        def update_product_nutrition(self, **kwargs):
+            return None
+
+        def get_product_default_best_before_days(self, product_id):
+            return None
+
+        def set_product_default_best_before_days(self, product_id, days):
+            return None
+
+        def resolve_best_before_date(
+            self, product_id, best_before_date="", default_best_before_days=None
+        ):
+            return ""
+
+        def get_shopping_list(self):
+            return [dict(item) for item in self.shopping_items]
+
+        def add_product_to_shopping_list(
+            self, product_id, amount="1", best_before_date=""
+        ):
+            self.shopping_items.append(
+                {
+                    "id": 9,
+                    "product_id": str(product_id),
+                    "amount": "1",
+                    "product_name": "Oliven",
+                }
+            )
+
+        def update_shopping_list_item_amount(self, shopping_list_id, amount):
+            self.update_calls.append((shopping_list_id, amount))
+            for item in self.shopping_items:
+                if item.get("id") == shopping_list_id:
+                    item["amount"] = str(amount)
+                    break
+
+    monkeypatch.setattr(routes, "IngredientDetector", FakeDetector)
+    monkeypatch.setattr(routes, "GrocyClient", FakeGrocyClient)
+    monkeypatch.setattr(
+        routes, "_generate_and_attach_product_picture", lambda **kwargs: None
+    )
+
+    response = client.post(
+        "/api/dashboard/search",
+        headers={"Authorization": "Bearer test-api-key"},
+        json={"name": "2 oliven", "force_create": True},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["action"] == "created_and_added"
+    assert FakeGrocyClient.update_calls == [(9, "2")]
+
+
 def test_dashboard_search_force_create_skips_existing_product_lookup(
     client, monkeypatch
 ):
@@ -901,9 +989,9 @@ def test_dashboard_search_force_create_skips_variant_selection(client, monkeypat
     assert calls["added"] == (42, 2, "")
 
 
-
-
-def test_dashboard_search_normalizes_new_product_name_before_create(client, monkeypatch):
+def test_dashboard_search_normalizes_new_product_name_before_create(
+    client, monkeypatch
+):
     calls = {"created": None}
 
     class FakeDetector:
@@ -959,6 +1047,7 @@ def test_dashboard_search_normalizes_new_product_name_before_create(client, monk
 
     assert response.status_code == 200
     assert calls["created"]["name"] == "Neuer produkte"
+
 
 def test_dashboard_search_generates_and_attaches_image_for_new_product(
     client, test_settings, monkeypatch
