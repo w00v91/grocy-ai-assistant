@@ -11,6 +11,7 @@ from .const import DEFAULT_ADDON_INGRESS_PATH, DOMAIN
 PANEL_TITLE = "Grocy AI"
 PANEL_ICON = "mdi:fridge-outline"
 PANEL_SLUG = "grocy-ai"
+PANEL_PATH = f"/{PANEL_SLUG}"
 PANEL_WEBCOMPONENT = "grocy-ai-dashboard-panel"
 PANEL_FRONTEND_URL_BASE = "/grocy_ai_assistant_panel"
 PANEL_FRONTEND_MODULE = "grocy-ai-dashboard.js"
@@ -80,6 +81,9 @@ async def async_setup(hass: HomeAssistant, dashboard_url: str = "") -> None:
         module_url=f"{PANEL_FRONTEND_URL_BASE}/{PANEL_FRONTEND_MODULE}",
         config={
             "frontend_base_url": PANEL_FRONTEND_URL_BASE,
+            "panel_path": PANEL_PATH,
+            "panel_title": PANEL_TITLE,
+            "panel_icon": PANEL_ICON,
             "legacy_dashboard_url": resolved_url,
             "page_title": PANEL_TITLE,
             "route": f"/{PANEL_SLUG}",

@@ -95,6 +95,52 @@ Wesentliche Schlüssel:
 - `scanner_barcode_fallback_seconds`
 - `scanner_llava_min_confidence`
 
+## Native Panel-URL in Home Assistant
+
+Die Integration registriert das Dashboard als **nativen Home-Assistant-Panel-Eintrag** mit konsistenten Bezeichnern:
+
+- **Titel:** `Grocy AI`
+- **Slug / URL-Pfad:** `/grocy-ai`
+- **Sidebar-Icon:** `mdi:brain`
+
+Damit kann der Bereich nicht nur über die Sidebar, sondern auch direkt aus **Lovelace-Dashboards, Chips, Buttons, Skripten und Automationen** geöffnet werden.
+
+### Lovelace-Navigation direkt auf das Panel
+
+```yaml
+type: button
+name: Grocy AI öffnen
+icon: mdi:brain
+tap_action:
+  action: navigate
+  navigation_path: /grocy-ai
+```
+
+```yaml
+type: entities
+entities:
+  - type: button
+    name: Grocy AI Rezepte
+    icon: mdi:chef-hat
+    tap_action:
+      action: navigate
+      navigation_path: /grocy-ai?tab=recipes
+```
+
+### Deep Links für Tabs
+
+Der native Panel-Container wertet Tabs jetzt direkt aus der URL aus. Unterstützte Varianten sind:
+
+- `/grocy-ai` → Standardansicht **Einkauf**
+- `/grocy-ai?tab=shopping`
+- `/grocy-ai?tab=recipes`
+- `/grocy-ai?tab=storage`
+- `/grocy-ai?tab=notifications`
+- `/grocy-ai#tab=recipes`
+- `/grocy-ai/recipes`
+
+Die Query-Variante (`?tab=...`) ist für Home-Assistant-Navigation in der Regel die robusteste Form. Innerhalb des nativen Panels werden außerdem Schnelllinks für diese Deep Links eingeblendet.
+
 ## Kopplung Add-on ↔ Integration
 
 - Das Add-on hostet den eigentlichen Backend-Service auf Port `8000`.
@@ -142,8 +188,8 @@ Zusätzlich nutzt die Integration eine Konstante in `const.py`, die synchron zur
 
 Aktueller Stand:
 
-- **Add-on:** `7.2.29`
-- **Integration:** siehe `manifest.json` der Home-Assistant-Integration
+- **Add-on:** `7.4.10`
+- **Integration:** `7.4.10`
 
 ## Add-on-Dokumentation
 

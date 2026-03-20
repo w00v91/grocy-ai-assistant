@@ -34,6 +34,7 @@
 .topbar-content,
 .section-header,
 .topbar-meta,
+.topbar-quicklinks,
 .shopping-item-card__content,
 .shopping-item-card__actions,
 .button-row,
@@ -99,7 +100,8 @@ h1 {
 .description,
 .muted,
 .tab-status,
-.topbar-status {
+.topbar-status,
+.topbar-path-hint {
   color: var(--secondary-text-color);
   line-height: 1.5;
 }
@@ -165,6 +167,7 @@ h1 {
 }
 
 button,
+a,
 input,
 textarea {
   font: inherit;
@@ -193,6 +196,7 @@ textarea {
 .ghost-button,
 .danger-button,
 .tab-button,
+.quicklink-button,
 .scanner-popup-button,
 .clear-input-button {
   transition: transform 0.15s ease, opacity 0.15s ease;
@@ -201,7 +205,8 @@ textarea {
 .primary-button,
 .success-button,
 .scanner-popup-button,
-.tab-button.active {
+.tab-button.active,
+.quicklink-button.active {
   background: var(--primary-color);
   color: var(--text-primary-color, #fff);
 }
@@ -209,6 +214,7 @@ textarea {
 .secondary-button,
 .ghost-button,
 .tab-button,
+.quicklink-button,
 .clear-input-button {
   background: color-mix(in srgb, var(--primary-color) 10%, var(--panel-card-background));
   color: var(--primary-text-color);
@@ -219,8 +225,29 @@ textarea {
   color: var(--primary-text-color);
 }
 
-button:hover {
+button:hover,
+a:hover {
   transform: translateY(-1px);
+}
+
+
+
+.topbar-quicklinks {
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+
+.topbar-path-hint code {
+  font-family: var(--code-font-family, monospace);
+}
+
+.quicklink-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 12px 18px;
+  text-decoration: none;
 }
 
 .bottom-tabbar {
@@ -335,7 +362,27 @@ button:hover {
     flex-direction: column;
   }
 
-  .bottom-tabbar {
+  
+
+.topbar-quicklinks {
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+
+.topbar-path-hint code {
+  font-family: var(--code-font-family, monospace);
+}
+
+.quicklink-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 12px 18px;
+  text-decoration: none;
+}
+
+.bottom-tabbar {
     position: static;
   }
 }

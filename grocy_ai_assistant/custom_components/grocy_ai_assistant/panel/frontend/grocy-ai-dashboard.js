@@ -5,6 +5,7 @@ import { createShoppingSearchController, SEARCH_FLOW_STATES } from './shopping-s
 
 const PANEL_SLUG = 'grocy-ai';
 const PANEL_TITLE = 'Grocy AI';
+const PANEL_ICON = 'mdi:brain';
 const DEFAULT_LEGACY_URL = '/api/hassio_ingress/grocy_ai_assistant/';
 const STYLE_URL = new URL('./grocy-ai-dashboard.css', import.meta.url);
 const MIGRATED_TABS = new Set(['shopping']);
@@ -15,6 +16,48 @@ const TAB_LABELS = {
   notifications: '🔔 Benachrichtigungen',
 };
 const DEFAULT_POLLING_INTERVAL_MS = 5000;
+
+
+function normalizeTabName(value, fallback = null) {
+  const normalized = String(value ?? '').trim().toLowerCase();
+  return TAB_ORDER.includes(normalized) ? normalized : fallback;
+}
+
+function buildPanelTabHref(panelPath, tab) {
+  const path = String(panelPath || `/${PANEL_SLUG}`) || `/${PANEL_SLUG}`;
+  if (!normalizeTabName(tab)) return path;
+  if (tab === 'shopping') return path;
+  return `${path}?tab=${tab}`;
+}
+
+function readTabFromHash(hash) {
+  const normalizedHash = String(hash || '').replace(/^#/, '').trim();
+  if (!normalizedHash) return null;
+  if (normalizedHash.startsWith('tab=')) {
+    const params = new URLSearchParams(normalizedHash);
+    return normalizeTabName(params.get('tab'));
+  }
+  return normalizeTabName(normalizedHash);
+}
+
+function readTabFromSearch(search) {
+  const normalizedSearch = String(search || '').replace(/^\?/, '').trim();
+  if (!normalizedSearch) return null;
+  const params = new URLSearchParams(normalizedSearch);
+  return normalizeTabName(params.get('tab'));
+}
+
+function readTabFromPath(pathname) {
+  const segments = String(pathname || '')
+    .split('/')
+    .map((segment) => segment.trim().toLowerCase())
+    .filter(Boolean);
+  const panelIndex = segments.lastIndexOf(PANEL_SLUG);
+  if (panelIndex !== -1) {
+    return normalizeTabName(segments[panelIndex + 1]);
+  }
+  return normalizeTabName(segments.at(-1));
+}
 
 function escapeHtml(value) {
   return String(value ?? '')
@@ -58,25 +101,53 @@ function createInitialState() {
 }
 
 class GrocyAITopbar extends HTMLElement {
+  connectedCallback() {
+    this.addEventListener('click', (event) => {
+      const actionTarget = event.target.closest('[data-action]');
+      if (!actionTarget) return;
+      this.dispatchEvent(new CustomEvent(actionTarget.dataset.action, {
+        bubbles: true,
+        composed: true,
+      }));
+    });
+  }
+
   set viewModel(value) {
     this._viewModel = value;
     this._render();
   }
 
   _render() {
-    const model = this._viewModel || { status: 'Bereit.', busy: false, migratedCount: 0, totalCount: 0 };
+    const model = this._viewModel || {
+      status: 'Bereit.',
+      busy: false,
+      migratedCount: 0,
+      totalCount: 0,
+      panelPath: `/${PANEL_SLUG}`,
+      activeTab: 'shopping',
+    };
     this.innerHTML = `
       <header class="topbar">
         <div class="topbar-content">
           <div>
             <p class="eyebrow">Grocy AI Assistant</p>
             <h1>${PANEL_TITLE}</h1>
+            <p class="topbar-path-hint">Native Panel-URL: <code>${escapeHtml(model.panelPath)}</code> · Icon: <code>${escapeHtml(model.panelIcon || PANEL_ICON)}</code></p>
           </div>
           <div class="topbar-meta">
             <p class="topbar-status" aria-live="polite">${escapeHtml(model.status)}</p>
             <span class="activity-spinner${model.busy ? '' : ' hidden'}" aria-label="Lädt"></span>
             <span class="migration-chip">${model.migratedCount}/${model.totalCount} Tabs nativ</span>
           </div>
+        </div>
+        <div class="topbar-quicklinks" aria-label="Schnellaktionen">
+          ${TAB_ORDER.map((tab) => `
+            <a
+              class="quicklink-button${model.activeTab === tab ? ' active' : ''}"
+              href="${escapeHtml(buildPanelTabHref(model.panelPath, tab))}"
+            >${TAB_LABELS[tab]}</a>
+          `).join('')}
+          <button type="button" class="ghost-button" data-action="shopping-open-scanner">📷 Scanner</button>
         </div>
       </header>
     `;
@@ -480,6 +551,7 @@ class GrocyAIDashboardPanel extends HTMLElement {
     this._bindEvents();
     window.addEventListener('popstate', this._handlePopState);
     this._unsubscribe = this._store.subscribe((state) => this._renderState(state));
+    this._applyRouteState({ syncHistory: false, announce: false });
     this._syncActiveTabFromLocation({ replaceUrl: true });
     this._searchUnsubscribe = this._shoppingSearch.subscribe(() => this._renderState(this._store.getState()));
     this._loadShoppingList();
@@ -501,6 +573,7 @@ class GrocyAIDashboardPanel extends HTMLElement {
 
   set route(value) {
     this._route = value;
+    this._applyRouteState({ syncHistory: false, announce: false });
     this._syncActiveTabFromLocation({ replaceUrl: true });
     this._renderState(this._store.getState());
   }
@@ -540,7 +613,7 @@ class GrocyAIDashboardPanel extends HTMLElement {
     root.addEventListener('shopping-delete-item', (event) => this._deleteShoppingItem(event.detail.itemId));
     root.addEventListener('shopping-complete-all', () => this._completeAllShopping());
     root.addEventListener('shopping-clear-all', () => this._clearAllShopping());
-    root.addEventListener('shopping-open-scanner', () => this._setScannerOpen(true));
+    root.addEventListener('shopping-open-scanner', () => this._openScannerBridge());
     root.addEventListener('shopping-close-scanner', () => this._setScannerOpen(false));
     root.addEventListener('open-legacy-dashboard', (event) => this._openLegacyDashboard(event.detail?.tab));
   }
@@ -559,6 +632,9 @@ class GrocyAIDashboardPanel extends HTMLElement {
       busy: state.pendingRequests > 0,
       migratedCount,
       totalCount,
+      panelPath: this._getPanelPath(),
+      panelIcon: this._getPanelIcon(),
+      activeTab: state.activeTab,
     };
     this.shadowRoot.querySelector('grocy-ai-tab-nav').viewModel = {
       activeTab: state.activeTab,
@@ -601,6 +677,15 @@ class GrocyAIDashboardPanel extends HTMLElement {
   }
 
   _switchTab(tab, options = {}) {
+    const normalizedTab = normalizeTabName(tab);
+    if (!normalizedTab) return;
+
+    const { syncHistory = true, announce = true } = options;
+    this._store.patch({
+      activeTab: normalizedTab,
+      topbarStatus: announce ? `${TAB_LABELS[normalizedTab]} geöffnet.` : this._store.getState().topbarStatus,
+    });
+    if (normalizedTab === 'shopping') {
     if (!TAB_ORDER.includes(tab)) return;
 
     const normalizedTab = tab;
@@ -622,6 +707,9 @@ class GrocyAIDashboardPanel extends HTMLElement {
       }
     } else {
       this._stopShoppingPolling();
+    }
+    if (syncHistory) {
+      this._syncBrowserUrl(normalizedTab);
     }
   }
 
@@ -915,6 +1003,12 @@ class GrocyAIDashboardPanel extends HTMLElement {
     this._updateShoppingState({ scannerModalOpen: Boolean(open) });
   }
 
+  _openScannerBridge() {
+    this._switchTab('shopping', { syncHistory: true, announce: false });
+    this._setScannerOpen(true);
+    this._store.patch({ topbarStatus: 'Scanner-Bridge geöffnet.' });
+  }
+
   _startShoppingPolling() {
     const state = this._store.getState();
     if (state.activeTab !== 'shopping' || state.shopping.pollTimer) return;
@@ -934,6 +1028,40 @@ class GrocyAIDashboardPanel extends HTMLElement {
     this._updateShoppingState({ pollTimer: null });
   }
 
+
+  _applyRouteState(options = {}) {
+    const nextTab = this._resolveTabFromRoute();
+    if (!nextTab || nextTab === this._store.getState().activeTab) return;
+    this._switchTab(nextTab, options);
+  }
+
+  _resolveTabFromRoute() {
+    const locationPath = window.location?.pathname || '';
+    return (
+      readTabFromSearch(this._route?.search)
+      || readTabFromHash(this._route?.hash)
+      || readTabFromPath(this._route?.path)
+      || readTabFromSearch(window.location?.search)
+      || readTabFromHash(window.location?.hash)
+      || readTabFromPath(locationPath)
+      || 'shopping'
+    );
+  }
+
+  _syncBrowserUrl(tab) {
+    const panelPath = this._getPanelPath();
+    const url = new URL(window.location.href);
+    url.pathname = panelPath;
+    if (tab === 'shopping') {
+      url.search = '';
+      url.hash = '';
+    } else {
+      url.search = `?tab=${tab}`;
+      url.hash = '';
+    }
+    window.history.replaceState(window.history.state, '', url.toString());
+  }
+
   _resolveShoppingPollingInterval() {
     const value = Number(this._hass?.states?.['sensor.grocy_ai_status']?.attributes?.dashboard_polling_interval_seconds ?? 5);
     if (!Number.isFinite(value) || value < 1) return DEFAULT_POLLING_INTERVAL_MS;
@@ -946,6 +1074,14 @@ class GrocyAIDashboardPanel extends HTMLElement {
 
   _getLegacyDashboardUrl() {
     return this._getPanelConfig().legacy_dashboard_url || DEFAULT_LEGACY_URL;
+  }
+
+  _getPanelPath() {
+    return this._getPanelConfig().panel_path || `/${PANEL_SLUG}`;
+  }
+
+  _getPanelIcon() {
+    return this._getPanelConfig().panel_icon || PANEL_ICON;
   }
 
   _openLegacyDashboard(tab) {

@@ -21,6 +21,7 @@ Das Add-on kombiniert ein FastAPI-Backend mit einer Home-Assistant-Integration u
 4. Öffne die Add-on-Konfiguration und trage mindestens die Pflichtwerte ein.
 5. Starte das Add-on.
 6. Öffne die Weboberfläche über **Öffnen Web UI** oder nutze die Ingress-Seite innerhalb von Home Assistant.
+7. Installiere zusätzlich die Home-Assistant-Integration, wenn du das Dashboard als nativen Sidebar-Panel-Eintrag mit direktem Pfad `/grocy-ai` verwenden möchtest.
 
 ## Vor der Einrichtung
 
@@ -77,6 +78,57 @@ debug_mode: false
 | `generate_missing_product_images_on_startup` | Erzeugt fehlende Produktbilder einmalig beim nächsten Start. |
 | `initial_info_sync` | Ergänzt beim nächsten Start fehlende Nährwerte und geschätzte MHD-Tage. |
 | `debug_mode` | Aktiviert ausführliche Debug-Logs. |
+
+## Nativer Dashboard-Pfad in Home Assistant
+
+Nach dem Einrichten der **Home-Assistant-Integration** wird das Dashboard zusätzlich als nativer Panel-Eintrag registriert. Die Bezeichner sind dabei bewusst identisch gehalten:
+
+- **Titel in der Sidebar:** `Grocy AI`
+- **Slug / Zielpfad:** `/grocy-ai`
+- **Icon:** `mdi:brain`
+
+Damit kannst du das Dashboard direkt aus Lovelace, aus Assist-/UI-Aktionen oder aus Skripten öffnen, ohne den Ingress-Pfad manuell zusammensetzen zu müssen.
+
+### Lovelace-Beispiele
+
+```yaml
+type: button
+name: Grocy AI
+icon: mdi:brain
+tap_action:
+  action: navigate
+  navigation_path: /grocy-ai
+```
+
+```yaml
+type: tile
+entity: sensor.grocy_ai_status
+name: Grocy AI Lager
+tap_action:
+  action: navigate
+  navigation_path: /grocy-ai?tab=storage
+```
+
+```yaml
+type: markdown
+content: >
+  [Grocy AI Benachrichtigungen](/grocy-ai?tab=notifications)
+```
+
+### Deep Links für Tabs
+
+Falls du direkt in einen Bereich springen möchtest, unterstützt das native Panel mehrere URL-Formate:
+
+- `/grocy-ai` oder `/grocy-ai?tab=shopping` → Einkauf
+- `/grocy-ai?tab=recipes`, `/grocy-ai#tab=recipes` oder `/grocy-ai/recipes` → Rezepte
+- `/grocy-ai?tab=storage`, `/grocy-ai#tab=storage` oder `/grocy-ai/storage` → Lager
+- `/grocy-ai?tab=notifications`, `/grocy-ai#tab=notifications` oder `/grocy-ai/notifications` → Benachrichtigungen
+
+Für Home-Assistant-Buttons und `navigate`-Aktionen ist `?tab=...` die empfohlene Variante.
+
+### Schnellaktionen in der nativen UI
+
+Die native Oberfläche blendet im Kopfbereich zusätzliche Schnelllinks auf **Einkauf**, **Rezepte**, **Lager** und **Benachrichtigungen** ein und zeigt dort auch den finalen Panel-Pfad `/grocy-ai` an. So lassen sich Teilbereiche leichter wiederverwenden und verlinken.
 
 ## Hinweise zur Nutzung
 

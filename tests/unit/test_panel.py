@@ -97,6 +97,15 @@ def test_panel_registers_native_module_metadata(monkeypatch):
     assert kwargs["webcomponent_name"] == "grocy-ai-dashboard-panel"
     assert kwargs["module_url"] == "/grocy_ai_assistant_panel/grocy-ai-dashboard.js"
     assert kwargs["sidebar_title"] == "Grocy AI"
+    assert kwargs["sidebar_icon"] == "mdi:brain"
+    assert (
+        kwargs["config"]["legacy_dashboard_url"]
+        == "/api/hassio_ingress/grocy_ai_assistant/"
+    )
+    assert kwargs["config"]["panel_path"] == "/grocy-ai"
+    assert kwargs["config"]["panel_title"] == "Grocy AI"
+    assert kwargs["config"]["panel_icon"] == "mdi:brain"
+
     assert kwargs["sidebar_icon"] == "mdi:fridge-outline"
     assert kwargs["config"]["page_title"] == "Grocy AI"
     assert kwargs["config"]["route"] == "/grocy-ai"
