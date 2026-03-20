@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Changed (Dashboard/Architektur): `dashboard.js` lädt jetzt ein separates API-Client-, DOM- und Store-Modul, sodass die bisherige HTML-Seite dieselbe Logik weiterhin nutzt, die spätere native Home-Assistant-Oberfläche aber auf klar getrennte Zustands-/API-Bausteine aufsetzen kann.
+- Changed (Dashboard/State): Zuvor globale Dashboard-Zustände für Tabs, Ladeindikatoren, Polling, Storage-Bearbeitung, Scanner sowie Shopping-Modalfluss wurden in einen zentralen Store verschoben und für die Altseite zusätzlich unter `window.__grocyDashboardState`/`window.__grocyDashboardStore` sichtbar gemacht.
+- Changed (Dashboard/API): Alle direkten `/api/dashboard/...`-HTTP-Aufrufe laufen jetzt über `dashboard-api-client.js`, während `dashboard-dom.js` wiederkehrende DOM-Umschaltungen wie Busy-Indikator, Tab-Sichtbarkeit und Scroll-Locking kapselt.
+- Test: Dashboard-Frontend per `node --check` für die neuen ES-Module geprüft und Versionsmetadaten auf `7.4.6` angehoben.
+
 - Changed (Dashboard/UI): `dashboard.css` bündelt jetzt wiederkehrende Oberflächenwerte wie Card-Padding, Control-Höhen, Border-Radien, Flächen und Elevation in semantischen Tokens und mappt diese soweit möglich auf Home-Assistant-Variablen mit Fallbacks.
 - Changed (Dashboard/UI): Topbar, Karten, Bottom-Tabbar, Formularfelder, Buttons und Modals verwenden nun die neuen Surface-/Spacing-/Radius-Tokens konsistent, damit Light-/Dark-Mode näher am Home-Assistant-Look bleibt.
 - Test: Versionsmetadaten und Add-on-Konfiguration wurden auf `7.4.5` angehoben bzw. im Test synchronisiert.

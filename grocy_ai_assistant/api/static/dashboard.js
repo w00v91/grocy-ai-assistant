@@ -1,3 +1,7 @@
+import { createDashboardApiClient, getErrorMessage } from './dashboard-api-client.js';
+import { updateBusyIndicator, renderTabSelection, lockBodyScroll as applyBodyScrollLock, unlockBodyScroll as releaseBodyScrollLock } from './dashboard-dom.js';
+import { createDashboardStore } from './dashboard-store.js';
+
 const rootElement = document.documentElement;
 const configuredApiKey = rootElement.dataset.configuredApiKey || '';
 const apiBasePath = rootElement.dataset.apiBasePath || '';
@@ -11,6 +15,55 @@ const haThemeVarNames = (rootElement.dataset.haThemeVars || '')
 let apiKey = configuredApiKey || '';
 const ingressPrefixMatch = window.location.pathname.match(/^\/api\/hassio_ingress\/[^\/]+/);
 const ingressPrefix = ingressPrefixMatch ? ingressPrefixMatch[0] : '';
+const dashboardApi = createDashboardApiClient({
+  apiBasePath,
+  ingressPrefix,
+  getApiKey: () => apiKey,
+});
+const dashboardStore = createDashboardStore({
+  pendingRequests: 0,
+  activeRecipeItem: null,
+  modalScrollLockY: 0,
+  notificationEditingRuleId: null,
+  storageProductsCache: [],
+  storageEditingItem: null,
+  storageEditingTargetId: null,
+  storageLocationOptions: [],
+  activeTab: 'shopping',
+  shoppingListRefreshTimer: null,
+  shoppingListRefreshInFlight: false,
+  storageRefreshTimer: null,
+  storageRefreshInFlight: false,
+  storageFilterDebounce: null,
+  shoppingListSignature: '',
+  variantsRequestToken: 0,
+  variantsDebounce: null,
+  activeShoppingNoteItemId: null,
+  activeShoppingNoteValue: '',
+  activeShoppingAmountValue: '',
+  activeMhdShoppingListId: null,
+  scannerStream: null,
+  scannerInterval: null,
+  scannerLastBarcode: '',
+  scannerDetector: null,
+  scannerLastBarcodeAt: 0,
+  scannerDetectionInFlight: false,
+  scannerStableCandidate: '',
+  scannerStableCount: 0,
+  scannerLlavaInFlight: false,
+  scannerLlavaTimer: null,
+  scannerLlavaLastRequestAt: 0,
+  scannerFocusRefreshTimer: null,
+  scannerPreferredFocusMode: '',
+  scannerSelectedDeviceId: '',
+  scannerKnownDevices: [],
+  scannerScanStartedAt: 0,
+  scannerLastLightCheckAt: 0,
+  scannerRotationDegrees: 0,
+  scannerResultPayload: null,
+  scannerCreateInFlight: false,
+});
+const dashboardState = dashboardStore.state;
 const HA_THEME_MESSAGE_TYPE = 'grocy-ai-assistant:ha-theme-sync';
 const HA_THEME_SOURCE_SELECTORS = ['home-assistant', 'body', 'html'];
 const HA_THEME_VARIABLE_MAPPINGS = {
@@ -25,18 +78,8 @@ const HA_THEME_VARIABLE_MAPPINGS = {
   '--success-color': '--ha-success-color',
 };
 
-let pendingRequests = 0;
-let activeRecipeItem = null;
-
 const GROCY_RECIPE_DISPLAY_LIMIT = 3;
 const AI_RECIPE_DISPLAY_LIMIT = 3;
-
-let modalScrollLockY = 0;
-let notificationEditingRuleId = null;
-let storageProductsCache = [];
-let storageEditingItem = null;
-let storageEditingTargetId = null;
-let storageLocationOptions = [];
 
 function normalizeStockProduct(item) {
   const productId = Number(item?.id ?? item?.product_id ?? 0);
@@ -71,7 +114,7 @@ function renderStorageEditLocationOptions(selectedLocationId = null, fallbackLoc
 
   const normalizedSelectedId = Number(selectedLocationId);
   const hasSelectedId = Number.isFinite(normalizedSelectedId) && normalizedSelectedId > 0;
-  const options = Array.isArray(storageLocationOptions) ? storageLocationOptions : [];
+  const options = Array.isArray(dashboardState.storageLocationOptions) ? dashboardState.storageLocationOptions : [];
 
   select.innerHTML = [
     '<option value="">Bitte Lagerort wählen</option>',
@@ -225,16 +268,12 @@ function getSelectedValues(selectElement) {
 
 function lockBodyScroll() {
   if (document.body.classList.contains('modal-open')) return;
-  modalScrollLockY = window.scrollY || window.pageYOffset || 0;
-  document.body.classList.add('modal-open');
-  document.body.style.top = `-${modalScrollLockY}px`;
+  dashboardState.modalScrollLockY = window.scrollY || window.pageYOffset || 0;
+  applyBodyScrollLock(dashboardState.modalScrollLockY);
 }
 
 function unlockBodyScroll() {
-  if (!document.body.classList.contains('modal-open')) return;
-  document.body.classList.remove('modal-open');
-  document.body.style.top = '';
-  window.scrollTo(0, modalScrollLockY);
+  releaseBodyScrollLock(dashboardState.modalScrollLockY);
 }
 
 function syncModalScrollLock() {
@@ -245,34 +284,6 @@ function syncModalScrollLock() {
   }
   unlockBodyScroll();
 }
-
-let activeTab = "shopping";
-let shoppingListRefreshTimer = null;
-let shoppingListRefreshInFlight = false;
-let storageRefreshTimer = null;
-let storageRefreshInFlight = false;
-let storageFilterDebounce = null;
-let shoppingListSignature = '';
-let scannerStream = null;
-let scannerInterval = null;
-let scannerLastBarcode = "";
-let scannerDetector = null;
-let scannerLastBarcodeAt = 0;
-let scannerDetectionInFlight = false;
-let scannerStableCandidate = '';
-let scannerStableCount = 0;
-let scannerLlavaInFlight = false;
-let scannerLlavaTimer = null;
-let scannerLlavaLastRequestAt = 0;
-let scannerFocusRefreshTimer = null;
-let scannerPreferredFocusMode = '';
-let scannerSelectedDeviceId = '';
-let scannerKnownDevices = [];
-let scannerScanStartedAt = 0;
-let scannerLastLightCheckAt = 0;
-let scannerRotationDegrees = 0;
-let scannerResultPayload = null;
-let scannerCreateInFlight = false;
 const scannerDigitalZoomFactor = 1.35;
 const scannerStableDetectionThreshold = 2;
 const scannerFocusRefreshMs = 2000;
@@ -306,19 +317,17 @@ function buildStockSignature(items) {
 }
 
 function setBusyState(isBusy) {
-  const spinner = document.getElementById('activity-spinner');
-  if (!spinner) return;
-  spinner.classList.toggle('hidden', !isBusy);
+  updateBusyIndicator(isBusy);
 }
 
 function beginRequest() {
-  pendingRequests += 1;
+  dashboardState.pendingRequests += 1;
   setBusyState(true);
 }
 
 function endRequest() {
-  pendingRequests = Math.max(0, pendingRequests - 1);
-  setBusyState(pendingRequests > 0);
+  dashboardState.pendingRequests = Math.max(0, dashboardState.pendingRequests - 1);
+  setBusyState(dashboardState.pendingRequests > 0);
 }
 
 async function withBusyState(callback) {
@@ -333,36 +342,19 @@ async function withBusyState(callback) {
 
 function switchTab(tabName) {
   const allowedTabs = ['shopping', 'recipes', 'storage', 'notifications'];
-  activeTab = allowedTabs.includes(tabName) ? tabName : 'shopping';
+  dashboardState.activeTab = allowedTabs.includes(tabName) ? tabName : 'shopping';
+  renderTabSelection(dashboardState.activeTab, allowedTabs);
 
-  const shoppingTab = document.getElementById('tab-shopping');
-  const recipesTab = document.getElementById('tab-recipes');
-  const storageTab = document.getElementById('tab-storage');
-  const notificationsTab = document.getElementById('tab-notifications');
-  const shoppingButton = document.getElementById('tab-button-shopping');
-  const recipesButton = document.getElementById('tab-button-recipes');
-  const storageButton = document.getElementById('tab-button-storage');
-  const notificationsButton = document.getElementById('tab-button-notifications');
-
-  shoppingTab.classList.toggle('hidden', activeTab !== 'shopping');
-  recipesTab.classList.toggle('hidden', activeTab !== 'recipes');
-  storageTab.classList.toggle('hidden', activeTab !== 'storage');
-  notificationsTab.classList.toggle('hidden', activeTab !== 'notifications');
-  shoppingButton.classList.toggle('active', activeTab === 'shopping');
-  recipesButton.classList.toggle('active', activeTab === 'recipes');
-  storageButton.classList.toggle('active', activeTab === 'storage');
-  notificationsButton.classList.toggle('active', activeTab === 'notifications');
-
-  if (activeTab === 'recipes' && !recipeState.initialized) {
+  if (dashboardState.activeTab === 'recipes' && !recipeState.initialized) {
     loadLocations();
   }
-  if (activeTab === 'storage') {
+  if (dashboardState.activeTab === 'storage') {
     refreshStorageInBackground();
   }
-  if (activeTab === 'notifications') {
+  if (dashboardState.activeTab === 'notifications') {
     loadNotificationOverview();
   }
-  if (activeTab === 'shopping') {
+  if (dashboardState.activeTab === 'shopping') {
     refreshShoppingListInBackground();
   }
 
@@ -377,7 +369,7 @@ async function openScannerModal() {
   syncModalScrollLock();
   await refreshScannerDevices();
   const rotationSelect = getScannerRotationSelectElement();
-  if (rotationSelect) rotationSelect.value = String(scannerRotationDegrees);
+  if (rotationSelect) rotationSelect.value = String(dashboardState.scannerRotationDegrees);
 }
 
 function closeScannerModal() {
@@ -396,9 +388,8 @@ async function loadNotificationOverview() {
   const status = getNotificationStatusElement();
   status.textContent = 'Lade Notification-Konfiguration…';
   try {
-    const res = await fetch(buildApiUrl('/api/dashboard/notifications/overview'), { headers: getAuthHeaders() });
-    const payload = await parseJsonSafe(res);
-    if (!res.ok) throw new Error(getErrorMessage(payload, 'Fehler beim Laden der Notification-Daten.'));
+    const { response, payload } = await dashboardApi.notificationOverview();
+    if (!response.ok) throw new Error(getErrorMessage(payload, 'Fehler beim Laden der Notification-Daten.'));
 
     renderNotificationDevices(payload.devices || []);
     renderNotificationRuleEditorOptions(payload.devices || [], payload.settings || {});
@@ -565,13 +556,11 @@ async function saveNotificationSettings() {
 async function toggleNotificationDevice(deviceId, isActive) {
   const status = getNotificationStatusElement();
   try {
-    const res = await fetch(buildApiUrl(`/api/dashboard/notifications/devices/${encodeURIComponent(deviceId)}`), {
-      method: 'PATCH',
-      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
-      body: JSON.stringify({ active: isActive, user_id: getSelectedNotificationUserId() }),
+    const { response, payload } = await dashboardApi.updateNotificationDevice(deviceId, {
+      active: isActive,
+      user_id: getSelectedNotificationUserId(),
     });
-    const payload = await parseJsonSafe(res);
-    if (!res.ok) throw new Error(getErrorMessage(payload, 'Gerät konnte nicht aktualisiert werden.'));
+    if (!response.ok) throw new Error(getErrorMessage(payload, 'Gerät konnte nicht aktualisiert werden.'));
     status.textContent = `Gerät ${deviceId} aktualisiert.`;
   } catch (error) {
     status.textContent = `Fehler: ${error.message}`;
@@ -603,7 +592,7 @@ function resetNotificationRuleModalForm() {
 function openNotificationRuleModal(ruleId = null) {
   const title = document.getElementById('notification-rule-modal-title');
   const submitButton = document.getElementById('notify-rule-submit-button');
-  notificationEditingRuleId = ruleId;
+  dashboardState.notificationEditingRuleId = ruleId;
 
   if (!ruleId) {
     title.textContent = 'Neue Regel';
@@ -637,7 +626,7 @@ function openNotificationRuleModal(ruleId = null) {
 }
 
 function closeNotificationRuleModal() {
-  notificationEditingRuleId = null;
+  dashboardState.notificationEditingRuleId = null;
   document.getElementById('notification-rule-modal').classList.add('hidden');
   syncModalScrollLock();
 }
@@ -679,20 +668,13 @@ async function saveNotificationRule() {
     return;
   }
 
-  const isEditing = Boolean(notificationEditingRuleId);
-  const endpoint = isEditing
-    ? `/api/dashboard/notifications/rules/${encodeURIComponent(notificationEditingRuleId)}`
-    : '/api/dashboard/notifications/rules';
-  const method = isEditing ? 'PATCH' : 'POST';
-
+  const isEditing = Boolean(dashboardState.notificationEditingRuleId);
   try {
-    const res = await fetch(buildApiUrl(endpoint), {
-      method,
-      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-    const responsePayload = await parseJsonSafe(res);
-    if (!res.ok) throw new Error(getErrorMessage(responsePayload, isEditing ? 'Regel konnte nicht gespeichert werden.' : 'Regel konnte nicht angelegt werden.'));
+    const { response, payload: responsePayload } = await dashboardApi.saveNotificationRule(
+      dashboardState.notificationEditingRuleId,
+      payload,
+    );
+    if (!response.ok) throw new Error(getErrorMessage(responsePayload, isEditing ? 'Regel konnte nicht gespeichert werden.' : 'Regel konnte nicht angelegt werden.'));
     status.textContent = isEditing ? 'Regel aktualisiert.' : 'Regel angelegt.';
     closeNotificationRuleModal();
     await loadNotificationOverview();
@@ -704,12 +686,8 @@ async function saveNotificationRule() {
 async function deleteNotificationRule(ruleId) {
   const status = getNotificationStatusElement();
   try {
-    const res = await fetch(buildApiUrl(`/api/dashboard/notifications/rules/${encodeURIComponent(ruleId)}`), {
-      method: 'DELETE',
-      headers: getAuthHeaders(),
-    });
-    const payload = await parseJsonSafe(res);
-    if (!res.ok) throw new Error(getErrorMessage(payload, 'Regel konnte nicht gelöscht werden.'));
+    const { response, payload } = await dashboardApi.deleteNotificationRule(ruleId);
+    if (!response.ok) throw new Error(getErrorMessage(payload, 'Regel konnte nicht gelöscht werden.'));
     status.textContent = 'Regel gelöscht.';
     await loadNotificationOverview();
   } catch (error) {
@@ -720,9 +698,8 @@ async function deleteNotificationRule(ruleId) {
 async function testNotificationAll() {
   const status = getNotificationStatusElement();
   status.textContent = 'Sende Test an alle Geräte…';
-  const res = await fetch(buildApiUrl('/api/dashboard/notifications/tests/all'), { method: 'POST', headers: getAuthHeaders() });
-  const payload = await parseJsonSafe(res);
-  if (!res.ok) {
+  const { response, payload } = await dashboardApi.testNotificationAll();
+  if (!response.ok) {
     status.textContent = `Fehler: ${getErrorMessage(payload, 'Test fehlgeschlagen.')}`;
     return;
   }
@@ -733,9 +710,8 @@ async function testNotificationAll() {
 async function testNotificationPersistent() {
   const status = getNotificationStatusElement();
   status.textContent = 'Sende Persistent-Test…';
-  const res = await fetch(buildApiUrl('/api/dashboard/notifications/tests/persistent'), { method: 'POST', headers: getAuthHeaders() });
-  const payload = await parseJsonSafe(res);
-  if (!res.ok) {
+  const { response, payload } = await dashboardApi.testNotificationPersistent();
+  if (!response.ok) {
     status.textContent = `Fehler: ${getErrorMessage(payload, 'Test fehlgeschlagen.')}`;
     return;
   }
@@ -944,46 +920,6 @@ function ensureApiKey() {
   return apiKey;
 }
 
-function getAuthHeaders() {
-  const key = ensureApiKey();
-  if (!key) return {};
-  return { 'Authorization': `Bearer ${key}` };
-}
-
-async function parseJsonSafe(response) {
-  try {
-    return await response.json();
-  } catch (_) {
-    return {};
-  }
-}
-
-
-function getErrorMessage(payload, fallbackMessage) {
-  if (payload && payload.error && payload.error.message) return payload.error.message;
-  if (payload && payload.detail) return payload.detail;
-  return fallbackMessage;
-}
-
-function getShoppingStatusElement() {
-  return document.getElementById('status-shopping');
-}
-
-function getRecipeStatusElement() {
-  return document.getElementById('status-recipes');
-}
-
-function buildApiUrl(path) {
-  const normalizedPath = '/' + String(path || '').replace(/^\/+/, '');
-  if (apiBasePath) {
-    return `${apiBasePath}${normalizedPath}`;
-  }
-  if (ingressPrefix) {
-    return `${ingressPrefix}${normalizedPath}`;
-  }
-  return normalizedPath.replace(/^\//, '');
-}
-
 function toImageSource(url, options = {}) {
   if (!url) return 'https://placehold.co/80x80?text=Kein+Bild';
 
@@ -1010,13 +946,13 @@ function toImageSource(url, options = {}) {
   }
   const normalized = '/' + url.replace(/^\/+/, '');
   if (normalized.startsWith('/api/dashboard/product-picture?')) {
-    const absoluteProxyUrl = new URL(buildApiUrl(normalized), window.location.origin);
+    const absoluteProxyUrl = new URL(dashboardApi.buildUrl(normalized), window.location.origin);
     absoluteProxyUrl.searchParams.set('size', normalizedSize);
     return absoluteProxyUrl.toString();
   }
 
   if (normalized.startsWith('/api/')) {
-    return buildApiUrl(normalized);
+    return dashboardApi.buildUrl(normalized);
   }
   return normalized;
 }
@@ -1160,12 +1096,8 @@ async function loadShoppingList(options = {}) {
     status.textContent = 'Lade Einkaufsliste...';
   }
   try {
-    const res = await fetch(buildApiUrl('/api/dashboard/shopping-list'), {
-      headers: { 'Authorization': `Bearer ${key}` },
-    });
-    const payload = await parseJsonSafe(res);
-
-    if (!res.ok) {
+    const { response, payload } = await dashboardApi.fetchShoppingList();
+    if (!response.ok) {
       if (!background) {
         status.textContent = getErrorMessage(payload, 'Einkaufsliste konnte nicht geladen werden.');
       }
@@ -1173,11 +1105,11 @@ async function loadShoppingList(options = {}) {
     }
 
     const nextSignature = buildShoppingListSignature(payload);
-    const hasChanged = nextSignature !== shoppingListSignature;
+    const hasChanged = nextSignature !== dashboardState.shoppingListSignature;
 
     if (hasChanged) {
       renderShoppingList(payload);
-      shoppingListSignature = nextSignature;
+      dashboardState.shoppingListSignature = nextSignature;
     }
 
     if (!background) {
@@ -1199,23 +1131,23 @@ async function loadShoppingList(options = {}) {
 }
 
 async function refreshShoppingListInBackground() {
-  if (shoppingListRefreshInFlight) return;
-  if (document.hidden || activeTab !== 'shopping') return;
+  if (dashboardState.shoppingListRefreshInFlight) return;
+  if (document.hidden || dashboardState.activeTab !== 'shopping') return;
 
-  shoppingListRefreshInFlight = true;
+  dashboardState.shoppingListRefreshInFlight = true;
   try {
     await loadShoppingList({ background: true });
   } finally {
-    shoppingListRefreshInFlight = false;
+    dashboardState.shoppingListRefreshInFlight = false;
   }
 }
 
 function startShoppingListAutoRefresh() {
-  if (shoppingListRefreshTimer) {
-    clearInterval(shoppingListRefreshTimer);
+  if (dashboardState.shoppingListRefreshTimer) {
+    clearInterval(dashboardState.shoppingListRefreshTimer);
   }
 
-  shoppingListRefreshTimer = setInterval(() => {
+  dashboardState.shoppingListRefreshTimer = setInterval(() => {
     refreshShoppingListInBackground();
   }, shoppingListRefreshMs);
 }
@@ -1253,8 +1185,6 @@ function renderVariants(items, options = {}) {
   }).join('');
 }
 
-let variantsRequestToken = 0;
-
 async function loadVariants() {
   return withBusyState(async () => {
   const key = ensureApiKey();
@@ -1265,7 +1195,7 @@ async function loadVariants() {
   if (!key) return;
 
   const query = productName.trim();
-  const requestToken = ++variantsRequestToken;
+  const requestToken = ++dashboardState.variantsRequestToken;
   if (!query) {
     document.getElementById('variant-list').innerHTML = '';
     document.getElementById('variant-section').classList.add('hidden');
@@ -1273,17 +1203,13 @@ async function loadVariants() {
   }
 
   try {
-    const res = await fetch(buildApiUrl(`/api/dashboard/search-variants?q=${encodeURIComponent(query)}&include_ai=false`), {
-      headers: { 'Authorization': `Bearer ${key}` },
-    });
-    const payload = await parseJsonSafe(res);
-
-    if (!res.ok) {
+    const { response, payload } = await dashboardApi.searchVariants(query);
+    if (!response.ok) {
       status.textContent = getErrorMessage(payload, 'Varianten konnten nicht geladen werden.');
       return;
     }
 
-    if (requestToken !== variantsRequestToken) return;
+    if (requestToken !== dashboardState.variantsRequestToken) return;
     renderVariants(payload, { amount: amountFromName });
 
   } catch (_) {
@@ -1315,20 +1241,15 @@ async function confirmVariant(productId, productName, amountOverride = null) {
   const bestBeforeDate = getShoppingBestBeforeDate();
 
   try {
-    const res = await fetch(buildApiUrl('/api/dashboard/add-existing-product'), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
-      body: JSON.stringify({
-        product_id: productId,
-        product_name: requestProductName,
-        amount,
-        best_before_date: bestBeforeDate,
-      }),
+    const { response, payload } = await dashboardApi.addExistingProduct({
+      product_id: productId,
+      product_name: requestProductName,
+      amount,
+      best_before_date: bestBeforeDate,
     });
-    const payload = await parseJsonSafe(res);
     status.textContent = payload.message || getErrorMessage(payload, 'Unbekannte Antwort');
 
-    if (res.ok) {
+    if (response.ok) {
       const variants = payload.variants || [];
       if (payload.action === 'variant_selection_required' && variants.length) {
         renderVariants(variants, { amount });
@@ -1350,13 +1271,8 @@ async function incrementShoppingItemAmount(shoppingListId) {
   const status = getShoppingStatusElement();
 
   return withBusyState(async () => {
-    const res = await fetch(buildApiUrl(`/api/dashboard/shopping-list/item/${shoppingListId}/amount/increment`), {
-      method: 'POST',
-      headers: getAuthHeaders(),
-    });
-    const payload = await parseJsonSafe(res);
-
-    if (!res.ok) {
+    const { response, payload } = await dashboardApi.incrementShoppingItemAmount(shoppingListId);
+    if (!response.ok) {
       throw new Error(getErrorMessage(payload, 'Menge konnte nicht erhöht werden.'));
     }
 
@@ -1373,12 +1289,8 @@ async function removeShoppingItem(shoppingListId) {
     return;
   }
 
-  const res = await fetch(buildApiUrl(`/api/dashboard/shopping-list/item/${shoppingListId}`), {
-    method: 'DELETE',
-    headers: { 'Authorization': `Bearer ${key}` },
-  });
-  const payload = await parseJsonSafe(res);
-  if (!res.ok) {
+  const { response, payload } = await dashboardApi.deleteShoppingListItem(shoppingListId);
+  if (!response.ok) {
     status.textContent = getErrorMessage(payload, 'Eintrag konnte nicht gelöscht werden.');
     return;
   }
@@ -1394,12 +1306,8 @@ async function purchaseShoppingItem(shoppingListId) {
     return;
   }
 
-  const res = await fetch(buildApiUrl(`/api/dashboard/shopping-list/item/${shoppingListId}/complete`), {
-    method: 'POST',
-    headers: { 'Authorization': `Bearer ${key}` },
-  });
-  const payload = await parseJsonSafe(res);
-  if (!res.ok) {
+  const { response, payload } = await dashboardApi.completeShoppingListItem(shoppingListId);
+  if (!response.ok) {
     status.textContent = getErrorMessage(payload, 'Eintrag konnte nicht als gekauft markiert werden.');
     return;
   }
@@ -1444,19 +1352,16 @@ function showShoppingItemDetails(item) {
 }
 
 
-let activeShoppingNoteItemId = null;
-let activeShoppingNoteValue = '';
-let activeShoppingAmountValue = '';
 
 function openShoppingAmountEditor(currentAmount = '') {
-  activeShoppingAmountValue = String(currentAmount || '').trim();
+  dashboardState.activeShoppingAmountValue = String(currentAmount || '').trim();
   const input = document.getElementById('shopping-item-amount-input');
-  if (input) input.value = activeShoppingAmountValue || '';
+  if (input) input.value = dashboardState.activeShoppingAmountValue || '';
 }
 
 function openShoppingNoteEditor(shoppingListId, currentNote = '') {
-  activeShoppingNoteItemId = shoppingListId;
-  activeShoppingNoteValue = String(currentNote || '').trim();
+  dashboardState.activeShoppingNoteItemId = shoppingListId;
+  dashboardState.activeShoppingNoteValue = String(currentNote || '').trim();
   const input = document.getElementById('shopping-item-note-input');
   if (input) input.value = currentNote || '';
 }
@@ -1476,20 +1381,14 @@ async function saveShoppingNote(shoppingListId, note) {
 
   status.textContent = 'Speichere Notiz...';
   try {
-    const res = await fetch(buildApiUrl(`/api/dashboard/shopping-list/item/${shoppingListId}/note`), {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
-      body: JSON.stringify({ note }),
-    });
-    const payload = await parseJsonSafe(res);
-
-    if (!res.ok) {
+    const { response, payload } = await dashboardApi.updateShoppingListItemNote(shoppingListId, note);
+    if (!response.ok) {
       status.textContent = getErrorMessage(payload, 'Notiz konnte nicht gespeichert werden.');
       return false;
     }
 
     status.textContent = payload.message || 'Notiz gespeichert.';
-    activeShoppingNoteValue = note;
+    dashboardState.activeShoppingNoteValue = note;
     return true;
   } catch (_) {
     status.textContent = 'Notiz konnte nicht gespeichert werden (Netzwerk-/Ingress-Fehler).';
@@ -1520,20 +1419,14 @@ async function saveShoppingAmount(shoppingListId, amount) {
 
   status.textContent = 'Speichere Menge...';
   try {
-    const res = await fetch(buildApiUrl(`/api/dashboard/shopping-list/item/${shoppingListId}/amount`), {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
-      body: JSON.stringify({ amount: parsedAmount }),
-    });
-    const payload = await parseJsonSafe(res);
-
-    if (!res.ok) {
+    const { response, payload } = await dashboardApi.updateShoppingListItemAmount(shoppingListId, parsedAmount);
+    if (!response.ok) {
       status.textContent = getErrorMessage(payload, 'Menge konnte nicht gespeichert werden.');
       return false;
     }
 
     const amountValue = String(payload.amount ?? parsedAmount);
-    activeShoppingAmountValue = amountValue;
+    dashboardState.activeShoppingAmountValue = amountValue;
     const amountLabel = document.getElementById('shopping-item-current-amount');
     if (amountLabel) amountLabel.textContent = amountValue;
 
@@ -1548,28 +1441,27 @@ async function saveShoppingAmount(shoppingListId, amount) {
 async function saveShoppingAmountFromModal() {
   const input = document.getElementById('shopping-item-amount-input');
   const amount = String(input?.value || '').trim();
-  const saved = await saveShoppingAmount(activeShoppingNoteItemId, amount);
+  const saved = await saveShoppingAmount(dashboardState.activeShoppingNoteItemId, amount);
   if (saved) {
     await loadShoppingList();
     await closeShoppingItemDetails();
   }
 }
 
-let activeMhdShoppingListId = null;
 
 function openMhdPicker(shoppingListId, productName, currentDate = '') {
   const modal = document.getElementById('mhd-modal');
   const title = document.getElementById('mhd-modal-title');
   const input = document.getElementById('mhd-date-input');
 
-  activeMhdShoppingListId = shoppingListId;
+  dashboardState.activeMhdShoppingListId = shoppingListId;
   title.textContent = `MHD auswählen: ${productName || 'Produkt'}`;
   input.value = currentDate || '';
   modal.classList.remove('hidden');
 }
 
 function closeMhdPicker() {
-  activeMhdShoppingListId = null;
+  dashboardState.activeMhdShoppingListId = null;
   document.getElementById('mhd-modal').classList.add('hidden');
 }
 
@@ -1583,7 +1475,7 @@ async function saveMhdPickerDate() {
     status.textContent = 'Kein API-Key angegeben.';
     return;
   }
-  if (!activeMhdShoppingListId) {
+  if (!dashboardState.activeMhdShoppingListId) {
     status.textContent = 'Einkaufslisten-Eintrag fehlt.';
     return;
   }
@@ -1594,14 +1486,11 @@ async function saveMhdPickerDate() {
 
   status.textContent = 'Speichere MHD...';
   try {
-    const res = await fetch(buildApiUrl(`/api/dashboard/shopping-list/item/${activeMhdShoppingListId}/best-before`), {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
-      body: JSON.stringify({ best_before_date: bestBeforeDate }),
-    });
-    const payload = await parseJsonSafe(res);
-
-    if (!res.ok) {
+    const { response, payload } = await dashboardApi.updateShoppingListItemBestBefore(
+      dashboardState.activeMhdShoppingListId,
+      bestBeforeDate,
+    );
+    if (!response.ok) {
       status.textContent = getErrorMessage(payload, 'MHD konnte nicht gespeichert werden.');
       return;
     }
@@ -1622,20 +1511,17 @@ async function resetMhdPickerDate() {
     status.textContent = 'Kein API-Key angegeben.';
     return;
   }
-  if (!activeMhdShoppingListId) {
+  if (!dashboardState.activeMhdShoppingListId) {
     status.textContent = 'Einkaufslisten-Eintrag fehlt.';
     return;
   }
 
   status.textContent = 'Setze MHD zurück...';
   try {
-    const res = await fetch(buildApiUrl(`/api/dashboard/shopping-list/item/${activeMhdShoppingListId}/best-before/reset`), {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${key}` },
-    });
-    const payload = await parseJsonSafe(res);
-
-    if (!res.ok) {
+    const { response, payload } = await dashboardApi.resetShoppingListItemBestBefore(
+      dashboardState.activeMhdShoppingListId,
+    );
+    if (!response.ok) {
       status.textContent = getErrorMessage(payload, 'MHD konnte nicht zurückgesetzt werden.');
       return;
     }
@@ -1653,16 +1539,16 @@ async function closeShoppingItemDetails() {
   const input = document.getElementById('shopping-item-note-input');
   const note = String(input?.value || '').trim();
 
-  if (activeShoppingNoteItemId && note !== activeShoppingNoteValue) {
-    const saved = await saveShoppingNote(activeShoppingNoteItemId, note);
+  if (dashboardState.activeShoppingNoteItemId && note !== dashboardState.activeShoppingNoteValue) {
+    const saved = await saveShoppingNote(dashboardState.activeShoppingNoteItemId, note);
     if (saved) {
       await loadShoppingList();
     }
   }
 
-  activeShoppingNoteItemId = null;
-  activeShoppingNoteValue = '';
-  activeShoppingAmountValue = '';
+  dashboardState.activeShoppingNoteItemId = null;
+  dashboardState.activeShoppingNoteValue = '';
+  dashboardState.activeShoppingAmountValue = '';
   modal.classList.add('hidden');
   syncModalScrollLock();
 }
@@ -1791,13 +1677,8 @@ async function completeShoppingList() {
 
   status.textContent = 'Markiere Einkaufsliste als eingekauft...';
   try {
-    const res = await fetch(buildApiUrl('/api/dashboard/shopping-list/complete'), {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${key}` },
-    });
-    const payload = await parseJsonSafe(res);
-
-    if (!res.ok) {
+    const { response, payload } = await dashboardApi.completeShoppingList();
+    if (!response.ok) {
       status.textContent = getErrorMessage(payload, 'Einkauf konnte nicht abgeschlossen werden.');
       return;
     }
@@ -1822,13 +1703,8 @@ async function clearShoppingList() {
 
   status.textContent = 'Leere Einkaufsliste...';
   try {
-    const res = await fetch(buildApiUrl('/api/dashboard/shopping-list/clear'), {
-      method: 'DELETE',
-      headers: { 'Authorization': `Bearer ${key}` },
-    });
-    const payload = await parseJsonSafe(res);
-
-    if (!res.ok) {
+    const { response, payload } = await dashboardApi.clearShoppingList();
+    if (!response.ok) {
       status.textContent = getErrorMessage(payload, 'Einkaufsliste konnte nicht geleert werden.');
       return;
     }
@@ -1863,21 +1739,15 @@ async function searchProduct(options = {}) {
   const forceCreate = options.forceCreate === true;
   status.textContent = forceCreate ? 'Lege Produkt direkt an...' : 'Prüfe Produkt...';
   try {
-    const res = await fetch(buildApiUrl('/api/dashboard/search'), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
-      body: JSON.stringify({
-        name: productName,
-        amount,
-        best_before_date: bestBeforeDate,
-        force_create: forceCreate,
-      })
+    const { response, payload } = await dashboardApi.searchProduct({
+      name: productName,
+      amount,
+      best_before_date: bestBeforeDate,
+      force_create: forceCreate,
     });
-
-    const payload = await parseJsonSafe(res);
     status.textContent = payload.message || getErrorMessage(payload, 'Unbekannte Antwort');
 
-    if (res.ok) {
+    if (response.ok) {
       const variants = payload.variants || [];
       if (payload.action === 'variant_selection_required' && variants.length) {
         renderVariants(variants, { amount });
@@ -1895,7 +1765,6 @@ async function searchProduct(options = {}) {
   });
 }
 
-let variantsDebounce;
 document.getElementById('variant-list').addEventListener('click', (event) => {
   const target = event.target.closest('.variant-select');
   if (!target) return;
@@ -1963,23 +1832,23 @@ document.addEventListener('change', (event) => {
 
 
 document.getElementById('storage-filter-input')?.addEventListener('input', () => {
-  clearTimeout(storageFilterDebounce);
-  storageFilterDebounce = setTimeout(() => {
+  clearTimeout(dashboardState.storageFilterDebounce);
+  dashboardState.storageFilterDebounce = setTimeout(() => {
     loadStorageProducts();
   }, 250);
 });
 
 document.getElementById('name').addEventListener('input', () => {
   updateClearButtonVisibility();
-  clearTimeout(variantsDebounce);
-  variantsDebounce = setTimeout(() => {
+  clearTimeout(dashboardState.variantsDebounce);
+  dashboardState.variantsDebounce = setTimeout(() => {
     loadVariants();
   }, 250);
 });
 
 document.getElementById('shopping-search-form')?.addEventListener('submit', async (event) => {
   event.preventDefault();
-  clearTimeout(variantsDebounce);
+  clearTimeout(dashboardState.variantsDebounce);
   await searchProduct();
 });
 
@@ -2004,10 +1873,10 @@ document.addEventListener('keydown', (event) => {
 
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) return;
-  if (activeTab === 'shopping') {
+  if (dashboardState.activeTab === 'shopping') {
     refreshShoppingListInBackground();
   }
-  if (activeTab === 'storage') {
+  if (dashboardState.activeTab === 'storage') {
     refreshStorageInBackground();
   }
 });
@@ -2131,19 +2000,15 @@ async function loadLocations() {
   if (!key) return;
 
   try {
-    const res = await fetch(buildApiUrl('/api/dashboard/locations'), {
-      headers: { 'Authorization': `Bearer ${key}` },
-    });
-    const payload = await parseJsonSafe(res);
-
-    if (!res.ok) {
+    const { response, payload } = await dashboardApi.fetchLocations();
+    if (!response.ok) {
       getRecipeStatusElement().textContent = getErrorMessage(payload, 'Standorte konnten nicht geladen werden.');
       return;
     }
 
-    storageLocationOptions = Array.isArray(payload) ? payload : [];
-    if (storageEditingItem) {
-      renderStorageEditLocationOptions(storageEditingItem.location_id, storageEditingItem.location_name || '');
+    dashboardState.storageLocationOptions = Array.isArray(payload) ? payload : [];
+    if (dashboardState.storageEditingItem) {
+      renderStorageEditLocationOptions(dashboardState.storageEditingItem.location_id, dashboardState.storageEditingItem.location_name || '');
     }
     renderLocations(payload);
     recipeState.initialized = true;
@@ -2163,13 +2028,8 @@ async function loadStockProducts() {
   try {
     const selectedLocationIds = getSelectedLocationIds();
     recipeState.selectedLocationIds = selectedLocationIds;
-    const query = selectedLocationIds.length ? `?location_ids=${selectedLocationIds.join(',')}` : '';
-    const res = await fetch(buildApiUrl(`/api/dashboard/stock-products${query}`), {
-      headers: { 'Authorization': `Bearer ${key}` },
-    });
-    const payload = await parseJsonSafe(res);
-
-    if (!res.ok) {
+    const { response, payload } = await dashboardApi.fetchStockProducts({ locationIds: selectedLocationIds });
+    if (!response.ok) {
       getRecipeStatusElement().textContent = getErrorMessage(payload, 'Bestand konnte nicht geladen werden.');
       return;
     }
@@ -2225,7 +2085,7 @@ function getStatusElementByTab(tabName) {
 function syncTopbarStatusFromActiveTab() {
   const topbarStatus = getTopbarStatusElement();
   if (!topbarStatus) return;
-  const activeStatusElement = getStatusElementByTab(activeTab);
+  const activeStatusElement = getStatusElementByTab(dashboardState.activeTab);
   const nextStatus = String(activeStatusElement?.textContent || '').trim() || 'Bereit.';
   topbarStatus.textContent = nextStatus;
 }
@@ -2257,7 +2117,7 @@ function renderStorageProducts() {
   const list = document.getElementById('storage-products');
   if (!list) return;
 
-  const filteredItems = storageProductsCache;
+  const filteredItems = dashboardState.storageProductsCache;
 
   if (!filteredItems.length) {
     list.innerHTML = '<li class="muted">Keine Produkte gefunden.</li>';
@@ -2328,24 +2188,16 @@ async function loadStorageProducts() {
       status.textContent = includeAllProducts ? 'Lade Lagerbestand und alle Produkte...' : 'Lade Lagerbestand...';
     }
     try {
-      const params = new URLSearchParams();
-      if (includeAllProducts) {
-        params.set('include_all_products', 'true');
-      }
-      if (filterValue) {
-        params.set('q', filterValue);
-      }
-      const endpoint = params.size
-        ? `/api/dashboard/stock-products?${params.toString()}`
-        : '/api/dashboard/stock-products';
-      const res = await fetch(buildApiUrl(endpoint), { headers: { Authorization: `Bearer ${key}` } });
-      const payload = await parseJsonSafe(res);
-      if (!res.ok) throw new Error(getErrorMessage(payload, 'Bestand konnte nicht geladen werden.'));
-      storageProductsCache = (Array.isArray(payload) ? payload : []).map(normalizeStockProduct);
+      const { response, payload } = await dashboardApi.fetchStockProducts({
+        includeAllProducts,
+        query: filterValue,
+      });
+      if (!response.ok) throw new Error(getErrorMessage(payload, 'Bestand konnte nicht geladen werden.'));
+      dashboardState.storageProductsCache = (Array.isArray(payload) ? payload : []).map(normalizeStockProduct);
       renderStorageProducts();
-      const fallbackProductIds = storageProductsCache.filter((item) => Number(item.stock_id || 0) <= 0 && Number(item.id || 0) > 0).length;
-      const missingAllIds = storageProductsCache.filter((item) => Number(item.stock_id || 0) <= 0 && Number(item.id || 0) <= 0).length;
-      const outOfStockProducts = storageProductsCache.filter((item) => !item.in_stock).length;
+      const fallbackProductIds = dashboardState.storageProductsCache.filter((item) => Number(item.stock_id || 0) <= 0 && Number(item.id || 0) > 0).length;
+      const missingAllIds = dashboardState.storageProductsCache.filter((item) => Number(item.stock_id || 0) <= 0 && Number(item.id || 0) <= 0).length;
+      const outOfStockProducts = dashboardState.storageProductsCache.filter((item) => !item.in_stock).length;
       if (!background) {
         status.textContent = missingAllIds > 0
         ? `Lagerbestand geladen (${fallbackProductIds} Einträge über Produkt-ID, ${missingAllIds} ohne nutzbare ID${outOfStockProducts > 0 ? `, ${outOfStockProducts} nicht auf Lager` : ''}).`
@@ -2370,23 +2222,23 @@ async function loadStorageProducts() {
 }
 
 async function refreshStorageInBackground() {
-  if (storageRefreshInFlight) return;
-  if (document.hidden || activeTab !== 'storage') return;
+  if (dashboardState.storageRefreshInFlight) return;
+  if (document.hidden || dashboardState.activeTab !== 'storage') return;
 
-  storageRefreshInFlight = true;
+  dashboardState.storageRefreshInFlight = true;
   try {
     await loadStorageProducts({ background: true });
   } finally {
-    storageRefreshInFlight = false;
+    dashboardState.storageRefreshInFlight = false;
   }
 }
 
 function startStorageAutoRefresh() {
-  if (storageRefreshTimer) {
-    clearInterval(storageRefreshTimer);
+  if (dashboardState.storageRefreshTimer) {
+    clearInterval(dashboardState.storageRefreshTimer);
   }
 
-  storageRefreshTimer = setInterval(() => {
+  dashboardState.storageRefreshTimer = setInterval(() => {
     refreshStorageInBackground();
   }, shoppingListRefreshMs);
 }
@@ -2398,22 +2250,13 @@ async function consumeStorageProduct(stockId) {
 
   try {
     const normalizedStockId = Number(stockId);
-    const stockItem = storageProductsCache.find((item) => {
+    const stockItem = dashboardState.storageProductsCache.find((item) => {
       if (Number(item?.stock_id) === normalizedStockId) return true;
       return Number(item?.id) === normalizedStockId;
     });
     const productId = Number(stockItem?.id || 0);
-    const query = Number.isFinite(productId) && productId > 0
-      ? `?product_id=${encodeURIComponent(productId)}`
-      : '';
-
-    const res = await fetch(buildApiUrl(`/api/dashboard/stock-products/${encodeURIComponent(stockId)}/consume${query}`), {
-      method: 'POST',
-      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
-      body: JSON.stringify({ amount: 1 }),
-    });
-    const payload = await parseJsonSafe(res);
-    if (!res.ok) throw new Error(getErrorMessage(payload, 'Produkt konnte nicht verbraucht werden.'));
+    const { response, payload } = await dashboardApi.consumeStockProduct(stockId, { amount: 1, productId });
+    if (!response.ok) throw new Error(getErrorMessage(payload, 'Produkt konnte nicht verbraucht werden.'));
     status.textContent = 'Produkt wurde verbraucht.';
     await loadStorageProducts();
   } catch (error) {
@@ -2423,13 +2266,13 @@ async function consumeStorageProduct(stockId) {
 
 function openStorageEditModal(stockId) {
   const normalizedStockId = Number(stockId);
-  const stockItem = storageProductsCache.find((item) => {
+  const stockItem = dashboardState.storageProductsCache.find((item) => {
     if (Number(item?.stock_id) === normalizedStockId) return true;
     return Number(item?.id) === normalizedStockId;
   });
   if (!stockItem) return;
-  storageEditingItem = stockItem;
-  storageEditingTargetId = normalizedStockId;
+  dashboardState.storageEditingItem = stockItem;
+  dashboardState.storageEditingTargetId = normalizedStockId;
   document.getElementById('storage-edit-modal-title').textContent = `Bestand ändern: ${stockItem.name}`;
   document.getElementById('storage-edit-amount').value = String(stockItem.amount || '0').replace(',', '.');
   document.getElementById('storage-edit-best-before').value = stockItem.best_before_date || '';
@@ -2462,11 +2305,8 @@ function openStorageEditModal(stockId) {
 
   (async () => {
     try {
-      const res = await fetch(buildApiUrl(`/api/dashboard/products/${encodeURIComponent(productId)}/nutrition`), {
-        headers: getAuthHeaders(),
-      });
-      const payload = await parseJsonSafe(res);
-      if (!res.ok || !payload || typeof payload !== 'object') return;
+      const { response, payload } = await dashboardApi.fetchProductNutrition(productId);
+      if (!response.ok || !payload || typeof payload !== 'object') return;
 
       document.getElementById('storage-edit-calories').value = String(payload.calories || '').replace(',', '.');
       document.getElementById('storage-edit-carbs').value = String(payload.carbs || '').replace(',', '.');
@@ -2480,8 +2320,8 @@ function openStorageEditModal(stockId) {
 }
 
 function closeStorageEditModal() {
-  storageEditingItem = null;
-  storageEditingTargetId = null;
+  dashboardState.storageEditingItem = null;
+  dashboardState.storageEditingTargetId = null;
   const picture = document.getElementById('storage-edit-picture');
   if (picture) {
     picture.removeAttribute('src');
@@ -2498,7 +2338,7 @@ function closeStorageEditModal() {
 }
 
 async function saveStorageEditModal() {
-  if (!storageEditingItem || !Number.isFinite(storageEditingTargetId) || storageEditingTargetId <= 0) return;
+  if (!dashboardState.storageEditingItem || !Number.isFinite(dashboardState.storageEditingTargetId) || dashboardState.storageEditingTargetId <= 0) return;
   const status = getStorageStatusElement();
   const amountRaw = String(document.getElementById('storage-edit-amount').value || '').trim().replace(',', '.');
   const amount = Number(amountRaw);
@@ -2521,15 +2361,10 @@ async function saveStorageEditModal() {
   }
 
   try {
-    const productId = Number(storageEditingItem?.id || 0);
-    const query = Number.isFinite(productId) && productId > 0
-      ? `?product_id=${encodeURIComponent(productId)}`
-      : '';
-
-    const res = await fetch(buildApiUrl(`/api/dashboard/stock-products/${encodeURIComponent(storageEditingTargetId)}${query}`), {
-      method: 'PUT',
-      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+    const productId = Number(dashboardState.storageEditingItem?.id || 0);
+    const { response, payload } = await dashboardApi.updateStockProduct(
+      dashboardState.storageEditingTargetId,
+      {
         amount,
         best_before_date: bestBeforeDate,
         location_id: Number.isFinite(locationId) && locationId > 0 ? locationId : null,
@@ -2538,10 +2373,10 @@ async function saveStorageEditModal() {
         fat,
         protein,
         sugar,
-      }),
-    });
-    const payload = await parseJsonSafe(res);
-    if (!res.ok) throw new Error(getErrorMessage(payload, 'Bestand konnte nicht aktualisiert werden.'));
+      },
+      { productId },
+    );
+    if (!response.ok) throw new Error(getErrorMessage(payload, 'Bestand konnte nicht aktualisiert werden.'));
     closeStorageEditModal();
     status.textContent = 'Bestand wurde aktualisiert.';
     await loadStorageProducts();
@@ -2552,25 +2387,21 @@ async function saveStorageEditModal() {
 
 
 async function deleteStorageEditPicture() {
-  if (!storageEditingItem) return;
-  const productId = Number(storageEditingItem.id || 0);
+  if (!dashboardState.storageEditingItem) return;
+  const productId = Number(dashboardState.storageEditingItem.id || 0);
   if (!Number.isFinite(productId) || productId <= 0) return;
 
   const status = getStorageStatusElement();
-  const productName = storageEditingItem.name || 'dieses Produkt';
+  const productName = dashboardState.storageEditingItem.name || 'dieses Produkt';
   const confirmed = window.confirm(`Soll das Produktbild von ${productName} wirklich gelöscht werden?`);
   if (!confirmed) return;
 
   try {
-    const res = await fetch(buildApiUrl(`/api/dashboard/products/${encodeURIComponent(productId)}/picture`), {
-      method: 'DELETE',
-      headers: getAuthHeaders(),
-    });
-    const payload = await parseJsonSafe(res);
-    if (!res.ok) throw new Error(getErrorMessage(payload, 'Produktbild konnte nicht gelöscht werden.'));
+    const { response, payload } = await dashboardApi.deleteProductPicture(productId);
+    if (!response.ok) throw new Error(getErrorMessage(payload, 'Produktbild konnte nicht gelöscht werden.'));
     status.textContent = payload?.message || 'Produktbild wurde gelöscht.';
     await loadStorageProducts();
-    const refreshedItem = storageProductsCache.find((item) => Number(item.id || 0) === productId);
+    const refreshedItem = dashboardState.storageProductsCache.find((item) => Number(item.id || 0) === productId);
     if (refreshedItem) {
       openStorageEditModal(getActionableStorageId(refreshedItem));
     }
@@ -2580,24 +2411,19 @@ async function deleteStorageEditPicture() {
 }
 
 async function deleteStorageEditItem() {
-  if (!storageEditingItem || !Number.isFinite(storageEditingTargetId) || storageEditingTargetId <= 0) return;
+  if (!dashboardState.storageEditingItem || !Number.isFinite(dashboardState.storageEditingTargetId) || dashboardState.storageEditingTargetId <= 0) return;
   const status = getStorageStatusElement();
-  const productName = storageEditingItem.name || 'dieses Produkt';
+  const productName = dashboardState.storageEditingItem.name || 'dieses Produkt';
   const confirmed = window.confirm(`Soll ${productName} wirklich aus dem Bestand gelöscht werden?`);
   if (!confirmed) return;
 
   try {
-    const productId = Number(storageEditingItem?.id || 0);
-    const query = Number.isFinite(productId) && productId > 0
-      ? `?product_id=${encodeURIComponent(productId)}`
-      : '';
-
-    const res = await fetch(buildApiUrl(`/api/dashboard/stock-products/${encodeURIComponent(storageEditingTargetId)}${query}`), {
-      method: 'DELETE',
-      headers: getAuthHeaders(),
-    });
-    const payload = await parseJsonSafe(res);
-    if (!res.ok) throw new Error(getErrorMessage(payload, 'Bestandseintrag konnte nicht gelöscht werden.'));
+    const productId = Number(dashboardState.storageEditingItem?.id || 0);
+    const { response, payload } = await dashboardApi.deleteStockProduct(
+      dashboardState.storageEditingTargetId,
+      { productId },
+    );
+    if (!response.ok) throw new Error(getErrorMessage(payload, 'Bestandseintrag konnte nicht gelöscht werden.'));
     closeStorageEditModal();
     status.textContent = payload?.message || 'Bestandseintrag wurde gelöscht.';
     await loadStorageProducts();
@@ -2639,19 +2465,13 @@ async function loadRecipeSuggestions(options = {}) {
   }
 
   try {
-    const res = await fetch(buildApiUrl('/api/dashboard/recipe-suggestions'), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
-      body: JSON.stringify({
-        product_ids: selectedIds,
-        location_ids: selectedLocationIds,
-        soon_expiring_only: soonExpiringOnly,
-        expiring_within_days: expiringWithinDays,
-      }),
+    const { response, payload } = await dashboardApi.fetchRecipeSuggestions({
+      product_ids: selectedIds,
+      location_ids: selectedLocationIds,
+      soon_expiring_only: soonExpiringOnly,
+      expiring_within_days: expiringWithinDays,
     });
-    const payload = await parseJsonSafe(res);
-
-    if (!res.ok) {
+    if (!response.ok) {
       status.textContent = getErrorMessage(payload, 'Rezeptvorschläge konnten nicht geladen werden.');
       return;
     }
@@ -2686,7 +2506,7 @@ function openRecipeDetails(item) {
   const imageWrapper = document.getElementById('recipe-modal-image-wrapper');
   const image = document.getElementById('recipe-modal-image');
 
-  activeRecipeItem = item;
+  dashboardState.activeRecipeItem = item;
   title.textContent = item.title || 'Rezeptdetails';
   reason.textContent = item.reason || '';
   preparation.textContent = item.preparation || 'Keine Zubereitungsdetails vorhanden.';
@@ -2734,7 +2554,7 @@ function closeRecipeDetails() {
     imageWrapper.classList.add('hidden');
     imageWrapper.setAttribute('aria-hidden', 'true');
   }
-  activeRecipeItem = null;
+  dashboardState.activeRecipeItem = null;
   syncModalScrollLock();
 }
 
@@ -2837,15 +2657,11 @@ function bindRecipeItemInteractions() {
 async function addMissingRecipeProducts() {
   const key = ensureApiKey();
   const status = getRecipeStatusElement();
-  if (!key || !activeRecipeItem || !Number.isInteger(activeRecipeItem.recipe_id)) return;
+  if (!key || !dashboardState.activeRecipeItem || !Number.isInteger(dashboardState.activeRecipeItem.recipe_id)) return;
 
   try {
-    const res = await fetch(buildApiUrl(`/api/dashboard/recipe/${activeRecipeItem.recipe_id}/add-missing`), {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${key}` },
-    });
-    const payload = await parseJsonSafe(res);
-    if (!res.ok) {
+    const { response, payload } = await dashboardApi.addMissingRecipeProducts(dashboardState.activeRecipeItem.recipe_id);
+    if (!response.ok) {
       status.textContent = getErrorMessage(payload, 'Fehlende Produkte konnten nicht hinzugefügt werden.');
       return;
     }
@@ -2882,9 +2698,9 @@ function getScannerRotationSelectElement() {
 function applyScannerVideoRotation(videoElement) {
   if (!videoElement) return;
   videoElement.classList.remove('rotated-90', 'rotated-180', 'rotated-270');
-  if (scannerRotationDegrees === 90) videoElement.classList.add('rotated-90');
-  if (scannerRotationDegrees === 180) videoElement.classList.add('rotated-180');
-  if (scannerRotationDegrees === 270) videoElement.classList.add('rotated-270');
+  if (dashboardState.scannerRotationDegrees === 90) videoElement.classList.add('rotated-90');
+  if (dashboardState.scannerRotationDegrees === 180) videoElement.classList.add('rotated-180');
+  if (dashboardState.scannerRotationDegrees === 270) videoElement.classList.add('rotated-270');
 }
 
 function parseScannerRotationDegrees(value) {
@@ -2895,7 +2711,7 @@ function parseScannerRotationDegrees(value) {
 
 function onScannerRotationChange() {
   const select = getScannerRotationSelectElement();
-  scannerRotationDegrees = parseScannerRotationDegrees(select?.value ?? 0);
+  dashboardState.scannerRotationDegrees = parseScannerRotationDegrees(select?.value ?? 0);
   const video = document.getElementById('scanner-video');
   applyScannerVideoRotation(video);
 }
@@ -2905,7 +2721,7 @@ function setScannerCapabilitiesLog(capabilities, settings) {
   if (!log) return;
 
   const payload = {
-    selected_device_id: scannerSelectedDeviceId || null,
+    selected_device_id: dashboardState.scannerSelectedDeviceId || null,
     capabilities: capabilities || null,
     settings: settings || null,
     support: {
@@ -2932,12 +2748,12 @@ async function refreshScannerDevices() {
 
   try {
     const devices = await navigator.mediaDevices.enumerateDevices();
-    scannerKnownDevices = devices.filter((device) => device.kind === 'videoinput');
+    dashboardState.scannerKnownDevices = devices.filter((device) => device.kind === 'videoinput');
 
     const options = ["<option value=''>Automatisch (Rückkamera)</option>"];
-    scannerKnownDevices.forEach((device, index) => {
+    dashboardState.scannerKnownDevices.forEach((device, index) => {
       const label = device.label || `Kamera ${index + 1}`;
-      const selected = scannerSelectedDeviceId && scannerSelectedDeviceId === device.deviceId ? ' selected' : '';
+      const selected = dashboardState.scannerSelectedDeviceId && dashboardState.scannerSelectedDeviceId === device.deviceId ? ' selected' : '';
       options.push(`<option value="${escapeHtml(device.deviceId)}"${selected}>${escapeHtml(label)}</option>`);
     });
     select.innerHTML = options.join('');
@@ -2949,8 +2765,8 @@ async function refreshScannerDevices() {
 async function onScannerCameraChange() {
   const select = getScannerCameraSelectElement();
   if (!select) return;
-  scannerSelectedDeviceId = select.value || '';
-  if (!scannerStream) return;
+  dashboardState.scannerSelectedDeviceId = select.value || '';
+  if (!dashboardState.scannerStream) return;
 
   const status = getScannerStatusElement();
   status.textContent = 'Kamerawechsel… Scanner startet neu.';
@@ -2960,8 +2776,8 @@ async function onScannerCameraChange() {
 function evaluateScannerLight(video, canvas) {
   if (!video?.videoWidth || !video?.videoHeight || !canvas) return;
   const now = Date.now();
-  if ((now - scannerLastLightCheckAt) < scannerLightCheckIntervalMs) return;
-  scannerLastLightCheckAt = now;
+  if ((now - dashboardState.scannerLastLightCheckAt) < scannerLightCheckIntervalMs) return;
+  dashboardState.scannerLastLightCheckAt = now;
 
   const context = canvas.getContext('2d', { willReadFrequently: true });
   if (!context) return;
@@ -2988,7 +2804,7 @@ function renderScannerResult(payload) {
   const createButton = document.getElementById('scanner-create-product-button');
 
   if (!payload || !payload.found) {
-    scannerResultPayload = null;
+    dashboardState.scannerResultPayload = null;
     container.classList.add('hidden');
     container.innerHTML = '';
     if (createButton) {
@@ -2999,12 +2815,12 @@ function renderScannerResult(payload) {
     return;
   }
 
-  scannerResultPayload = payload;
+  dashboardState.scannerResultPayload = payload;
   const canCreateDetectedProduct = payload.source !== 'Grocy' && payload.source !== 'scanner_created';
   if (createButton) {
     createButton.classList.toggle('hidden', !canCreateDetectedProduct);
-    createButton.disabled = scannerCreateInFlight;
-    createButton.textContent = scannerCreateInFlight
+    createButton.disabled = dashboardState.scannerCreateInFlight;
+    createButton.textContent = dashboardState.scannerCreateInFlight
       ? 'Lege Produkt an…'
       : '➕ Erkanntes Produkt anlegen';
   }
@@ -3026,7 +2842,7 @@ function renderScannerResult(payload) {
 async function createProductFromScannerResult() {
   const key = ensureApiKey();
   const status = getScannerStatusElement();
-  const payload = scannerResultPayload;
+  const payload = dashboardState.scannerResultPayload;
 
   if (!key) {
     status.textContent = 'Kein API-Key angegeben.';
@@ -3043,45 +2859,36 @@ async function createProductFromScannerResult() {
     return;
   }
 
-  if (scannerCreateInFlight) return;
-  scannerCreateInFlight = true;
+  if (dashboardState.scannerCreateInFlight) return;
+  dashboardState.scannerCreateInFlight = true;
   renderScannerResult(payload);
   status.textContent = `Lege ${payload.product_name || 'Produkt'} über den Scanner an...`;
 
   try {
-    const res = await fetch(buildApiUrl('/api/dashboard/scanner/create-product'), {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${key}`,
-      },
-      body: JSON.stringify({
-        product_name: payload.product_name || '',
-        source: payload.source || 'scanner',
-        barcode: payload.barcode || '',
-        brand: payload.brand || '',
-        quantity: payload.quantity || '',
-        ingredients_text: payload.ingredients_text || '',
-        nutrition_grade: payload.nutrition_grade || '',
-        hint: payload.hint || '',
-      }),
+    const { response, payload: createPayload } = await dashboardApi.createScannerProduct({
+      product_name: payload.product_name || '',
+      source: payload.source || 'scanner',
+      barcode: payload.barcode || '',
+      brand: payload.brand || '',
+      quantity: payload.quantity || '',
+      ingredients_text: payload.ingredients_text || '',
+      nutrition_grade: payload.nutrition_grade || '',
+      hint: payload.hint || '',
     });
-    const createPayload = await parseJsonSafe(res);
-
-    if (!res.ok) {
+    if (!response.ok) {
       status.textContent = getErrorMessage(createPayload, 'Produkt konnte nicht angelegt werden.');
       return;
     }
 
     status.textContent = createPayload.message || 'Produkt wurde angelegt.';
-    scannerResultPayload = { ...payload, source: 'scanner_created' };
-    renderScannerResult(scannerResultPayload);
+    dashboardState.scannerResultPayload = { ...payload, source: 'scanner_created' };
+    renderScannerResult(dashboardState.scannerResultPayload);
     await loadShoppingList();
   } catch (_) {
     status.textContent = 'Produkt konnte nicht angelegt werden (Netzwerk-/Ingress-Fehler).';
   } finally {
-    scannerCreateInFlight = false;
-    renderScannerResult(scannerResultPayload);
+    dashboardState.scannerCreateInFlight = false;
+    renderScannerResult(dashboardState.scannerResultPayload);
   }
 }
 
@@ -3127,9 +2934,9 @@ async function queryLlavaWithCurrentFrame(reason = 'manual') {
     return;
   }
 
-  if (scannerLlavaInFlight) return;
-  scannerLlavaInFlight = true;
-  scannerLlavaLastRequestAt = Date.now();
+  if (dashboardState.scannerLlavaInFlight) return;
+  dashboardState.scannerLlavaInFlight = true;
+  dashboardState.scannerLlavaLastRequestAt = Date.now();
 
   if (reason === 'timeout') {
     status.textContent = 'Kein Barcode gefunden. Starte KI-Produkterkennung mit LLaVA...';
@@ -3149,21 +2956,14 @@ async function queryLlavaWithCurrentFrame(reason = 'manual') {
     const timeoutHandle = setTimeout(() => abortController.abort(), llavaTimeoutMs);
 
     let res;
+    let payload = {};
     try {
-      res = await fetch(buildApiUrl('/api/dashboard/scanner/llava'), {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${key}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ image_base64: imageBase64 }),
+      ({ response: res, payload } = await dashboardApi.requestScannerLlava(imageBase64, {
         signal: abortController.signal,
-      });
+      }));
     } finally {
       clearTimeout(timeoutHandle);
     }
-
-    const payload = await parseJsonSafe(res);
 
     if (!res.ok) {
       status.textContent = getErrorMessage(payload, 'LLaVA konnte nicht abgefragt werden.');
@@ -3194,7 +2994,7 @@ async function queryLlavaWithCurrentFrame(reason = 'manual') {
       status.textContent = 'LLaVA konnte nicht abgefragt werden (Netzwerk-/Ingress-Fehler).';
     }
   } finally {
-    scannerLlavaInFlight = false;
+    dashboardState.scannerLlavaInFlight = false;
   }
 }
 
@@ -3205,16 +3005,16 @@ function isScannerModalVisible() {
 }
 
 function scheduleLlavaFallback() {
-  if (scannerLlavaTimer) {
-    clearTimeout(scannerLlavaTimer);
+  if (dashboardState.scannerLlavaTimer) {
+    clearTimeout(dashboardState.scannerLlavaTimer);
   }
   const waitMs = getScannerLlavaDelaySeconds() * 1000;
-  scannerLlavaTimer = setTimeout(() => {
-    if (!isScannerModalVisible() || !scannerStream) return;
-    const elapsed = Date.now() - scannerLastBarcodeAt;
+  dashboardState.scannerLlavaTimer = setTimeout(() => {
+    if (!isScannerModalVisible() || !dashboardState.scannerStream) return;
+    const elapsed = Date.now() - dashboardState.scannerLastBarcodeAt;
     if (elapsed >= waitMs - 100) {
       const autoCooldownMs = getScannerLlavaAutoCooldownMs();
-      const sinceLastLlavaMs = Date.now() - scannerLlavaLastRequestAt;
+      const sinceLastLlavaMs = Date.now() - dashboardState.scannerLlavaLastRequestAt;
       if (sinceLastLlavaMs >= autoCooldownMs) {
         queryLlavaWithCurrentFrame('timeout');
       }
@@ -3254,25 +3054,25 @@ function registerScannerCandidate(rawBarcode) {
   const normalized = normalizeBarcodeForLookup(rawBarcode);
   if (!normalized || normalized.length < 8) return '';
 
-  if (normalized === scannerLastBarcode) {
-    scannerStableCandidate = normalized;
-    scannerStableCount = scannerStableDetectionThreshold;
+  if (normalized === dashboardState.scannerLastBarcode) {
+    dashboardState.scannerStableCandidate = normalized;
+    dashboardState.scannerStableCount = scannerStableDetectionThreshold;
     return '';
   }
 
-  if (normalized === scannerStableCandidate) {
-    scannerStableCount += 1;
+  if (normalized === dashboardState.scannerStableCandidate) {
+    dashboardState.scannerStableCount += 1;
   } else {
-    scannerStableCandidate = normalized;
-    scannerStableCount = 1;
+    dashboardState.scannerStableCandidate = normalized;
+    dashboardState.scannerStableCount = 1;
   }
 
-  if (scannerStableCount < scannerStableDetectionThreshold) {
+  if (dashboardState.scannerStableCount < scannerStableDetectionThreshold) {
     return '';
   }
 
-  scannerStableCount = 0;
-  scannerStableCandidate = '';
+  dashboardState.scannerStableCount = 0;
+  dashboardState.scannerStableCandidate = '';
   return normalized;
 }
 
@@ -3287,17 +3087,13 @@ async function lookupBarcode(barcode) {
   const normalized = normalizeBarcodeForLookup(barcode);
   if (normalized.length < 8) return;
 
-  scannerLastBarcode = normalized;
-  scannerLastBarcodeAt = Date.now();
+  dashboardState.scannerLastBarcode = normalized;
+  dashboardState.scannerLastBarcodeAt = Date.now();
   status.textContent = `Barcode erkannt: ${normalized}. Lade Produktdaten...`;
 
   try {
-    const res = await fetch(buildApiUrl(`/api/dashboard/barcode/${normalized}`), {
-      headers: { 'Authorization': `Bearer ${key}` },
-    });
-    const payload = await parseJsonSafe(res);
-
-    if (!res.ok) {
+    const { response, payload } = await dashboardApi.lookupBarcode(normalized);
+    if (!response.ok) {
       status.textContent = getErrorMessage(payload, 'Barcode konnte nicht abgefragt werden.');
       return;
     }
@@ -3358,11 +3154,11 @@ async function startBarcodeScanner() {
   try {
     stopBarcodeScanner();
 
-    scannerStream = await getCompatibleScannerStream();
+    dashboardState.scannerStream = await getCompatibleScannerStream();
     await refreshScannerDevices();
 
-    await optimizeScannerTrack(scannerStream, status);
-    scheduleScannerFocusRefresh(scannerStream);
+    await optimizeScannerTrack(dashboardState.scannerStream, status);
+    scheduleScannerFocusRefresh(dashboardState.scannerStream);
 
     video.setAttribute('playsinline', 'true');
     video.setAttribute('autoplay', 'true');
@@ -3370,7 +3166,7 @@ async function startBarcodeScanner() {
     video.playsInline = true;
     video.autoplay = true;
     video.muted = true;
-    video.srcObject = scannerStream;
+    video.srcObject = dashboardState.scannerStream;
     await video.play();
     video.classList.remove('hidden');
     applyScannerVideoRotation(video);
@@ -3379,25 +3175,25 @@ async function startBarcodeScanner() {
     if (!String(status.textContent || '').startsWith('Scanner aktiv')) {
       status.textContent = 'Scanner aktiv. Kamera stellt scharf… danach Barcode im Rahmen halten.';
     }
-    scannerLastBarcodeAt = Date.now();
-    scannerScanStartedAt = Date.now();
-    scannerLastLightCheckAt = 0;
+    dashboardState.scannerLastBarcodeAt = Date.now();
+    dashboardState.scannerScanStartedAt = Date.now();
+    dashboardState.scannerLastLightCheckAt = 0;
     setScannerLightWarningVisible(false);
     const overlay = document.getElementById('scanner-frame-overlay');
     if (overlay) overlay.classList.remove('hidden');
     scheduleLlavaFallback();
 
     if ('BarcodeDetector' in window) {
-      scannerDetector = new window.BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e'] });
+      dashboardState.scannerDetector = new window.BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e'] });
     }
 
-    scannerInterval = setInterval(async () => {
+    dashboardState.scannerInterval = setInterval(async () => {
       if (!isScannerModalVisible()) return;
       if (!video.videoWidth || !video.videoHeight) return;
 
       evaluateScannerLight(video, canvas);
 
-      if (Date.now() - scannerScanStartedAt < scannerAnalysisWarmupMs) {
+      if (Date.now() - dashboardState.scannerScanStartedAt < scannerAnalysisWarmupMs) {
         status.textContent = 'Scanner aktiv. Kamera stellt scharf…';
         return;
       }
@@ -3406,19 +3202,19 @@ async function startBarcodeScanner() {
         status.textContent = 'Scanner aktiv. Barcode vor die Kamera halten...';
       }
 
-      if (scannerDetector) {
+      if (dashboardState.scannerDetector) {
         try {
           const detectionSource = getScannerDetectionSource(video, canvas, scannerDigitalZoomFactor);
-          const barcodes = await scannerDetector.detect(detectionSource);
+          const barcodes = await dashboardState.scannerDetector.detect(detectionSource);
           if (barcodes.length) {
             const value = String(barcodes[0].rawValue || '').trim();
             const stableBarcode = registerScannerCandidate(value);
-            if (stableBarcode && !scannerDetectionInFlight) {
-              scannerDetectionInFlight = true;
+            if (stableBarcode && !dashboardState.scannerDetectionInFlight) {
+              dashboardState.scannerDetectionInFlight = true;
               try {
                 await lookupBarcode(stableBarcode);
               } finally {
-                scannerDetectionInFlight = false;
+                dashboardState.scannerDetectionInFlight = false;
               }
             }
           }
@@ -3442,12 +3238,12 @@ async function startBarcodeScanner() {
 }
 
 async function getCompatibleScannerStream() {
-  const selectedDeviceConstraint = scannerSelectedDeviceId
-    ? { deviceId: { exact: scannerSelectedDeviceId } }
+  const selectedDeviceConstraint = dashboardState.scannerSelectedDeviceId
+    ? { deviceId: { exact: dashboardState.scannerSelectedDeviceId } }
     : { facingMode: { exact: 'environment' } };
 
-  const fallbackFacingConstraint = scannerSelectedDeviceId
-    ? { deviceId: { exact: scannerSelectedDeviceId } }
+  const fallbackFacingConstraint = dashboardState.scannerSelectedDeviceId
+    ? { deviceId: { exact: dashboardState.scannerSelectedDeviceId } }
     : { facingMode: { ideal: 'environment' } };
 
   const streamProfiles = [
@@ -3476,7 +3272,7 @@ async function getCompatibleScannerStream() {
       audio: false,
     },
     {
-      video: scannerSelectedDeviceId ? { deviceId: { exact: scannerSelectedDeviceId } } : { facingMode: 'environment' },
+      video: dashboardState.scannerSelectedDeviceId ? { deviceId: { exact: dashboardState.scannerSelectedDeviceId } } : { facingMode: 'environment' },
       audio: false,
     },
     {
@@ -3508,20 +3304,20 @@ async function applyScannerFocusRefresh(track, focusMode) {
 }
 
 function scheduleScannerFocusRefresh(stream) {
-  if (scannerFocusRefreshTimer) {
-    clearInterval(scannerFocusRefreshTimer);
+  if (dashboardState.scannerFocusRefreshTimer) {
+    clearInterval(dashboardState.scannerFocusRefreshTimer);
   }
 
-  if (!stream || !['single-shot', 'continuous'].includes(scannerPreferredFocusMode)) {
+  if (!stream || !['single-shot', 'continuous'].includes(dashboardState.scannerPreferredFocusMode)) {
     return;
   }
 
   const videoTrack = stream.getVideoTracks?.()[0];
   if (!videoTrack) return;
 
-  scannerFocusRefreshTimer = setInterval(() => {
-    if (!scannerStream || !isScannerModalVisible()) return;
-    applyScannerFocusRefresh(videoTrack, scannerPreferredFocusMode);
+  dashboardState.scannerFocusRefreshTimer = setInterval(() => {
+    if (!dashboardState.scannerStream || !isScannerModalVisible()) return;
+    applyScannerFocusRefresh(videoTrack, dashboardState.scannerPreferredFocusMode);
   }, scannerFocusRefreshMs);
 }
 
@@ -3542,7 +3338,7 @@ async function optimizeScannerTrack(stream, status) {
     constraints.focusMode = 'manual';
   }
 
-  scannerPreferredFocusMode = constraints.focusMode || '';
+  dashboardState.scannerPreferredFocusMode = constraints.focusMode || '';
 
   if (
     constraints.focusMode === 'manual'
@@ -3571,8 +3367,8 @@ async function optimizeScannerTrack(stream, status) {
 
   try {
     await videoTrack.applyConstraints({ advanced: [constraints] });
-    if (scannerPreferredFocusMode) {
-      await applyScannerFocusRefresh(videoTrack, scannerPreferredFocusMode);
+    if (dashboardState.scannerPreferredFocusMode) {
+      await applyScannerFocusRefresh(videoTrack, dashboardState.scannerPreferredFocusMode);
     }
   } catch (_) {
     // Ignore optimization failures and keep default stream settings.
@@ -3595,8 +3391,8 @@ function getScannerDetectionSource(video, canvas, zoomFactor) {
   const sourceY = Math.max(0, Math.round((video.videoHeight - sourceHeight) / 2));
 
   // For upright portrait frames, a 90° canvas turn improves barcode detector reliability.
-  const autoPortraitQuarterTurn = scannerRotationDegrees === 0 && sourceHeight > sourceWidth;
-  const rotation = autoPortraitQuarterTurn ? 90 : scannerRotationDegrees;
+  const autoPortraitQuarterTurn = dashboardState.scannerRotationDegrees === 0 && sourceHeight > sourceWidth;
+  const rotation = autoPortraitQuarterTurn ? 90 : dashboardState.scannerRotationDegrees;
   const isQuarterTurn = rotation === 90 || rotation === 270;
   canvas.width = isQuarterTurn ? sourceHeight : sourceWidth;
   canvas.height = isQuarterTurn ? sourceWidth : sourceHeight;
@@ -3629,29 +3425,29 @@ function stopBarcodeScanner() {
   const startButton = document.getElementById('start-scan-button');
   const stopButton = document.getElementById('stop-scan-button');
 
-  if (scannerInterval) {
-    clearInterval(scannerInterval);
-    scannerInterval = null;
+  if (dashboardState.scannerInterval) {
+    clearInterval(dashboardState.scannerInterval);
+    dashboardState.scannerInterval = null;
   }
 
-  if (scannerLlavaTimer) {
-    clearTimeout(scannerLlavaTimer);
-    scannerLlavaTimer = null;
+  if (dashboardState.scannerLlavaTimer) {
+    clearTimeout(dashboardState.scannerLlavaTimer);
+    dashboardState.scannerLlavaTimer = null;
   }
-  if (scannerFocusRefreshTimer) {
-    clearInterval(scannerFocusRefreshTimer);
-    scannerFocusRefreshTimer = null;
+  if (dashboardState.scannerFocusRefreshTimer) {
+    clearInterval(dashboardState.scannerFocusRefreshTimer);
+    dashboardState.scannerFocusRefreshTimer = null;
   }
-  scannerPreferredFocusMode = '';
-  scannerLlavaInFlight = false;
-  scannerLlavaLastRequestAt = 0;
-  scannerDetectionInFlight = false;
-  scannerStableCandidate = '';
-  scannerStableCount = 0;
+  dashboardState.scannerPreferredFocusMode = '';
+  dashboardState.scannerLlavaInFlight = false;
+  dashboardState.scannerLlavaLastRequestAt = 0;
+  dashboardState.scannerDetectionInFlight = false;
+  dashboardState.scannerStableCandidate = '';
+  dashboardState.scannerStableCount = 0;
 
-  if (scannerStream) {
-    scannerStream.getTracks().forEach((track) => track.stop());
-    scannerStream = null;
+  if (dashboardState.scannerStream) {
+    dashboardState.scannerStream.getTracks().forEach((track) => track.stop());
+    dashboardState.scannerStream = null;
   }
 
   if (video) {
@@ -3668,3 +3464,48 @@ function stopBarcodeScanner() {
   if (startButton) startButton.classList.remove('hidden');
   if (stopButton) stopButton.classList.add('hidden');
 }
+
+Object.assign(window, {
+  __grocyDashboardApi: dashboardApi,
+  __grocyDashboardStore: dashboardStore,
+  __grocyDashboardState: dashboardState,
+  addMissingRecipeProducts,
+  clearSearchInput,
+  clearShoppingList,
+  closeMhdPicker,
+  closeNotificationRuleModal,
+  closeRecipeCreateModal,
+  closeRecipeDetails,
+  closeScannerModal,
+  closeShoppingItemDetails,
+  closeStorageEditModal,
+  completeShoppingList,
+  createProductFromScannerResult,
+  deleteStorageEditItem,
+  deleteStorageEditPicture,
+  loadExpiringRecipeSuggestions,
+  loadNotificationOverview,
+  loadRecipeSuggestions,
+  loadShoppingList,
+  loadStorageProducts,
+  onScannerCameraChange,
+  onScannerRotationChange,
+  openNotificationRuleModal,
+  openRecipeCreateModal,
+  openScannerModal,
+  openStorageEditModal,
+  resetMhdPickerDate,
+  saveMhdPickerDate,
+  saveNotificationRule,
+  saveShoppingAmountFromModal,
+  saveStorageEditModal,
+  searchProduct,
+  setRecipeCreateMethod,
+  startBarcodeScanner,
+  stopBarcodeScanner,
+  switchTab,
+  testNotificationAll,
+  testNotificationPersistent,
+  toggleNotificationDevice,
+  triggerLlavaScan,
+});
