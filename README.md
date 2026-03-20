@@ -82,7 +82,7 @@ Standardmäßig läuft der Service dann auf `http://localhost:8000`.
 
 ## Konfiguration
 
-Primär via Add-on-Optionen (`/data/options.json`) und Umgebungsvariablen.
+Primär via Add-on-Optionen (`/data/options.yaml`) und Umgebungsvariablen.
 
 Wesentliche Schlüssel:
 
