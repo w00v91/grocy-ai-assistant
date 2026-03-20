@@ -7,25 +7,24 @@
     <link rel="stylesheet" href="{{ static_base_path }}/dashboard.css" />
   </head>
   <body>
-    <header class="topbar">
-      <div class="topbar-content">
+    <header class="topbar ha-shell-header">
+      <div class="topbar-content ha-surface-card">
         <p class="eyebrow">Grocy AI Assistant</p>
         <div class="topbar-heading-row">
           <p id='topbar-status' class='topbar-status' aria-live='polite'>Bereit.</p>
           <span id='activity-spinner' class='activity-spinner hidden' aria-label='Lädt' title='Lädt'></span>
-          <span id='theme-badge' class='theme-badge' aria-live='polite'>HA Theme</span>
         </div>
       </div>
     </header>
 
-    <main class='container'>
+    <main class='container ha-shell-main'>
       <section id='tab-shopping' class='tab-view'>
-        <section class='card hero-card'>
+        <section class='card hero-card ha-surface-card'>
           <div class='section-header'>
             <h2>Grocy AI Suche</h2>
             <button
               id='open-scanner-modal-button'
-              class='scanner-popup-button'
+              class='scanner-popup-button ha-icon-button'
               type='button'
               aria-label='Barcode-Scanner öffnen'
               title='Barcode-Scanner öffnen'
@@ -34,7 +33,7 @@
           </div>
           <form id='shopping-search-form' class='search-row'>
             <div class='search-input-wrapper'>
-              <input id='name' placeholder='z.B. Hafermilch 1L' />
+              <input class='ha-control' id='name' placeholder='z.B. Hafermilch 1L' />
               <button id='clear-name' class='clear-input-button' type='button' aria-label='Sucheingabe löschen' onclick='clearSearchInput()'>×</button>
             </div>
           </form>
@@ -44,22 +43,22 @@
           </section>
         </section>
 
-        <section class='card shopping-list-section'>
+        <section class='card shopping-list-section ha-surface-card'>
           <div class="section-header section-header-stacked">
             <h2>Einkaufsliste</h2>
-            <button class="primary-button" onclick='loadShoppingList()'>Aktualisieren</button>
+            <button class="primary-button ha-button ha-button--primary" onclick='loadShoppingList()'>Aktualisieren</button>
           </div>
           <ul id='shopping-list'></ul>
           <p id='status-shopping' class='tab-status'>Bereit.</p>
           <div class="button-row">
-            <button class='success-button' onclick='completeShoppingList()'>Einkauf abschließen</button>
-            <button class='danger-button' onclick='clearShoppingList()'>Einkaufsliste leeren</button>
+            <button class='success-button ha-button ha-button--positive' onclick='completeShoppingList()'>Einkauf abschließen</button>
+            <button class='danger-button ha-button ha-button--destructive' onclick='clearShoppingList()'>Einkaufsliste leeren</button>
           </div>
         </section>
       </section>
 
       <section id='tab-recipes' class='tab-view hidden'>
-        <section class='card recipe-section'>
+        <section class='card recipe-section ha-surface-card'>
           <h2>Rezeptvorschläge</h2>
           <div class='recipe-columns'>
             <div>
@@ -84,27 +83,27 @@
           <div class='recipe-actions'>
             <div class='expiring-search-controls'>
               <label for='expiring-days'>Ablauf in Tagen</label>
-              <input id='expiring-days' type='number' min='1' max='30' value='3' />
-              <button type='button' onclick='loadExpiringRecipeSuggestions()'>Mit bald ablaufenden Produkten suchen</button>
+              <input class='ha-control' id='expiring-days' type='number' min='1' max='30' value='3' />
+              <button class='ha-button ha-button--secondary' type='button' onclick='loadExpiringRecipeSuggestions()'>Mit bald ablaufenden Produkten suchen</button>
             </div>
-            <button class='recipe-load-button' type='button' onclick='loadRecipeSuggestions()'>Rezeptvorschläge laden</button>
+            <button class='recipe-load-button ha-button ha-button--primary' type='button' onclick='loadRecipeSuggestions()'>Rezeptvorschläge laden</button>
           </div>
           <p id='status-recipes' class='tab-status'>Bereit.</p>
-          <button id='open-recipe-create-modal-button' class='primary-button recipe-create-button' type='button' onclick='openRecipeCreateModal()'>Rezept hinzufügen</button>
+          <button id='open-recipe-create-modal-button' class='primary-button ha-button ha-button--primary recipe-create-button' type='button' onclick='openRecipeCreateModal()'>Rezept hinzufügen</button>
         </section>
       </section>
 
 
       <section id='tab-storage' class='tab-view hidden'>
-        <section class='card'>
+        <section class='card ha-surface-card'>
           <div class='section-header'>
             <h2>Lager</h2>
-            <button class='primary-button' type='button' onclick='loadStorageProducts()'>Aktualisieren</button>
+            <button class='primary-button ha-button ha-button--primary' type='button' onclick='loadStorageProducts()'>Aktualisieren</button>
           </div>
           <div class='storage-controls'>
-            <input id='storage-filter-input' type='text' placeholder='Produkte filtern...' />
+            <input class='ha-control' id='storage-filter-input' type='text' placeholder='Produkte filtern...' />
             <label class='storage-toggle' for='storage-include-all-products'>
-              <input id='storage-include-all-products' type='checkbox' onchange='loadStorageProducts()' />
+              <input class='ha-control' id='storage-include-all-products' type='checkbox' onchange='loadStorageProducts()' />
               Alle Produkte anzeigen
             </label>
           </div>
@@ -114,15 +113,15 @@
       </section>
 
       <section id='tab-notifications' class='tab-view hidden'>
-        <section class='card'>
+        <section class='card ha-surface-card'>
           <div class='section-header'>
             <h2>Benachrichtigungen</h2>
-            <button class='primary-button' type='button' onclick='loadNotificationOverview()'>Aktualisieren</button>
+            <button class='primary-button ha-button ha-button--primary' type='button' onclick='loadNotificationOverview()'>Aktualisieren</button>
           </div>
           <p id='status-notifications' class='tab-status'>Bereit.</p>
 
           <div class='notification-options-layout'>
-            <section class='notification-options-card notification-options-card--full'>
+            <section class='notification-options-card ha-surface-card notification-options-card--full'>
               <h3>Geräteverwaltung</h3>
               <p class='muted notification-options-description'>
                 Zeigt alle erkannten Ziele für Push- und System-Benachrichtigungen.
@@ -131,21 +130,21 @@
             </section>
           </div>
 
-          <section class='notification-options-card'>
+          <section class='notification-options-card ha-surface-card'>
             <h3>Benachrichtigungsregeln</h3>
-            <button class='success-button notification-new-rule-button notification-action-button' type='button' onclick='openNotificationRuleModal()'>Neue Regel</button>
+            <button class='success-button ha-button ha-button--positive notification-new-rule-button notification-action-button' type='button' onclick='openNotificationRuleModal()'>Neue Regel</button>
             <ul id='notification-rules' class='notification-list'></ul>
           </section>
 
-          <section class='notification-options-card'>
+          <section class='notification-options-card ha-surface-card'>
             <h3>Testcenter</h3>
             <div class='button-row'>
-              <button class='primary-button notification-action-button' type='button' onclick='testNotificationAll()'>Test an alle Geräte</button>
-              <button class='primary-button notification-action-button' type='button' onclick='testNotificationPersistent()'>Test als Persistent</button>
+              <button class='primary-button ha-button ha-button--primary notification-action-button' type='button' onclick='testNotificationAll()'>Test an alle Geräte</button>
+              <button class='primary-button ha-button ha-button--primary notification-action-button' type='button' onclick='testNotificationPersistent()'>Test als Persistent</button>
             </div>
           </section>
 
-          <section class='notification-options-card'>
+          <section class='notification-options-card ha-surface-card'>
             <h3>Historie</h3>
             <ul id='notification-history' class='notification-list'></ul>
           </section>
@@ -153,51 +152,51 @@
       </section>
     </main>
 
-    <nav class='bottom-tabbar' aria-label='Navigation'>
-      <button id='tab-button-shopping' class='tab-button active' type='button' onclick='switchTab("shopping")'>🛒 Einkauf</button>
-      <button id='tab-button-recipes' class='tab-button' type='button' onclick='switchTab("recipes")'>🍳 Rezepte</button>
-      <button id='tab-button-storage' class='tab-button' type='button' onclick='switchTab("storage")'>📦 Lager</button>
-      <button id='tab-button-notifications' class='tab-button' type='button' onclick='switchTab("notifications")'>🔔 Benachrichtigungen</button>
+    <nav class='bottom-tabbar ha-tab-bar' aria-label='Navigation'>
+      <button id='tab-button-shopping' class='tab-button ha-tab active' type='button' onclick='switchTab("shopping")'>🛒 Einkauf</button>
+      <button id='tab-button-recipes' class='tab-button ha-tab' type='button' onclick='switchTab("recipes")'>🍳 Rezepte</button>
+      <button id='tab-button-storage' class='tab-button ha-tab' type='button' onclick='switchTab("storage")'>📦 Lager</button>
+      <button id='tab-button-notifications' class='tab-button ha-tab' type='button' onclick='switchTab("notifications")'>🔔 Benachrichtigungen</button>
     </nav>
 
-    <div id='shopping-item-modal' class='shopping-modal hidden'>
+    <div id='shopping-item-modal' class='shopping-modal ha-dialog hidden' role='dialog' aria-modal='true'>
       <div class='shopping-modal-backdrop' onclick='closeShoppingItemDetails()'></div>
-      <section class='shopping-modal-content card'>
-        <button class='shopping-modal-close' type='button' onclick='closeShoppingItemDetails()' aria-label='Details schließen'>×</button>
+      <section class='shopping-modal-content card ha-modal__surface ha-surface-card'>
+        <button class='shopping-modal-close ha-icon-button' type='button' onclick='closeShoppingItemDetails()' aria-label='Details schließen'>×</button>
         <h3 id='shopping-item-title'>Produktdetails</h3>
         <div class='shopping-modal-inline-editor'>
           <label for='shopping-item-amount-input'>Menge</label>
-          <input id='shopping-item-amount-input' type='number' min='0.01' step='0.01' inputmode='decimal' />
+          <input class='ha-control' id='shopping-item-amount-input' type='number' min='0.01' step='0.01' inputmode='decimal' />
         </div>
         <label for='shopping-item-note-input'>Notiz</label>
-        <textarea id='shopping-item-note-input' rows='3' placeholder='Optionale Einkaufsnotiz'></textarea>
+        <textarea class='ha-control' id='shopping-item-note-input' rows='3' placeholder='Optionale Einkaufsnotiz'></textarea>
         <div class='shopping-modal-save-row'>
-          <button id='shopping-item-amount-save-button' class='success-button' type='button' onclick='saveShoppingAmountFromModal()'>Speichern</button>
+          <button id='shopping-item-amount-save-button' class='success-button ha-button ha-button--positive' type='button' onclick='saveShoppingAmountFromModal()'>Speichern</button>
         </div>
         <div id='shopping-item-details' class='shopping-details-grid'></div>
       </section>
     </div>
 
 
-    <div id='mhd-modal' class='shopping-modal hidden'>
+    <div id='mhd-modal' class='shopping-modal ha-dialog hidden' role='dialog' aria-modal='true'>
       <div class='shopping-modal-backdrop' onclick='closeMhdPicker()'></div>
-      <section class='shopping-modal-content card'>
-        <button class='shopping-modal-close' type='button' onclick='closeMhdPicker()' aria-label='MHD-Auswahl schließen'>×</button>
+      <section class='shopping-modal-content card ha-modal__surface ha-surface-card'>
+        <button class='shopping-modal-close ha-icon-button' type='button' onclick='closeMhdPicker()' aria-label='MHD-Auswahl schließen'>×</button>
         <h3 id='mhd-modal-title'>MHD auswählen</h3>
         <label for='mhd-date-input'>Haltbarkeitsdatum</label>
-        <input id='mhd-date-input' type='date' />
+        <input class='ha-control' id='mhd-date-input' type='date' />
         <div class='shopping-modal-save-row'>
-          <button class='secondary-button' type='button' onclick='resetMhdPickerDate()'>Zurücksetzen</button>
-          <button class='success-button' type='button' onclick='saveMhdPickerDate()'>Speichern</button>
+          <button class='secondary-button ha-button ha-button--secondary' type='button' onclick='resetMhdPickerDate()'>Zurücksetzen</button>
+          <button class='success-button ha-button ha-button--positive' type='button' onclick='saveMhdPickerDate()'>Speichern</button>
         </div>
       </section>
     </div>
 
 
-    <div id='recipe-modal' class='shopping-modal hidden'>
+    <div id='recipe-modal' class='shopping-modal ha-dialog hidden' role='dialog' aria-modal='true'>
       <div class='shopping-modal-backdrop' onclick='closeRecipeDetails()'></div>
-      <section class='shopping-modal-content card recipe-modal-content'>
-        <button class='shopping-modal-close recipe-modal-close' type='button' onclick='closeRecipeDetails()' aria-label='Rezept schließen'>
+      <section class='shopping-modal-content card ha-modal__surface ha-surface-card recipe-modal-content'>
+        <button class='shopping-modal-close ha-icon-button recipe-modal-close' type='button' onclick='closeRecipeDetails()' aria-label='Rezept schließen'>
           <span aria-hidden='true'>✕</span>
         </button>
         <div id='recipe-modal-image-wrapper' class='recipe-modal-image-wrapper hidden' aria-hidden='true'>
@@ -211,98 +210,98 @@
         <p id='recipe-modal-preparation'></p>
         <h4>Fehlende Produkte</h4>
         <ul id='recipe-modal-missing-products'></ul>
-        <button id='recipe-add-missing-button' class='success-button' type='button'>Alles hinzufügen</button>
+        <button id='recipe-add-missing-button' class='success-button ha-button ha-button--positive' type='button'>Alles hinzufügen</button>
       </section>
     </div>
 
-    <div id='recipe-create-modal' class='shopping-modal hidden'>
+    <div id='recipe-create-modal' class='shopping-modal ha-dialog hidden' role='dialog' aria-modal='true'>
       <div class='shopping-modal-backdrop' onclick='closeRecipeCreateModal()'></div>
-      <section class='shopping-modal-content card recipe-create-modal-content'>
-        <button class='shopping-modal-close recipe-modal-close' type='button' onclick='closeRecipeCreateModal()' aria-label='Rezept hinzufügen schließen'>
+      <section class='shopping-modal-content card ha-modal__surface ha-surface-card recipe-create-modal-content'>
+        <button class='shopping-modal-close ha-icon-button recipe-modal-close' type='button' onclick='closeRecipeCreateModal()' aria-label='Rezept hinzufügen schließen'>
           <span aria-hidden='true'>✕</span>
         </button>
         <h3>Rezept hinzufügen</h3>
         <p class='muted'>Wähle eine Methode, um ein Rezept schnell anzulegen.</p>
 
         <div class='recipe-create-methods'>
-          <button id='recipe-create-method-webscrape' class='ghost-button' type='button' onclick='setRecipeCreateMethod("webscrape")'>WebScrape</button>
-          <button id='recipe-create-method-ai' class='ghost-button' type='button' onclick='setRecipeCreateMethod("ai")'>KI</button>
-          <button id='recipe-create-method-manual' class='ghost-button' type='button' onclick='setRecipeCreateMethod("manual")'>Manuell</button>
+          <button id='recipe-create-method-webscrape' class='ghost-button ha-button ha-button--secondary' type='button' onclick='setRecipeCreateMethod("webscrape")'>WebScrape</button>
+          <button id='recipe-create-method-ai' class='ghost-button ha-button ha-button--secondary' type='button' onclick='setRecipeCreateMethod("ai")'>KI</button>
+          <button id='recipe-create-method-manual' class='ghost-button ha-button ha-button--secondary' type='button' onclick='setRecipeCreateMethod("manual")'>Manuell</button>
         </div>
 
-        <section id='recipe-create-panel-webscrape' class='recipe-create-panel hidden'>
+        <section id='recipe-create-panel-webscrape' class='recipe-create-panel ha-surface-card hidden'>
           <label for='recipe-webscrape-url'>Webseite / URL</label>
-          <input id='recipe-webscrape-url' type='url' placeholder='https://example.com/rezept' />
+          <input class='ha-control' id='recipe-webscrape-url' type='url' placeholder='https://example.com/rezept' />
           <p class='muted'>Die URL wird für das spätere Scraping inkl. KI-gestützter Attribut-Extraktion vorbereitet.</p>
-          <button class='primary-button' type='button' onclick='submitRecipeCreateWebscrape()'>URL übernehmen</button>
+          <button class='primary-button ha-button ha-button--primary' type='button' onclick='submitRecipeCreateWebscrape()'>URL übernehmen</button>
         </section>
 
-        <section id='recipe-create-panel-ai' class='recipe-create-panel hidden'>
+        <section id='recipe-create-panel-ai' class='recipe-create-panel ha-surface-card hidden'>
           <label for='recipe-ai-prompt'>Rezept-Anfrage für KI</label>
-          <textarea id='recipe-ai-prompt' placeholder='z.B. Erstelle ein vegetarisches Pasta-Rezept für 2 Personen...'></textarea>
-          <button class='primary-button' type='button' onclick='submitRecipeCreateAiPrompt()'>KI-Anfrage übernehmen</button>
+          <textarea class='ha-control' id='recipe-ai-prompt' placeholder='z.B. Erstelle ein vegetarisches Pasta-Rezept für 2 Personen...'></textarea>
+          <button class='primary-button ha-button ha-button--primary' type='button' onclick='submitRecipeCreateAiPrompt()'>KI-Anfrage übernehmen</button>
         </section>
 
-        <section id='recipe-create-panel-manual' class='recipe-create-panel hidden'>
+        <section id='recipe-create-panel-manual' class='recipe-create-panel ha-surface-card hidden'>
           <label for='recipe-manual-title'>Rezeptname</label>
-          <input id='recipe-manual-title' type='text' placeholder='z.B. Schnelle Gemüsesuppe' />
+          <input class='ha-control' id='recipe-manual-title' type='text' placeholder='z.B. Schnelle Gemüsesuppe' />
 
           <label for='recipe-manual-servings'>Portionen</label>
-          <input id='recipe-manual-servings' type='number' min='1' step='1' value='2' />
+          <input class='ha-control' id='recipe-manual-servings' type='number' min='1' step='1' value='2' />
 
           <label for='recipe-manual-ingredients'>Zutaten (eine pro Zeile)</label>
-          <textarea id='recipe-manual-ingredients' placeholder='2 Karotten\n1 Zwiebel\n500 ml Gemüsebrühe'></textarea>
+          <textarea class='ha-control' id='recipe-manual-ingredients' placeholder='2 Karotten\n1 Zwiebel\n500 ml Gemüsebrühe'></textarea>
 
           <label for='recipe-manual-preparation'>Zubereitung</label>
-          <textarea id='recipe-manual-preparation' placeholder='1) Gemüse schneiden ...'></textarea>
+          <textarea class='ha-control' id='recipe-manual-preparation' placeholder='1) Gemüse schneiden ...'></textarea>
 
-          <button class='success-button' type='button' onclick='submitRecipeCreateManual()'>Schnell erfassen</button>
+          <button class='success-button ha-button ha-button--positive' type='button' onclick='submitRecipeCreateManual()'>Schnell erfassen</button>
         </section>
       </section>
     </div>
 
-    <div id='notification-rule-modal' class='shopping-modal hidden'>
+    <div id='notification-rule-modal' class='shopping-modal ha-dialog hidden' role='dialog' aria-modal='true'>
       <div class='shopping-modal-backdrop' onclick='closeNotificationRuleModal()'></div>
-      <section class='shopping-modal-content card notification-rule-modal-content'>
-        <button class='shopping-modal-close' type='button' onclick='closeNotificationRuleModal()' aria-label='Regel-Dialog schließen'>×</button>
+      <section class='shopping-modal-content card ha-modal__surface ha-surface-card notification-rule-modal-content'>
+        <button class='shopping-modal-close ha-icon-button' type='button' onclick='closeNotificationRuleModal()' aria-label='Regel-Dialog schließen'>×</button>
         <h3 id='notification-rule-modal-title'>Neue Regel</h3>
         <p class='muted notification-rule-modal-description'>Lege fest, bei welchen Ereignissen welche Geräte benachrichtigt werden.</p>
         <div class='notification-rule-editor'>
-          <input id='notify-rule-name' placeholder='Regelname' />
+          <input class='ha-control' id='notify-rule-name' placeholder='Regelname' />
           <label for='notify-rule-events'>Ereignisse
-            <select id='notify-rule-events' multiple></select>
+            <select class='ha-control' id='notify-rule-events' multiple></select>
           </label>
           <label for='notify-rule-devices'>Zielgeräte (optional)
-            <select id='notify-rule-devices' multiple></select>
+            <select class='ha-control' id='notify-rule-devices' multiple></select>
           </label>
           <label>Priorität
-            <select id='notify-rule-severity'>
+            <select class='ha-control' id='notify-rule-severity'>
               <option value='info'>Info</option>
               <option value='warning'>Warnung</option>
               <option value='critical'>Kritisch</option>
             </select>
           </label>
           <label>Kanal
-            <select id='notify-rule-channel'>
+            <select class='ha-control' id='notify-rule-channel'>
               <option value='mobile_push'>Mobile Push</option>
               <option value='persistent_notification'>Persistente Benachrichtigung</option>
             </select>
           </label>
-          <input id='notify-rule-cooldown' type='number' min='0' placeholder='Cooldown in Sekunden' />
-          <textarea id='notify-rule-template' placeholder='Vorlage, z.B. ${message}'></textarea>
+          <input class='ha-control' id='notify-rule-cooldown' type='number' min='0' placeholder='Cooldown in Sekunden' />
+          <textarea class='ha-control' id='notify-rule-template' placeholder='Vorlage, z.B. ${message}'></textarea>
           <div class='button-row notification-rule-actions'>
-            <button class='success-button' id='notify-rule-submit-button' type='button' onclick='saveNotificationRule()'>Regel anlegen</button>
-            <button class='ghost-button' type='button' onclick='closeNotificationRuleModal()'>Abbrechen</button>
+            <button class='success-button ha-button ha-button--positive' id='notify-rule-submit-button' type='button' onclick='saveNotificationRule()'>Regel anlegen</button>
+            <button class='ghost-button ha-button ha-button--secondary' type='button' onclick='closeNotificationRuleModal()'>Abbrechen</button>
           </div>
         </div>
       </section>
     </div>
 
 
-    <div id='storage-edit-modal' class='shopping-modal hidden'>
+    <div id='storage-edit-modal' class='shopping-modal ha-dialog hidden' role='dialog' aria-modal='true'>
       <div class='shopping-modal-backdrop' onclick='closeStorageEditModal()'></div>
-      <section class='shopping-modal-content card storage-edit-modal-content'>
-        <button class='shopping-modal-close' type='button' onclick='closeStorageEditModal()' aria-label='Bearbeiten schließen'>×</button>
+      <section class='shopping-modal-content card ha-modal__surface ha-surface-card storage-edit-modal-content'>
+        <button class='shopping-modal-close ha-icon-button' type='button' onclick='closeStorageEditModal()' aria-label='Bearbeiten schließen'>×</button>
         <h3 id='storage-edit-modal-title'>Bestand ändern</h3>
         <div class='storage-edit-media'>
           <img id='storage-edit-picture' class='storage-edit-picture hidden' alt='Produktbild' />
@@ -310,51 +309,51 @@
         <div class='storage-edit-attributes'>
           <div class='storage-edit-attribute-row'>
             <label for='storage-edit-amount'>Menge</label>
-            <input id='storage-edit-amount' type='number' min='0' step='0.01' />
+            <input class='ha-control' id='storage-edit-amount' type='number' min='0' step='0.01' />
           </div>
           <div class='storage-edit-attribute-row'>
             <label for='storage-edit-best-before'>MHD</label>
-            <input id='storage-edit-best-before' type='date' />
+            <input class='ha-control' id='storage-edit-best-before' type='date' />
           </div>
           <div class='storage-edit-attribute-row'>
             <label for='storage-edit-location-select'>Lagerort</label>
-            <select id='storage-edit-location-select'></select>
+            <select class='ha-control' id='storage-edit-location-select'></select>
           </div>
           <div class='storage-edit-attribute-row'>
             <label for='storage-edit-calories'>Kalorien (kcal)</label>
-            <input id='storage-edit-calories' type='number' min='0' step='0.01' />
+            <input class='ha-control' id='storage-edit-calories' type='number' min='0' step='0.01' />
           </div>
           <div class='storage-edit-attribute-row'>
             <label for='storage-edit-carbs'>Kohlenhydrate (g)</label>
-            <input id='storage-edit-carbs' type='number' min='0' step='0.01' />
+            <input class='ha-control' id='storage-edit-carbs' type='number' min='0' step='0.01' />
           </div>
           <div class='storage-edit-attribute-row'>
             <label for='storage-edit-fat'>Fett (g)</label>
-            <input id='storage-edit-fat' type='number' min='0' step='0.01' />
+            <input class='ha-control' id='storage-edit-fat' type='number' min='0' step='0.01' />
           </div>
           <div class='storage-edit-attribute-row'>
             <label for='storage-edit-protein'>Eiweiß (g)</label>
-            <input id='storage-edit-protein' type='number' min='0' step='0.01' />
+            <input class='ha-control' id='storage-edit-protein' type='number' min='0' step='0.01' />
           </div>
           <div class='storage-edit-attribute-row'>
             <label for='storage-edit-sugar'>Zucker (g)</label>
-            <input id='storage-edit-sugar' type='number' min='0' step='0.01' />
+            <input class='ha-control' id='storage-edit-sugar' type='number' min='0' step='0.01' />
           </div>
         </div>
         <div class='button-row'>
-          <button class='success-button' type='button' onclick='saveStorageEditModal()'>Speichern</button>
-          <button class='danger-button' type='button' onclick='deleteStorageEditPicture()'>Produktbild löschen</button>
-          <button class='danger-button' type='button' onclick='deleteStorageEditItem()'>Produkt löschen</button>
-          <button class='ghost-button' type='button' onclick='closeStorageEditModal()'>Abbrechen</button>
+          <button class='success-button ha-button ha-button--positive' type='button' onclick='saveStorageEditModal()'>Speichern</button>
+          <button class='danger-button ha-button ha-button--destructive' type='button' onclick='deleteStorageEditPicture()'>Produktbild löschen</button>
+          <button class='danger-button ha-button ha-button--destructive' type='button' onclick='deleteStorageEditItem()'>Produkt löschen</button>
+          <button class='ghost-button ha-button ha-button--secondary' type='button' onclick='closeStorageEditModal()'>Abbrechen</button>
         </div>
       </section>
     </div>
       
       
-    <div id='scanner-modal' class='shopping-modal hidden'>
+    <div id='scanner-modal' class='shopping-modal ha-dialog hidden' role='dialog' aria-modal='true'>
       <div class='shopping-modal-backdrop' onclick='closeScannerModal()'></div>
-      <section class='shopping-modal-content card scanner-modal-content'>
-        <button class='shopping-modal-close' type='button' onclick='closeScannerModal()' aria-label='Scanner schließen'>×</button>
+      <section class='shopping-modal-content card ha-modal__surface ha-surface-card scanner-modal-content'>
+        <button class='shopping-modal-close ha-icon-button' type='button' onclick='closeScannerModal()' aria-label='Scanner schließen'>×</button>
         <section id='tab-scanner' class='scanner-popup-card'>
           <h2>Barcode-Scanner</h2>
           <div class='scanner-video-shell'>
@@ -368,11 +367,11 @@
           <p id='scanner-light-warning' class='scanner-warning hidden'>⚠️ Licht zu schwach erkannt. Bitte heller beleuchten oder Blitz/Taschenlampe nutzen.</p>
           <div class='scanner-options'>
             <label for='scanner-camera-select'>Kamera wählen</label>
-            <select id='scanner-camera-select' onchange='onScannerCameraChange()'>
+            <select class='ha-control' id='scanner-camera-select' onchange='onScannerCameraChange()'>
               <option value=''>Automatisch (Rückkamera)</option>
             </select>
             <label for='scanner-rotation-select'>Bilddrehung</label>
-            <select id='scanner-rotation-select' onchange='onScannerRotationChange()'>
+            <select class='ha-control' id='scanner-rotation-select' onchange='onScannerRotationChange()'>
               <option value='0'>0° (Standard)</option>
               <option value='90'>90°</option>
               <option value='180'>180°</option>
@@ -384,16 +383,16 @@
             <pre id='scanner-capabilities-log'>Noch keine Daten.</pre>
           </details>
           <div class='scanner-actions'>
-            <button id='start-scan-button' type='button' onclick='startBarcodeScanner()'>📷 Kamera starten</button>
-            <button id='stop-scan-button' type='button' class='danger-button hidden' onclick='stopBarcodeScanner()'>⏹ Kamera stoppen</button>
-            <button id='llava-scan-button' type='button' onclick='triggerLlavaScan()'>🤖 LLaVA jetzt befragen</button>
+            <button id='start-scan-button' class='ha-button ha-button--primary' type='button' onclick='startBarcodeScanner()'>📷 Kamera starten</button>
+            <button id='stop-scan-button' type='button' class='danger-button ha-button ha-button--destructive hidden' onclick='stopBarcodeScanner()'>⏹ Kamera stoppen</button>
+            <button id='llava-scan-button' class='ha-button ha-button--secondary' type='button' onclick='triggerLlavaScan()'>🤖 LLaVA jetzt befragen</button>
           </div>
           <p id='status-scanner'>Bereit.</p>
           <section id='scanner-result' class='scanner-result hidden'></section>
           <button
             id='scanner-create-product-button'
             type='button'
-            class='success-button scanner-create-product-button hidden'
+            class='success-button ha-button ha-button--positive scanner-create-product-button hidden'
             onclick='createProductFromScannerResult()'
           >➕ Erkanntes Produkt anlegen</button>
         </section>
