@@ -9,6 +9,17 @@ add_product_via_ai:
       selector:
         text:
 
+sync_product:
+  name: Produkt mit Grocy synchronisieren
+  description: Nutzt die dedizierte Add-on-v1-API für Analyse und Grocy-Synchronisierung.
+  fields:
+    name:
+      name: Produktname
+      description: Der Name des Produkts (z.B. Milch, Äpfel). Wenn leer, wird das Textfeld der Integration genutzt.
+      example: "Gala Äpfel 1kg"
+      selector:
+        text:
+
 notification_emit_event:
   name: Notification Event auslösen
   description: Triggert ein internes Notification-Event, das durch die Rule Engine verarbeitet wird.
@@ -70,6 +81,17 @@ barcode_lookup:
 scanner_llava_analyze:
   name: Bild per LLaVA analysieren
   description: Übergibt ein Base64-kodiertes Bild an den LLaVA-Scanner und aktualisiert den Scanner-Statussensor mit dem letzten Ergebnis.
+  fields:
+    image_base64:
+      name: Bilddaten (Base64)
+      description: Base64-kodiertes Bild ohne Dateipfad.
+      required: true
+      selector:
+        text:
+
+scan_image:
+  name: Bild analysieren
+  description: Nutzt die dedizierte Add-on-v1-API für Bildanalyse und aktualisiert den Scanner-Statussensor mit dem letzten Ergebnis.
   fields:
     image_base64:
       name: Bilddaten (Base64)

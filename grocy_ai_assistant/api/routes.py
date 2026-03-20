@@ -46,6 +46,11 @@ from grocy_ai_assistant.models.ingredient import (
     StockProductResponse,
     StockProductUpdateRequest,
 )
+from grocy_ai_assistant.models.addon_api import (
+    AddonCapabilitiesResponse,
+    AddonCatalogRebuildResponse,
+    AddonHealthResponse,
+)
 from grocy_ai_assistant.models.notification import (
     NotificationDeviceUpdateRequest,
     NotificationOverviewResponse,
@@ -1208,6 +1213,53 @@ def get_status(
     }
 
 
+@router.get("/api/v1/health", response_model=AddonHealthResponse)
+def get_health(
+    settings: Settings = Depends(get_settings),
+):
+    return AddonHealthResponse(
+        addon_version=settings.addon_version,
+        required_integration_version=settings.required_integration_version,
+    )
+
+
+@router.get("/api/v1/capabilities", response_model=AddonCapabilitiesResponse)
+def get_capabilities(
+    settings: Settings = Depends(get_settings),
+):
+    return AddonCapabilitiesResponse(
+        features={
+            "scan_image": True,
+            "grocy_sync": bool(settings.grocy_api_key),
+            "catalog_rebuild": True,
+            "notifications_test": True,
+            "recipe_suggestions": True,
+            "barcode_lookup": True,
+        },
+        endpoints=[
+            "/api/v1/health",
+            "/api/v1/capabilities",
+            "/api/v1/status",
+            "/api/v1/scan/image",
+            "/api/v1/grocy/sync",
+            "/api/v1/catalog/rebuild",
+            "/api/v1/notifications/test",
+        ],
+        defaults={
+            "scanner_llava_timeout_seconds": settings.scanner_llava_timeout_seconds,
+            "dashboard_polling_interval_seconds": settings.dashboard_polling_interval_seconds,
+            "notification_global_enabled": settings.notification_global_enabled,
+        },
+    )
+
+
+@router.get("/api/v1/status")
+def get_status_v1(
+    payload: dict = Depends(get_status),
+):
+    return payload
+
+
 @router.post("/api/analyze_product", response_model=AnalyzeProductResponse)
 def analyze_product(
     payload: AnalyzeProductRequest,
@@ -1505,6 +1557,16 @@ def dashboard_search(
         raise HTTPException(status_code=500, detail=str(error)) from error
 
 
+@router.post("/api/v1/grocy/sync", response_model=DashboardSearchResponse)
+def sync_product_to_grocy(
+    payload: AnalyzeProductRequest,
+    request: Request,
+    _: None = Depends(require_auth),
+    settings: Settings = Depends(get_settings),
+):
+    return dashboard_search(payload, request, None, settings)
+
+
 @router.get("/api/dashboard/barcode/{barcode}", response_model=BarcodeProductResponse)
 def dashboard_barcode_lookup(
     barcode: str,
@@ -1632,6 +1694,52 @@ def dashboard_scanner_llava(
         ) from error
     finally:
         _release_llava_request_slot()
+
+
+@router.post("/api/v1/scan/image", response_model=ScannerLlavaResponse)
+def scan_image_v1(
+    payload: ScannerLlavaRequest,
+    request: Request,
+    _: None = Depends(require_auth),
+    settings: Settings = Depends(get_settings),
+):
+    return dashboard_scanner_llava(payload, request, None, settings)
+
+
+@router.post("/api/v1/catalog/rebuild", response_model=AddonCatalogRebuildResponse)
+def rebuild_catalog_v1(
+    request: Request,
+    _: None = Depends(require_auth),
+    settings: Settings = Depends(get_settings),
+):
+    location_cache = _get_location_cache(request)
+    image_cache = _get_product_image_cache(request)
+
+    refreshed_locations = (
+        int(location_cache.refresh_locations()) if location_cache else 0
+    )
+    refreshed_product_images = (
+        int(image_cache.refresh_all_product_images()) if image_cache else 0
+    )
+
+    prefetched_recipe_suggestions = 0
+    prefetched_payload = prefetch_initial_recipe_suggestions(settings)
+    if isinstance(prefetched_payload, dict):
+        cache = _get_recipe_suggestion_cache(request)
+        if cache is not None:
+            cache.clear()
+            cache.update(prefetched_payload)
+        response_payload = prefetched_payload.get("response")
+        if isinstance(response_payload, dict):
+            prefetched_recipe_suggestions = len(
+                response_payload.get("grocy_recipes", [])
+            ) + len(response_payload.get("ai_recipes", []))
+
+    return AddonCatalogRebuildResponse(
+        refreshed_locations=refreshed_locations,
+        refreshed_product_images=refreshed_product_images,
+        prefetched_recipe_suggestions=prefetched_recipe_suggestions,
+    )
 
 
 @router.post(
@@ -3346,6 +3454,14 @@ def dashboard_notification_test_persistent(
         )
 
     return {"success": True}
+
+
+@router.post("/api/v1/notifications/test")
+def notification_test_v1(
+    request: Request,
+    _: None = Depends(require_auth),
+):
+    return dashboard_notification_test_persistent(request, None)
 
 
 def _normalize_base_path(value: str) -> str:
