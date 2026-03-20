@@ -1,6 +1,6 @@
 import aiohttp
 
-DEFAULT_ADDON_INGRESS_PATH = "/api/hassio_ingress/grocy_ai_assistant/"
+DEFAULT_ADDON_API_URL = "http://grocy_ai_assistant:8000"
 
 
 class AddonClient:
@@ -9,7 +9,7 @@ class AddonClient:
     def __init__(
         self, base_url: str, api_key: str, integration_version: str | None = None
     ):
-        self._base_url = (base_url or DEFAULT_ADDON_INGRESS_PATH).rstrip("/")
+        self._base_url = (base_url or DEFAULT_ADDON_API_URL).rstrip("/")
         self._headers = {"Authorization": f"Bearer {api_key}"}
         if integration_version:
             self._headers["X-HA-Integration-Version"] = integration_version
@@ -42,15 +42,24 @@ class AddonClient:
                 }
 
     async def get_status(self) -> dict:
-        return await self._request_json("GET", "/api/status", timeout_seconds=10)
+        return await self._request_json("GET", "/api/v1/status", timeout_seconds=10)
 
-    async def dashboard_search(self, product_name: str) -> dict:
+    async def get_health(self) -> dict:
+        return await self._request_json("GET", "/api/v1/health", timeout_seconds=10)
+
+    async def get_capabilities(self) -> dict:
+        return await self._request_json("GET", "/api/v1/capabilities", timeout_seconds=10)
+
+    async def sync_product(self, product_name: str) -> dict:
         return await self._request_json(
             "POST",
-            "/api/dashboard/search",
+            "/api/v1/grocy/sync",
             json_payload={"name": product_name},
             timeout_seconds=180,
         )
+
+    async def dashboard_search(self, product_name: str) -> dict:
+        return await self.sync_product(product_name)
 
     async def get_shopping_list(self) -> dict:
         return await self._request_json(
@@ -87,10 +96,29 @@ class AddonClient:
             timeout_seconds=30,
         )
 
-    async def scan_image_with_llava(self, image_base64: str) -> dict:
+    async def scan_image(self, image_base64: str) -> dict:
         return await self._request_json(
             "POST",
-            "/api/dashboard/scanner/llava",
+            "/api/v1/scan/image",
             json_payload={"image_base64": image_base64},
             timeout_seconds=180,
+        )
+
+    async def scan_image_with_llava(self, image_base64: str) -> dict:
+        return await self.scan_image(image_base64)
+
+    async def rebuild_catalog(self) -> dict:
+        return await self._request_json(
+            "POST",
+            "/api/v1/catalog/rebuild",
+            json_payload={},
+            timeout_seconds=180,
+        )
+
+    async def test_notifications(self) -> dict:
+        return await self._request_json(
+            "POST",
+            "/api/v1/notifications/test",
+            json_payload={},
+            timeout_seconds=30,
         )

@@ -71,7 +71,7 @@ def test_addon_client_sends_homeassistant_version_header(monkeypatch):
     )
 
     status_payload = asyncio.run(client.get_status())
-    search_payload = asyncio.run(client.dashboard_search("Hafermilch"))
+    search_payload = asyncio.run(client.sync_product("Hafermilch"))
 
     assert status_payload == {"status": "Verbunden", "_http_status": 200}
     assert search_payload == {"success": True, "message": "ok", "_http_status": 200}
@@ -79,14 +79,15 @@ def test_addon_client_sends_homeassistant_version_header(monkeypatch):
     request_headers = sessions[0].calls[0][2]
     assert request_headers["Authorization"] == "Bearer secret"
     assert request_headers["X-HA-Integration-Version"] == "1.2.3"
+    assert sessions[0].calls[0][1] == "http://localhost:8000/api/v1/status"
 
     method, url, _, body = sessions[1].calls[0]
     assert method == "POST"
-    assert url == "http://localhost:8000/api/dashboard/search"
+    assert url == "http://localhost:8000/api/v1/grocy/sync"
     assert body == {"name": "Hafermilch"}
 
 
-def test_addon_client_uses_default_ingress_path(monkeypatch):
+def test_addon_client_uses_default_internal_api_url(monkeypatch):
     sessions = []
 
     def fake_client_session(*, timeout):
@@ -103,4 +104,4 @@ def test_addon_client_uses_default_ingress_path(monkeypatch):
 
     method, url, _, _ = sessions[0].calls[0]
     assert method == "GET"
-    assert url == "/api/hassio_ingress/grocy_ai_assistant/api/status"
+    assert url == "http://grocy_ai_assistant:8000/api/v1/status"

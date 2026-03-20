@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [7.3.0]
+
+- Changed (Architektur/Add-on↔Integration): Dedizierte Service-API unter `/api/v1/...` für `health`, `capabilities`, `status`, `scan/image`, `grocy/sync`, `catalog/rebuild` und `notifications/test` ergänzt.
+- Changed (Home-Assistant-Integration): Integration nutzt jetzt primär die neue v1-API statt Dashboard-Endpunkten für Status-, Scan- und Sync-Kommunikation.
+- Added (Home-Assistant-Integration): Neue Button-Entities zum Katalog-Neuaufbau und zum Auslösen einer Test-Benachrichtigung.
+- Changed (Konfiguration): API-Basis-URL und Panel-/Ingress-URL sind in der Integration jetzt getrennt modelliert.
+- Test: API- und Client-Tests für die neue v1-Kopplung ergänzt.
+
 ## [7.2.33]
 
 - Fix (Produktauswahl/Neu anlegen): Mengen-Badges aus der Varianten-Auswahl werden jetzt auch beim ersten Anlegen eines neuen Produkts zuverlässig auf die Einkaufsliste übernommen, selbst wenn Grocy `product_id` als String zurückliefert.

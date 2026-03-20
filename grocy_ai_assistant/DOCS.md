@@ -81,6 +81,7 @@ debug_mode: false
 ## Hinweise zur Nutzung
 
 - Die Weboberfläche läuft über **Ingress** auf Port `8000`.
+- Die Home-Assistant-Integration nutzt für Maschinenkommunikation die dedizierte lokale Add-on-API (`/api/v1/...`).
 - Das Add-on nutzt die Home-Assistant- und Supervisor-API.
 - Optionen wie `generate_missing_product_images_on_startup` und `initial_info_sync` sind für einmalige Startvorgänge gedacht.
 - Wenn `image_generation_enabled` deaktiviert ist, werden die OpenAI-Einstellungen im Alltag nicht benötigt.
