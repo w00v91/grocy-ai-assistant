@@ -10,12 +10,9 @@ from .const import (
     CONF_DASHBOARD_POLLING_INTERVAL_SECONDS,
     CONF_DEBUG_MODE,
     DEFAULT_DASHBOARD_POLLING_INTERVAL_SECONDS,
-    CONF_GROCY_API_KEY,
-    CONF_GROCY_BASE_URL,
     CONF_PANEL_URL,
     DEFAULT_ADDON_API_URL,
     DEFAULT_ADDON_PANEL_URL,
-    DEFAULT_GROCY_BASE_URL,
     DOMAIN,
 )
 
@@ -53,10 +50,6 @@ class GrocyAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     vol.Required(CONF_API_KEY): str,
                     vol.Required(CONF_API_BASE_URL, default=DEFAULT_ADDON_API_URL): str,
                     vol.Optional(CONF_PANEL_URL, default=DEFAULT_ADDON_PANEL_URL): str,
-                    vol.Required(CONF_GROCY_API_KEY): str,
-                    vol.Optional(
-                        CONF_GROCY_BASE_URL, default=DEFAULT_GROCY_BASE_URL
-                    ): str,
                 }
             ),
         )
@@ -109,25 +102,6 @@ class GrocyAIOptionsFlowHandler(config_entries.OptionsFlow):
                                 data.get(CONF_PANEL_URL, DEFAULT_ADDON_PANEL_URL),
                             ),
                             DEFAULT_ADDON_PANEL_URL,
-                        ),
-                    ): str,
-                    vol.Required(
-                        CONF_GROCY_API_KEY,
-                        default=_safe_str(
-                            options.get(
-                                CONF_GROCY_API_KEY,
-                                data.get(CONF_GROCY_API_KEY),
-                            )
-                        ),
-                    ): str,
-                    vol.Required(
-                        CONF_GROCY_BASE_URL,
-                        default=_safe_str(
-                            options.get(
-                                CONF_GROCY_BASE_URL,
-                                data.get(CONF_GROCY_BASE_URL),
-                            ),
-                            DEFAULT_GROCY_BASE_URL,
                         ),
                     ): str,
                     vol.Required(

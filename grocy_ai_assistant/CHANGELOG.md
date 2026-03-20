@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [7.3.1]
+
+- Changed (Home-Assistant-Integration): The redundant `grocy_api_key` and `grocy_base_url` fields were removed from the custom integration config and options flow because the integration communicates with Grocy through the backend API service.
+- Changed (Versioning): Bumped add-on and integration versions to `7.3.1`.
+
 ## [7.3.0]
 
 - Changed (Architektur/Add-on↔Integration): Dedizierte Service-API unter `/api/v1/...` für `health`, `capabilities`, `status`, `scan/image`, `grocy/sync`, `catalog/rebuild` und `notifications/test` ergänzt.
