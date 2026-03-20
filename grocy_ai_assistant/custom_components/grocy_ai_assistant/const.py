@@ -10,11 +10,7 @@ DEFAULT_ADDON_BASE_URL = DEFAULT_ADDON_API_URL
 CONF_API_KEY = "api_key"
 CONF_API_BASE_URL = "api_base_url"
 CONF_PANEL_URL = "panel_url"
-CONF_GROCY_API_KEY = "grocy_api_key"
-CONF_GROCY_BASE_URL = "grocy_base_url"
 CONF_DEBUG_MODE = "debug_mode"
 CONF_DASHBOARD_POLLING_INTERVAL_SECONDS = "dashboard_polling_interval_seconds"
 
 DEFAULT_DASHBOARD_POLLING_INTERVAL_SECONDS = 5
-
-DEFAULT_GROCY_BASE_URL = "http://homeassistant.local:9192/api"
