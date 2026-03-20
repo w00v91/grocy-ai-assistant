@@ -8,10 +8,10 @@ def test_status_requires_authorization(client):
     assert payload["error"]["code"] == "unauthorized"
 
 
-def test_health_requires_authorization(client):
+def test_health_is_reachable_without_authorization(client):
     response = client.get("/api/v1/health")
 
-    assert response.status_code == 401
+    assert response.status_code == 200
 
 
 def test_status_returns_ok_when_authorized(client):
@@ -39,6 +39,13 @@ def test_health_returns_ok_when_authorized(client):
         "addon_version": "2026.03.0",
         "required_integration_version": "1.2.10",
     }
+
+
+def test_capabilities_is_reachable_without_authorization(client):
+    response = client.get("/api/v1/capabilities")
+
+    assert response.status_code == 200
+    assert response.json()["api_version"] == "v1"
 
 
 def test_status_returns_homeassistant_compatible_payload(client):

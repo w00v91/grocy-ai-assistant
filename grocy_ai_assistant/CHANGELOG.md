@@ -8,6 +8,8 @@ All notable changes to this project will be documented in this file.
 
 - Changed (Home-Assistant-Integration): The redundant `grocy_api_key` and `grocy_base_url` fields were removed from the custom integration config and options flow because the integration communicates with Grocy through the backend API service.
 - Changed (Versioning): Bumped add-on and integration versions to `7.3.1`.
+- Fix (API): `/api/v1/health` und `/api/v1/capabilities` sind jetzt ohne Bearer-Token direkt erreichbar, damit die lokale Add-on-Service-API unter `host:8000/...` für Discovery und Debugging nutzbar ist.
+- Test: API-Tests für tokenfreien Zugriff auf `health` und `capabilities` ergänzt.
 
 ## [7.3.0]
 
