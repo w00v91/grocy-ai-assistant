@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from pydantic import BaseModel, Field
 
 
@@ -20,9 +22,24 @@ class AddonCapabilitiesResponse(BaseModel):
     defaults: dict[str, str | int | bool] = Field(default_factory=dict)
 
 
+class AddonStatusResponse(BaseModel):
+    status: str = "Verbunden"
+    ollama_ready: bool = True
+    addon_version: str
+    required_integration_version: str
+    homeassistant_restart_required: bool = False
+    update_reason: str = ""
+
+
 class AddonCatalogRebuildResponse(BaseModel):
     success: bool = True
     refreshed_locations: int = 0
     refreshed_product_images: int = 0
     prefetched_recipe_suggestions: int = 0
 
+
+class AddonLastScanResponse(BaseModel):
+    success: bool = True
+    available: bool = False
+    updated_at: str = ""
+    result: dict[str, Any] | None = None

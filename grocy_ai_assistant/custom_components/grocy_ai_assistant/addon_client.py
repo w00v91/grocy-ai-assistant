@@ -1,4 +1,5 @@
 import aiohttp
+from urllib.parse import urlencode
 
 DEFAULT_ADDON_API_URL = "http://grocy_ai_assistant:8000"
 
@@ -20,16 +21,26 @@ class AddonClient:
         path: str,
         *,
         json_payload: dict | None = None,
+        query_params: dict | None = None,
         timeout_seconds: int = 30,
     ) -> dict | list:
         timeout = aiohttp.ClientTimeout(total=timeout_seconds)
+        request_path = path
+        if query_params:
+            filtered_query = {
+                key: value
+                for key, value in query_params.items()
+                if value not in (None, "")
+            }
+            if filtered_query:
+                request_path = f"{path}?{urlencode(filtered_query)}"
         async with aiohttp.ClientSession(timeout=timeout) as session:
             request = session.get if method.upper() == "GET" else session.post
             request_kwargs = {"headers": self._headers}
             if method.upper() != "GET":
                 request_kwargs["json"] = json_payload
             async with request(
-                f"{self._base_url}{path}",
+                f"{self._base_url}{request_path}",
                 **request_kwargs,
             ) as response:
                 payload = await response.json()
@@ -48,7 +59,9 @@ class AddonClient:
         return await self._request_json("GET", "/api/v1/health", timeout_seconds=10)
 
     async def get_capabilities(self) -> dict:
-        return await self._request_json("GET", "/api/v1/capabilities", timeout_seconds=10)
+        return await self._request_json(
+            "GET", "/api/v1/capabilities", timeout_seconds=10
+        )
 
     async def sync_product(self, product_name: str) -> dict:
         return await self._request_json(
@@ -63,13 +76,11 @@ class AddonClient:
 
     async def get_shopping_list(self) -> dict:
         return await self._request_json(
-            "GET", "/api/dashboard/shopping-list", timeout_seconds=30
+            "GET", "/api/v1/shopping-list", timeout_seconds=30
         )
 
     async def get_stock_products(self) -> dict:
-        return await self._request_json(
-            "GET", "/api/dashboard/stock-products", timeout_seconds=30
-        )
+        return await self._request_json("GET", "/api/v1/stock", timeout_seconds=30)
 
     async def get_recipe_suggestions(
         self,
@@ -82,9 +93,9 @@ class AddonClient:
             "expiring_within_days": max(1, int(expiring_within_days)),
         }
         return await self._request_json(
-            "POST",
-            "/api/dashboard/recipe-suggestions",
-            json_payload=payload,
+            "GET",
+            "/api/v1/recipes",
+            query_params=payload,
             timeout_seconds=60,
         )
 
@@ -92,7 +103,7 @@ class AddonClient:
         normalized_barcode = str(barcode or "").strip()
         return await self._request_json(
             "GET",
-            f"/api/dashboard/barcode/{normalized_barcode}",
+            f"/api/v1/barcode/{normalized_barcode}",
             timeout_seconds=30,
         )
 

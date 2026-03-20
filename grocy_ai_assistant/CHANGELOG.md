@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [7.4.0]
+
+- Changed (API/Maschinenschnittstelle): `/api/v1/...` deckt jetzt auch Einkaufslisten-, Lager-, Rezept- und Barcode-Funktionen ab (`/shopping-list`, `/stock`, `/recipes`, `/barcode/{barcode}`) und bündelt damit die von der Home-Assistant-Integration genutzten Lesezugriffe in einer sauberen Service-API.
+- Added (API/Scanner): Neuer Endpoint `GET /api/v1/last-scan` liefert das letzte Ergebnis von `POST /api/v1/scan/image` inklusive Zeitstempel für maschinelle Statusabfragen.
+- Changed (Home-Assistant-Integration): `AddonClient` verwendet für Shopping-Liste, Lager, Rezepte und Barcode-Lookups jetzt die neuen `/api/v1/...`-Endpunkte statt Dashboard-Routen.
+- Test: API- und Unit-Tests für die neuen v1-Endpunkte sowie die umgestellte Integration ergänzt.
+- Versionsstände für Add-on und Integration auf `7.4.0` erhöht.
+
 ## [7.3.2]
 
 - Fix (Home-Assistant-Integration/Sensoren): Status-, Update-, Einkaufslisten-, Lager- und Rezeptsensoren bleiben jetzt auch dann verfügbar, wenn der erste API-Aufruf des Add-ons mit einer Exception fehlschlägt; stattdessen werden Fallback-Werte wie `Offline`, `Unbekannt`, `0` oder `Keine Vorschläge` gesetzt.
