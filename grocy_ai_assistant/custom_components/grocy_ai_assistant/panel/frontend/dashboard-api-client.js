@@ -116,5 +116,16 @@ export function createDashboardApiClient({ apiBasePath = '', ingressPrefix = '',
         body: JSON.stringify(payload),
       });
     },
+    lookupBarcode(barcode) {
+      return request(`/api/v1/barcode/${encodeURIComponent(barcode)}`);
+    },
+    scanImage(imageBase64, { signal } = {}) {
+      return request('/api/v1/scan/image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image_base64: imageBase64 }),
+        signal,
+      });
+    },
   };
 }

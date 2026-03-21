@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Changed (Home-Assistant-Integration/Panel): Die bisherige `GrocyAIScannerBridge` im nativen HA-Panel wurde durch eine echte Scanner-Web-Component ersetzt, die Kamera, Barcode-Erkennung, Bildanalyse und Ergebnisdarstellung ohne Legacy-iframe direkt im Panel rendert.
+- Changed (Home-Assistant-Integration/Panel): Scanner-Treffer aus Barcode-Lookup und `POST /api/v1/scan/image` werden jetzt unmittelbar in denselben nativen Search-/Varianten-/Add-to-list-Flow übergeben wie Texteingaben, sodass Varianten, Suchstatus und Listen-Updates konsistent bleiben.
+- Changed (Dashboard/Migration): Der native Panel-API-Client unterstützt jetzt die v1-Scanner-Endpunkte für Barcode- und Bildscans; zusätzlich bevorzugt der Shopping-Search-Controller in Browser-Tests die vorhandene `window`-Timer-API.
+- Test: `node --test tests/frontend/test_dashboard_api_client.mjs tests/frontend/test_panel_api_base_path.mjs tests/frontend/test_panel_shell_rendering.mjs tests/frontend/test_shopping_search_controller.mjs`, `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `pytest tests/unit/test_panel.py tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.22` erhöht.
+
 - Fix (Home-Assistant-Integration/Panel): Der native Dashboard-API-Client sendet Requests an `/api/grocy_ai_assistant/dashboard-proxy` jetzt zusätzlich mit dem aktuellen Home-Assistant-Bearer-Token aus dem Frontend-Kontext, sodass HA-geschützte Proxy-Aufrufe wie die Einkaufsliste im nativen Panel nicht mehr mit `401 Unauthorized` abgewiesen werden.
 - Test: `node --test tests/frontend/test_dashboard_api_client.mjs tests/frontend/test_panel_api_base_path.mjs tests/frontend/test_panel_shell_rendering.mjs`, `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `pytest tests/unit/test_panel.py tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.21` erhöht.
 
