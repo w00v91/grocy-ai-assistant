@@ -107,6 +107,7 @@ test('dashboard api client routes native storage requests through dashboard stoc
   await client.consumeStockProduct(99, { amount: 2, productId: 77 });
   await client.updateStockProduct(99, { amount: 3, best_before_date: '2026-04-01', location_id: 5 }, { productId: 77 });
   await client.deleteStockProduct(99, { productId: 77 });
+  await client.deleteProductPicture(77);
 
   assert.equal(calls[0].url, '/api/grocy_ai_assistant/dashboard-proxy/api/dashboard/stock-products/99/consume?product_id=77');
   assert.equal(calls[0].options.method, 'POST');
@@ -123,6 +124,10 @@ test('dashboard api client routes native storage requests through dashboard stoc
   assert.equal(calls[2].url, '/api/grocy_ai_assistant/dashboard-proxy/api/dashboard/stock-products/99?product_id=77');
   assert.equal(calls[2].options.method, 'DELETE');
   assert.equal(calls[2].options.headers.Authorization, 'Bearer ha-access-token');
+
+  assert.equal(calls[3].url, '/api/grocy_ai_assistant/dashboard-proxy/api/dashboard/products/77/picture');
+  assert.equal(calls[3].options.method, 'DELETE');
+  assert.equal(calls[3].options.headers.Authorization, 'Bearer ha-access-token');
 
   delete globalThis.fetch;
 });

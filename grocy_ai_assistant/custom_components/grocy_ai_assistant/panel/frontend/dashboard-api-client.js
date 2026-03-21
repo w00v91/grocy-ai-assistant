@@ -155,6 +155,11 @@ export function createDashboardApiClient({ apiBasePath = '', ingressPrefix = '',
         method: 'DELETE',
       });
     },
+    deleteProductPicture(productId) {
+      return request(`/api/dashboard/products/${encodeURIComponent(productId)}/picture`, {
+        method: 'DELETE',
+      });
+    },
     fetchRecipeSuggestions(payload) {
       return request('/api/dashboard/recipe-suggestions', {
         method: 'POST',
