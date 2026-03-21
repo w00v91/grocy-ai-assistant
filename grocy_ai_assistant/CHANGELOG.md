@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Fix (Home-Assistant-Integration/Panel): Die nativen `recipes`-, `storage`- und Modal-Komponenten überspringen bei reinen Feldwert-Updates jetzt vollständige `innerHTML`-Re-Renders und behalten dadurch Fokus, Cursorposition sowie geöffnete Auswahl-/`details`-Listen spürbar stabiler – analog zur Shopping-Suche im nativen Panel.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `7.4.37` erhöht.
+- Test: `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `node --test tests/frontend/test_panel_shell_rendering.mjs`, `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.37` erhöht.
 - Fix (Dashboard/Legacy, Home-Assistant-Integration/Panel): Die geteilte Shopping-Card-CSS hält `shopping-item-card--legacy`-Swipe-Einträge jetzt auch auf schmalen Viewports bewusst im alten horizontalen Legacy-Layout, sodass Bild, Status und Badge-Buttons im Legacy-Dashboard sowie im nativen HA-Panel nicht mehr „durcheinandergewürfelt“ umbrechen.
 - Test: `node --test tests/frontend/test_native_shopping_swipe.mjs`, `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.37` erhöht.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `7.4.37` erhöht.
