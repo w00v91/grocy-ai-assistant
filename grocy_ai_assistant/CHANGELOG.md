@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Refactor (Home-Assistant-Integration/Panel): Neue Shared-Renderer in `panel/frontend/shared-panel-ui.js` extrahieren Kartencontainer, zweispaltige Card-Gruppen, Status-/Empty-/Loading-Karten, Aktionsleisten und Kachel-Grids aus der bestehenden Shopping-UI als wiederverwendbare Bausteine.
+- Changed (Home-Assistant-Integration/Panel): Die Tabs `recipes` und `storage` nutzen diese Shared-Bausteine jetzt zuerst für ihre Migrations-/Bridge-Oberflächen und übernehmen dabei Überschriftenhierarchie, Grid-/Kachel-Logik, CTA-Gewichtung sowie Badge-/Meta-Abstände aus `dashboard.html`; Shopping bleibt Referenzimplementierung.
+- Changed (Dashboard/UI): Gemeinsame Panel-/Shopping-CSS deckt jetzt zusätzliche Status-Chip-Varianten und Grid-/Card-Group-Regeln für die neuen Shared-Renderer ab.
+- Test: `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/shared-panel-ui.js`, `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/shopping-ui.js`, `node --test tests/frontend/test_shared_panel_ui.mjs tests/frontend/test_panel_shell_rendering.mjs tests/frontend/test_shopping_ui_shared.mjs`, `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.30` erhöht.
+
 - Added (Dokumentation/Migration): Neue Mapping-Matrix `docs/legacy-native-panel-mapping.md`, die Legacy-Dashboard und natives Home-Assistant-Panel tabweise für `shopping`, `recipes`, `storage` und `notifications` gegenüberstellt und pro Bereich als Abnahmeliste für die weitere Migration dient.
 - Test: `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.29` erhöht.
 

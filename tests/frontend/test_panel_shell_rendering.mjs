@@ -67,3 +67,16 @@ test('native panel binds shared shopping image fallbacks after list and variant 
   assert.match(source, /variantGrid\.replaceChildren\(\.\.\.nodes\);\s+bindShoppingImageFallbacks\(this\);/);
   assert.match(source, /list\.replaceChildren\(\.\.\.items\.map\(\(item\) => this\._createShoppingListItem\(item, model\)\)\);\s+bindShoppingImageFallbacks\(this\);/);
 });
+
+
+test('recipes and storage tabs render shared preview cards before their legacy iframe bridge', async () => {
+  const source = await fs.readFile(dashboardPath, 'utf8');
+
+  assert.match(source, /import \{ renderActionRow, renderCardContainer, renderMetaBadges, renderStateCard, renderTileGrid, renderTwoColumnCardGroup \} from '\.\/shared-panel-ui\.js';/);
+  assert.match(source, /function buildRecipesPreviewMarkup\(model = \{\}\) \{/);
+  assert.match(source, /renderTwoColumnCardGroup\(recipeCards, \{ className: 'recipes-card-group' \}\)/);
+  assert.match(source, /class GrocyAIRecipesTab extends GrocyAILegacyBridgeTab \{[\s\S]*?buildRecipesPreviewMarkup\(model\)/);
+  assert.match(source, /function buildStoragePreviewMarkup\(model = \{\}\) \{/);
+  assert.match(source, /renderTileGrid\(\[[\s\S]*?title: 'Ladezustand als Karte'/);
+  assert.match(source, /class GrocyAIStorageTab extends GrocyAILegacyBridgeTab \{[\s\S]*?buildStoragePreviewMarkup\(model\)/);
+});
