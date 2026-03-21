@@ -9,20 +9,26 @@ import { bindSwipeInteractions } from './swipe-interactions.js';
 
 const PANEL_SLUG = 'grocy-ai';
 const PANEL_TITLE = 'Grocy AI';
-const PANEL_ICON = 'mdi:brain';
+const PANEL_ICON = 'mdi:fridge-outline';
 const DEFAULT_LEGACY_URL = '/api/hassio_ingress/grocy_ai_assistant/';
 const STYLE_URL = new URL('./grocy-ai-dashboard.css', import.meta.url);
 const MIGRATED_TABS = new Set(['shopping', 'recipes', 'storage']);
 const TAB_LABELS = {
-  shopping: '🛒 Einkauf',
-  recipes: '🍳 Rezepte',
-  storage: '📦 Lager',
-  notifications: '🔔 Benachrichtigungen',
+  shopping: 'Einkauf',
+  recipes: 'Rezepte',
+  storage: 'Lager',
+  notifications: 'Benachrichtigungen',
 };
+const TAB_ICONS = Object.freeze({
+  shopping: 'mdi:cart-outline',
+  recipes: 'mdi:silverware-fork-knife',
+  storage: 'mdi:fridge-outline',
+  notifications: 'mdi:bell-outline',
+});
 const VISIBLE_TAB_ORDER = TAB_ORDER.filter((tab) => tab !== 'notifications');
 const DEFAULT_POLLING_INTERVAL_SECONDS = 5;
 const DEFAULT_POLLING_INTERVAL_MS = DEFAULT_POLLING_INTERVAL_SECONDS * 1000;
-const DEFAULT_INTEGRATION_VERSION = '7.4.40';
+const DEFAULT_INTEGRATION_VERSION = '8.0.0';
 const GROCY_RECIPE_DISPLAY_LIMIT = 3;
 const AI_RECIPE_DISPLAY_LIMIT = 3;
 const TAB_VIEW_STATE = Object.freeze({
@@ -96,6 +102,21 @@ function buildPanelTabHref(panelPath, tab) {
   if (!normalizeTabName(tab)) return path;
   if (tab === 'shopping') return path;
   return `${path}?tab=${tab}`;
+}
+
+function getTabButtonId(tab) {
+  return `grocy-ai-tab-${String(tab || '').trim().toLowerCase()}`;
+}
+
+function getTabPanelId(tab) {
+  return `grocy-ai-tabpanel-${String(tab || '').trim().toLowerCase()}`;
+}
+
+function renderHaIcon(icon, className = '') {
+  const normalizedIcon = String(icon || '').trim();
+  if (!normalizedIcon) return '';
+  const normalizedClassName = String(className || '').trim();
+  return `<ha-icon icon="${escapeHtml(normalizedIcon)}"${normalizedClassName ? ` class="${escapeHtml(normalizedClassName)}"` : ''} aria-hidden="true"></ha-icon>`;
 }
 
 function readTabFromHash(hash) {
@@ -730,14 +751,17 @@ class GrocyAITopbar extends HTMLElement {
     this.innerHTML = `
       <header class="topbar">
         <div class="topbar-content">
-          <div>
+          <div class="topbar-brand">
             <p class="eyebrow">Grocy AI Assistant</p>
-            <h1>${PANEL_TITLE}</h1>
+            <div class="topbar-title-row">
+              ${renderHaIcon(model.panelIcon || PANEL_ICON, 'topbar-title-icon')}
+              <h1>${PANEL_TITLE}</h1>
+            </div>
           </div>
           <div class="topbar-meta">
             <p class="topbar-status" aria-live="polite">${escapeHtml(model.status)}</p>
             <span class="activity-spinner${model.busy ? '' : ' hidden'}" aria-label="Lädt"></span>
-            <span class="migration-chip">${model.migratedCount}/${model.totalCount} Tabs nativ</span>
+            <span class="migration-chip">${model.migratedCount}/${model.totalCount} Bereiche nativ</span>
           </div>
         </div>
       </header>
@@ -766,13 +790,22 @@ class GrocyAITabNav extends HTMLElement {
   _render() {
     const model = this._viewModel || { activeTab: 'shopping' };
     this.innerHTML = `
-      <nav class="bottom-tabbar" aria-label="Navigation">
+      <nav class="bottom-tabbar" aria-label="Navigation" role="tablist">
         ${VISIBLE_TAB_ORDER.map((tab) => `
           <button
             type="button"
             class="tab-button${model.activeTab === tab ? ' active' : ''}"
             data-tab="${tab}"
-          >${TAB_LABELS[tab]}${MIGRATED_TABS.has(tab) ? '' : ' · Fallback'}</button>
+            id="${getTabButtonId(tab)}"
+            role="tab"
+            aria-selected="${model.activeTab === tab ? 'true' : 'false'}"
+            aria-controls="${getTabPanelId(tab)}"
+            tabindex="${model.activeTab === tab ? '0' : '-1'}"
+          >
+            ${renderHaIcon(TAB_ICONS[tab], 'tab-button__icon')}
+            <span class="tab-button__label">${TAB_LABELS[tab]}</span>
+            ${MIGRATED_TABS.has(tab) ? '' : '<span class="tab-button__meta">Fallback</span>'}
+          </button>
         `).join('')}
       </nav>
     `;
@@ -1129,6 +1162,9 @@ class GrocyAIShoppingTab extends HTMLElement {
     if (this._elements) return;
 
     const root = document.createElement('section');
+    root.id = getTabPanelId('shopping');
+    root.setAttribute('role', 'tabpanel');
+    root.setAttribute('aria-labelledby', getTabButtonId('shopping'));
 
     const heroCard = document.createElement('section');
     heroCard.className = 'card hero-card shopping-hero-card';
@@ -1307,6 +1343,9 @@ class GrocyAIShoppingTab extends HTMLElement {
     if (shellSignature !== this._lastShellSignature) {
       this._lastShellSignature = shellSignature;
       this._elements.root.className = `tab-view${model.active ? '' : ' hidden'}`;
+      this._elements.root.toggleAttribute('hidden', !model.active);
+      this._elements.root.setAttribute('aria-hidden', model.active ? 'false' : 'true');
+      this._elements.root.tabIndex = model.active ? 0 : -1;
       this._elements.status.textContent = model.status || 'Bereit.';
     }
 
@@ -1622,7 +1661,14 @@ class GrocyAILegacyBridgeTab extends HTMLElement {
   _render() {
     const model = this._viewModel || {};
     this.innerHTML = `
-      <section class="tab-view${model.active ? '' : ' hidden'}">
+      <section
+        id="${getTabPanelId('notifications')}"
+        class="tab-view${model.active ? '' : ' hidden'}"
+        role="tabpanel"
+        aria-labelledby="${getTabButtonId('notifications')}"
+        aria-hidden="${model.active ? 'false' : 'true'}"
+        ${model.active ? 'tabindex="0"' : 'tabindex="-1" hidden'}
+      >
         ${renderCardContainer({
           className: 'legacy-bridge-card',
           eyebrow: 'Tabweise Migration',
@@ -2605,7 +2651,14 @@ class GrocyAIRecipesTab extends HTMLElement {
     const snapshot = captureFocusedFormControl(this);
     const model = this._viewModel || {};
     this.innerHTML = `
-      <section class="tab-view${model.active ? '' : ' hidden'}">
+      <section
+        id="${getTabPanelId('recipes')}"
+        class="tab-view${model.active ? '' : ' hidden'}"
+        role="tabpanel"
+        aria-labelledby="${getTabButtonId('recipes')}"
+        aria-hidden="${model.active ? 'false' : 'true'}"
+        ${model.active ? 'tabindex="0"' : 'tabindex="-1" hidden'}
+      >
         ${buildRecipesTabMarkup(model)}
       </section>
     `;
@@ -2759,7 +2812,14 @@ class GrocyAIStorageTab extends HTMLElement {
     const snapshot = captureFocusedFormControl(this);
     const model = this._viewModel || {};
     this.innerHTML = `
-      <section class="tab-view${model.active ? '' : ' hidden'}">
+      <section
+        id="${getTabPanelId('storage')}"
+        class="tab-view${model.active ? '' : ' hidden'}"
+        role="tabpanel"
+        aria-labelledby="${getTabButtonId('storage')}"
+        aria-hidden="${model.active ? 'false' : 'true'}"
+        ${model.active ? 'tabindex="0"' : 'tabindex="-1" hidden'}
+      >
         ${buildStorageTabMarkup(model)}
       </section>
     `;

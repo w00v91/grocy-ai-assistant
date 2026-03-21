@@ -85,7 +85,7 @@ Nach dem Einrichten der **Home-Assistant-Integration** wird das Dashboard zusät
 
 - **Titel in der Sidebar:** `Grocy AI`
 - **Slug / Zielpfad:** `/grocy-ai`
-- **Icon:** `mdi:brain`
+- **Icon:** `mdi:fridge-outline`
 
 Damit kannst du das Dashboard direkt aus Lovelace, aus Assist-/UI-Aktionen oder aus Skripten öffnen, ohne den Ingress-Pfad manuell zusammensetzen zu müssen.
 
@@ -94,7 +94,7 @@ Damit kannst du das Dashboard direkt aus Lovelace, aus Assist-/UI-Aktionen oder 
 ```yaml
 type: button
 name: Grocy AI
-icon: mdi:brain
+icon: mdi:fridge-outline
 tap_action:
   action: navigate
   navigation_path: /grocy-ai

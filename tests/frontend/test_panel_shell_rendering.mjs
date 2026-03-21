@@ -29,6 +29,10 @@ test('tab navigation only renders native shopping, recipes, and storage links', 
 
   assert.match(source, /const VISIBLE_TAB_ORDER = TAB_ORDER\.filter\(\(tab\) => tab !== 'notifications'\);/);
   assert.match(source, /VISIBLE_TAB_ORDER\.map\(\(tab\) => `\n/);
+  assert.match(source, /role="tablist"/);
+  assert.match(source, /role="tab"/);
+  assert.match(source, /aria-controls="\$\{getTabPanelId\(tab\)\}"/);
+  assert.match(source, /renderHaIcon\(TAB_ICONS\[tab\], 'tab-button__icon'\)/);
 });
 
 test('topbar markup no longer renders panel URL hints or quicklink pills', async () => {
@@ -39,6 +43,7 @@ test('topbar markup no longer renders panel URL hints or quicklink pills', async
   );
 
   assert.match(topbarSection, /<header class=\"topbar\">/);
+  assert.match(topbarSection, /renderHaIcon\(model\.panelIcon \|\| PANEL_ICON, 'topbar-title-icon'\)/);
   assert.doesNotMatch(topbarSection, /topbar-path-hint/);
   assert.doesNotMatch(topbarSection, /topbar-quicklinks/);
   assert.doesNotMatch(topbarSection, /quicklink-button/);
@@ -99,6 +104,18 @@ test('recipes, storage, and modal renders restore focused form controls after re
   assert.match(source, /class GrocyAIDashboardModals extends HTMLElement \{[\s\S]*?_render\(\) \{\s+const snapshot = captureFocusedFormControl\(this\);[\s\S]*?restoreFocusedFormControl\(this, snapshot\);/);
   assert.match(source, /class GrocyAIRecipesTab extends HTMLElement \{[\s\S]*?_render\(\) \{\s+const snapshot = captureFocusedFormControl\(this\);[\s\S]*?restoreFocusedFormControl\(this, snapshot\);/);
   assert.match(source, /class GrocyAIStorageTab extends HTMLElement \{[\s\S]*?_render\(\) \{\s+const snapshot = captureFocusedFormControl\(this\);[\s\S]*?restoreFocusedFormControl\(this, snapshot\);/);
+});
+
+test('native panel exposes ARIA tabpanel wiring for shopping, recipes, storage, and fallback notifications', async () => {
+  const source = await fs.readFile(dashboardPath, 'utf8');
+
+  assert.match(source, /function getTabButtonId\(tab\) \{/);
+  assert.match(source, /function getTabPanelId\(tab\) \{/);
+  assert.match(source, /root\.id = getTabPanelId\('shopping'\);/);
+  assert.match(source, /root\.setAttribute\('role', 'tabpanel'\);/);
+  assert.match(source, /aria-labelledby="\$\{getTabButtonId\('recipes'\)\}"/);
+  assert.match(source, /aria-labelledby="\$\{getTabButtonId\('storage'\)\}"/);
+  assert.match(source, /aria-labelledby="\$\{getTabButtonId\('notifications'\)\}"/);
 });
 
 test('recipes, storage, and modal setters skip full rerenders for volatile field-only updates', async () => {

@@ -50,6 +50,23 @@
   align-items: flex-start;
 }
 
+.topbar-brand,
+.topbar-title-row {
+  display: grid;
+  gap: 8px;
+}
+
+.topbar-title-row {
+  grid-auto-flow: column;
+  grid-auto-columns: max-content;
+  align-items: center;
+}
+
+.topbar-title-icon {
+  --mdc-icon-size: 28px;
+  color: var(--primary-color);
+}
+
 .section-header__copy,
 .section-header__actions,
 .panel-card-group,
@@ -532,6 +549,15 @@ button:disabled {
   opacity: 0.7;
 }
 
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
 
 
 
@@ -559,6 +585,24 @@ button:disabled {
 
 .tab-button {
   flex: 1 1 220px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  text-align: center;
+}
+
+.tab-button__icon {
+  --mdc-icon-size: 20px;
+}
+
+.tab-button__label {
+  font-weight: 600;
+}
+
+.tab-button__meta {
+  font-size: 0.78rem;
+  color: var(--secondary-text-color);
 }
 
 .shopping-modal {
