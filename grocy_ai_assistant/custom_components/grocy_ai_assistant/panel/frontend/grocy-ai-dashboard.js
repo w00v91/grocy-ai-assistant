@@ -3,7 +3,7 @@ import { buildLegacyDashboardUrl, resolveDashboardApiBasePath } from './panel-ap
 import { createDashboardStore } from './dashboard-store.js';
 import { buildPanelUrlWithTab, DEFAULT_TAB, resolveTabFromLocation, TAB_ORDER } from './tab-routing.js';
 import { createShoppingSearchController, SEARCH_FLOW_STATES } from './shopping-search-controller.js';
-import { bindShoppingImageFallbacks, escapeHtml, formatAmount, renderShoppingListItemCard, renderShoppingVariantCard, resolveShoppingImageSource } from './shopping-ui.js';
+import { bindShoppingImageFallbacks, escapeHtml, formatAmount, formatBadgeValue, formatStockCount, renderShoppingListItemCard, renderShoppingVariantCard, resolveShoppingImageSource } from './shopping-ui.js';
 import { renderActionRow, renderCardContainer, renderMetaBadges, renderStateCard, renderTileGrid, renderTwoColumnCardGroup } from './shared-panel-ui.js';
 import { bindSwipeInteractions } from './swipe-interactions.js';
 
@@ -12,7 +12,7 @@ const PANEL_TITLE = 'Grocy AI';
 const PANEL_ICON = 'mdi:brain';
 const DEFAULT_LEGACY_URL = '/api/hassio_ingress/grocy_ai_assistant/';
 const STYLE_URL = new URL('./grocy-ai-dashboard.css', import.meta.url);
-const MIGRATED_TABS = new Set(['shopping', 'recipes']);
+const MIGRATED_TABS = new Set(['shopping', 'recipes', 'storage']);
 const TAB_LABELS = {
   shopping: '🛒 Einkauf',
   recipes: '🍳 Rezepte',
@@ -20,7 +20,7 @@ const TAB_LABELS = {
   notifications: '🔔 Benachrichtigungen',
 };
 const DEFAULT_POLLING_INTERVAL_MS = 5000;
-const DEFAULT_INTEGRATION_VERSION = '7.4.31';
+const DEFAULT_INTEGRATION_VERSION = '7.4.32';
 const GROCY_RECIPE_DISPLAY_LIMIT = 3;
 const AI_RECIPE_DISPLAY_LIMIT = 3;
 
@@ -202,6 +202,215 @@ function buildStockSignature(items) {
   );
 }
 
+function getActionableStorageId(item) {
+  const stockId = Number(item?.stock_id ?? 0);
+  if (Number.isFinite(stockId) && stockId > 0) return stockId;
+  const productId = Number(item?.id ?? 0);
+  if (Number.isFinite(productId) && productId > 0) return productId;
+  return 0;
+}
+
+function formatStorageDateLabel(value, fallback = 'Kein Datum') {
+  const normalized = String(value ?? '').trim();
+  if (!normalized) return fallback;
+  const isoDate = normalized.match(/^(\d{4}-\d{2}-\d{2})/)?.[1] || normalized;
+  return isoDate;
+}
+
+function resolveStorageStatusVariant(item) {
+  if (!item?.in_stock) return 'source';
+  if (String(item?.best_before_date || '').trim()) return 'mhd';
+  return 'shopping';
+}
+
+function renderStorageProductCard(item, options = {}) {
+  const actionableId = getActionableStorageId(item);
+  const title = item?.name || 'Unbekanntes Produkt';
+  const amountLabel = formatAmount(item?.amount, '0');
+  const stockLabel = item?.in_stock ? 'Auf Lager' : 'Nicht auf Lager';
+  const bestBeforeDate = formatStorageDateLabel(item?.best_before_date, 'Kein MHD');
+  const resolvedImageSource = resolveShoppingImageSource(item?.picture_url, { resolveUrl: options.resolveImageUrl });
+  const metaBadges = [
+    `Menge ${amountLabel}`,
+    item?.location_name ? `Lagerort ${item.location_name}` : '',
+    item?.in_stock ? 'Im Bestand' : 'Nicht im Bestand',
+  ].filter(Boolean);
+
+  return `
+    <article class="shopping-card storage-card" role="listitem">
+      <div class="shopping-card__surface storage-card__surface">
+        <div class="storage-card__media-wrap">
+          <img class="shopping-card__media storage-card__media" src="${escapeHtml(resolvedImageSource)}" alt="${escapeHtml(title)}" loading="lazy" data-shopping-image="true" data-fallback-src="${escapeHtml(resolveShoppingImageSource(''))}" />
+          <span class="shopping-status-chip shopping-status-chip--${escapeHtml(resolveStorageStatusVariant(item))} storage-card__stock-chip">${escapeHtml(stockLabel)}</span>
+        </div>
+        <div class="shopping-card__body storage-card__body">
+          <div class="shopping-card__header">
+            <strong class="shopping-card__title">${escapeHtml(title)}</strong>
+            <span class="shopping-badge shopping-badge--amount">
+              <span class="shopping-badge__label">Menge</span>
+              <span class="shopping-badge__value">${escapeHtml(amountLabel)}</span>
+            </span>
+          </div>
+          <div class="shopping-card__badges storage-card__meta-badges">
+            ${metaBadges.map((entry) => `<span class="migration-chip">${escapeHtml(entry)}</span>`).join('')}
+          </div>
+          <ul class="shopping-card__context-list">
+            <li class="shopping-card__context-item shopping-card__context-item--stock">
+              <span class="shopping-card__context-label">Bestand</span>
+              <span class="shopping-card__context-value">${escapeHtml(formatStockCount(item?.amount, '0'))}</span>
+            </li>
+            <li class="shopping-card__context-item shopping-card__context-item--location">
+              <span class="shopping-card__context-label">Lagerort</span>
+              <span class="shopping-card__context-value">${escapeHtml(formatBadgeValue(item?.location_name, 'Nicht gesetzt'))}</span>
+            </li>
+            <li class="shopping-card__context-item shopping-card__context-item--mhd">
+              <span class="shopping-card__context-label">MHD</span>
+              <span class="shopping-card__context-value">${escapeHtml(bestBeforeDate)}</span>
+            </li>
+            <li class="shopping-card__context-item">
+              <span class="shopping-card__context-label">Produkt-ID</span>
+              <span class="shopping-card__context-value">${escapeHtml(item?.id || '-')}</span>
+            </li>
+          </ul>
+          <div class="shopping-card__actions storage-card__actions">
+            <button type="button" class="secondary-button" data-action="storage-open-edit" data-item-id="${escapeHtml(actionableId)}">Bearbeiten</button>
+            <button type="button" class="success-button" data-action="storage-open-consume" data-item-id="${escapeHtml(actionableId)}" ${!item?.in_stock ? 'disabled' : ''}>Verbrauchen</button>
+            <button type="button" class="danger-button" data-action="storage-open-delete" data-item-id="${escapeHtml(actionableId)}">Löschen</button>
+          </div>
+        </div>
+      </div>
+    </article>
+  `;
+}
+
+function buildStorageTabMarkup(model = {}) {
+  const items = Array.isArray(model.items) ? model.items : [];
+  const locations = Array.isArray(model.locations) ? model.locations : [];
+  const editModal = model.editModal || { open: false };
+  const consumeModal = model.consumeModal || { open: false, amount: '1' };
+  const deleteModal = model.deleteModal || { open: false };
+  const activeEditItem = model.activeEditItem || null;
+  const activeConsumeItem = model.activeConsumeItem || null;
+  const activeDeleteItem = model.activeDeleteItem || null;
+  const locationOptions = [
+    '<option value="">Bitte Lagerort wählen</option>',
+    ...locations.map((location) => {
+      const locationId = Number(location?.id ?? 0);
+      const isSelected = String(editModal.locationId ?? '') === String(locationId);
+      return `<option value="${locationId}"${isSelected ? ' selected' : ''}>${escapeHtml(location?.name || `Lagerort ${locationId}`)}</option>`;
+    }),
+  ].join('');
+
+  let gridMarkup = '';
+  if (model.loading && !items.length) {
+    gridMarkup = renderTileGrid([
+      renderStateCard({
+        eyebrow: 'Lager',
+        title: 'Bestand wird geladen',
+        message: 'Produkte, Lagerorte und Quick Actions werden aus dem Dashboard geladen.',
+        stateLabel: 'Lädt',
+        stateVariant: 'source',
+      }),
+    ], { className: 'storage-grid' });
+  } else if (!items.length) {
+    gridMarkup = renderTileGrid([
+      renderStateCard({
+        eyebrow: 'Lager',
+        title: 'Keine Produkte gefunden',
+        message: 'Passe Filter oder Toggle an oder aktualisiere den Bestand manuell.',
+        stateLabel: 'Leer',
+        stateVariant: 'mhd',
+      }),
+    ], { className: 'storage-grid' });
+  } else {
+    gridMarkup = `<div class="variant-grid storage-grid">${items.map((item) => renderStorageProductCard(item, { resolveImageUrl: model.resolveImageUrl })).join('')}</div>`;
+  }
+
+  return `
+    ${renderCardContainer({
+      className: 'hero-card storage-hero-card',
+      eyebrow: 'Lager',
+      title: 'Lager',
+      description: 'Der Storage-Tab rendert den bisherigen Kachelcharakter jetzt nativ inklusive Filter, Refresh und Bestandsaktionen.',
+      actions: [
+        { label: 'Aktualisieren', className: 'primary-button', dataset: { action: 'storage-refresh' } },
+      ],
+      body: `
+        <div class="storage-controls">
+          <label class="storage-filter-field" for="storage-filter-input-native">
+            <span class="eyebrow">Textfilter</span>
+            <input id="storage-filter-input-native" class="ha-control" data-role="storage-filter" type="text" placeholder="Produkte filtern..." value="${escapeHtml(model.filter || '')}" />
+          </label>
+          <label class="storage-toggle" for="storage-include-all-products-native">
+            <input id="storage-include-all-products-native" class="ha-control" data-role="storage-include-all" type="checkbox"${model.includeAllProducts ? ' checked' : ''} />
+            <span>Alle Produkte anzeigen</span>
+          </label>
+          <div class="storage-summary">
+            <span class="migration-chip">${escapeHtml(`${items.length} Produkte`)}</span>
+            <span class="migration-chip">${escapeHtml(`${items.filter((item) => item?.in_stock).length} auf Lager`)}</span>
+          </div>
+        </div>
+        <p class="tab-status">${escapeHtml(model.status || 'Bereit.')}</p>
+      `,
+    })}
+    ${gridMarkup}
+
+    <div class="shopping-modal${editModal.open ? '' : ' hidden'}">
+      <div class="shopping-modal-backdrop" data-action="storage-close-edit"></div>
+      <section class="shopping-modal-content card storage-modal-content">
+        <button class="shopping-modal-close" type="button" data-action="storage-close-edit" aria-label="Produkt bearbeiten schließen">×</button>
+        <h3>${escapeHtml(activeEditItem?.name || 'Produkt bearbeiten')}</h3>
+        <div class="shopping-details-grid storage-edit-grid">
+          <label>
+            <span>Menge</span>
+            <input data-field="amount" data-role="storage-edit-field" type="number" min="0" step="0.01" value="${escapeHtml(editModal.amount || '')}" />
+          </label>
+          <label>
+            <span>MHD</span>
+            <input data-field="bestBeforeDate" data-role="storage-edit-field" type="date" value="${escapeHtml(editModal.bestBeforeDate || '')}" />
+          </label>
+          <label class="storage-edit-grid__full">
+            <span>Lagerort ändern</span>
+            <select data-field="locationId" data-role="storage-edit-field">${locationOptions}</select>
+          </label>
+        </div>
+        <div class="shopping-modal-save-row">
+          <button class="secondary-button" type="button" data-action="storage-close-edit">Abbrechen</button>
+          <button class="success-button" type="button" data-action="storage-save-edit">Speichern</button>
+        </div>
+      </section>
+    </div>
+
+    <div class="shopping-modal${consumeModal.open ? '' : ' hidden'}">
+      <div class="shopping-modal-backdrop" data-action="storage-close-consume"></div>
+      <section class="shopping-modal-content card storage-modal-content">
+        <button class="shopping-modal-close" type="button" data-action="storage-close-consume" aria-label="Produkt verbrauchen schließen">×</button>
+        <h3>${escapeHtml(activeConsumeItem?.name || 'Produkt verbrauchen')}</h3>
+        <p class="muted">Wie viel soll vom Bestand verbraucht werden?</p>
+        <label for="storage-consume-amount-native">Menge</label>
+        <input id="storage-consume-amount-native" data-field="amount" data-role="storage-consume-field" type="number" min="0.01" step="0.01" value="${escapeHtml(consumeModal.amount || '1')}" />
+        <div class="shopping-modal-save-row">
+          <button class="secondary-button" type="button" data-action="storage-close-consume">Abbrechen</button>
+          <button class="success-button" type="button" data-action="storage-confirm-consume">Verbrauchen</button>
+        </div>
+      </section>
+    </div>
+
+    <div class="shopping-modal${deleteModal.open ? '' : ' hidden'}">
+      <div class="shopping-modal-backdrop" data-action="storage-close-delete"></div>
+      <section class="shopping-modal-content card storage-modal-content">
+        <button class="shopping-modal-close" type="button" data-action="storage-close-delete" aria-label="Produkt löschen schließen">×</button>
+        <h3>Produkt löschen</h3>
+        <p class="muted">Soll <strong>${escapeHtml(activeDeleteItem?.name || 'dieses Produkt')}</strong> wirklich aus dem Bestand gelöscht werden?</p>
+        <div class="shopping-modal-save-row">
+          <button class="secondary-button" type="button" data-action="storage-close-delete">Abbrechen</button>
+          <button class="danger-button" type="button" data-action="storage-confirm-delete">Löschen</button>
+        </div>
+      </section>
+    </div>
+  `;
+}
+
 function getRecipeSuggestionDescription(item) {
   const reason = String(item?.reason || '').trim();
   const preparation = String(item?.preparation || '').replace(/\s+/g, ' ').trim();
@@ -259,6 +468,31 @@ function createInitialState() {
         manualServings: '2',
         manualIngredients: '',
         manualPreparation: '',
+      },
+    },
+    storage: {
+      status: 'Bereit.',
+      initialized: false,
+      loading: false,
+      items: [],
+      locations: [],
+      filter: '',
+      includeAllProducts: false,
+      editModal: {
+        open: false,
+        itemId: null,
+        amount: '',
+        bestBeforeDate: '',
+        locationId: '',
+      },
+      consumeModal: {
+        open: false,
+        itemId: null,
+        amount: '1',
+      },
+      deleteModal: {
+        open: false,
+        itemId: null,
       },
     },
   };
@@ -2137,16 +2371,83 @@ class GrocyAIRecipesTab extends HTMLElement {
   }
 }
 
-class GrocyAIStorageTab extends GrocyAILegacyBridgeTab {
+class GrocyAIStorageTab extends HTMLElement {
+  connectedCallback() {
+    if (this._bound) return;
+    this._bound = true;
+    this.addEventListener('click', (event) => {
+      const actionTarget = event.target.closest('[data-action]');
+      if (!actionTarget) return;
+      this.dispatchEvent(new CustomEvent(actionTarget.dataset.action, {
+        bubbles: true,
+        composed: true,
+        detail: { ...actionTarget.dataset },
+      }));
+    });
+    this.addEventListener('input', (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+
+      if (target.dataset.role === 'storage-filter') {
+        this.dispatchEvent(new CustomEvent('storage-filter-change', {
+          bubbles: true,
+          composed: true,
+          detail: { value: target.value },
+        }));
+      }
+
+      if (target.dataset.role === 'storage-edit-field') {
+        this.dispatchEvent(new CustomEvent('storage-edit-input', {
+          bubbles: true,
+          composed: true,
+          detail: { field: target.dataset.field, value: target.value },
+        }));
+      }
+
+      if (target.dataset.role === 'storage-consume-field') {
+        this.dispatchEvent(new CustomEvent('storage-consume-input', {
+          bubbles: true,
+          composed: true,
+          detail: { field: target.dataset.field, value: target.value },
+        }));
+      }
+    });
+    this.addEventListener('change', (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+
+      if (target.dataset.role === 'storage-include-all') {
+        this.dispatchEvent(new CustomEvent('storage-toggle-include-all', {
+          bubbles: true,
+          composed: true,
+          detail: { checked: Boolean(target.checked) },
+        }));
+      }
+
+      if (target.dataset.role === 'storage-edit-field') {
+        this.dispatchEvent(new CustomEvent('storage-edit-input', {
+          bubbles: true,
+          composed: true,
+          detail: { field: target.dataset.field, value: target.value },
+        }));
+      }
+    });
+  }
+
   _render() {
     const model = this._viewModel || {};
     this.innerHTML = `
       <section class="tab-view${model.active ? '' : ' hidden'}">
-        ${buildStoragePreviewMarkup(model)}
+        ${buildStorageTabMarkup(model)}
       </section>
     `;
 
-    this._attachLegacyBridgeListeners(model);
+    bindShoppingImageFallbacks(this);
+  }
+
+  set viewModel(value) {
+    this._viewModel = value;
+    this._render();
   }
 }
 
@@ -2197,6 +2498,7 @@ class GrocyAIDashboardPanel extends HTMLElement {
     window.removeEventListener('popstate', this._handlePopState);
     this._searchUnsubscribe?.();
     this._shoppingSearch.dispose();
+    window.clearTimeout(this._storageFilterDebounce);
     this._stopShoppingPolling();
   }
 
@@ -2340,6 +2642,20 @@ class GrocyAIDashboardPanel extends HTMLElement {
     root.addEventListener('recipes-submit-create-webscrape', () => this._submitRecipeCreateWebscrape());
     root.addEventListener('recipes-submit-create-ai', () => this._submitRecipeCreateAiPrompt());
     root.addEventListener('recipes-submit-create-manual', () => this._submitRecipeCreateManual());
+    root.addEventListener('storage-refresh', () => this._loadStorageProducts());
+    root.addEventListener('storage-filter-change', (event) => this._updateStorageFilter(event.detail?.value));
+    root.addEventListener('storage-toggle-include-all', (event) => this._updateStorageIncludeAllProducts(event.detail?.checked));
+    root.addEventListener('storage-open-edit', (event) => this._openStorageEdit(event.detail?.itemId));
+    root.addEventListener('storage-close-edit', () => this._closeStorageEdit());
+    root.addEventListener('storage-edit-input', (event) => this._updateStorageEditInput(event.detail));
+    root.addEventListener('storage-save-edit', () => this._saveStorageEdit());
+    root.addEventListener('storage-open-consume', (event) => this._openStorageConsume(event.detail?.itemId));
+    root.addEventListener('storage-close-consume', () => this._closeStorageConsume());
+    root.addEventListener('storage-consume-input', (event) => this._updateStorageConsumeInput(event.detail));
+    root.addEventListener('storage-confirm-consume', () => this._confirmStorageConsume());
+    root.addEventListener('storage-open-delete', (event) => this._openStorageDelete(event.detail?.itemId));
+    root.addEventListener('storage-close-delete', () => this._closeStorageDelete());
+    root.addEventListener('storage-confirm-delete', () => this._confirmStorageDelete());
     root.addEventListener('open-legacy-dashboard', (event) => this._openLegacyDashboard(event.detail?.tab));
   }
 
@@ -2369,7 +2685,9 @@ class GrocyAIDashboardPanel extends HTMLElement {
       ? state.shopping.status
       : state.activeTab === 'recipes'
         ? state.recipes.status
-        : state.topbarStatus;
+        : state.activeTab === 'storage'
+          ? state.storage.status
+          : state.topbarStatus;
     const topbarStatus = state.pendingRequests > 0 && searchState.flowState === SEARCH_FLOW_STATES.SUBMITTING
       ? searchState.statusMessage
       : activeTabStatus;
@@ -2397,11 +2715,12 @@ class GrocyAIDashboardPanel extends HTMLElement {
       apiBasePath: panelImageApiBasePath,
     };
     storageTab.viewModel = {
+      ...state.storage,
       active: state.activeTab === 'storage',
-      title: 'Lager',
-      tabName: 'storage',
-      panelPath: this._getPanelPath(),
-      legacyUrl: this._getResolvedLegacyDashboardUrl(),
+      activeEditItem: state.storage.items.find((item) => String(getActionableStorageId(item)) === String(state.storage.editModal.itemId)) || null,
+      activeConsumeItem: state.storage.items.find((item) => String(getActionableStorageId(item)) === String(state.storage.consumeModal.itemId)) || null,
+      activeDeleteItem: state.storage.items.find((item) => String(getActionableStorageId(item)) === String(state.storage.deleteModal.itemId)) || null,
+      resolveImageUrl: (url) => resolvePanelImageUrl(url, this._dashboardApi, { apiBasePath: panelImageApiBasePath }),
     };
     notificationsTab.viewModel = {
       active: state.activeTab === 'notifications',
@@ -2462,6 +2781,10 @@ class GrocyAIDashboardPanel extends HTMLElement {
     if (normalizedTab === 'recipes' && !this._store.getState().recipes.initialized) {
       void this._initializeRecipesTab();
     }
+
+    if (normalizedTab === 'storage' && !this._store.getState().storage.initialized) {
+      void this._initializeStorageTab();
+    }
   }
 
   _syncActiveTabFromLocation(options = {}) {
@@ -2500,6 +2823,16 @@ class GrocyAIDashboardPanel extends HTMLElement {
       ...state,
       recipes: {
         ...state.recipes,
+        ...partial,
+      },
+    }));
+  }
+
+  _updateStorageState(partial) {
+    this._store.update((state) => ({
+      ...state,
+      storage: {
+        ...state.storage,
         ...partial,
       },
     }));
@@ -2764,6 +3097,266 @@ class GrocyAIDashboardPanel extends HTMLElement {
     const ingredientCount = ingredientsRaw.split('\n').map((entry) => entry.trim()).filter(Boolean).length;
     this._setRecipeStatus(`Manuelles Rezept erfasst: ${title} (${Math.max(1, servings)} Portionen, ${ingredientCount} Zutaten).`);
     this._closeRecipeCreateModal();
+  }
+
+  async _initializeStorageTab() {
+    this._updateStorageState({ status: 'Lade Lagerstandorte…', loading: true });
+    await this._runRequest(async () => {
+      const api = await this._getDashboardApiOrThrow();
+      const { response, payload } = await api.fetchLocations();
+      if (!response.ok) throw new Error(getErrorMessage(payload, 'Standorte konnten nicht geladen werden.'));
+
+      this._updateStorageState({
+        initialized: true,
+        locations: Array.isArray(payload) ? payload : [],
+      });
+
+      await this._loadStorageProducts({ silent: true });
+    }, {
+      onError: (message) => {
+        this._updateStorageState({ loading: false, status: `Fehler: ${message}` });
+      },
+    });
+  }
+
+  _findStorageItem(itemId) {
+    return this._store.getState().storage.items.find((item) => String(getActionableStorageId(item)) === String(itemId)) || null;
+  }
+
+  async _loadStorageProducts(options = {}) {
+    const storageState = this._store.getState().storage;
+    this._updateStorageState({
+      loading: true,
+      status: options.silent
+        ? storageState.status
+        : storageState.includeAllProducts
+          ? 'Lade Lagerbestand und alle Produkte…'
+          : 'Lade Lagerbestand…',
+    });
+
+    await this._runRequest(async () => {
+      const api = await this._getDashboardApiOrThrow();
+      const latestState = this._store.getState().storage;
+      const { response, payload } = await api.fetchStockProducts({
+        includeAllProducts: latestState.includeAllProducts,
+        query: latestState.filter,
+      });
+      if (!response.ok) throw new Error(getErrorMessage(payload, 'Bestand konnte nicht geladen werden.'));
+
+      const items = (Array.isArray(payload) ? payload : []).map(normalizeStockProduct);
+      const outOfStockCount = items.filter((item) => !item.in_stock).length;
+      const fallbackProductIds = items.filter((item) => Number(item.stock_id || 0) <= 0 && Number(item.id || 0) > 0).length;
+
+      this._updateStorageState({
+        items,
+        loading: false,
+        status: outOfStockCount > 0 || fallbackProductIds > 0
+          ? `Lagerbestand geladen (${items.length} Produkte, ${outOfStockCount} nicht auf Lager${fallbackProductIds > 0 ? `, ${fallbackProductIds} via Produkt-ID` : ''}).`
+          : `Lagerbestand geladen (${items.length} Produkte).`,
+      });
+      this._store.patch({ topbarStatus: `Lager aktualisiert (${items.length} Produkte).` });
+    }, {
+      onError: (message) => {
+        this._updateStorageState({ loading: false, status: `Fehler: ${message}` });
+      },
+    });
+  }
+
+  _updateStorageFilter(value) {
+    this._updateStorageState({ filter: String(value || '') });
+    window.clearTimeout(this._storageFilterDebounce);
+    this._storageFilterDebounce = window.setTimeout(() => {
+      void this._loadStorageProducts();
+    }, 250);
+  }
+
+  _updateStorageIncludeAllProducts(checked) {
+    this._updateStorageState({ includeAllProducts: Boolean(checked) });
+    void this._loadStorageProducts();
+  }
+
+  _openStorageEdit(itemId) {
+    const item = this._findStorageItem(itemId);
+    if (!item) return;
+    this._updateStorageState({
+      editModal: {
+        open: true,
+        itemId: getActionableStorageId(item),
+        amount: formatAmount(item.amount, '0'),
+        bestBeforeDate: formatStorageDateLabel(item.best_before_date, ''),
+        locationId: item.location_id ? String(item.location_id) : '',
+      },
+    });
+  }
+
+  _closeStorageEdit() {
+    this._updateStorageState({
+      editModal: {
+        open: false,
+        itemId: null,
+        amount: '',
+        bestBeforeDate: '',
+        locationId: '',
+      },
+    });
+  }
+
+  _updateStorageEditInput(detail) {
+    if (!detail?.field) return;
+    this._updateStorageState({
+      editModal: {
+        ...this._store.getState().storage.editModal,
+        [detail.field]: detail.value,
+      },
+    });
+  }
+
+  async _saveStorageEdit() {
+    const storageState = this._store.getState().storage;
+    const editModal = storageState.editModal;
+    if (!editModal.itemId) return;
+
+    const amount = Number(String(editModal.amount || '').replace(',', '.'));
+    if (!Number.isFinite(amount) || amount < 0) {
+      this._updateStorageState({ status: 'Bitte eine gültige Menge eingeben.' });
+      return;
+    }
+
+    const item = this._findStorageItem(editModal.itemId);
+    if (!item) return;
+
+    this._updateStorageState({ status: 'Speichere Bestand…' });
+    await this._runRequest(async () => {
+      const api = await this._getDashboardApiOrThrow();
+      const locationId = Number(editModal.locationId || 0);
+      const { response, payload } = await api.updateStockProduct(editModal.itemId, {
+        amount,
+        best_before_date: editModal.bestBeforeDate || '',
+        location_id: Number.isFinite(locationId) && locationId > 0 ? locationId : null,
+      }, {
+        productId: item.id,
+      });
+      if (!response.ok) throw new Error(getErrorMessage(payload, 'Bestand konnte nicht aktualisiert werden.'));
+
+      this._closeStorageEdit();
+      this._updateStorageState({ status: 'Bestand wurde aktualisiert.' });
+      this._store.patch({ topbarStatus: 'Bestand wurde aktualisiert.' });
+      await this._loadStorageProducts({ silent: true });
+    }, {
+      onError: (message) => {
+        this._updateStorageState({ status: `Fehler: ${message}` });
+      },
+    });
+  }
+
+  _openStorageConsume(itemId) {
+    const item = this._findStorageItem(itemId);
+    if (!item) return;
+    this._updateStorageState({
+      consumeModal: {
+        open: true,
+        itemId: getActionableStorageId(item),
+        amount: '1',
+      },
+    });
+  }
+
+  _closeStorageConsume() {
+    this._updateStorageState({
+      consumeModal: {
+        open: false,
+        itemId: null,
+        amount: '1',
+      },
+    });
+  }
+
+  _updateStorageConsumeInput(detail) {
+    if (!detail?.field) return;
+    this._updateStorageState({
+      consumeModal: {
+        ...this._store.getState().storage.consumeModal,
+        [detail.field]: detail.value,
+      },
+    });
+  }
+
+  async _confirmStorageConsume() {
+    const consumeModal = this._store.getState().storage.consumeModal;
+    if (!consumeModal.itemId) return;
+    const amount = Number(String(consumeModal.amount || '').replace(',', '.'));
+    if (!Number.isFinite(amount) || amount <= 0) {
+      this._updateStorageState({ status: 'Bitte eine gültige Verbrauchsmenge eingeben.' });
+      return;
+    }
+
+    const item = this._findStorageItem(consumeModal.itemId);
+    if (!item) return;
+
+    this._updateStorageState({ status: 'Produkt wird verbraucht…' });
+    await this._runRequest(async () => {
+      const api = await this._getDashboardApiOrThrow();
+      const { response, payload } = await api.consumeStockProduct(consumeModal.itemId, {
+        amount,
+        productId: item.id,
+      });
+      if (!response.ok) throw new Error(getErrorMessage(payload, 'Produkt konnte nicht verbraucht werden.'));
+
+      this._closeStorageConsume();
+      this._updateStorageState({ status: 'Produkt wurde verbraucht.' });
+      this._store.patch({ topbarStatus: 'Produkt wurde verbraucht.' });
+      await this._loadStorageProducts({ silent: true });
+    }, {
+      onError: (message) => {
+        this._updateStorageState({ status: `Fehler: ${message}` });
+      },
+    });
+  }
+
+  _openStorageDelete(itemId) {
+    const item = this._findStorageItem(itemId);
+    if (!item) return;
+    this._updateStorageState({
+      deleteModal: {
+        open: true,
+        itemId: getActionableStorageId(item),
+      },
+    });
+  }
+
+  _closeStorageDelete() {
+    this._updateStorageState({
+      deleteModal: {
+        open: false,
+        itemId: null,
+      },
+    });
+  }
+
+  async _confirmStorageDelete() {
+    const deleteModal = this._store.getState().storage.deleteModal;
+    if (!deleteModal.itemId) return;
+
+    const item = this._findStorageItem(deleteModal.itemId);
+    if (!item) return;
+
+    this._updateStorageState({ status: 'Bestandseintrag wird gelöscht…' });
+    await this._runRequest(async () => {
+      const api = await this._getDashboardApiOrThrow();
+      const { response, payload } = await api.deleteStockProduct(deleteModal.itemId, {
+        productId: item.id,
+      });
+      if (!response.ok) throw new Error(getErrorMessage(payload, 'Bestandseintrag konnte nicht gelöscht werden.'));
+
+      this._closeStorageDelete();
+      this._updateStorageState({ status: payload?.message || 'Bestandseintrag wurde gelöscht.' });
+      this._store.patch({ topbarStatus: payload?.message || 'Bestandseintrag wurde gelöscht.' });
+      await this._loadStorageProducts({ silent: true });
+    }, {
+      onError: (message) => {
+        this._updateStorageState({ status: `Fehler: ${message}` });
+      },
+    });
   }
 
   _updateShoppingQuery(query) {

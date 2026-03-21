@@ -86,3 +86,43 @@ test('dashboard api client routes native scanner requests through v1 endpoints',
 
   delete globalThis.fetch;
 });
+
+test('dashboard api client routes native storage requests through dashboard stock endpoints', async () => {
+  const calls = [];
+  globalThis.fetch = async (url, options = {}) => {
+    calls.push({ url, options });
+    return {
+      ok: true,
+      async json() {
+        return { success: true };
+      },
+    };
+  };
+
+  const client = createDashboardApiClient({
+    apiBasePath: '/api/grocy_ai_assistant/dashboard-proxy',
+    getAuthHeaders: () => ({ Authorization: 'Bearer ha-access-token' }),
+  });
+
+  await client.consumeStockProduct(99, { amount: 2, productId: 77 });
+  await client.updateStockProduct(99, { amount: 3, best_before_date: '2026-04-01', location_id: 5 }, { productId: 77 });
+  await client.deleteStockProduct(99, { productId: 77 });
+
+  assert.equal(calls[0].url, '/api/grocy_ai_assistant/dashboard-proxy/api/dashboard/stock-products/99/consume?product_id=77');
+  assert.equal(calls[0].options.method, 'POST');
+  assert.equal(calls[0].options.headers.Authorization, 'Bearer ha-access-token');
+  assert.equal(calls[0].options.headers['Content-Type'], 'application/json');
+  assert.match(calls[0].options.body, /"amount":2/);
+
+  assert.equal(calls[1].url, '/api/grocy_ai_assistant/dashboard-proxy/api/dashboard/stock-products/99?product_id=77');
+  assert.equal(calls[1].options.method, 'PUT');
+  assert.equal(calls[1].options.headers.Authorization, 'Bearer ha-access-token');
+  assert.equal(calls[1].options.headers['Content-Type'], 'application/json');
+  assert.match(calls[1].options.body, /"location_id":5/);
+
+  assert.equal(calls[2].url, '/api/grocy_ai_assistant/dashboard-proxy/api/dashboard/stock-products/99?product_id=77');
+  assert.equal(calls[2].options.method, 'DELETE');
+  assert.equal(calls[2].options.headers.Authorization, 'Bearer ha-access-token');
+
+  delete globalThis.fetch;
+});

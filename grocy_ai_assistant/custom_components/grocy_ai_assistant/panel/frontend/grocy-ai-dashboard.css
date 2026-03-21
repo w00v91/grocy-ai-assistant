@@ -751,6 +751,106 @@ button:disabled {
   gap: 0.75rem;
 }
 
+.storage-controls,
+.storage-summary,
+.storage-filter-field,
+.storage-edit-grid label {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.storage-controls {
+  grid-template-columns: minmax(0, 1.6fr) auto auto;
+  align-items: end;
+  margin-top: 0.5rem;
+}
+
+.storage-filter-field .eyebrow {
+  margin-bottom: 0;
+}
+
+.storage-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--panel-border-color);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--panel-card-background) 96%, var(--primary-background-color));
+}
+
+.storage-toggle input {
+  width: auto;
+}
+
+.storage-summary {
+  grid-template-columns: repeat(2, auto);
+  justify-content: end;
+  align-items: center;
+}
+
+.storage-grid {
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.storage-card {
+  height: 100%;
+}
+
+.storage-card__surface,
+.storage-card__body {
+  display: grid;
+  gap: 1rem;
+}
+
+.storage-card__surface {
+  height: 100%;
+}
+
+.storage-card__media-wrap {
+  position: relative;
+}
+
+.storage-card__media {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  height: auto;
+  max-height: 190px;
+}
+
+.storage-card__stock-chip {
+  position: absolute;
+  top: 0.85rem;
+  right: 0.85rem;
+}
+
+.storage-card__meta-badges {
+  align-items: start;
+}
+
+.storage-card__actions {
+  justify-content: flex-start;
+}
+
+.storage-modal-content {
+  width: min(680px, calc(100vw - 32px));
+}
+
+.storage-edit-grid {
+  margin: 1rem 0;
+}
+
+.storage-edit-grid label {
+  border: 1px solid var(--panel-border-color);
+  border-radius: 14px;
+  padding: 0.85rem;
+  background: color-mix(in srgb, var(--panel-card-background) 96%, var(--primary-background-color));
+}
+
+.storage-edit-grid__full {
+  grid-column: 1 / -1;
+}
+
 .recipes-primary-actions {
   margin-top: 8px;
 }
@@ -977,7 +1077,8 @@ button:disabled {
   .variant-card__meta,
   .scanner-modal-header,
   .scanner-result-card__header,
-  .expiring-search-controls {
+  .expiring-search-controls,
+  .storage-controls {
     grid-template-columns: 1fr;
     flex-direction: column;
     align-items: stretch;
@@ -1009,6 +1110,11 @@ button:disabled {
   .recipe-item-native__button,
   .stock-item {
     align-items: flex-start;
+  }
+
+  .storage-summary {
+    grid-template-columns: 1fr;
+    justify-content: stretch;
   }
 
   .recipe-create-methods {

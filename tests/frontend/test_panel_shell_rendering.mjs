@@ -63,24 +63,31 @@ test('shopping tab and search bar keep their stable DOM shells instead of replac
 test('native panel binds shared shopping image fallbacks after list and variant renders', async () => {
   const source = await fs.readFile(dashboardPath, 'utf8');
 
-  assert.match(source, /import \{ bindShoppingImageFallbacks, escapeHtml, formatAmount, renderShoppingListItemCard, renderShoppingVariantCard, resolveShoppingImageSource \} from '\.\/shopping-ui\.js';/);
+  assert.match(source, /import \{ bindShoppingImageFallbacks, escapeHtml, formatAmount, formatBadgeValue, formatStockCount, renderShoppingListItemCard, renderShoppingVariantCard, resolveShoppingImageSource \} from '\.\/shopping-ui\.js';/);
   assert.match(source, /variantGrid\.replaceChildren\(\.\.\.nodes\);\s+bindShoppingImageFallbacks\(this\);/);
   assert.match(source, /list\.replaceChildren\(\.\.\.items\.map\(\(item\) => this\._createShoppingListItem\(item, model\)\)\);\s+bindShoppingImageFallbacks\(this\);/);
 });
 
 
-test('recipes tab is natively migrated while storage still keeps shared preview cards before its legacy iframe bridge', async () => {
+test('recipes and storage tabs are natively migrated in the panel shell', async () => {
   const source = await fs.readFile(dashboardPath, 'utf8');
 
   assert.match(source, /import \{ renderActionRow, renderCardContainer, renderMetaBadges, renderStateCard, renderTileGrid, renderTwoColumnCardGroup \} from '\.\/shared-panel-ui\.js';/);
-  assert.match(source, /const MIGRATED_TABS = new Set\(\['shopping', 'recipes'\]\);/);
+  assert.match(source, /const MIGRATED_TABS = new Set\(\['shopping', 'recipes', 'storage'\]\);/);
   assert.match(source, /function buildRecipesTabMarkup\(model = \{\}\) \{/);
   assert.match(source, /renderTwoColumnCardGroup\(recipeCards, \{ className: 'recipes-card-group' \}\)/);
   assert.match(source, /dataset: \{ action: 'recipes-load-suggestions' \}/);
   assert.match(source, /data-action="recipes-load-expiring"|dataset: \{ action: 'recipes-load-expiring' \}/);
   assert.match(source, /dataset: \{ action: 'recipes-open-create' \}/);
   assert.match(source, /class GrocyAIRecipesTab extends HTMLElement \{[\s\S]*?buildRecipesTabMarkup\(model\)/);
-  assert.match(source, /function buildStoragePreviewMarkup\(model = \{\}\) \{/);
-  assert.match(source, /renderTileGrid\(\[[\s\S]*?title: 'Ladezustand als Karte'/);
-  assert.match(source, /class GrocyAIStorageTab extends GrocyAILegacyBridgeTab \{[\s\S]*?buildStoragePreviewMarkup\(model\)/);
+  assert.match(source, /function buildStorageTabMarkup\(model = \{\}\) \{/);
+  assert.match(source, /data-role="storage-filter"/);
+  assert.match(source, /data-action="storage-open-edit"/);
+  assert.match(source, /data-action="storage-open-consume"/);
+  assert.match(source, /data-action="storage-open-delete"/);
+  assert.match(source, /class GrocyAIStorageTab extends HTMLElement \{[\s\S]*?buildStorageTabMarkup\(model\)/);
+  assert.match(source, /_initializeStorageTab\(\) \{/);
+  assert.match(source, /api\.updateStockProduct\(editModal\.itemId/);
+  assert.match(source, /api\.consumeStockProduct\(consumeModal\.itemId/);
+  assert.match(source, /api\.deleteStockProduct\(deleteModal\.itemId/);
 });

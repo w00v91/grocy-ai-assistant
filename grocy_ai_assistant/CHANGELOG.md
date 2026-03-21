@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Changed (Home-Assistant-Integration/Panel): Der `storage`-Tab ist jetzt nativ migriert und rendert den Lagerbestand als echtes Grid mit Bild, Bestandsinfos, Lagerort, MHD/Metadaten sowie Quick Actions statt als Legacy-Fallback.
+- Changed (Home-Assistant-Integration/Panel): Native Storage-Filter übernehmen Textsuche, Toggle „Alle Produkte anzeigen“, manuelles Refresh sowie die Dialog-Flows für Bearbeiten, Lagerort ändern, Verbrauchen und Löschen über die bestehenden Dashboard-Endpunkte.
+- Test: `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/dashboard-api-client.js`, `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `node --test tests/frontend/test_dashboard_api_client.mjs tests/frontend/test_panel_shell_rendering.mjs`, `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.32` erhöht.
+
 - Changed (Home-Assistant-Integration/Panel): Der `recipes`-Tab ist jetzt als erster vollständiger Nicht-Shopping-Tab nativ migriert und rendert Grocy-/KI-Rezeptvorschläge, Lagerstandorte, Produktauswahl, CTA-Aktionen sowie Rezeptdetails/-anlegen ohne Legacy-iframe direkt im HA-Panel.
 - Refactor (Home-Assistant-Integration/Panel): Das native Panel nutzt für Rezeptflows jetzt dieselben bestehenden Backend-Endpunkte wie das Legacy-Dashboard (`recipe-suggestions`, `locations`, `stock-products`, `POST /api/dashboard/recipe/{recipe_id}/add-missing`) über den gemeinsamen Panel-API-Client.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `7.4.31` erhöht.
