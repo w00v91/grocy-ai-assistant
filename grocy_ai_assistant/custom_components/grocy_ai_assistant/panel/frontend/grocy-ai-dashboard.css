@@ -17,7 +17,7 @@
 
 .page-shell {
   min-height: 100%;
-  padding: 24px;
+  padding: 24px 24px calc(132px + env(safe-area-inset-bottom, 0px));
   background: var(--primary-background-color);
 }
 
@@ -97,7 +97,6 @@ h1 {
 .dashboard-content {
   display: grid;
   gap: var(--panel-gap);
-  margin-bottom: 88px;
 }
 
 .tab-view.hidden,
@@ -539,17 +538,23 @@ button:disabled {
 
 
 .bottom-tabbar {
-  position: sticky;
-  bottom: 0;
+  position: fixed;
+  left: 24px;
+  right: 24px;
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  z-index: 40;
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
+  width: min(960px, calc(100vw - 48px));
+  margin: 0 auto;
   padding: 14px;
   border-radius: 24px;
   background: color-mix(in srgb, var(--panel-card-background) 92%, transparent);
   border: 1px solid var(--panel-border-color);
-  box-shadow: var(--panel-shadow);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.24);
   backdrop-filter: blur(16px);
+  isolation: isolate;
 }
 
 .tab-button {
@@ -1186,6 +1191,10 @@ button:disabled {
     padding: 16px;
   }
 
+  .page-shell {
+    padding-bottom: calc(148px + env(safe-area-inset-bottom, 0px));
+  }
+
   .topbar-content,
   .section-header,
   .shopping-card__actions {
@@ -1238,6 +1247,11 @@ button:disabled {
   }
 
   .bottom-tabbar {
-    position: static;
+    left: 16px;
+    right: 16px;
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    width: calc(100vw - 32px);
+    padding: 12px;
+    border-radius: 20px;
   }
 }

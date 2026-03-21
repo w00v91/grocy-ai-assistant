@@ -24,6 +24,13 @@ test('dashboard panel ensures its shell exists before assigning child view model
 });
 
 
+test('tab navigation only renders native shopping, recipes, and storage links', async () => {
+  const source = await fs.readFile(dashboardPath, 'utf8');
+
+  assert.match(source, /const VISIBLE_TAB_ORDER = TAB_ORDER\.filter\(\(tab\) => tab !== 'notifications'\);/);
+  assert.match(source, /VISIBLE_TAB_ORDER\.map\(\(tab\) => `\n/);
+});
+
 test('topbar markup no longer renders panel URL hints or quicklink pills', async () => {
   const source = await fs.readFile(dashboardPath, 'utf8');
   const topbarSection = source.slice(
