@@ -17,6 +17,50 @@
 
 ---
 
+
+## Visuelle Abnahme: „ähnlicher Stil bei gleicher Funktion“
+
+Die Legacy-Struktur in `grocy_ai_assistant/api/templates/dashboard.html` ist für die Migration **explizit die visuelle Referenz** – nicht nur Datenquelle oder API-Auslöser. Abnahmen erfolgen daher immer gegen die dortige DOM-Struktur, Kartenhierarchie und Interaktionsform der jeweiligen Tabs.
+
+### Verbindliche visuelle Paritätsregeln pro Tab
+
+| Regel | Legacy-Referenz in `dashboard.html` | Abnahmekriterium für native Tabs |
+| --- | --- | --- |
+| Kachel bleibt Kachel | `hero-card`, Shopping-/Storage-/Notification-Karten | Inhalte, die im Legacy als Card/Suface gruppiert sind, bleiben auch nativ klar als eigene Card mit sichtbarer Begrenzung, Innenabstand und eigenem Schwerpunkt erkennbar. |
+| Grid bleibt Grid | `variant-grid`, `notification-grid` | Listen mit mehreren gleichrangigen Elementen bleiben nativ als Grid/Kachelfläche organisiert und dürfen nicht in eine rein textuelle Liste oder Accordion-Struktur umkippen. |
+| Zwei Spalten bleiben zwei Spalten | `recipe-columns` | Zweispaltige Bereiche bleiben ab tablet-/desktop-tauglichem Viewport zweispaltig; nur bei echtem Platzmangel darf responsiv auf eine Spalte reduziert werden. |
+| Floating/Modal bleibt Modal/Overlay | `shopping-modal`, `recipe-modal`, `storage-edit-modal`, `notification-rule-modal`, `scanner-modal` | Dialoge mit Fokus, Backdrop und temporärer Entscheidung bleiben nativ als Overlay/Modal umgesetzt; kein Inline-Ersatz, wenn der Legacy-Flow bewusst modal ist. |
+| Primäre CTA bleibt prominent | `hero-card` mit Such-CTA, `Rezept hinzufügen`, Refresh-/Test-/Speicher-Aktionen | Die wichtigste Primäraktion eines Tabs bleibt nativ visuell hervorgehoben und nicht hinter Sekundäraktionen, Menüs oder unauffälligen Textlinks versteckt. |
+
+### Referenz-Selektoren aus `dashboard.html`
+
+Die folgenden Legacy-Bausteine dienen bei Reviews als konkrete Vergleichspunkte:
+
+- `hero-card`: visueller Einstieg, Priorisierung der Primäraktion, Above-the-fold-Gewichtung.
+- `variant-grid`: gleichrangige Auswahlkacheln, besonders für Shopping-Suche und Storage-Karten.
+- `recipe-columns`: parallele Rezeptlisten mit vergleichbarem visuellem Gewicht.
+- `notification-grid`: mehrere gleichwertige Status-/Gerätekacheln im selben Raster.
+- `shopping-modal`: Overlay-Muster für fokussierte Bearbeitungs- und Bestätigungsflows.
+
+### Abnahmeentscheidung für visuelle Parität
+
+Ein Tab erfüllt „ähnlicher Stil bei gleicher Funktion“ nur dann, wenn **alle** folgenden Aussagen mit **Ja** beantwortet werden:
+
+1. Gleiche Funktion ist im nativen Tab ohne Legacy-`iframe` erreichbar.
+2. Gleiche Interaktionsform bleibt erhalten (Kachel/Grid/Modal/zweispaltige Gruppe statt völlig anderem UI-Muster).
+3. Gleicher visueller Schwerpunkt bleibt erhalten (Hero bleibt Hero, Primär-CTA bleibt Primär-CTA).
+4. Abweichungen sind tab-lokal dokumentiert und bieten einen klaren Home-Assistant-Mehrwert.
+
+Zulässige Abweichungen sind nur begründet durch:
+
+- bessere Responsiveness,
+- bessere Accessibility,
+- bessere Touch-Bedienung.
+
+Nicht zulässig sind Abweichungen, die nur aus Implementierungsbequemlichkeit entstehen oder die Legacy-Hierarchie ohne nachweisbaren Mehrwert abschwächen.
+
+---
+
 ## Tab `shopping`
 
 | Aspekt | Legacy-UI | Native Panel-Struktur | Migrationsziel | Abnahme / darf nicht verloren gehen |
@@ -29,6 +73,20 @@
 | Leere / fehlerhafte / loading States | Statustexte wie „Lade Einkaufsliste...“, „Kein API-Key angegeben.“, Netzwerk-/Ingress-Fehler; Variantenbereich zeigt Ladezustand und „Keine Produktvarianten gefunden.“; Liste kann leer sein. | Native Search-Bar kennt Zustände `empty`, `typing`, `loading`, `suggestions`, `submitting`, `error`; Liste zeigt „Einkaufsliste wird geladen…“ bzw. „Keine Einträge.“; Statusmeldungen werden im Store gehalten. | native übernommen | Alle Legacy-Zustände müssen im nativen Panel sichtbar bleiben: Laden, leer, Fehler, Vorschläge sichtbar, Aktion läuft. |
 | Shared UI / Komponentenbedarf | Shopping-Karten und Swipe-Verhalten sind bereits zwischen Legacy und Panel angenähert. | Native nutzt eigene Komponenten, aber mit Shared-Helfern wie `shopping-ui.js` und `bindSwipeInteractions(...)`. | braucht Shared-Komponente | Gemeinsame Karten-/Swipe-/Variantendarstellung sollte weiter zentralisiert bleiben, damit Shopping in Legacy und Native nicht auseinanderläuft. |
 | HA-Entity / Service-Ersatz | Direkt im Tab nicht relevant; Interaktionen bleiben API-getrieben. | Keine direkte HA-Entity-Ersetzung im Shopping-Tab erkennbar. | native übernommen | Nicht in HA-Entities zerlegen, solange Listen-/Suchlogik transaktional über Dashboard-API laufen muss. |
+
+### Vergleichsliste `shopping`
+
+| Legacy-Komponente | Native Entsprechung | gleiche Funktion? | gleiche Interaktionsform? | ähnlicher visueller Schwerpunkt? |
+| --- | --- | --- | --- | --- |
+| `hero-card` mit Suche, Clear, Scanner und Variantenbereich | `grocy-ai-shopping-tab` mit `grocy-ai-shopping-search-bar`, Scanner-Shortcut und Variantenergebnissen | Ja | Ja – Hero bleibt Hero, `variant-grid` bleibt Grid | Ja |
+| Einkaufslisten-Karte mit Statuszeile und Sammelaktionen | native Shopping-Listenkarte mit Aktionen/Status im Panel | Ja | Ja – Kachel bleibt Kachel | Ja |
+| `shopping-item-modal` und `mhd-modal` | `grocy-ai-dashboard-modals` | Ja | Ja – `shopping-modal` bleibt Overlay/Modal | Ja |
+| `scanner-modal` | `grocy-ai-scanner-bridge` | Ja | Ja – Scanner bleibt fokussiertes Overlay | Ja |
+
+**Tab-lokale Abweichungen mit HA-Mehrwert**
+
+- Scanner nutzt nativ eine eigene Web-Component statt Legacy-Markup. Das ist zulässig, weil dadurch Touch-/Kamera-Integration, Fokussteuerung und Responsiveness im Home-Assistant-Panel robuster werden.
+- Shopping darf HA-spezifische Status-/Busy-Synchronisation ergänzen, solange `hero-card`, `variant-grid` und `shopping-modal` als visuelle Muster erkennbar bleiben.
 
 ### Abnahmeliste `shopping`
 
@@ -53,6 +111,20 @@
 | Leere / fehlerhafte / loading States | Leere Listen: „Keine gespeicherten Grocy-Rezepte gefunden.“, „Keine KI-Rezepte erzeugt.“, „Keine Lagerstandorte gefunden.“, „Keine Produkte für die ausgewählten Lagerstandorte gefunden.“; Statusmeldungen für Laden/Fehler/Netzwerk. | Im nativen Panel existiert nur der generische Bridge-Zustand („Legacy-Fallback aktiv“), aber keine tab-spezifischen Rezept-States. | native fehlt | Alle Legacy-States müssen als native Skeleton-/Empty-/Error-/Status-States modelliert werden. |
 | Shared UI / Komponentenbedarf | Rezeptlisten, Filterleiste, Detaildialog und Erfassungsdialog sind in Legacy eng miteinander gekoppelt. | Noch keine native Shared-Komponente vorhanden. | braucht Shared-Komponente | Sinnvoll wäre ein eigener Recipe-Tab-Baustein mit wiederverwendbaren Listen-, Filter- und Modal-Komponenten. |
 | HA-Entity / Service-Ersatz | Teile der Vorschlagsanzeige könnten perspektivisch durch HA-Sensoren ergänzt werden, aber Filter, Detaildialog und „fehlende Produkte hinzufügen“ bleiben interaktiv. | Derzeit kein Ersatz vorhanden. | kann durch HA-Entity/Service ersetzt werden / braucht Shared-Komponente | Reine Übersichts-KPIs oder Top-Vorschläge können durch HA-Sensoren ergänzt werden; der eigentliche Rezept-Workflow braucht trotzdem natives UI. |
+
+### Vergleichsliste `recipes`
+
+| Legacy-Komponente | Native Entsprechung | gleiche Funktion? | gleiche Interaktionsform? | ähnlicher visueller Schwerpunkt? |
+| --- | --- | --- | --- | --- |
+| Rezept-Card mit Filterleiste und CTA | aktuell Bridge-Card + Legacy-`iframe` | Nein – noch nicht nativ | Teilweise – Kachel vorhanden, aber keine echte native Interaktion | Teilweise |
+| `recipe-columns` mit zwei Listen | aktuell keine native Zweispalten-Struktur | Nein | Nein – `recipe-columns` fehlt nativ noch | Nein |
+| `recipe-modal` für Details | aktuell kein natives Rezeptdetail-Modal | Nein | Nein – Modal fehlt nativ | Nein |
+| `recipe-create-modal` für WebScrape/KI/Manuell | aktuell kein natives Create-Modal | Nein | Nein – Modal fehlt nativ | Nein |
+
+**Tab-lokale Abweichungen mit HA-Mehrwert**
+
+- Zulässig ist nur eine responsive Reduktion von `recipe-columns` auf eine Spalte bei engem Viewport. Auf größeren Viewports muss die Zweispalten-Logik erhalten bleiben.
+- Wenn Rezeptfilter nativ zugänglicher umgesetzt werden, muss der visuelle Schwerpunkt trotzdem auf der Haupt-Rezeptkarte mit prominenter Aktion **„Rezept hinzufügen“** bleiben.
 
 ### Abnahmeliste `recipes`
 
@@ -79,6 +151,20 @@
 | Shared UI / Komponentenbedarf | Storage-Liste nutzt kartige Produktdarstellung und Swipe-Interaktionen, die visuell nah an Shopping liegen. | Noch keine native Storage-Komponente vorhanden. | braucht Shared-Komponente | Produktkarten, Swipe-Handling und Bild-/Badge-Rendering sollten mit Shopping teilbar sein, statt doppelt implementiert zu werden. |
 | HA-Entity / Service-Ersatz | Reine Summen oder Warnungen könnten über HA-Sensoren/Buttons erscheinen; das Bearbeitungsmodal bleibt UI-intensiv. | Kein Ersatz vorhanden. | kann durch HA-Entity/Service ersetzt werden / braucht Shared-Komponente | Bestandszähler/„bald ablaufend“-KPIs können als HA-Entity gespiegelt werden; interaktives Editieren bleibt ein nativer Tab-Use-Case. |
 
+### Vergleichsliste `storage`
+
+| Legacy-Komponente | Native Entsprechung | gleiche Funktion? | gleiche Interaktionsform? | ähnlicher visueller Schwerpunkt? |
+| --- | --- | --- | --- | --- |
+| Storage-`hero-card` mit Refresh, Filter und Toggle | nativer Storage-Header / Filterkarte im Panel | Ja | Ja – Hero/Karte bleibt Hero/Karte | Ja |
+| Produktliste als `variant-grid` | native Storage-Karten im Grid | Ja | Ja – Grid bleibt Grid | Ja |
+| `storage-edit-modal` | native Storage-Edit-/Consume-/Delete-Modals | Ja | Ja – `shopping-modal`-Muster bleibt Overlay | Ja |
+| Quick Actions auf Produktkarten | native Quick Actions und Modal-Trigger | Ja | Ja – Kachelinteraktion bleibt kachelzentriert | Ja |
+
+**Tab-lokale Abweichungen mit HA-Mehrwert**
+
+- Zulässig sind größere Touch-Ziele, klarere Fokuszustände und responsivere Umbrüche innerhalb des `variant-grid`, solange die kachelbasierte Produktdarstellung nicht zu einer textlastigen Tabellen-/Listenansicht degradiert.
+- Zusätzliche HA-Statuschips sind erlaubt, wenn sie die Primäraktionen **Bearbeiten**/**Verbrauchen** nicht visuell verdrängen.
+
 ### Abnahmeliste `storage`
 
 - [ ] Lagerliste ist nativ mit Refresh, Filter und „Alle Produkte anzeigen“-Toggle verfügbar.
@@ -103,6 +189,20 @@
 | Shared UI / Komponentenbedarf | Listen für Geräte, Regeln und Historie plus Regelmodal teilen sich Status- und Auswahlmuster. | Noch keine native Notification-Komponente vorhanden. | braucht Shared-Komponente | Listen-/Form-Komponenten und Status-Handling sollten als wiederverwendbare Notification-Bausteine entstehen. |
 | HA-Entity / Service-Ersatz | Test-Benachrichtigungen und globale Statusanzeige könnten teils über HA-Services/Buttons abgebildet werden; Regelverwaltung bleibt ein UI-Workflow. | Kein Ersatz vorhanden. | kann durch HA-Entity/Service ersetzt werden / braucht Shared-Komponente | Einzelne Testaktionen lassen sich durch HA-Services ergänzen, aber Geräte-/Regelverwaltung braucht weiterhin natives UI. |
 
+### Vergleichsliste `notifications`
+
+| Legacy-Komponente | Native Entsprechung | gleiche Funktion? | gleiche Interaktionsform? | ähnlicher visueller Schwerpunkt? |
+| --- | --- | --- | --- | --- |
+| Überblicks-Card mit Statuszeile | aktuell Bridge-Card + Legacy-`iframe` | Nein – noch nicht nativ | Teilweise – Kachel sichtbar, aber keine native Fachinteraktion | Teilweise |
+| Geräte-/Regel-/Test-/Historie-Bereiche als `notification-grid` bzw. Kartenblöcke | aktuell keine native Vier-Bereichs-Struktur | Nein | Nein – Grid-/Kartenstruktur fehlt nativ | Nein |
+| `notification-rule-modal` | aktuell kein natives Regel-Modal | Nein | Nein – Modal fehlt nativ | Nein |
+| Primäre Test-/Regel-CTAs | aktuell nur „Legacy-Dashboard öffnen“ | Nein | Nein | Nein |
+
+**Tab-lokale Abweichungen mit HA-Mehrwert**
+
+- Ein nativer Notifications-Tab darf die Bereiche responsiver stapeln oder mit besserer Tastatur-/Screenreader-Führung ausstatten, muss aber `notification-grid` bzw. gleichwertige Kartenblöcke als Übersichtsmuster beibehalten.
+- Testaktionen dürfen HA-näher formuliert werden, solange die primären CTAs gegenüber sekundären Links/Meta-Informationen klar dominant bleiben.
+
 ### Abnahmeliste `notifications`
 
 - [ ] Geräteverwaltung ist nativ sichtbar und Geräte lassen sich aktiv/inaktiv schalten.
@@ -116,4 +216,6 @@
 
 ## Übergreifende Abnahmeregel für die Migration
 
-Ein Tab gilt erst dann als vollständig migriert, wenn alle Punkte seiner Abnahmeliste ohne Legacy-`iframe` erfüllt sind. Solange ein Tab nur über `GrocyAILegacyBridgeTab` läuft, bleibt sein Status **„native fehlt“**, selbst wenn Navigation, Header oder Quicklinks bereits im nativen Panel sichtbar sind.
+Ein Tab gilt erst dann als vollständig migriert, wenn alle Punkte seiner Abnahmeliste **und** seiner Vergleichsliste ohne Legacy-`iframe` erfüllt sind. Solange ein Tab nur über `GrocyAILegacyBridgeTab` läuft, bleibt sein Status **„native fehlt“**, selbst wenn Navigation, Header oder Quicklinks bereits im nativen Panel sichtbar sind.
+
+Zusätzlich gilt: Eine technische 1:1-Funktionsabdeckung reicht nicht aus. Die Migration ist erst abgenommen, wenn die native Umsetzung die Legacy-Referenz aus `dashboard.html` auch **visuell und interaktiv** erkennbar fortführt – insbesondere bei `hero-card`, `variant-grid`, `recipe-columns`, `notification-grid` und `shopping-modal`.

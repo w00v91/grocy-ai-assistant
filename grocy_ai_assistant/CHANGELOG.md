@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Added (Dokumentation/Migration): `docs/legacy-native-panel-mapping.md` definiert jetzt eine klare visuelle Abnahme für „ähnlicher Stil bei gleicher Funktion“ und verankert `dashboard.html` explizit als Referenz für Karten-, Grid-, Spalten-, Modal- und CTA-Parität pro Tab.
+- Added (Dokumentation/Migration): Für `shopping`, `recipes`, `storage` und `notifications` gibt es jetzt tab-lokale Vergleichslisten mit Legacy-Komponente, nativer Entsprechung, Funktionsgleichheit, Interaktionsform, visuellem Schwerpunkt und erlaubten HA-Mehrwert-Abweichungen.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `7.4.34` erhöht.
+- Test: `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.34` erhöht.
+
 - Refactor (Home-Assistant-Integration/Panel): Das native Panel konsolidiert Polling, Busy-/Statusanzeigen, Modal-Steuerung, Bottom-Tab-Navigation und URL-/History-Sync jetzt über gemeinsame Helfer in `createDashboardStore`, `tab-routing.js`, `GrocyAIDashboardModals` und `GrocyAIScannerBridge`; tab-spezifische Zustandsmodelle liegen für `shopping`, `recipes`, `storage` und `notifications` nun mit festen `loaded`/`loading`/`error`/`empty`/`editing`-Flags vor.
 - Changed (Home-Assistant-Integration/Panel): Der Shopping-Scanner bleibt ein tab-fokussiertes Overlay, ist aber jetzt als eigener `shopping.scanner`-Teilbaum gekapselt und blockiert Polling bzw. fremde Tab-Zustände nur noch innerhalb des Shopping-Flows.
 - Changed (Home-Assistant-Integration/Panel): Der bisherige `legacy_dashboard_url` wird im Panel nur noch als `legacy_dashboard_emergency_url` für den Notfall-/Fallbackpfad der noch nicht nativ migrierten Benachrichtigungen bereitgestellt.
