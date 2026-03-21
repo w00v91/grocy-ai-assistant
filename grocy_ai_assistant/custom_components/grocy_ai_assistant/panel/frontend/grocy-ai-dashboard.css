@@ -6,6 +6,7 @@
   --panel-shadow: var(--ha-card-box-shadow, 0 2px 8px rgba(0, 0, 0, 0.08));
   --panel-radius: 20px;
   --panel-gap: 20px;
+  --image-bg: color-mix(in srgb, var(--secondary-background-color, #e9eff7) 80%, var(--panel-border-color));
 }
 
 * {
@@ -256,6 +257,37 @@ h1 {
   background: transparent;
   color: inherit;
   text-align: left;
+}
+
+.shopping-item-content {
+  align-items: center;
+  gap: 16px;
+}
+
+.shopping-item-content img,
+.variant-card__image {
+  width: 72px;
+  height: 72px;
+  flex: 0 0 72px;
+  border-radius: 14px;
+  object-fit: cover;
+  background: var(--image-bg);
+}
+
+.shopping-item-meta {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.variant-card__button {
+  display: grid;
+  gap: 12px;
+}
+
+.variant-card__image {
+  margin-bottom: 4px;
 }
 
 .variant-card__button:hover {
@@ -594,6 +626,16 @@ button:disabled {
   .section-header,
   .shopping-item-card__content {
     flex-direction: column;
+  }
+
+  .shopping-item-content {
+    align-items: stretch;
+  }
+
+  .shopping-item-content img,
+  .variant-card__image {
+    width: 100%;
+    max-width: 96px;
   }
 
   .shopping-search-shell__header,

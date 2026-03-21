@@ -20,6 +20,15 @@ function createDefaultTimerApi() {
   return {
     setTimeout: (...args) => timeoutHost.setTimeout(...args),
     clearTimeout: (...args) => timeoutHost.clearTimeout(...args),
+  const setTimeoutImpl = typeof globalThis.window?.setTimeout === 'function'
+    ? globalThis.window.setTimeout.bind(globalThis.window)
+    : (...args) => globalThis.setTimeout(...args);
+  const clearTimeoutImpl = typeof globalThis.window?.clearTimeout === 'function'
+    ? globalThis.window.clearTimeout.bind(globalThis.window)
+    : (...args) => globalThis.clearTimeout(...args);
+  return {
+    setTimeout: (...args) => setTimeoutImpl(...args),
+    clearTimeout: (...args) => clearTimeoutImpl(...args),
   };
 }
 
