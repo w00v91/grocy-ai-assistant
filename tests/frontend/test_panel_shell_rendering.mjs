@@ -22,3 +22,13 @@ test('dashboard panel ensures its shell exists before assigning child view model
   assert.match(source, /const topbar = this\.shadowRoot\.querySelector\('grocy-ai-topbar'\);/);
   assert.match(source, /if \(!topbar \|\| !tabNav \|\| !shoppingTab \|\| !recipesTab \|\| !storageTab \|\| !notificationsTab \|\| !modals \|\| !scannerBridge\) \{/);
 });
+
+test('dashboard panel keeps product-picture requests on the HA proxy before the API client is ready', async () => {
+  const source = await fs.readFile(dashboardPath, 'utf8');
+
+  assert.match(source, /function resolvePanelImageUrl\(url, dashboardApi, options = \{\}\)/);
+  assert.match(source, /const normalizedApiBasePath = String\(options\?\.apiBasePath \|\| ''\)\.replace\(\/\\\/\+\$\/, ''\);/);
+  assert.match(source, /return normalizedApiBasePath \? `\$\{normalizedApiBasePath\}\$\{normalizedPath\}` : normalizedPath;/);
+  assert.match(source, /const panelImageApiBasePath = this\._dashboardApiBasePath\s+\|\|\s+String\(panelConfig\?\.dashboard_api_base_path \|\| panelConfig\?\.api_base_path \|\| ''\)\.replace\(\/\\\/\+\$\/, ''\);/);
+  assert.match(source, /resolveImageUrl: \(url\) => resolvePanelImageUrl\(url, this\._dashboardApi, \{ apiBasePath: panelImageApiBasePath \}\),/);
+});

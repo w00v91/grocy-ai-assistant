@@ -22,6 +22,7 @@ PANEL_WEBCOMPONENT = "grocy-ai-dashboard-panel"
 PANEL_FRONTEND_URL_BASE = "/grocy_ai_assistant_panel"
 PANEL_FRONTEND_MODULE = "grocy-ai-dashboard.js"
 PANEL_PROXY_URL_BASE = "/api/grocy_ai_assistant/dashboard-proxy"
+PANEL_PICTURE_PROXY_URL = f"{PANEL_PROXY_URL_BASE}/api/dashboard/product-picture"
 _PANEL_STATE_KEY = "_panel_state"
 
 
@@ -57,6 +58,33 @@ def _build_active_client(hass: HomeAssistant) -> AddonClient:
     )
 
 
+async def _proxy_dashboard_request(
+    hass: HomeAssistant, request, path: str = ""
+) -> web.Response:
+    client = _build_active_client(hass)
+    request_path = f"/{path}" if path and not path.startswith("/") else (path or "/")
+    proxy_headers = {
+        "X-Ingress-Path": PANEL_PROXY_URL_BASE,
+        "X-Forwarded-Prefix": PANEL_PROXY_URL_BASE,
+    }
+    if accept := request.headers.get("Accept"):
+        proxy_headers["Accept"] = accept
+    if content_type := request.headers.get("Content-Type"):
+        proxy_headers["Content-Type"] = content_type
+    proxy_response = await client.request_raw(
+        request.method,
+        request_path,
+        body=await request.read(),
+        query_params=request.query,
+        headers=proxy_headers,
+    )
+    return web.Response(
+        status=proxy_response["status"],
+        body=proxy_response["body"],
+        headers=proxy_response["headers"],
+    )
+
+
 class GrocyAIDashboardProxyView(HomeAssistantView):
     """Proxy dashboard HTML/API/static routes through the Home Assistant auth context."""
 
@@ -83,27 +111,28 @@ class GrocyAIDashboardProxyView(HomeAssistantView):
         return await self._handle(request, path)
 
     async def _handle(self, request, path: str):
-        client = _build_active_client(self.hass)
-        request_path = f"/{path}" if path else "/"
-        proxy_headers = {
-            "X-Ingress-Path": PANEL_PROXY_URL_BASE,
-            "X-Forwarded-Prefix": PANEL_PROXY_URL_BASE,
-        }
-        if accept := request.headers.get("Accept"):
-            proxy_headers["Accept"] = accept
-        if content_type := request.headers.get("Content-Type"):
-            proxy_headers["Content-Type"] = content_type
-        proxy_response = await client.request_raw(
-            request.method,
-            request_path,
-            body=await request.read(),
-            query_params=request.query,
-            headers=proxy_headers,
+        return await _proxy_dashboard_request(
+            self.hass,
+            request,
+            path,
         )
-        return web.Response(
-            status=proxy_response["status"],
-            body=proxy_response["body"],
-            headers=proxy_response["headers"],
+
+
+class GrocyAIDashboardPictureProxyView(HomeAssistantView):
+    """Allow browser image tags to load dashboard product pictures without HA auth headers."""
+
+    requires_auth = False
+    url = PANEL_PICTURE_PROXY_URL
+    name = "api:grocy_ai_assistant:dashboard-proxy:product-picture"
+
+    def __init__(self, hass: HomeAssistant) -> None:
+        self.hass = hass
+
+    async def get(self, request):
+        return await _proxy_dashboard_request(
+            self.hass,
+            request,
+            "/api/dashboard/product-picture",
         )
 
 
@@ -134,6 +163,7 @@ async def async_setup(hass: HomeAssistant) -> None:
         panel_state["static_paths_registered"] = True
 
     if not panel_state["proxy_registered"]:
+        hass.http.register_view(GrocyAIDashboardPictureProxyView(hass))
         hass.http.register_view(GrocyAIDashboardProxyView(hass))
         panel_state["proxy_registered"] = True
 
