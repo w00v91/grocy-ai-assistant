@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Fix (Home-Assistant-Integration/Panel): `shopping-search-controller.js` enthält in `createDefaultTimerApi()` kein fehlerhaft zusammengeführtes Zwischen-`return` mehr, sodass das Modul wieder ohne `Unexpected identifier 'setTimeoutImpl'` lädt und Browser-/Test-Timer korrekt aufgelöst werden.
+- Test: `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/shopping-search-controller.js`, `node --test tests/frontend/test_shopping_search_controller.mjs tests/frontend/shopping_search_controller.test.mjs`, `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.25` erhöht.
+
 - Fix (Home-Assistant-Integration/Panel): Das native Panel-Frontend deklariert `escapeHtml` und `formatAmount` nicht mehr doppelt in `grocy-ai-dashboard.js`, sondern nutzt ausschließlich die Imports aus `shopping-ui.js`; dadurch lädt das Modul wieder ohne `Identifier 'escapeHtml' has already been declared`.
 - Test: `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `node --test tests/frontend/test_panel_shell_rendering.mjs`, `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.24` erhöht.
 
