@@ -2148,13 +2148,19 @@ function renderStorageProducts() {
       </div>
       <div class="storage-item-content shopping-item-content swipe-item-content">
         <img src="${toImageSource(item.picture_url)}" alt="${escapeHtml(item.name || 'Unbekanntes Produkt')}" loading="lazy" />
-        <div class="shopping-item-meta storage-item-main">
+        <div class="storage-item-main">
           <div><strong class="storage-item-name">${escapeHtml(item.name || 'Unbekanntes Produkt')}</strong></div>
-          <div class="muted storage-item-description">Lager: ${escapeHtml(item.location_name || '-')}</div>
+          <div class="shopping-card__detail-line shopping-card__detail-line--location">
+            <span class="shopping-card__detail-label">Lagerort</span>
+            <span class="shopping-card__detail-value">${escapeHtml(formatBadgeValue(item.location_name, 'Nicht gesetzt'))}</span>
+          </div>
         </div>
-        <div class="shopping-item-badges storage-item-badges">
-          <span class="badge">Menge: ${escapeHtml(formatBadgeValue(item.amount, '0'))}</span>
-          <span class="badge">MHD: ${escapeHtml(formatBadgeValue(item.best_before_date, '-'))}</span>
+        <div class="storage-item-side">
+          <div class="storage-item-badges">
+            <span class="badge">Menge: ${escapeHtml(formatBadgeValue(item.amount, '0'))}</span>
+            <span class="badge">MHD: ${escapeHtml(formatBadgeValue(item.best_before_date, '-'))}</span>
+          </div>
+          <div class="storage-item-info muted">${escapeHtml(item.in_stock ? 'Im Bestand' : 'Nicht im Bestand')}</div>
         </div>
       </div>
     </li>
