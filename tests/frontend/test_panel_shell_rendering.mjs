@@ -69,6 +69,24 @@ test('native panel binds shared shopping image fallbacks after list and variant 
 });
 
 
+test('recipes, storage, and modal renders restore focused form controls after rerenders', async () => {
+  const source = await fs.readFile(dashboardPath, 'utf8');
+
+  assert.match(source, /function captureFocusedFormControl\(root\) \{/);
+  assert.match(source, /function restoreFocusedFormControl\(root, snapshot\) \{/);
+  assert.match(source, /class GrocyAIDashboardModals extends HTMLElement \{[\s\S]*?_render\(\) \{\s+const snapshot = captureFocusedFormControl\(this\);[\s\S]*?restoreFocusedFormControl\(this, snapshot\);/);
+  assert.match(source, /class GrocyAIRecipesTab extends HTMLElement \{[\s\S]*?_render\(\) \{\s+const snapshot = captureFocusedFormControl\(this\);[\s\S]*?restoreFocusedFormControl\(this, snapshot\);/);
+  assert.match(source, /class GrocyAIStorageTab extends HTMLElement \{[\s\S]*?_render\(\) \{\s+const snapshot = captureFocusedFormControl\(this\);[\s\S]*?restoreFocusedFormControl\(this, snapshot\);/);
+});
+
+test('recipes, storage, and modal setters skip full rerenders for volatile field-only updates', async () => {
+  const source = await fs.readFile(dashboardPath, 'utf8');
+
+  assert.match(source, /class GrocyAIDashboardModals extends HTMLElement \{[\s\S]*?this\._renderSignature = null;[\s\S]*?const nextSignature = JSON\.stringify\(\{[\s\S]*?createMethod: value\?\.recipes\?\.createModal\?\.method \|\| 'webscrape'[\s\S]*?\}\);[\s\S]*?if \(nextSignature === this\._renderSignature\) return;/);
+  assert.match(source, /class GrocyAIRecipesTab extends HTMLElement \{[\s\S]*?this\._renderSignature = null;[\s\S]*?const nextSignature = JSON\.stringify\(\{[\s\S]*?stockProducts: buildStockSignature\(/);
+  assert.match(source, /class GrocyAIStorageTab extends HTMLElement \{[\s\S]*?this\._renderSignature = null;[\s\S]*?const nextSignature = JSON\.stringify\(\{[\s\S]*?deleteModal: \{[\s\S]*?itemId: value\?\.deleteModal\?\.itemId \?\? null[\s\S]*?\}\);[\s\S]*?if \(nextSignature === this\._renderSignature\) return;/);
+});
+
 test('recipes and storage tabs are natively migrated in the panel shell', async () => {
   const source = await fs.readFile(dashboardPath, 'utf8');
 

@@ -20,7 +20,7 @@ const TAB_LABELS = {
   notifications: '🔔 Benachrichtigungen',
 };
 const DEFAULT_POLLING_INTERVAL_MS = 5000;
-const DEFAULT_INTEGRATION_VERSION = '7.4.35';
+const DEFAULT_INTEGRATION_VERSION = '7.4.37';
 const GROCY_RECIPE_DISPLAY_LIMIT = 3;
 const AI_RECIPE_DISPLAY_LIMIT = 3;
 const TAB_VIEW_STATE = Object.freeze({
@@ -154,6 +154,76 @@ function toImageSource(url, options = {}) {
     return apiBasePath ? `${apiBasePath}${normalizedPath}` : normalizedPath;
   }
   return normalizedPath;
+}
+
+
+function isRestorableTextField(element) {
+  const tagName = String(element?.tagName || '').toLowerCase();
+  if (tagName === 'textarea') return true;
+  if (tagName !== 'input') return false;
+  const inputType = String(element.type || '').toLowerCase();
+  return !['button', 'checkbox', 'color', 'file', 'hidden', 'image', 'radio', 'range', 'reset', 'submit'].includes(inputType);
+}
+
+function buildFocusRestoreSelector(element) {
+  if (!(element instanceof HTMLElement)) return '';
+  const tagName = String(element.tagName || '').toLowerCase();
+  if (!tagName) return '';
+
+  const selectors = [
+    ['id', element.id],
+    ['data-role', element.dataset?.role],
+    ['data-field', element.dataset?.field],
+    ['data-recipe-field', element.dataset?.recipeField],
+    ['name', element.getAttribute?.('name')],
+  ];
+
+  for (const [attribute, rawValue] of selectors) {
+    const value = String(rawValue || '').trim();
+    if (!value) continue;
+    const escapedValue = value.replaceAll('\\', '\\\\').replaceAll('"', '\\"');
+    return `${tagName}[${attribute}="${escapedValue}"]`;
+  }
+
+  return tagName;
+}
+
+function captureFocusedFormControl(root) {
+  if (!(root instanceof HTMLElement)) return null;
+  const activeElement = document.activeElement;
+  if (!(activeElement instanceof HTMLElement) || !root.contains(activeElement)) return null;
+
+  const selector = buildFocusRestoreSelector(activeElement);
+  if (!selector) return null;
+
+  const snapshot = {
+    selector,
+    isTextField: isRestorableTextField(activeElement),
+    selectionStart: null,
+    selectionEnd: null,
+  };
+
+  if (snapshot.isTextField) {
+    snapshot.selectionStart = typeof activeElement.selectionStart === 'number' ? activeElement.selectionStart : null;
+    snapshot.selectionEnd = typeof activeElement.selectionEnd === 'number' ? activeElement.selectionEnd : null;
+  }
+
+  return snapshot;
+}
+
+function restoreFocusedFormControl(root, snapshot) {
+  if (!(root instanceof HTMLElement) || !snapshot?.selector) return;
+  const target = root.querySelector(snapshot.selector);
+  if (!(target instanceof HTMLElement) || typeof target.focus !== 'function') return;
+
+  target.focus();
+  if (!snapshot.isTextField || typeof target.setSelectionRange !== 'function') return;
+  if (snapshot.selectionStart === null || snapshot.selectionEnd === null) return;
+
+  const currentValueLength = String(target.value || '').length;
+  const selectionStart = Math.min(snapshot.selectionStart, currentValueLength);
+  const selectionEnd = Math.min(snapshot.selectionEnd, currentValueLength);
+  target.setSelectionRange(selectionStart, selectionEnd);
 }
 
 function deriveSearchUiState(model = {}) {
@@ -1479,6 +1549,11 @@ class GrocyAILegacyBridgeTab extends HTMLElement {
 }
 
 class GrocyAIDashboardModals extends HTMLElement {
+  constructor() {
+    super();
+    this._renderSignature = null;
+  }
+
   connectedCallback() {
     this.addEventListener('click', (event) => {
       const actionTarget = event.target.closest('[data-action]');
@@ -1518,10 +1593,31 @@ class GrocyAIDashboardModals extends HTMLElement {
 
   set viewModel(value) {
     this._viewModel = value;
+    const nextSignature = JSON.stringify({
+      shopping: {
+        detailOpen: Boolean(value?.shopping?.detailModal?.open),
+        detailItemId: value?.shopping?.detailModal?.itemId ?? null,
+        mhdOpen: Boolean(value?.shopping?.mhdModal?.open),
+        mhdItemId: value?.shopping?.mhdModal?.itemId ?? null,
+        activeItemId: value?.shopping?.activeItem?.id ?? null,
+      },
+      recipes: {
+        detailOpen: Boolean(value?.recipes?.detailModal?.open),
+        detailItemKey: value?.recipes?.detailModal?.item?.recipe_id
+          ?? value?.recipes?.detailModal?.item?.title
+          ?? null,
+        createOpen: Boolean(value?.recipes?.createModal?.open),
+        createMethod: value?.recipes?.createModal?.method || 'webscrape',
+        apiBasePath: value?.recipes?.apiBasePath || '',
+      },
+    });
+    if (nextSignature === this._renderSignature) return;
+    this._renderSignature = nextSignature;
     this._render();
   }
 
   _render() {
+    const snapshot = captureFocusedFormControl(this);
     const model = this._viewModel || {};
     const detail = model.shopping?.detailModal || { open: false };
     const mhd = model.shopping?.mhdModal || { open: false };
@@ -1644,6 +1740,7 @@ class GrocyAIDashboardModals extends HTMLElement {
         </section>
       </div>
     `;
+    restoreFocusedFormControl(this, snapshot);
   }
 }
 
@@ -2343,6 +2440,11 @@ class GrocyAIScannerBridge extends HTMLElement {
 }
 
 class GrocyAIRecipesTab extends HTMLElement {
+  constructor() {
+    super();
+    this._renderSignature = null;
+  }
+
   connectedCallback() {
     if (this._bound) return;
     this._bound = true;
@@ -2407,21 +2509,54 @@ class GrocyAIRecipesTab extends HTMLElement {
   }
 
   _render() {
+    const snapshot = captureFocusedFormControl(this);
     const model = this._viewModel || {};
     this.innerHTML = `
       <section class="tab-view${model.active ? '' : ' hidden'}">
         ${buildRecipesTabMarkup(model)}
       </section>
     `;
+    restoreFocusedFormControl(this, snapshot);
   }
 
   set viewModel(value) {
     this._viewModel = value;
+    const nextSignature = JSON.stringify({
+      active: Boolean(value?.active),
+      status: value?.status || '',
+      apiBasePath: value?.apiBasePath || '',
+      grocyRecipes: (Array.isArray(value?.grocyRecipes) ? value.grocyRecipes : []).map((item) => ({
+        recipe_id: item?.recipe_id ?? null,
+        title: item?.title || '',
+        reason: item?.reason || '',
+        picture_url: item?.picture_url || '',
+        source: item?.source || '',
+      })),
+      aiRecipes: (Array.isArray(value?.aiRecipes) ? value.aiRecipes : []).map((item) => ({
+        recipe_id: item?.recipe_id ?? null,
+        title: item?.title || '',
+        reason: item?.reason || '',
+        picture_url: item?.picture_url || '',
+        source: item?.source || '',
+      })),
+      locations: (Array.isArray(value?.locations) ? value.locations : []).map((item) => ({
+        id: item?.id ?? null,
+        name: item?.name || '',
+      })),
+      stockProducts: buildStockSignature(Array.isArray(value?.stockProducts) ? value.stockProducts : []),
+    });
+    if (nextSignature === this._renderSignature) return;
+    this._renderSignature = nextSignature;
     this._render();
   }
 }
 
 class GrocyAIStorageTab extends HTMLElement {
+  constructor() {
+    super();
+    this._renderSignature = null;
+  }
+
   connectedCallback() {
     if (this._bound) return;
     this._bound = true;
@@ -2485,6 +2620,7 @@ class GrocyAIStorageTab extends HTMLElement {
   }
 
   _render() {
+    const snapshot = captureFocusedFormControl(this);
     const model = this._viewModel || {};
     this.innerHTML = `
       <section class="tab-view${model.active ? '' : ' hidden'}">
@@ -2493,10 +2629,44 @@ class GrocyAIStorageTab extends HTMLElement {
     `;
 
     bindShoppingImageFallbacks(this);
+    restoreFocusedFormControl(this, snapshot);
   }
 
   set viewModel(value) {
     this._viewModel = value;
+    const nextSignature = JSON.stringify({
+      active: Boolean(value?.active),
+      loading: Boolean(value?.loading),
+      status: value?.status || '',
+      items: (Array.isArray(value?.items) ? value.items : []).map((item) => ({
+        id: item?.id ?? null,
+        stock_id: item?.stock_id ?? null,
+        name: item?.name || '',
+        amount: item?.amount ?? null,
+        best_before_date: item?.best_before_date || '',
+        location_id: item?.location_id ?? null,
+        location_name: item?.location_name || '',
+        in_stock: Boolean(item?.in_stock),
+      })),
+      locations: (Array.isArray(value?.locations) ? value.locations : []).map((item) => ({
+        id: item?.id ?? null,
+        name: item?.name || '',
+      })),
+      editModal: {
+        open: Boolean(value?.editModal?.open),
+        itemId: value?.editModal?.itemId ?? null,
+      },
+      consumeModal: {
+        open: Boolean(value?.consumeModal?.open),
+        itemId: value?.consumeModal?.itemId ?? null,
+      },
+      deleteModal: {
+        open: Boolean(value?.deleteModal?.open),
+        itemId: value?.deleteModal?.itemId ?? null,
+      },
+    });
+    if (nextSignature === this._renderSignature) return;
+    this._renderSignature = nextSignature;
     this._render();
   }
 }
