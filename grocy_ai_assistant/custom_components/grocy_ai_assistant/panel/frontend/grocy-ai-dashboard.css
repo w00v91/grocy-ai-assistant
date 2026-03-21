@@ -804,6 +804,7 @@ button:disabled {
   padding: 0.75rem 0.85rem;
 }
 
+.storage-item-image,
 .storage-item-content img {
   width: 72px;
   height: 72px;
@@ -811,6 +812,28 @@ button:disabled {
   border-radius: 10px;
   object-fit: cover;
   border: 1px solid var(--panel-border-color);
+  flex-shrink: 0;
+}
+
+.storage-item-main {
+  min-width: 0;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.storage-item-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.storage-item-name {
+  line-height: 1.35;
+}
+
+.storage-item-main .shopping-status-chip {
+  flex-shrink: 0;
 }
 
 .storage-card {
@@ -888,6 +911,36 @@ button:disabled {
   width: min(680px, calc(100vw - 32px));
 }
 
+.storage-modal-header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 1rem;
+  align-items: center;
+}
+
+.storage-modal-image {
+  width: 72px;
+  height: 72px;
+}
+
+.storage-modal-heading {
+  min-width: 0;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.storage-modal-heading h3 {
+  margin: 0;
+}
+
+.storage-modal-badges {
+  justify-content: flex-start;
+}
+
+.storage-modal-actions-row {
+  justify-content: flex-start;
+}
+
 .storage-edit-grid {
   margin: 1rem 0;
 }
@@ -908,6 +961,7 @@ button:disabled {
     grid-template-columns: 56px minmax(0, 1fr);
   }
 
+  .storage-item-image,
   .storage-item-content img {
     width: 56px;
     height: 56px;
@@ -921,6 +975,10 @@ button:disabled {
 
   .storage-item-info {
     text-align: left;
+  }
+
+  .storage-modal-header {
+    grid-template-columns: 1fr;
   }
 }
 

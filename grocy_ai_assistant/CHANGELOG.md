@@ -9,6 +9,9 @@ All notable changes to this project will be documented in this file.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `7.4.40` erhöht.
 - Test: `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `node --test tests/frontend/test_panel_shell_rendering.mjs`, `pytest tests/unit/test_config_flow.py tests/unit/test_panel.py tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.40` erhöht.
 
+- Changed (Home-Assistant-Integration/Panel): Der native `storage`-Tab zeigt `Menge`, `MHD` und `Lagerort` in der Swipe-Liste jetzt als Shopping-ähnliche Badges; der Löschen-CTA wandert aus dem Listeneintrag in das Produkt-bearbeiten-Modal.
+- Added (Home-Assistant-Integration/Panel): Das Produkt-bearbeiten-Modal im nativen `storage`-Tab zeigt jetzt ein gleich großes Produktbild sowie einen zusätzlichen CTA zum Löschen des Produktbilds.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `7.4.39` erhöht.
 - Fix (Home-Assistant-Integration/Panel): Das native Shopping-Polling pausiert jetzt auch bei verborgenem Dokument analog zum Legacy-Dashboard, startet bei `visibilitychange` auf sichtbar wieder und lädt die Einkaufsliste dabei einmalig per Silent-Refresh nach, ohne bestehende Pausen durch Detail-, MHD-, Scanner-Modale oder `viewState.editing` zu umgehen.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `7.4.39` erhöht.
 - Test: `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `node --test tests/frontend/test_panel_shell_rendering.mjs`, `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.39` erhöht.
