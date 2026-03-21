@@ -73,6 +73,24 @@ def test_dashboard_has_mobile_friendly_layout_rules(client):
     assert "flex-direction: column;" in static_response.text
 
 
+def test_dashboard_exposes_nested_panel_frontend_assets(client):
+    css_response = client.get("/dashboard-static/panel-frontend/shopping-ui.css")
+    js_response = client.get("/dashboard-static/panel-frontend/shopping-ui.js")
+    swipe_response = client.get("/dashboard-static/panel-frontend/swipe-interactions.js")
+
+    assert css_response.status_code == 200
+    assert ".shopping-card" in css_response.text
+    assert "text/css" in css_response.headers["content-type"]
+
+    assert js_response.status_code == 200
+    assert "export function renderShoppingVariantCard" in js_response.text
+    assert "text/javascript" in js_response.headers["content-type"]
+
+    assert swipe_response.status_code == 200
+    assert "export function bindSwipeInteractions" in swipe_response.text
+    assert "text/javascript" in swipe_response.headers["content-type"]
+
+
 def test_shopping_list_can_be_cleared(client, monkeypatch):
     def fake_clear_shopping_list(self):
         return 3
