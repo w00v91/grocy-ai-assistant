@@ -125,3 +125,14 @@ test('recipes and storage tabs are natively migrated in the panel shell', async 
   assert.match(source, /api\.consumeStockProduct\(consumeModal\.itemId/);
   assert.match(source, /api\.deleteStockProduct\(deleteModal\.itemId/);
 });
+
+
+test('shopping polling respects document visibility and refreshes silently when the tab becomes visible again', async () => {
+  const source = await fs.readFile(dashboardPath, 'utf8');
+
+  assert.match(source, /this\._handleVisibilityChange = \(\) => this\._handleDocumentVisibilityChange\(\);/);
+  assert.match(source, /document\.addEventListener\('visibilitychange', this\._handleVisibilityChange\);/);
+  assert.match(source, /document\.removeEventListener\('visibilitychange', this\._handleVisibilityChange\);/);
+  assert.match(source, /_canPollShopping\(\{ requireNoTimer = true \} = \{\}\) \{\s+const state = this\._store\.getState\(\);\s+if \(document\.hidden\) return false;/);
+  assert.match(source, /_handleDocumentVisibilityChange\(\) \{\s+this\._syncShoppingPolling\(\);\s+if \(document\.hidden\) return;\s+if \(!this\._canPollShopping\(\{ requireNoTimer: false \}\)\) return;\s+void this\._loadShoppingList\(\{ silent: true \}\);\s+\}/);
+});
