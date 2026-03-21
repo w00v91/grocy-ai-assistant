@@ -80,6 +80,15 @@ function normalizeTabName(value, fallback = null) {
   return TAB_ORDER.includes(normalized) ? normalized : fallback;
 }
 
+function renderStorageBadge(label, value, variant, extraClassName = '') {
+  return `
+    <span class="shopping-badge shopping-badge--${escapeHtml(variant)}${extraClassName ? ` ${escapeHtml(extraClassName)}` : ''}">
+      <span class="shopping-badge__label">${escapeHtml(label)}</span>
+      <span class="shopping-badge__value">${escapeHtml(value)}</span>
+    </span>
+  `;
+}
+
 function buildPanelTabHref(panelPath, tab) {
   const path = String(panelPath || `/${PANEL_SLUG}`) || `/${PANEL_SLUG}`;
   if (!normalizeTabName(tab)) return path;
@@ -369,6 +378,11 @@ function renderStorageListItem(item, options = {}) {
   const stockLabel = item?.in_stock ? 'Im Bestand' : 'Nicht im Bestand';
   const consumeActionLabel = item?.in_stock ? '✅ Verbrauchen' : 'ℹ️ Öffnen';
   const resolvedImageSource = resolveShoppingImageSource(item?.picture_url, { resolveUrl: options.resolveImageUrl });
+  const detailBadges = [
+    renderStorageBadge('Menge', amountLabel, 'amount'),
+    renderStorageBadge('MHD', bestBeforeLabel, 'mhd'),
+    renderStorageBadge('Lagerort', locationLabel, 'location'),
+  ].join('');
 
   return `
     <li
@@ -384,6 +398,7 @@ function renderStorageListItem(item, options = {}) {
       </div>
       <div class="storage-item-content shopping-item-content swipe-item-content">
         <img
+          class="storage-item-image shopping-card__media"
           src="${escapeHtml(resolvedImageSource)}"
           alt="${escapeHtml(title)}"
           loading="lazy"
@@ -499,7 +514,26 @@ function buildStorageTabMarkup(model = {}) {
       <div class="shopping-modal-backdrop" data-action="storage-close-edit"></div>
       <section class="shopping-modal-content card storage-modal-content">
         <button class="shopping-modal-close" type="button" data-action="storage-close-edit" aria-label="Produkt bearbeiten schließen">×</button>
-        <h3>${escapeHtml(activeEditItem?.name || 'Produkt bearbeiten')}</h3>
+        <div class="storage-modal-header">
+          <img
+            class="storage-modal-image shopping-card__media"
+            src="${escapeHtml(resolveShoppingImageSource(activeEditItem?.picture_url, { resolveUrl: model.resolveImageUrl }))}"
+            alt="${escapeHtml(activeEditItem?.name || 'Produktbild')}"
+            loading="lazy"
+            data-shopping-image="true"
+            data-fallback-src="${escapeHtml(resolveShoppingImageSource(''))}"
+          />
+          <div class="storage-modal-heading">
+            <h3>${escapeHtml(activeEditItem?.name || 'Produkt bearbeiten')}</h3>
+            <div class="shopping-card__badges storage-modal-badges">
+              ${renderStorageBadge('Menge', formatBadgeValue(editModal.amount || activeEditItem?.amount, '0'), 'amount')}
+              ${renderStorageBadge('MHD', formatBadgeValue(editModal.bestBeforeDate || activeEditItem?.best_before_date, '-'), 'mhd')}
+              ${renderStorageBadge('Lagerort', editModal.locationId
+                ? (locations.find((location) => String(location?.id ?? '') === String(editModal.locationId))?.name || 'Nicht gesetzt')
+                : formatBadgeValue(activeEditItem?.location_name, 'Nicht gesetzt'), 'location')}
+            </div>
+          </div>
+        </div>
         <div class="shopping-details-grid storage-edit-grid">
           <label>
             <span>Menge</span>
@@ -513,6 +547,10 @@ function buildStorageTabMarkup(model = {}) {
             <span>Lagerort ändern</span>
             <select data-field="locationId" data-role="storage-edit-field">${locationOptions}</select>
           </label>
+        </div>
+        <div class="shopping-modal-save-row storage-modal-actions-row">
+          <button class="secondary-button" type="button" data-action="storage-delete-product-picture" data-item-id="${escapeHtml(getActionableStorageId(activeEditItem))}" ${activeEditItem?.picture_url ? '' : 'disabled'}>Produktbild löschen</button>
+          <button class="danger-button" type="button" data-action="storage-open-delete" data-item-id="${escapeHtml(getActionableStorageId(activeEditItem))}">Produkt löschen</button>
         </div>
         <div class="shopping-modal-save-row">
           <button class="secondary-button" type="button" data-action="storage-close-edit">Abbrechen</button>
@@ -2687,7 +2725,6 @@ class GrocyAIStorageTab extends HTMLElement {
         itemId: item.dataset.itemId,
         inStock: item.dataset.inStock === 'true',
       }),
-      interactiveElementSelector: '.storage-item-delete-button',
       onTap: (_, payload) => {
         if (!payload.itemId) return;
         this.dispatchEvent(new CustomEvent('storage-open-edit', {
@@ -2975,6 +3012,7 @@ class GrocyAIDashboardPanel extends HTMLElement {
     root.addEventListener('storage-consume-input', (event) => this._updateStorageConsumeInput(event.detail));
     root.addEventListener('storage-confirm-consume', () => this._confirmStorageConsume());
     root.addEventListener('storage-open-delete', (event) => this._openStorageDelete(event.detail?.itemId));
+    root.addEventListener('storage-delete-product-picture', (event) => this._deleteStorageProductPicture(event.detail?.itemId));
     root.addEventListener('storage-close-delete', () => this._closeStorageDelete());
     root.addEventListener('storage-confirm-delete', () => this._confirmStorageDelete());
     root.addEventListener('open-legacy-dashboard', (event) => this._openLegacyDashboard(event.detail?.tab));
@@ -3722,6 +3760,27 @@ class GrocyAIDashboardPanel extends HTMLElement {
       open: false,
       itemId: null,
     }, { editing: false });
+  }
+
+  async _deleteStorageProductPicture(itemId) {
+    const item = this._findStorageItem(itemId);
+    if (!item || !Number.isFinite(Number(item.id)) || Number(item.id) <= 0) return;
+
+    this._updateStorageState({ status: 'Produktbild wird gelöscht…' });
+    await this._runRequest(async () => {
+      const api = await this._getDashboardApiOrThrow();
+      const { response, payload } = await api.deleteProductPicture(item.id);
+      if (!response.ok) throw new Error(getErrorMessage(payload, 'Produktbild konnte nicht gelöscht werden.'));
+
+      this._closeStorageEdit();
+      this._updateStorageState({ status: payload?.message || 'Produktbild wurde gelöscht.' });
+      this._store.patch({ topbarStatus: payload?.message || 'Produktbild wurde gelöscht.' });
+      await this._loadStorageProducts({ silent: true });
+    }, {
+      onError: (message) => {
+        this._updateStorageState({ status: `Fehler: ${message}` });
+      },
+    });
   }
 
   async _confirmStorageDelete() {

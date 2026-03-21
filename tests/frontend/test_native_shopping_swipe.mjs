@@ -73,7 +73,7 @@ test('native storage tab renders legacy-style swipe list items and rebinds swipe
   assert.match(source, /storage-item-delete-button/);
   assert.match(source, /shopping-card__detail-label">Lagerort/);
   assert.match(source, /selector: '\.storage-item\.swipe-item'/);
-  assert.match(source, /interactiveElementSelector: '\.storage-item-delete-button'/);
+  assert.doesNotMatch(source, /interactiveElementSelector: '\.storage-item-delete-button'/);
   assert.match(source, /new CustomEvent\('storage-open-edit'/);
   assert.match(source, /const actionName = payload\.inStock \? 'storage-open-consume' : 'storage-open-edit';/);
   assert.match(source, /bindShoppingImageFallbacks\(this\);\s+this\._rebindSwipeInteractions\(\);/);
