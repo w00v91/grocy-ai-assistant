@@ -13,6 +13,13 @@ export const SEARCH_FLOW_STATES = {
 
 const DEFAULT_VARIANT_DEBOUNCE_MS = 250;
 
+function createDefaultTimerApi() {
+  return {
+    setTimeout: (...args) => globalThis.setTimeout(...args),
+    clearTimeout: (...args) => globalThis.clearTimeout(...args),
+  };
+}
+
 export function parseAmountPrefixedSearch(rawValue) {
   const value = String(rawValue || '').trim();
   const match = value.match(/^(\d+(?:[.,]\d+)?)\s+(.+)$/);
@@ -53,6 +60,7 @@ export function createShoppingSearchController({
   getBestBeforeDate = () => '',
   onShoppingListChanged = async () => {},
   debounceMs = DEFAULT_VARIANT_DEBOUNCE_MS,
+  timerApi = createDefaultTimerApi(),
 } = {}) {
   const store = createDashboardStore(buildInitialState());
   let currentApi = api;
@@ -67,8 +75,17 @@ export function createShoppingSearchController({
 
   function clearVariantDebounce() {
     const timer = getState().variantDebounce;
-    if (timer) window.clearTimeout(timer);
+    if (timer) timerApi.clearTimeout(timer);
     setState({ variantDebounce: null });
+  }
+
+  function invalidateVariantRequests() {
+    const requestToken = getState().variantsRequestToken + 1;
+    setState({
+      variantsRequestToken: requestToken,
+      isLoadingVariants: false,
+    });
+    return requestToken;
   }
 
   function applyQueryState(nextQuery, options = {}) {
@@ -91,45 +108,64 @@ export function createShoppingSearchController({
     return setState({ clearButtonVisible: Boolean(getState().query) });
   }
 
-  function scheduleVariantLoading(query) {
+  function scheduleVariantLoading(query, requestToken) {
     clearVariantDebounce();
-    const timer = window.setTimeout(() => {
-      loadVariants(query);
+    const timer = timerApi.setTimeout(() => {
       setState({ variantDebounce: null });
+      void loadVariants(query, { requestToken });
     }, debounceMs);
     setState({ variantDebounce: timer });
   }
 
+  function resetVariantsForEmptyQuery(effectiveQuery, amountFromName, requestToken) {
+    return setState({
+      query: effectiveQuery,
+      parsedAmount: amountFromName,
+      variants: [],
+      isLoadingVariants: false,
+      flowState: SEARCH_FLOW_STATES.IDLE,
+      statusMessage: 'Bereit.',
+      errorMessage: '',
+      clearButtonVisible: Boolean(effectiveQuery),
+      variantsRequestToken: requestToken,
+    });
+  }
+
   function setQuery(query) {
     applyQueryState(query);
-    scheduleVariantLoading(query);
+    const requestToken = invalidateVariantRequests();
+    const normalizedQuery = String(query || '').trim();
+    const { amountFromName } = parseAmountPrefixedSearch(query);
+
+    if (!normalizedQuery) {
+      clearVariantDebounce();
+      resetVariantsForEmptyQuery(String(query || ''), amountFromName, requestToken);
+      return;
+    }
+
+    scheduleVariantLoading(query, requestToken);
   }
 
   function clearQuery() {
     clearVariantDebounce();
+    const requestToken = invalidateVariantRequests();
     setState({
       ...buildInitialState(),
+      variantsRequestToken: requestToken,
     });
   }
 
-  async function loadVariants(queryOverride = null) {
+  async function loadVariants(queryOverride = null, options = {}) {
     const effectiveQuery = queryOverride === null ? getState().query : String(queryOverride || '');
     const { productName, amountFromName } = parseAmountPrefixedSearch(effectiveQuery);
     const normalizedQuery = productName.trim();
-    const requestToken = getState().variantsRequestToken + 1;
+    const providedRequestToken = Number(options.requestToken);
+    const requestToken = Number.isFinite(providedRequestToken) && providedRequestToken > 0
+      ? providedRequestToken
+      : invalidateVariantRequests();
 
     if (!normalizedQuery) {
-      setState({
-        query: effectiveQuery,
-        parsedAmount: amountFromName,
-        variants: [],
-        isLoadingVariants: false,
-        flowState: SEARCH_FLOW_STATES.IDLE,
-        statusMessage: 'Bereit.',
-        errorMessage: '',
-        clearButtonVisible: Boolean(effectiveQuery),
-        variantsRequestToken: requestToken,
-      });
+      resetVariantsForEmptyQuery(effectiveQuery, amountFromName, requestToken);
       return [];
     }
 
@@ -180,6 +216,7 @@ export function createShoppingSearchController({
 
   async function searchProduct(options = {}) {
     clearVariantDebounce();
+    invalidateVariantRequests();
 
     const currentState = getState();
     const { productName, amountFromName } = parseAmountPrefixedSearch(currentState.query);
@@ -187,7 +224,7 @@ export function createShoppingSearchController({
     const normalizedAmountOverride = Number(options.amount);
     const amount = Number.isFinite(normalizedAmountOverride) && normalizedAmountOverride > 0
       ? normalizedAmountOverride
-      : (amountFromName ?? Number(getDefaultAmount()) || 1);
+      : ((amountFromName ?? Number(getDefaultAmount())) || 1);
     const forceCreate = options.forceCreate === true;
     const bestBeforeDate = String(options.bestBeforeDate ?? getBestBeforeDate() ?? '').trim();
 
@@ -259,13 +296,14 @@ export function createShoppingSearchController({
 
   async function confirmVariant(productId, productName, amountOverride = null) {
     clearVariantDebounce();
+    invalidateVariantRequests();
 
     const numericProductId = Number(productId);
     const normalizedOverride = Number(amountOverride);
     const { amountFromName } = parseAmountPrefixedSearch(getState().query);
     const amount = Number.isFinite(normalizedOverride) && normalizedOverride > 0
       ? normalizedOverride
-      : (amountFromName ?? Number(getDefaultAmount()) || 1);
+      : ((amountFromName ?? Number(getDefaultAmount())) || 1);
     const requestProductName = Number.isFinite(amount) && amount > 0
       ? `${amount} ${productName}`
       : productName;
