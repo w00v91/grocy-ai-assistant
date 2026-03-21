@@ -592,59 +592,6 @@ class GrocyAIShoppingSearchBar extends HTMLElement {
     }
 
     this._renderVariantGrid(model, variants);
-    const imageBasePath = model.imageBasePath || '';
-
-    this.innerHTML = `
-      <section class="shopping-search-shell shopping-search-shell--${searchUiState}" aria-live="polite">
-        <div class="shopping-search-shell__header">
-          <div>
-            <p class="eyebrow">Produktsuche</p>
-            <h3 class="shopping-search-shell__title">Produkt suchen oder Variante wählen</h3>
-          </div>
-          <span class="search-state-chip search-state-chip--${searchUiState}">${escapeHtml(stateLabel)}</span>
-        </div>
-        <form class="search-row shopping-search-form" data-role="shopping-search-form" aria-busy="${model.isSubmitting ? 'true' : 'false'}">
-          <div class="search-input-wrapper">
-            <input
-              data-role="shopping-query"
-              value="${escapeHtml(model.query || '')}"
-              placeholder="z.B. 2 Hafermilch"
-              autocomplete="off"
-              enterkeyhint="search"
-              aria-describedby="shopping-search-helper"
-            />
-            <button class="clear-input-button${model.clearButtonVisible ? ' visible' : ''}" type="button" data-action="shopping-clear-query" aria-label="Sucheingabe löschen">×</button>
-          </div>
-          <button class="primary-button search-submit-button" type="submit" ${model.isSubmitting ? 'disabled' : ''}>
-            ${model.isSubmitting ? 'Prüfe…' : 'Produkt prüfen'}
-          </button>
-        </form>
-        <p id="shopping-search-helper" class="search-helper-text${model.errorMessage ? ' search-helper-text--error' : ''}">
-          ${escapeHtml(helperText)}
-        </p>
-        <section class="variant-section${hasVisibleVariants || model.isLoadingVariants ? '' : ' hidden'}">
-          <div class="section-header section-header-stacked">
-            <div>
-              <h3>Gefundene Produktvarianten</h3>
-              ${model.parsedAmount
-                ? `<p class="muted">Erkannte Menge: ${escapeHtml(formatAmount(model.parsedAmount))}</p>`
-                : '<p class="muted">Live-Vorschläge erscheinen direkt unter dem Eingabefeld.</p>'}
-            </div>
-            ${model.isLoadingVariants ? '<span class="muted">Suche läuft…</span>' : ''}
-          </div>
-          <div class="variant-grid variant-grid--search" role="list">
-            ${hasVisibleVariants
-              ? variants.map((variant) => renderShoppingVariantCard(variant, {
-                  amount: model.parsedAmount || variant.amount || variant.default_amount || '1',
-                  actionName: 'shopping-select-variant',
-                  ctaLabel: 'Auswählen',
-                  resolveImageUrl: model.resolveImageUrl,
-                })).join('')
-              : '<p class="muted">Lade Vorschläge…</p>'}
-          </div>
-        </section>
-      </section>
-    `;
   }
 }
 
@@ -838,7 +785,6 @@ class GrocyAIShoppingTab extends HTMLElement {
   _render() {
     this._ensureStructure();
     const model = this._viewModel || {};
-    const variants = Array.isArray(model.variants) ? model.variants : [];
     const items = Array.isArray(model.list) ? model.list : [];
     const shellSignature = JSON.stringify({
       active: Boolean(model.active),

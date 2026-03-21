@@ -32,3 +32,30 @@ test('dashboard panel keeps product-picture requests on the HA proxy before the 
   assert.match(source, /const panelImageApiBasePath = this\._dashboardApiBasePath\s+\|\|\s+String\(panelConfig\?\.dashboard_api_base_path \|\| panelConfig\?\.api_base_path \|\| ''\)\.replace\(\/\\\/\+\$\/, ''\);/);
   assert.match(source, /resolveImageUrl: \(url\) => resolvePanelImageUrl\(url, this\._dashboardApi, \{ apiBasePath: panelImageApiBasePath \}\),/);
 });
+
+test('shopping tab and search bar keep their stable DOM shells instead of replacing them with innerHTML', async () => {
+  const source = await fs.readFile(dashboardPath, 'utf8');
+  const searchBarSection = source.slice(
+    source.indexOf('class GrocyAIShoppingSearchBar extends HTMLElement'),
+    source.indexOf('class GrocyAIShoppingTab extends HTMLElement'),
+  );
+  const shoppingTabSection = source.slice(
+    source.indexOf('class GrocyAIShoppingTab extends HTMLElement'),
+    source.indexOf('class GrocyAILegacyBridgeTab extends HTMLElement'),
+  );
+
+  assert.match(searchBarSection, /class GrocyAIShoppingSearchBar extends HTMLElement/);
+  assert.match(searchBarSection, /_ensureStructure\(\) \{\s+if \(this\._elements\) return;/);
+  assert.doesNotMatch(
+    searchBarSection,
+    /_render\(\) \{[\s\S]*?this\.innerHTML\s*=/,
+  );
+
+  assert.match(shoppingTabSection, /class GrocyAIShoppingTab extends HTMLElement/);
+  assert.match(shoppingTabSection, /heroCard\.append\(heroHeader, searchBar\);/);
+  assert.doesNotMatch(
+    shoppingTabSection,
+    /_render\(\) \{[\s\S]*?this\.innerHTML\s*=/,
+  );
+  assert.match(shoppingTabSection, /this\._elements\.searchBar\.viewModel = \{\s+\.\.\.model,\s+\};/);
+});
