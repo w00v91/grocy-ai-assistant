@@ -70,8 +70,12 @@ def _load_panel_module(monkeypatch):
     const_module = types.ModuleType(f"{package_name}.const")
     const_module.CONF_API_BASE_URL = "api_base_url"
     const_module.DEFAULT_ADDON_BASE_URL = "http://local-grocy-ai-assistant:8000"
+    const_module.CONF_DASHBOARD_POLLING_INTERVAL_SECONDS = (
+        "dashboard_polling_interval_seconds"
+    )
+    const_module.DEFAULT_DASHBOARD_POLLING_INTERVAL_SECONDS = 5
     const_module.DOMAIN = "grocy_ai_assistant"
-    const_module.INTEGRATION_VERSION = "7.4.22"
+    const_module.INTEGRATION_VERSION = "7.4.40"
     monkeypatch.setitem(sys.modules, f"{package_name}.const", const_module)
 
     addon_client_module = types.ModuleType(f"{package_name}.addon_client")
@@ -126,6 +130,7 @@ def test_panel_registers_native_module_metadata(monkeypatch):
         kwargs["config"]["dashboard_api_base_path"]
         == "/api/grocy_ai_assistant/dashboard-proxy"
     )
+    assert kwargs["config"]["dashboard_polling_interval_seconds"] == 5
     assert (
         kwargs["config"]["legacy_dashboard_emergency_url"]
         == "/api/grocy_ai_assistant/dashboard-proxy/"
