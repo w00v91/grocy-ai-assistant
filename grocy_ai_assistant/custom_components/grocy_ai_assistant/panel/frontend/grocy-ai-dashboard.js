@@ -20,7 +20,7 @@ const TAB_LABELS = {
   notifications: '🔔 Benachrichtigungen',
 };
 const DEFAULT_POLLING_INTERVAL_MS = 5000;
-const DEFAULT_INTEGRATION_VERSION = '7.4.38';
+const DEFAULT_INTEGRATION_VERSION = '7.4.39';
 const GROCY_RECIPE_DISPLAY_LIMIT = 3;
 const AI_RECIPE_DISPLAY_LIMIT = 3;
 const TAB_VIEW_STATE = Object.freeze({
@@ -365,6 +365,8 @@ function renderStorageListItem(item, options = {}) {
   const title = item?.name || 'Unbekanntes Produkt';
   const amountLabel = formatBadgeValue(item?.amount, '0');
   const bestBeforeLabel = formatBadgeValue(item?.best_before_date, '-');
+  const locationLabel = formatBadgeValue(item?.location_name, 'Nicht gesetzt');
+  const stockLabel = item?.in_stock ? 'Im Bestand' : 'Nicht im Bestand';
   const consumeActionLabel = item?.in_stock ? '✅ Verbrauchen' : 'ℹ️ Öffnen';
   const resolvedImageSource = resolveShoppingImageSource(item?.picture_url, { resolveUrl: options.resolveImageUrl });
 
@@ -388,21 +390,29 @@ function renderStorageListItem(item, options = {}) {
           data-shopping-image="true"
           data-fallback-src="${escapeHtml(resolveShoppingImageSource(''))}"
         />
-        <div class="shopping-item-meta storage-item-main">
+        <div class="storage-item-main">
           <div><strong class="storage-item-name">${escapeHtml(title)}</strong></div>
-          <div class="muted storage-item-description">Lager: ${escapeHtml(formatBadgeValue(item?.location_name, '-'))}</div>
+          <div class="shopping-card__detail-line shopping-card__detail-line--location">
+            <span class="shopping-card__detail-label">Lagerort</span>
+            <span class="shopping-card__detail-value">${escapeHtml(locationLabel)}</span>
+          </div>
         </div>
-        <div class="shopping-item-badges storage-item-badges">
-          <span class="badge">Menge: ${escapeHtml(amountLabel)}</span>
-          <span class="badge">MHD: ${escapeHtml(bestBeforeLabel)}</span>
-          <button
-            type="button"
-            class="ghost-button storage-item-delete-button"
-            data-action="storage-open-delete"
-            data-item-id="${escapeHtml(actionableId)}"
-          >
-            Löschen
-          </button>
+        <div class="storage-item-side">
+          <div class="storage-item-actions">
+            <button
+              type="button"
+              class="ghost-button storage-item-delete-button"
+              data-action="storage-open-delete"
+              data-item-id="${escapeHtml(actionableId)}"
+            >
+              Löschen
+            </button>
+          </div>
+          <div class="storage-item-badges">
+            <span class="badge">Menge: ${escapeHtml(amountLabel)}</span>
+            <span class="badge">MHD: ${escapeHtml(bestBeforeLabel)}</span>
+          </div>
+          <div class="storage-item-info muted">${escapeHtml(stockLabel)}</div>
         </div>
       </div>
     </li>

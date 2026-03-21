@@ -1184,6 +1184,11 @@ img {
 
 .storage-item-content {
   width: 100%;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 0.8rem;
+  padding: 0.75rem 0.85rem;
 }
 
 .storage-item-content img {
@@ -1195,11 +1200,17 @@ img {
   border: 1px solid var(--item-border);
 }
 
-.storage-item-main {
+.storage-item-main,
+.storage-item-side,
+.storage-item-badges {
   min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.22rem;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.storage-item-side,
+.storage-item-badges {
+  justify-items: end;
 }
 
 .storage-item-name {
@@ -1207,13 +1218,28 @@ img {
   line-height: 1.35;
 }
 
-.storage-item-description {
-  line-height: 1.35;
+.storage-item-info {
+  text-align: right;
+  font-size: 0.82rem;
 }
+
 @media (max-width: 640px) {
+  .storage-item-content {
+    grid-template-columns: 56px minmax(0, 1fr);
+  }
+
   .storage-item-content img {
     width: 56px;
     height: 56px;
+  }
+
+  .storage-item-side,
+  .storage-item-badges {
+    justify-items: flex-start;
+  }
+
+  .storage-item-info {
+    text-align: left;
   }
 }
 
