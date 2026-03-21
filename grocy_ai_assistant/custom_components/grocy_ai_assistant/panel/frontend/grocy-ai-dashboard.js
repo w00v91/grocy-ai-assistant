@@ -20,7 +20,7 @@ const TAB_LABELS = {
   notifications: '🔔 Benachrichtigungen',
 };
 const DEFAULT_POLLING_INTERVAL_MS = 5000;
-const DEFAULT_INTEGRATION_VERSION = '7.4.35';
+const DEFAULT_INTEGRATION_VERSION = '7.4.36';
 const GROCY_RECIPE_DISPLAY_LIMIT = 3;
 const AI_RECIPE_DISPLAY_LIMIT = 3;
 const TAB_VIEW_STATE = Object.freeze({
@@ -560,22 +560,12 @@ class GrocyAITopbar extends HTMLElement {
           <div>
             <p class="eyebrow">Grocy AI Assistant</p>
             <h1>${PANEL_TITLE}</h1>
-            <p class="topbar-path-hint">Native Panel-URL: <code>${escapeHtml(model.panelPath)}</code> · Icon: <code>${escapeHtml(model.panelIcon || PANEL_ICON)}</code></p>
           </div>
           <div class="topbar-meta">
             <p class="topbar-status" aria-live="polite">${escapeHtml(model.status)}</p>
             <span class="activity-spinner${model.busy ? '' : ' hidden'}" aria-label="Lädt"></span>
             <span class="migration-chip">${model.migratedCount}/${model.totalCount} Tabs nativ</span>
           </div>
-        </div>
-        <div class="topbar-quicklinks" aria-label="Schnellaktionen">
-          ${TAB_ORDER.map((tab) => `
-            <a
-              class="quicklink-button${model.activeTab === tab ? ' active' : ''}"
-              href="${escapeHtml(buildPanelTabHref(model.panelPath, tab))}"
-            >${TAB_LABELS[tab]}</a>
-          `).join('')}
-          <button type="button" class="ghost-button" data-action="shopping-open-scanner">📷 Scanner</button>
         </div>
       </header>
     `;

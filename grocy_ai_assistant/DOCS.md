@@ -128,7 +128,7 @@ Für Home-Assistant-Buttons und `navigate`-Aktionen ist `?tab=...` die empfohlen
 
 ### Schnellaktionen in der nativen UI
 
-Die native Oberfläche blendet im Kopfbereich zusätzliche Schnelllinks auf **Einkauf**, **Rezepte**, **Lager** und **Benachrichtigungen** ein und zeigt dort auch den finalen Panel-Pfad `/grocy-ai` an. So lassen sich Teilbereiche leichter wiederverwenden und verlinken.
+Die native Oberfläche unterstützt weiterhin Deep Links auf **Einkauf**, **Rezepte**, **Lager** und **Benachrichtigungen** über den Panel-Pfad `/grocy-ai`.
 
 ## Hinweise zur Nutzung
 

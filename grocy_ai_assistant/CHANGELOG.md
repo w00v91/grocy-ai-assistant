@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Changed (Home-Assistant-Integration/Panel): Die Native-Dashboard-Topbar zeigt keine Tab-Pills und keinen Hinweistext zur Panel-URL bzw. zum Sidebar-Icon mehr, damit der Kopfbereich ruhiger bleibt.
+- Test: `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `node --test tests/frontend/test_panel_shell_rendering.mjs`, `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.36` erhöht.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `7.4.36` erhöht.
+
 - Fix (Dashboard/Legacy): Die FastAPI-Static-Mounts registrieren `/dashboard-static/panel-frontend` jetzt vor dem allgemeineren `/dashboard-static`, damit Legacy-Imports für `shopping-ui.css`, `shopping-ui.js` und `swipe-interactions.js` hinter Home-Assistant-Ingress nicht mehr im 404-JSON des falschen Mounts landen.
 - Test: `pytest tests/api/test_dashboard.py tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; zusätzlicher API-Regressionstest deckt die verschachtelten Panel-Frontend-Assets direkt ab.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `7.4.35` erhöht.
