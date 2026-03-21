@@ -374,7 +374,8 @@ function renderStorageListItem(item, options = {}) {
   const title = item?.name || 'Unbekanntes Produkt';
   const amountLabel = formatBadgeValue(item?.amount, '0');
   const bestBeforeLabel = formatBadgeValue(item?.best_before_date, '-');
-  const locationLabel = formatBadgeValue(item?.location_name, '-');
+  const locationLabel = formatBadgeValue(item?.location_name, 'Nicht gesetzt');
+  const stockLabel = item?.in_stock ? 'Im Bestand' : 'Nicht im Bestand';
   const consumeActionLabel = item?.in_stock ? '✅ Verbrauchen' : 'ℹ️ Öffnen';
   const resolvedImageSource = resolveShoppingImageSource(item?.picture_url, { resolveUrl: options.resolveImageUrl });
   const detailBadges = [
@@ -404,12 +405,29 @@ function renderStorageListItem(item, options = {}) {
           data-shopping-image="true"
           data-fallback-src="${escapeHtml(resolveShoppingImageSource(''))}"
         />
-        <div class="shopping-item-meta storage-item-main">
-          <div class="storage-item-heading">
-            <strong class="storage-item-name">${escapeHtml(title)}</strong>
-            <span class="shopping-status-chip shopping-status-chip--${escapeHtml(resolveStorageStatusVariant(item))}">${escapeHtml(item?.in_stock ? 'Auf Lager' : 'Nicht auf Lager')}</span>
+        <div class="storage-item-main">
+          <div><strong class="storage-item-name">${escapeHtml(title)}</strong></div>
+          <div class="shopping-card__detail-line shopping-card__detail-line--location">
+            <span class="shopping-card__detail-label">Lagerort</span>
+            <span class="shopping-card__detail-value">${escapeHtml(locationLabel)}</span>
           </div>
-          <div class="shopping-card__badges storage-item-badges">${detailBadges}</div>
+        </div>
+        <div class="storage-item-side">
+          <div class="storage-item-actions">
+            <button
+              type="button"
+              class="ghost-button storage-item-delete-button"
+              data-action="storage-open-delete"
+              data-item-id="${escapeHtml(actionableId)}"
+            >
+              Löschen
+            </button>
+          </div>
+          <div class="storage-item-badges">
+            <span class="badge">Menge: ${escapeHtml(amountLabel)}</span>
+            <span class="badge">MHD: ${escapeHtml(bestBeforeLabel)}</span>
+          </div>
+          <div class="storage-item-info muted">${escapeHtml(stockLabel)}</div>
         </div>
       </div>
     </li>
@@ -2808,6 +2826,7 @@ class GrocyAIDashboardPanel extends HTMLElement {
     this._store = createDashboardStore(createInitialState());
     this._api = createDashboardApiClient({ getAuthHeaders: () => this._getHomeAssistantAuthHeaders() });
     this._handlePopState = () => this._syncActiveTabFromLocation({ updateUrl: false });
+    this._handleVisibilityChange = () => this._handleDocumentVisibilityChange();
     this._shoppingSearch = createShoppingSearchController({
       api: this._api,
       onShoppingListChanged: async () => {
@@ -2822,6 +2841,7 @@ class GrocyAIDashboardPanel extends HTMLElement {
 
     this._bindEvents();
     window.addEventListener('popstate', this._handlePopState);
+    document.addEventListener('visibilitychange', this._handleVisibilityChange);
     this._unsubscribe = this._store.subscribe((state) => this._renderState(state));
     this._applyRouteState({ syncHistory: false, announce: false });
     this._syncActiveTabFromLocation({ replaceUrl: true });
@@ -2833,6 +2853,7 @@ class GrocyAIDashboardPanel extends HTMLElement {
   disconnectedCallback() {
     this._unsubscribe?.();
     window.removeEventListener('popstate', this._handlePopState);
+    document.removeEventListener('visibilitychange', this._handleVisibilityChange);
     this._searchUnsubscribe?.();
     this._shoppingSearch.dispose();
     window.clearTimeout(this._storageFilterDebounce);
@@ -3212,11 +3233,19 @@ class GrocyAIDashboardPanel extends HTMLElement {
 
   _canPollShopping({ requireNoTimer = true } = {}) {
     const state = this._store.getState();
+    if (document.hidden) return false;
     if (state.activeTab !== 'shopping') return false;
     if (requireNoTimer && state.shopping.pollTimer) return false;
     if (state.shopping.detailModal.open || state.shopping.mhdModal.open || state.shopping.scanner.open) return false;
     if (state.shopping.viewState.editing) return false;
     return true;
+  }
+
+  _handleDocumentVisibilityChange() {
+    this._syncShoppingPolling();
+    if (document.hidden) return;
+    if (!this._canPollShopping({ requireNoTimer: false })) return;
+    void this._loadShoppingList({ silent: true });
   }
 
   _activateTab(tabName) {

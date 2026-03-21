@@ -104,6 +104,18 @@ function renderContextRow(label, value, options = {}) {
   `;
 }
 
+function renderDetailLine(label, value, options = {}) {
+  const normalizedValue = String(value ?? '').trim();
+  if (!normalizedValue) return '';
+  const variantClassName = options.variant ? ` shopping-card__detail-line--${options.variant}` : '';
+  return `
+    <div class="shopping-card__detail-line${variantClassName}">
+      <span class="shopping-card__detail-label">${escapeHtml(label)}</span>
+      <span class="shopping-card__detail-value">${escapeHtml(normalizedValue)}</span>
+    </div>
+  `;
+}
+
 function renderActionButton(action = {}) {
   const {
     label = '',
@@ -165,10 +177,10 @@ export function renderShoppingVariantCard(variant, options = {}) {
 export function renderShoppingListItemCard(item, options = {}) {
   const title = item?.product_name || item?.name || 'Unbekanntes Produkt';
   const amountLabel = formatAmount(item?.amount, '1');
-  const note = String(item?.note || '').trim() || (options.noteFallback || 'Keine Notiz');
+  const note = String(item?.note || '').trim() || (options.noteFallback ?? '');
   const stockLabel = formatStockCount(item?.in_stock, '0');
   const bestBeforeDate = formatBadgeValue(item?.best_before_date, options.mhdFallback || 'MHD wählen');
-  const locationLabel = formatBadgeValue(item?.location_name, '');
+  const locationLabel = String(item?.location_name || '').trim();
   const resolvedImageSource = resolveShoppingImageSource(item?.picture_url, { resolveUrl: options.resolveImageUrl });
   const actionButtons = Array.isArray(options.actionButtons) ? options.actionButtons : [];
   const rootClassName = [
@@ -182,9 +194,7 @@ export function renderShoppingListItemCard(item, options = {}) {
   const contextRowFactories = {
     stock: () => renderContextRow('Bestand', stockLabel, { variant: 'stock' }),
     mhd: () => renderContextRow('MHD', bestBeforeDate, { variant: 'mhd' }),
-    location: () => (item?.location_name
-      ? renderContextRow('Lagerort', item.location_name, { variant: 'location' })
-      : ''),
+    location: () => '',
   };
   const contextRows = contextFields
     .filter((field) => field !== 'location')
@@ -196,32 +206,39 @@ export function renderShoppingListItemCard(item, options = {}) {
     renderBadge('MHD', bestBeforeDate, options.mhdBadge || { variant: 'mhd' }),
     renderBadge('Bestand', stockLabel, { variant: 'stock' }),
   ].join('');
-  const metaBadges = `
-    <div class="shopping-card__meta">
-      <span class="shopping-status-chip shopping-status-chip--shopping">Offen</span>
-      <div class="shopping-card__badges shopping-card__badges--header">${badges}</div>
-    </div>
-  `;
-  const locationBadge = locationLabel
-    ? `<div class="shopping-card__submeta">${renderBadge('Lagerort', locationLabel, { variant: 'location', className: 'shopping-card__submeta-badge' })}</div>`
-    : '';
+  const statusChipMarkup = options.statusChip === false
+    ? ''
+    : `<span class="shopping-status-chip shopping-status-chip--shopping">${escapeHtml(options.statusLabel || 'Offen')}</span>`;
   const actionsMarkup = actionButtons.length
-    ? `<div class="shopping-card__actions">${actionButtons.map((action) => renderActionButton(action)).join('')}</div>`
+    ? `<div class="shopping-card__actions shopping-card__actions--stacked">${actionButtons.map((action) => renderActionButton(action)).join('')}</div>`
+    : '';
+  const badgesMarkup = `<div class="shopping-card__badges shopping-card__badges--stacked">${badges}</div>`;
+  const infoMarkup = contextRows
+    ? `<ul class="shopping-card__context-list shopping-card__context-list--stacked">${contextRows}</ul>`
+    : '';
+  const noteMarkup = note ? `<p class="shopping-card__note">${escapeHtml(note)}</p>` : '';
+  const locationMarkup = locationLabel
+    ? renderDetailLine('Lagerort', locationLabel, { variant: 'location' })
     : '';
 
   return `
     <div class="${rootClassName}">
       <div class="shopping-card__surface">
         <img class="shopping-card__media" src="${escapeHtml(resolvedImageSource)}" alt="${escapeHtml(title)}" loading="lazy" data-shopping-image="true" data-fallback-src="${escapeHtml(DEFAULT_IMAGE_PLACEHOLDER)}" />
-        <div class="shopping-card__body">
-          <div class="shopping-card__header">
-            <strong class="shopping-card__title">${escapeHtml(title)}</strong>
-            ${metaBadges}
+        <div class="shopping-card__body shopping-card__body--swipe">
+          <div class="shopping-card__main">
+            <div class="shopping-card__header">
+              <strong class="shopping-card__title">${escapeHtml(title)}</strong>
+            </div>
+            ${noteMarkup}
+            ${locationMarkup}
           </div>
-          <p class="shopping-card__note">${escapeHtml(note)}</p>
-          ${locationBadge}
-          ${contextRows ? `<ul class="shopping-card__context-list">${contextRows}</ul>` : ''}
-          ${actionsMarkup}
+          <div class="shopping-card__aside">
+            ${statusChipMarkup}
+            ${actionsMarkup}
+            ${badgesMarkup}
+            ${infoMarkup}
+          </div>
         </div>
       </div>
     </div>

@@ -60,10 +60,10 @@ test('shopping list card renders shared badge and action structure', () => {
   assert.match(markup, /data-shopping-list-id="9"/);
   assert.match(markup, /data-action="shopping-open-detail"/);
   assert.match(markup, /data-shopping-image="true"/);
-  assert.match(markup, /shopping-card__meta/);
-  assert.match(markup, /shopping-card__badges--header/);
-  assert.match(markup, /shopping-badge__label">Lagerort/);
+  assert.match(markup, /shopping-card__body--swipe/);
+  assert.match(markup, /shopping-card__detail-label">Lagerort/);
   assert.match(markup, /Kühlschrank/);
+  assert.match(markup, /shopping-status-chip--shopping/);
   assert.match(markup, /shopping-badge__label">Bestand/);
   assert.doesNotMatch(markup, /shopping-card__context-label">Bestand/);
   assert.doesNotMatch(markup, /shopping-card__context-label">MHD/);
