@@ -93,20 +93,6 @@ function readTabFromPath(pathname) {
   return normalizeTabName(segments.at(-1));
 }
 
-function escapeHtml(value) {
-  return String(value ?? '')
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#39;');
-}
-
-function formatAmount(value) {
-  const normalized = String(value ?? '').trim();
-  return normalized || '1';
-}
-
 function toImageSource(url, options = {}) {
   const normalizedUrl = String(url ?? '').trim();
   if (!normalizedUrl) return 'https://placehold.co/80x80?text=Kein+Bild';
