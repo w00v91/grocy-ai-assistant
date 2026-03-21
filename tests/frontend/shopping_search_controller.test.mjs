@@ -100,7 +100,8 @@ test('debounces fast typing so only the latest variant request runs', async () =
   await timerApi.advanceBy(1);
   assert.deepEqual(queries, ['milc']);
   assert.equal(controller.getState().variantsRequestToken, 3);
-  assert.equal(controller.getState().flowState, SEARCH_FLOW_STATES.VARIANTS_READY);
+  assert.equal(controller.getState().flowState, SEARCH_FLOW_STATES.TYPING);
+  assert.equal(controller.getState().statusMessage, 'Keine Live-Vorschläge. Mit Enter direkt suchen.');
 });
 
 test('clears variants immediately and returns to idle on empty input', async () => {
