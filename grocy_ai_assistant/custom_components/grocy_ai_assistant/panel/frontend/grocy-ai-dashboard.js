@@ -19,6 +19,7 @@ const TAB_LABELS = {
   storage: '📦 Lager',
   notifications: '🔔 Benachrichtigungen',
 };
+const VISIBLE_TAB_ORDER = TAB_ORDER.filter((tab) => tab !== 'notifications');
 const DEFAULT_POLLING_INTERVAL_SECONDS = 5;
 const DEFAULT_POLLING_INTERVAL_MS = DEFAULT_POLLING_INTERVAL_SECONDS * 1000;
 const DEFAULT_INTEGRATION_VERSION = '7.4.40';
@@ -766,7 +767,7 @@ class GrocyAITabNav extends HTMLElement {
     const model = this._viewModel || { activeTab: 'shopping' };
     this.innerHTML = `
       <nav class="bottom-tabbar" aria-label="Navigation">
-        ${TAB_ORDER.map((tab) => `
+        ${VISIBLE_TAB_ORDER.map((tab) => `
           <button
             type="button"
             class="tab-button${model.activeTab === tab ? ' active' : ''}"
