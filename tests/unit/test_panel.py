@@ -15,9 +15,13 @@ class _StaticPathConfig:
 class _FakeHTTP:
     def __init__(self):
         self.static_path_calls = []
+        self.registered_views = []
 
     async def async_register_static_paths(self, configs):
         self.static_path_calls.append(configs)
+
+    def register_view(self, view):
+        self.registered_views.append(view)
 
 
 class _FakeHass:
@@ -44,6 +48,7 @@ def _load_panel_module(monkeypatch):
         remove_calls.append((args, kwargs))
 
     frontend.async_remove_panel = fake_remove
+    http.HomeAssistantView = object
     http.StaticPathConfig = _StaticPathConfig
     panel_custom.async_register_panel = fake_register
     core.HomeAssistant = object
@@ -63,9 +68,24 @@ def _load_panel_module(monkeypatch):
     monkeypatch.setitem(sys.modules, package_name, package)
 
     const_module = types.ModuleType(f"{package_name}.const")
-    const_module.DEFAULT_ADDON_INGRESS_PATH = "/api/hassio_ingress/grocy_ai_assistant/"
+    const_module.CONF_API_BASE_URL = "api_base_url"
+    const_module.DEFAULT_ADDON_BASE_URL = "http://local-grocy-ai-assistant:8000"
     const_module.DOMAIN = "grocy_ai_assistant"
+    const_module.INTEGRATION_VERSION = "7.4.20"
     monkeypatch.setitem(sys.modules, f"{package_name}.const", const_module)
+
+    addon_client_module = types.ModuleType(f"{package_name}.addon_client")
+
+    class _AddonClient:
+        def __init__(self, *args, **kwargs):
+            self.args = args
+            self.kwargs = kwargs
+
+        async def request_raw(self, *args, **kwargs):
+            return {"status": 200, "body": b"{}", "headers": {"Content-Type": "application/json"}}
+
+    addon_client_module.AddonClient = _AddonClient
+    monkeypatch.setitem(sys.modules, f"{package_name}.addon_client", addon_client_module)
 
     module_path = (
         Path(__file__).resolve().parents[2]
@@ -99,8 +119,12 @@ def test_panel_registers_native_module_metadata(monkeypatch):
     assert kwargs["sidebar_title"] == "Grocy AI"
     assert kwargs["sidebar_icon"] == "mdi:fridge-outline"
     assert (
+        kwargs["config"]["dashboard_api_base_path"]
+        == "/api/grocy_ai_assistant/dashboard-proxy"
+    )
+    assert (
         kwargs["config"]["legacy_dashboard_url"]
-        == "/api/hassio_ingress/grocy_ai_assistant/"
+        == "/api/grocy_ai_assistant/dashboard-proxy/"
     )
     assert kwargs["config"]["panel_path"] == "/grocy-ai"
     assert kwargs["config"]["panel_title"] == "Grocy AI"
@@ -109,6 +133,20 @@ def test_panel_registers_native_module_metadata(monkeypatch):
     assert kwargs["config"]["route"] == "/grocy-ai"
     assert kwargs["config"]["sidebar_title"] == "Grocy AI"
     assert kwargs["config"]["sidebar_icon"] == "mdi:fridge-outline"
+
+
+def test_panel_registers_dashboard_proxy_view_once(monkeypatch):
+    panel_module, _, _ = _load_panel_module(monkeypatch)
+
+    hass = _FakeHass()
+    asyncio.run(panel_module.async_setup(hass))
+    asyncio.run(panel_module.async_setup(hass))
+
+    assert len(hass.http.registered_views) == 1
+    assert (
+        hass.http.registered_views[0].url
+        == "/api/grocy_ai_assistant/dashboard-proxy/{path:.*}"
+    )
 
 
 def test_panel_registers_static_bundle_route_once(monkeypatch):

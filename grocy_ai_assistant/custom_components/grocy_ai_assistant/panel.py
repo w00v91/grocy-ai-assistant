@@ -1,11 +1,18 @@
+from aiohttp import web
 from pathlib import Path
 
 from homeassistant.components.frontend import async_remove_panel
-from homeassistant.components.http import StaticPathConfig
+from homeassistant.components.http import HomeAssistantView, StaticPathConfig
 from homeassistant.components.panel_custom import async_register_panel
 from homeassistant.core import HomeAssistant
 
-from .const import DEFAULT_ADDON_INGRESS_PATH, DOMAIN
+from .addon_client import AddonClient
+from .const import (
+    CONF_API_BASE_URL,
+    DEFAULT_ADDON_BASE_URL,
+    DOMAIN,
+    INTEGRATION_VERSION,
+)
 
 PANEL_TITLE = "Grocy AI"
 PANEL_ICON = "mdi:fridge-outline"
@@ -14,12 +21,90 @@ PANEL_PATH = f"/{PANEL_SLUG}"
 PANEL_WEBCOMPONENT = "grocy-ai-dashboard-panel"
 PANEL_FRONTEND_URL_BASE = "/grocy_ai_assistant_panel"
 PANEL_FRONTEND_MODULE = "grocy-ai-dashboard.js"
+PANEL_PROXY_URL_BASE = "/api/grocy_ai_assistant/dashboard-proxy"
 _PANEL_STATE_KEY = "_panel_state"
 
 
 def _frontend_directory() -> Path:
     """Return the directory that contains the native panel frontend bundle."""
     return Path(__file__).resolve().parent / "panel" / "frontend"
+
+
+def _resolve_api_base_url(config: dict) -> str:
+    return (
+        config.get(CONF_API_BASE_URL)
+        or config.get("addon_base_url")
+        or DEFAULT_ADDON_BASE_URL
+    )
+
+
+def _resolve_active_config(hass: HomeAssistant) -> dict:
+    domain_data = hass.data.get(DOMAIN, {})
+    for key, value in domain_data.items():
+        if key.startswith("_") or key == _PANEL_STATE_KEY:
+            continue
+        if isinstance(value, dict):
+            return value
+    return {}
+
+
+def _build_active_client(hass: HomeAssistant) -> AddonClient:
+    active_config = _resolve_active_config(hass)
+    return AddonClient(
+        _resolve_api_base_url(active_config),
+        active_config.get("api_key", ""),
+        integration_version=INTEGRATION_VERSION,
+    )
+
+
+class GrocyAIDashboardProxyView(HomeAssistantView):
+    """Proxy dashboard HTML/API/static routes through the Home Assistant auth context."""
+
+    requires_auth = True
+    url = f"{PANEL_PROXY_URL_BASE}/{{path:.*}}"
+    name = "api:grocy_ai_assistant:dashboard-proxy"
+
+    def __init__(self, hass: HomeAssistant) -> None:
+        self.hass = hass
+
+    async def get(self, request, path: str = ""):
+        return await self._handle(request, path)
+
+    async def post(self, request, path: str = ""):
+        return await self._handle(request, path)
+
+    async def put(self, request, path: str = ""):
+        return await self._handle(request, path)
+
+    async def patch(self, request, path: str = ""):
+        return await self._handle(request, path)
+
+    async def delete(self, request, path: str = ""):
+        return await self._handle(request, path)
+
+    async def _handle(self, request, path: str):
+        client = _build_active_client(self.hass)
+        request_path = f"/{path}" if path else "/"
+        proxy_headers = {
+            "X-Ingress-Path": PANEL_PROXY_URL_BASE,
+            "X-Forwarded-Prefix": PANEL_PROXY_URL_BASE,
+        }
+        if accept := request.headers.get("Accept"):
+            proxy_headers["Accept"] = accept
+        if content_type := request.headers.get("Content-Type"):
+            proxy_headers["Content-Type"] = content_type
+        proxy_response = await client.request_raw(
+            request.method,
+            request_path,
+            body=await request.read(),
+            query_params=request.query,
+            headers=proxy_headers,
+        )
+        return web.Response(
+            status=proxy_response["status"],
+            body=proxy_response["body"],
+            headers=proxy_response["headers"],
+        )
 
 
 async def async_setup(hass: HomeAssistant) -> None:
@@ -31,10 +116,9 @@ async def async_setup(hass: HomeAssistant) -> None:
             "registrations": 0,
             "static_paths_registered": False,
             "panel_registered": False,
+            "proxy_registered": False,
         },
     )
-
-    resolved_url = DEFAULT_ADDON_INGRESS_PATH
 
     if not panel_state["static_paths_registered"]:
         frontend_directory = _frontend_directory()
@@ -49,8 +133,13 @@ async def async_setup(hass: HomeAssistant) -> None:
         )
         panel_state["static_paths_registered"] = True
 
+    if not panel_state["proxy_registered"]:
+        hass.http.register_view(GrocyAIDashboardProxyView(hass))
+        panel_state["proxy_registered"] = True
+
     panel_state["registrations"] += 1
-    panel_state["legacy_dashboard_url"] = resolved_url
+    panel_state["dashboard_api_base_path"] = PANEL_PROXY_URL_BASE
+    panel_state["legacy_dashboard_url"] = f"{PANEL_PROXY_URL_BASE}/"
 
     if panel_state["panel_registered"]:
         async_remove_panel(hass, PANEL_SLUG)
@@ -63,10 +152,11 @@ async def async_setup(hass: HomeAssistant) -> None:
         module_url=f"{PANEL_FRONTEND_URL_BASE}/{PANEL_FRONTEND_MODULE}",
         config={
             "frontend_base_url": PANEL_FRONTEND_URL_BASE,
+            "dashboard_api_base_path": PANEL_PROXY_URL_BASE,
             "panel_path": PANEL_PATH,
             "panel_title": PANEL_TITLE,
             "panel_icon": PANEL_ICON,
-            "legacy_dashboard_url": resolved_url,
+            "legacy_dashboard_url": f"{PANEL_PROXY_URL_BASE}/",
             "page_title": PANEL_TITLE,
             "route": f"/{PANEL_SLUG}",
             "sidebar_icon": PANEL_ICON,

@@ -1,6 +1,7 @@
 import asyncio
 from ipaddress import ip_address
 import os
+from typing import Mapping
 from urllib.parse import urlencode
 from urllib.parse import urlparse
 
@@ -195,6 +196,55 @@ class AddonClient:
                         return {
                             "items": payload,
                             "_http_status": response.status,
+                        }
+                except (aiohttp.ClientError, asyncio.TimeoutError) as error:
+                    last_error = error
+                    continue
+
+        if last_error is not None:
+            raise last_error
+        raise RuntimeError("Die Add-on-API konnte nicht erreicht werden")
+
+    async def request_raw(
+        self,
+        method: str,
+        path: str,
+        *,
+        body: bytes | None = None,
+        query_params: Mapping[str, str] | None = None,
+        headers: Mapping[str, str] | None = None,
+        timeout_seconds: int = 30,
+    ) -> dict:
+        timeout = aiohttp.ClientTimeout(total=timeout_seconds)
+        request_path = path
+        if query_params:
+            filtered_query = {
+                key: value
+                for key, value in query_params.items()
+                if value not in (None, "")
+            }
+            if filtered_query:
+                request_path = f"{path}?{urlencode(filtered_query)}"
+
+        last_error: Exception | None = None
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            candidate_base_urls = await self._candidate_base_urls(session)
+            for candidate_base_url in candidate_base_urls:
+                try:
+                    async with session.request(
+                        method.upper(),
+                        f"{candidate_base_url}{request_path}",
+                        headers={**self._headers, **dict(headers or {})},
+                        data=body,
+                    ) as response:
+                        return {
+                            "status": response.status,
+                            "body": await response.read(),
+                            "headers": {
+                                key: value
+                                for key, value in response.headers.items()
+                                if key.lower() in {"content-type", "cache-control"}
+                            },
                         }
                 except (aiohttp.ClientError, asyncio.TimeoutError) as error:
                     last_error = error
