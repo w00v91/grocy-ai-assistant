@@ -2789,6 +2789,7 @@ class GrocyAIDashboardPanel extends HTMLElement {
     this._store = createDashboardStore(createInitialState());
     this._api = createDashboardApiClient({ getAuthHeaders: () => this._getHomeAssistantAuthHeaders() });
     this._handlePopState = () => this._syncActiveTabFromLocation({ updateUrl: false });
+    this._handleVisibilityChange = () => this._handleDocumentVisibilityChange();
     this._shoppingSearch = createShoppingSearchController({
       api: this._api,
       onShoppingListChanged: async () => {
@@ -2803,6 +2804,7 @@ class GrocyAIDashboardPanel extends HTMLElement {
 
     this._bindEvents();
     window.addEventListener('popstate', this._handlePopState);
+    document.addEventListener('visibilitychange', this._handleVisibilityChange);
     this._unsubscribe = this._store.subscribe((state) => this._renderState(state));
     this._applyRouteState({ syncHistory: false, announce: false });
     this._syncActiveTabFromLocation({ replaceUrl: true });
@@ -2814,6 +2816,7 @@ class GrocyAIDashboardPanel extends HTMLElement {
   disconnectedCallback() {
     this._unsubscribe?.();
     window.removeEventListener('popstate', this._handlePopState);
+    document.removeEventListener('visibilitychange', this._handleVisibilityChange);
     this._searchUnsubscribe?.();
     this._shoppingSearch.dispose();
     window.clearTimeout(this._storageFilterDebounce);
@@ -3192,11 +3195,19 @@ class GrocyAIDashboardPanel extends HTMLElement {
 
   _canPollShopping({ requireNoTimer = true } = {}) {
     const state = this._store.getState();
+    if (document.hidden) return false;
     if (state.activeTab !== 'shopping') return false;
     if (requireNoTimer && state.shopping.pollTimer) return false;
     if (state.shopping.detailModal.open || state.shopping.mhdModal.open || state.shopping.scanner.open) return false;
     if (state.shopping.viewState.editing) return false;
     return true;
+  }
+
+  _handleDocumentVisibilityChange() {
+    this._syncShoppingPolling();
+    if (document.hidden) return;
+    if (!this._canPollShopping({ requireNoTimer: false })) return;
+    void this._loadShoppingList({ silent: true });
   }
 
   _activateTab(tabName) {

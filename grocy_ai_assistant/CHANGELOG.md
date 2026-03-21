@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Fix (Home-Assistant-Integration/Panel): Das native Shopping-Polling pausiert jetzt auch bei verborgenem Dokument analog zum Legacy-Dashboard, startet bei `visibilitychange` auf sichtbar wieder und lädt die Einkaufsliste dabei einmalig per Silent-Refresh nach, ohne bestehende Pausen durch Detail-, MHD-, Scanner-Modale oder `viewState.editing` zu umgehen.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `7.4.39` erhöht.
+- Test: `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `node --test tests/frontend/test_panel_shell_rendering.mjs`, `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.39` erhöht.
 - Changed (Home-Assistant-Integration/Panel): Die Swipe-Karten in `shopping` und `storage` nutzen jetzt denselben dreispaltigen Aufbau `Bild | Name/Notiz/Lagerort | Buttons/Badges/Info`, damit die Tab-Ansichten konsistenter bleiben und optionale Notizen in der Einkaufsliste nur noch bei Bedarf angezeigt werden.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `7.4.39` erhöht.
 - Test: `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/shopping-ui.js`, `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `node --test tests/frontend/test_shopping_ui_shared.mjs tests/frontend/test_native_shopping_swipe.mjs`, `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.39` erhöht.
