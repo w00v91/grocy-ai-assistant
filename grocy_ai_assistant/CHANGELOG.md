@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Fix (Home-Assistant-Integration/Panel): Die native Einkaufsliste rendert Produktbilder jetzt wieder direkt aus den bereits proxied bereitgestellten `picture_url`-Feldern, inklusive Fallback-Platzhalter für bildlose Produkte.
+- Fix (Home-Assistant-Integration/Panel): Shopping-Suche und Modal-Editoren stellen den Fokus/Cursor nach reaktiven Rerenders wieder her, sodass Eingaben in Suchfeld, Notiz-, Mengen- und MHD-Feldern beim Tippen nicht mehr abbrechen.
+- Fix (Home-Assistant-Integration/Panel): Das Shopping-Polling pausiert jetzt während aktiver Suche, sichtbaren Varianten und geöffneten Popups, damit Hintergrund-Refreshes weder den Fokus stehlen noch Popup-Interaktionen auf der Suchseite stören.
+- Test: `node --test tests/frontend/test_panel_shell_rendering.mjs tests/frontend/test_panel_interaction_regressions.mjs`, `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.22` erhöht.
+
 - Fix (Home-Assistant-Integration/Panel): Der native Dashboard-API-Client sendet Requests an `/api/grocy_ai_assistant/dashboard-proxy` jetzt zusätzlich mit dem aktuellen Home-Assistant-Bearer-Token aus dem Frontend-Kontext, sodass HA-geschützte Proxy-Aufrufe wie die Einkaufsliste im nativen Panel nicht mehr mit `401 Unauthorized` abgewiesen werden.
 - Test: `node --test tests/frontend/test_dashboard_api_client.mjs tests/frontend/test_panel_api_base_path.mjs tests/frontend/test_panel_shell_rendering.mjs`, `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `pytest tests/unit/test_panel.py tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.21` erhöht.
 

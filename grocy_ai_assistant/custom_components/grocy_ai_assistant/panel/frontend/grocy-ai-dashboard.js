@@ -90,6 +90,15 @@ function formatAmount(value) {
   return normalized || '1';
 }
 
+function toImageSource(url) {
+  const normalizedUrl = String(url || '').trim();
+  if (!normalizedUrl) return 'https://placehold.co/80x80?text=Kein+Bild';
+  if (normalizedUrl.startsWith('data:')) return normalizedUrl;
+  if (normalizedUrl.startsWith('http://') || normalizedUrl.startsWith('https://')) return normalizedUrl;
+  if (normalizedUrl.startsWith('/')) return normalizedUrl;
+  return `/${normalizedUrl.replace(/^\/+/, '')}`;
+}
+
 function deriveSearchUiState(model = {}) {
   if (model.flowState === SEARCH_FLOW_STATES.ERROR || model.errorMessage) return 'error';
   if (model.flowState === SEARCH_FLOW_STATES.SUBMITTING || model.isSubmitting) return 'submitting';
@@ -376,6 +385,7 @@ class GrocyAIShoppingTab extends HTMLElement {
     const model = this._viewModel || {};
     const variants = Array.isArray(model.variants) ? model.variants : [];
     const items = Array.isArray(model.list) ? model.list : [];
+    const focusSnapshot = this._captureFocusSnapshot();
 
     this.innerHTML = `
       <section class="tab-view${model.active ? '' : ' hidden'}">
@@ -399,10 +409,20 @@ class GrocyAIShoppingTab extends HTMLElement {
               ? items.map((item) => `
                   <li class="shopping-item-card">
                     <div class="shopping-item-card__content">
-                      <div>
-                        <strong>${escapeHtml(item.product_name || 'Unbekanntes Produkt')}</strong>
-                        <div class="muted">Menge: ${escapeHtml(formatAmount(item.amount))}</div>
-                        <div class="muted">${escapeHtml(item.note || 'Keine Notiz')}</div>
+                      <div class="shopping-item-card__identity">
+                        <div class="shopping-item-card__media">
+                          <img
+                            class="shopping-item-card__image"
+                            src="${escapeHtml(toImageSource(item.picture_url))}"
+                            alt="${escapeHtml(item.product_name || 'Unbekanntes Produkt')}"
+                            loading="lazy"
+                          />
+                        </div>
+                        <div>
+                          <strong>${escapeHtml(item.product_name || 'Unbekanntes Produkt')}</strong>
+                          <div class="muted">Menge: ${escapeHtml(formatAmount(item.amount))}</div>
+                          <div class="muted">${escapeHtml(item.note || 'Keine Notiz')}</div>
+                        </div>
                       </div>
                       <div class="shopping-item-card__actions">
                         <button class="ghost-button" type="button" data-action="shopping-open-detail" data-item-id="${escapeHtml(item.id)}">Details</button>
@@ -429,6 +449,37 @@ class GrocyAIShoppingTab extends HTMLElement {
       ...model,
       variants,
     };
+    this._restoreFocusSnapshot(focusSnapshot);
+  }
+
+  _captureFocusSnapshot() {
+    const root = this.getRootNode();
+    const activeElement = root?.activeElement;
+    if (!(activeElement instanceof HTMLInputElement)) return null;
+    if (activeElement.dataset.role !== 'shopping-query') return null;
+
+    return {
+      selector: '[data-role="shopping-query"]',
+      selectionStart: activeElement.selectionStart,
+      selectionEnd: activeElement.selectionEnd,
+      selectionDirection: activeElement.selectionDirection,
+      shouldFocus: true,
+    };
+  }
+
+  _restoreFocusSnapshot(snapshot) {
+    if (!snapshot?.shouldFocus) return;
+    const target = this.querySelector(snapshot.selector);
+    if (!(target instanceof HTMLInputElement)) return;
+
+    target.focus();
+    if (typeof snapshot.selectionStart === 'number' && typeof snapshot.selectionEnd === 'number') {
+      target.setSelectionRange(
+        snapshot.selectionStart,
+        snapshot.selectionEnd,
+        snapshot.selectionDirection || 'none',
+      );
+    }
   }
 }
 
@@ -521,6 +572,7 @@ class GrocyAIDashboardModals extends HTMLElement {
     const detail = model.detailModal || { open: false };
     const mhd = model.mhdModal || { open: false };
     const item = model.activeItem || null;
+    const focusSnapshot = this._captureFocusSnapshot();
 
     this.innerHTML = `
       <div class="shopping-modal${detail.open ? '' : ' hidden'}">
@@ -560,6 +612,40 @@ class GrocyAIDashboardModals extends HTMLElement {
         </section>
       </div>
     `;
+    this._restoreFocusSnapshot(focusSnapshot);
+  }
+
+  _captureFocusSnapshot() {
+    const root = this.getRootNode();
+    const activeElement = root?.activeElement;
+    const supportedFields = new Set(['amount', 'note', 'mhd']);
+    if (!(activeElement instanceof HTMLInputElement || activeElement instanceof HTMLTextAreaElement)) {
+      return null;
+    }
+    if (!supportedFields.has(activeElement.dataset.field || '')) return null;
+
+    return {
+      selector: `[data-field="${activeElement.dataset.field}"]`,
+      selectionStart: activeElement.selectionStart,
+      selectionEnd: activeElement.selectionEnd,
+      selectionDirection: activeElement.selectionDirection,
+      shouldFocus: true,
+    };
+  }
+
+  _restoreFocusSnapshot(snapshot) {
+    if (!snapshot?.shouldFocus) return;
+    const target = this.querySelector(snapshot.selector);
+    if (!(target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement)) return;
+
+    target.focus();
+    if (typeof snapshot.selectionStart === 'number' && typeof snapshot.selectionEnd === 'number') {
+      target.setSelectionRange(
+        snapshot.selectionStart,
+        snapshot.selectionEnd,
+        snapshot.selectionDirection || 'none',
+      );
+    }
   }
 }
 
@@ -1183,7 +1269,7 @@ class GrocyAIDashboardPanel extends HTMLElement {
     const timer = window.setInterval(() => {
       const latestState = this._store.getState();
       if (latestState.activeTab !== 'shopping') return;
-      if (latestState.shopping.detailModal.open || latestState.shopping.mhdModal.open || latestState.shopping.scannerModalOpen) return;
+      if (this._shouldPauseShoppingPolling(latestState)) return;
       this._loadShoppingList({ silent: true });
     }, this._shoppingPollIntervalMs);
     this._updateShoppingState({ pollTimer: timer });
@@ -1196,6 +1282,25 @@ class GrocyAIDashboardPanel extends HTMLElement {
     this._updateShoppingState({ pollTimer: null });
   }
 
+  _shouldPauseShoppingPolling(state) {
+    const searchState = this._shoppingSearch.getState();
+    const rootActiveElement = this.shadowRoot?.activeElement;
+    const isSearchFieldFocused = rootActiveElement?.matches?.('[data-role="shopping-query"]') || false;
+    const isModalFieldFocused = rootActiveElement?.matches?.('[data-field]') || false;
+    const hasInteractiveSearchState = Boolean(String(searchState.query || '').trim())
+      || searchState.isLoadingVariants
+      || searchState.isSubmitting
+      || searchState.flowState === SEARCH_FLOW_STATES.VARIANTS_READY;
+
+    return (
+      state.shopping.detailModal.open
+      || state.shopping.mhdModal.open
+      || state.shopping.scannerModalOpen
+      || isSearchFieldFocused
+      || isModalFieldFocused
+      || hasInteractiveSearchState
+    );
+  }
 
   _applyRouteState(options = {}) {
     const nextTab = this._resolveTabFromRoute();
