@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Fix (Home-Assistant-Integration/Panel): Das native Dashboard baut seine Shadow-DOM-Shell jetzt deterministisch vor jedem State-Render auf und bricht bei unvollständigen Child-Elementen defensiv ab, damit frühe `hass`-/`route`-Updates nicht mehr mit `Cannot set properties of null (setting 'viewModel')` in `_renderState(...)` abbrechen.
+- Test: `node --test tests/frontend/test_panel_shell_rendering.mjs`, `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `pytest tests/unit/test_addon_config_yaml.py`; Versionsstände auf `7.4.18` erhöht.
+
 - Fix (Home-Assistant-Integration/Panel): Die native Panel-Registrierung entfernt einen vorhandenen Sidebar-Eintrag jetzt nur noch nach einer erfolgreichen Vorregistrierung, sodass Home Assistant beim ersten Laden kein `Removing unknown panel grocy-ai` mehr ins Frontend-Log schreibt.
 - Test: `pytest tests/unit/test_panel.py tests/unit/test_addon_config_yaml.py`, `ruff check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel.py tests/unit/test_panel.py tests/unit/test_addon_config_yaml.py`; Versionsstände auf `7.4.17` erhöht.
 - Fix (Home-Assistant-Integration/Panel): Die Registrierung der nativen Panel-Webcomponents läuft jetzt über einen robusten `registerCustomElement(...)`-Helper mit DOMException-Fallback, damit Registry-spezifische Reload-/Reuse-Szenarien keine Folgefehler oder irreführenden Sourcemap-404s mehr auslösen.
