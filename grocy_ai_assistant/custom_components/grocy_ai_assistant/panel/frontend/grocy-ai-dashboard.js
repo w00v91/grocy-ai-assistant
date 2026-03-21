@@ -3,7 +3,7 @@ import { buildLegacyDashboardUrl, resolveDashboardApiBasePath } from './panel-ap
 import { createDashboardStore } from './dashboard-store.js';
 import { buildPanelUrlWithTab, DEFAULT_TAB, resolveTabFromLocation, TAB_ORDER } from './tab-routing.js';
 import { createShoppingSearchController, SEARCH_FLOW_STATES } from './shopping-search-controller.js';
-import { escapeHtml, formatAmount, renderShoppingListItemCard, renderShoppingVariantCard, resolveShoppingImageSource } from './shopping-ui.js';
+import { bindShoppingImageFallbacks, escapeHtml, formatAmount, renderShoppingListItemCard, renderShoppingVariantCard, resolveShoppingImageSource } from './shopping-ui.js';
 import { bindSwipeInteractions } from './swipe-interactions.js';
 
 const PANEL_SLUG = 'grocy-ai';
@@ -535,6 +535,7 @@ class GrocyAIShoppingSearchBar extends HTMLElement {
 
     const nodes = variants.map((variant) => this._createVariantCard(variant, model.parsedAmount));
     variantGrid.replaceChildren(...nodes);
+    bindShoppingImageFallbacks(this);
     this._restoreQueryInputState(snapshot);
   }
 
@@ -779,6 +780,7 @@ class GrocyAIShoppingTab extends HTMLElement {
     }
 
     list.replaceChildren(...items.map((item) => this._createShoppingListItem(item, model)));
+    bindShoppingImageFallbacks(this);
     this._rebindSwipeInteractions();
   }
 
@@ -799,8 +801,6 @@ class GrocyAIShoppingTab extends HTMLElement {
 
     this._elements.searchBar.viewModel = {
       ...model,
-      variants,
-      imageBasePath: model.imageBasePath || '',
     };
     this._renderList(model, items);
   }

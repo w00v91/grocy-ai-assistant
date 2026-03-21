@@ -24,6 +24,22 @@ test('shared swipe helper exports reusable binding utilities', () => {
   assert.equal(typeof resetSwipeVisualState, 'function');
 });
 
+test('shared swipe helper keeps touch listeners for native Home Assistant mobile dashboards', async () => {
+  const source = await fs.readFile(
+    path.resolve(
+      __dirname,
+      '../../grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/swipe-interactions.js',
+    ),
+    'utf8',
+  );
+
+  assert.match(source, /let lastTouchStartAt = 0;/);
+  assert.match(source, /const handleTouchStart = \(event\) => \{/);
+  assert.match(source, /item\.addEventListener\('touchstart', handleTouchStart, \{ \.\.\.signalOptions, passive: true \}\);/);
+  assert.match(source, /item\.addEventListener\('touchmove', handleTouchMove, \{ \.\.\.signalOptions, passive: false \}\);/);
+  assert.match(source, /event\.pointerType === 'touch' && \(Date\.now\(\) - lastTouchStartAt\) < 800/);
+});
+
 test('native shopping tab renders swipe shopping items and rebinds swipe interactions', async () => {
   const source = await fs.readFile(nativeDashboardPath, 'utf8');
 

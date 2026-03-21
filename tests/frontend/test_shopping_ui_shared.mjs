@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
+  bindShoppingImageFallbacks,
   formatAmount,
   formatBadgeValue,
   formatStockCount,
@@ -10,6 +11,7 @@ import {
 } from '../../grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/shopping-ui.js';
 
 test('shopping UI helpers format amounts, badges and stock values consistently', () => {
+  assert.equal(typeof bindShoppingImageFallbacks, 'function');
   assert.equal(formatAmount(''), '1');
   assert.equal(formatBadgeValue('', 'MHD wählen'), 'MHD wählen');
   assert.equal(formatStockCount('2,5'), '2,5');
@@ -30,6 +32,8 @@ test('shopping variant card renders shared dataset and context markup', () => {
   assert.match(markup, /data-product-id="7"/);
   assert.match(markup, /Hafermilch Barista/);
   assert.match(markup, /KI-Vorschlag/);
+  assert.match(markup, /data-shopping-image="true"/);
+  assert.match(markup, /data-fallback-src="https:\/\/placehold\.co\/80x80\?text=Kein\+Bild"/);
   assert.match(markup, /Bestand/);
   assert.match(markup, /2026-03-28/);
 });
@@ -53,5 +57,6 @@ test('shopping list card renders shared badge and action structure', () => {
   assert.match(markup, /amount-increment-button/);
   assert.match(markup, /data-shopping-list-id="9"/);
   assert.match(markup, /data-action="shopping-open-detail"/);
+  assert.match(markup, /data-shopping-image="true"/);
   assert.match(markup, /Bestand/);
 });
