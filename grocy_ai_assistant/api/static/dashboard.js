@@ -3,6 +3,7 @@ import { updateBusyIndicator, renderTabSelection, lockBodyScroll as applyBodyScr
 import { createDashboardStore } from './dashboard-store.js';
 import { parseAmountPrefixedSearch, shouldShowClearButton } from './dashboard-shopping-search-helpers.js';
 import { formatAmount, formatBadgeValue, formatStockCount, renderShoppingListItemCard, renderShoppingVariantCard } from './panel-frontend/shopping-ui.js';
+import { bindSwipeInteractions, resetSwipeVisualState } from './panel-frontend/swipe-interactions.js';
 
 const rootElement = document.documentElement;
 const configuredApiKey = rootElement.dataset.configuredApiKey || '';
@@ -1658,101 +1659,6 @@ async function closeShoppingItemDetails() {
   dashboardState.activeShoppingAmountValue = '';
   modal.classList.add('hidden');
   syncModalScrollLock();
-}
-
-function resetSwipeVisualState(item) {
-  item.classList.remove('dragging', 'swipe-commit-left', 'swipe-commit-right');
-  item.style.setProperty('--swipe-offset', '0px');
-  item.style.setProperty('--swipe-progress-left', '0');
-  item.style.setProperty('--swipe-progress-right', '0');
-  item.style.setProperty('--swipe-glow', 'transparent');
-}
-
-function bindSwipeInteractions({ selector, onSwipeLeft, onSwipeRight, onTap, interactiveElementSelector = '' }) {
-  const items = document.querySelectorAll(selector);
-  const commitDistance = 75;
-  const maxDistance = 132;
-
-  items.forEach((item) => {
-    let startX = 0;
-    let deltaX = 0;
-    let pointerId = null;
-    let isDragging = false;
-
-    resetSwipeVisualState(item);
-
-    item.addEventListener('pointerdown', (event) => {
-      if (interactiveElementSelector && event.target.closest(interactiveElementSelector)) {
-        return;
-      }
-
-      pointerId = event.pointerId;
-      startX = event.clientX;
-      deltaX = 0;
-      isDragging = true;
-      item.classList.remove('swipe-commit-left', 'swipe-commit-right');
-      item.classList.add('dragging');
-      item.setPointerCapture(pointerId);
-    });
-
-    item.addEventListener('pointermove', (event) => {
-      if (!isDragging || event.pointerId !== pointerId) {
-        return;
-      }
-
-      const distance = event.clientX - startX;
-      const dragScale = 0.8;
-      deltaX = Math.max(-maxDistance, Math.min(maxDistance, distance * dragScale));
-
-      const rightProgress = Math.min(Math.max(deltaX / commitDistance, 0), 1);
-      const leftProgress = Math.min(Math.max((-deltaX) / commitDistance, 0), 1);
-      const glow = deltaX >= 0 ? 'rgba(22, 163, 74, 0.7)' : 'rgba(239, 68, 68, 0.7)';
-
-      item.style.setProperty('--swipe-offset', `${deltaX}px`);
-      item.style.setProperty('--swipe-progress-left', leftProgress.toFixed(3));
-      item.style.setProperty('--swipe-progress-right', rightProgress.toFixed(3));
-      item.style.setProperty('--swipe-glow', glow);
-    });
-
-    item.addEventListener('pointercancel', () => {
-      isDragging = false;
-      resetSwipeVisualState(item);
-    });
-
-    item.addEventListener('pointerup', async (event) => {
-      if (!isDragging || event.pointerId !== pointerId) {
-        return;
-      }
-
-      isDragging = false;
-      if (item.hasPointerCapture(pointerId)) {
-        item.releasePointerCapture(pointerId);
-      }
-      pointerId = null;
-      item.classList.remove('dragging');
-
-      const payloadText = decodeURIComponent(item.dataset.shoppingItem || item.dataset.swipePayload || '');
-      const payload = payloadText ? JSON.parse(payloadText) : {};
-
-      if (deltaX <= -commitDistance) {
-        item.classList.add('swipe-commit-left');
-        if (onSwipeLeft) await onSwipeLeft(item, payload);
-        return;
-      }
-
-      if (deltaX >= commitDistance) {
-        item.classList.add('swipe-commit-right');
-        if (onSwipeRight) await onSwipeRight(item, payload);
-        return;
-      }
-
-      if (Math.abs(deltaX) < 14 && onTap) {
-        onTap(item, payload);
-      }
-
-      resetSwipeVisualState(item);
-    });
-  });
 }
 
 function bindShoppingSwipeInteractions() {

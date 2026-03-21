@@ -234,6 +234,102 @@ h1 {
   list-style: none;
 }
 
+.swipe-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-weight: 700;
+  font-size: 0.81rem;
+  line-height: 1;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.34);
+  color: #fff;
+  border-radius: 999px;
+  padding: 0.38rem 0.62rem;
+  backdrop-filter: blur(2px);
+  transform: scale(calc(0.92 + (max(var(--swipe-progress-left), var(--swipe-progress-right)) * 0.12)));
+  transition: transform 0.16s ease;
+}
+
+.swipe-item {
+  --swipe-offset: 0px;
+  --swipe-progress-left: 0;
+  --swipe-progress-right: 0;
+  --swipe-glow: transparent;
+  position: relative;
+  display: block;
+  padding: 0;
+  overflow: hidden;
+  cursor: pointer;
+  touch-action: pan-y;
+  user-select: none;
+  border-radius: 16px;
+  border: 1px solid var(--panel-border-color);
+  background: transparent;
+}
+
+.swipe-item-content {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  border-radius: inherit;
+  background: color-mix(in srgb, var(--panel-card-background) 94%, var(--primary-background-color));
+  transform: translate3d(var(--swipe-offset), 0, 0);
+  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+
+.swipe-item.dragging .swipe-item-content {
+  transition: none;
+}
+
+.swipe-item.swipe-commit-left {
+  --swipe-offset: -118px;
+}
+
+.swipe-item.swipe-commit-right {
+  --swipe-offset: 118px;
+}
+
+.swipe-item-action {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 138px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  opacity: 0.86;
+  transition: opacity 0.2s ease;
+}
+
+.swipe-item-action-left {
+  left: 0;
+  background: linear-gradient(135deg, #0f8a43, #16a34a);
+  opacity: calc(0.4 + (var(--swipe-progress-right) * 0.7));
+}
+
+.swipe-item-action-right {
+  right: 0;
+  background: linear-gradient(135deg, #ef4444, #b91c1c);
+  opacity: calc(0.4 + (var(--swipe-progress-left) * 0.7));
+}
+
+.shopping-item.swipe-item .shopping-card {
+  border: none;
+  border-radius: inherit;
+  background: transparent;
+}
+
+.shopping-item.swipe-item .shopping-card__surface {
+  border-radius: inherit;
+}
+
+.shopping-item.swipe-item .shopping-card__actions {
+  justify-content: flex-start;
+}
+
 .variant-grid--search {
   gap: 10px;
 }
