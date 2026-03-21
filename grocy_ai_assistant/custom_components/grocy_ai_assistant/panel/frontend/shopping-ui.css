@@ -114,6 +114,10 @@
   justify-content: flex-end;
 }
 
+.shopping-card__badges--main {
+  justify-content: flex-start;
+}
+
 .shopping-card__badges--stacked {
   display: grid;
   justify-items: end;

@@ -201,11 +201,13 @@ export function renderShoppingListItemCard(item, options = {}) {
     .map((field) => contextRowFactories[field]?.() || '')
     .filter(Boolean)
     .join('');
+  const stockBadgePlacement = options.stockBadgePlacement === 'main' ? 'main' : 'aside';
+  const stockBadge = renderBadge('Bestand', stockLabel, { variant: 'stock' });
   const badges = [
     renderBadge('Menge', amountLabel, options.amountBadge || { variant: 'amount' }),
     renderBadge('MHD', bestBeforeDate, options.mhdBadge || { variant: 'mhd' }),
-    renderBadge('Bestand', stockLabel, { variant: 'stock' }),
-  ].join('');
+    stockBadgePlacement === 'aside' ? stockBadge : '',
+  ].filter(Boolean).join('');
   const statusChipMarkup = options.statusChip === false
     ? ''
     : `<span class="shopping-status-chip shopping-status-chip--shopping">${escapeHtml(options.statusLabel || 'Offen')}</span>`;
@@ -220,6 +222,9 @@ export function renderShoppingListItemCard(item, options = {}) {
   const locationMarkup = locationLabel
     ? renderDetailLine('Lagerort', locationLabel, { variant: 'location' })
     : '';
+  const mainBadgesMarkup = stockBadgePlacement === 'main'
+    ? `<div class="shopping-card__badges shopping-card__badges--main">${stockBadge}</div>`
+    : '';
 
   return `
     <div class="${rootClassName}">
@@ -231,6 +236,7 @@ export function renderShoppingListItemCard(item, options = {}) {
               <strong class="shopping-card__title">${escapeHtml(title)}</strong>
             </div>
             ${noteMarkup}
+            ${mainBadgesMarkup}
             ${locationMarkup}
           </div>
           <div class="shopping-card__aside">
