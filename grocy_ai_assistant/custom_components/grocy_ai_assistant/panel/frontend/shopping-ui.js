@@ -168,6 +168,7 @@ export function renderShoppingListItemCard(item, options = {}) {
   const note = String(item?.note || '').trim() || (options.noteFallback || 'Keine Notiz');
   const stockLabel = formatStockCount(item?.in_stock, '0');
   const bestBeforeDate = formatBadgeValue(item?.best_before_date, options.mhdFallback || 'MHD wählen');
+  const locationLabel = formatBadgeValue(item?.location_name, '');
   const resolvedImageSource = resolveShoppingImageSource(item?.picture_url, { resolveUrl: options.resolveImageUrl });
   const actionButtons = Array.isArray(options.actionButtons) ? options.actionButtons : [];
   const rootClassName = [
@@ -186,6 +187,7 @@ export function renderShoppingListItemCard(item, options = {}) {
       : ''),
   };
   const contextRows = contextFields
+    .filter((field) => field !== 'location')
     .map((field) => contextRowFactories[field]?.() || '')
     .filter(Boolean)
     .join('');
@@ -194,6 +196,15 @@ export function renderShoppingListItemCard(item, options = {}) {
     renderBadge('MHD', bestBeforeDate, options.mhdBadge || { variant: 'mhd' }),
     renderBadge('Bestand', stockLabel, { variant: 'stock' }),
   ].join('');
+  const metaBadges = `
+    <div class="shopping-card__meta">
+      <span class="shopping-status-chip shopping-status-chip--shopping">Offen</span>
+      <div class="shopping-card__badges shopping-card__badges--header">${badges}</div>
+    </div>
+  `;
+  const locationBadge = locationLabel
+    ? `<div class="shopping-card__submeta">${renderBadge('Lagerort', locationLabel, { variant: 'location', className: 'shopping-card__submeta-badge' })}</div>`
+    : '';
   const actionsMarkup = actionButtons.length
     ? `<div class="shopping-card__actions">${actionButtons.map((action) => renderActionButton(action)).join('')}</div>`
     : '';
@@ -205,10 +216,10 @@ export function renderShoppingListItemCard(item, options = {}) {
         <div class="shopping-card__body">
           <div class="shopping-card__header">
             <strong class="shopping-card__title">${escapeHtml(title)}</strong>
-            <span class="shopping-status-chip shopping-status-chip--shopping">Offen</span>
+            ${metaBadges}
           </div>
           <p class="shopping-card__note">${escapeHtml(note)}</p>
-          <div class="shopping-card__badges">${badges}</div>
+          ${locationBadge}
           ${contextRows ? `<ul class="shopping-card__context-list">${contextRows}</ul>` : ''}
           ${actionsMarkup}
         </div>

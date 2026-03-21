@@ -52,6 +52,13 @@
   gap: 0.65rem;
 }
 
+.shopping-card__meta {
+  min-width: 0;
+  display: grid;
+  justify-items: end;
+  gap: 0.45rem;
+}
+
 .shopping-card__header,
 .shopping-card__footer,
 .shopping-card__actions,
@@ -76,6 +83,10 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.45rem;
+}
+
+.shopping-card__badges--header {
+  justify-content: flex-end;
 }
 
 .shopping-badge,
@@ -108,6 +119,11 @@
 .shopping-badge--mhd {
   background: color-mix(in srgb, var(--warning-bg, var(--warning-color, #f59e0b)) 14%, var(--surface-card, var(--panel-card-background, #fff)));
   color: color-mix(in srgb, var(--warning-bg, var(--warning-color, #f59e0b)) 80%, var(--text-primary, var(--primary-text-color, #0f172a)));
+}
+
+.shopping-badge--location {
+  background: color-mix(in srgb, var(--info-bg, var(--accent-primary, var(--primary-color, #1d4ed8))) 11%, var(--surface-card, var(--panel-card-background, #fff)));
+  color: color-mix(in srgb, var(--info-bg, var(--accent-primary, var(--primary-color, #1d4ed8))) 74%, var(--text-primary, var(--primary-text-color, #0f172a)));
 }
 
 .shopping-status-chip--shopping {
@@ -164,6 +180,12 @@
   flex-wrap: wrap;
 }
 
+.shopping-card__submeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
 .shopping-card__actions button,
 .shopping-badge[type='button'],
 button.shopping-badge {
@@ -189,6 +211,14 @@ button.shopping-badge {
 .shopping-item-card--legacy .shopping-card__context-item {
   align-items: center;
   flex-direction: row;
+}
+
+.shopping-item-card--legacy .shopping-card__meta {
+  justify-items: end;
+}
+
+.shopping-item-card--legacy .shopping-card__submeta {
+  justify-content: flex-start;
 }
 
 .variant-amount-badge {
@@ -221,6 +251,12 @@ button.shopping-badge {
     flex-direction: column;
   }
 
+  .shopping-card__meta,
+  .shopping-card__badges--header {
+    justify-items: flex-start;
+    justify-content: flex-start;
+  }
+
   .shopping-item-card--legacy .shopping-card__surface {
     grid-template-columns: auto minmax(0, 1fr);
   }
@@ -239,5 +275,11 @@ button.shopping-badge {
   .shopping-item-card--legacy .shopping-card__context-item {
     align-items: center;
     flex-direction: row;
+  }
+
+  .shopping-item-card--legacy .shopping-card__meta,
+  .shopping-item-card--legacy .shopping-card__badges--header {
+    justify-items: end;
+    justify-content: flex-end;
   }
 }
