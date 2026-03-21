@@ -360,6 +360,55 @@ function renderStorageProductCard(item, options = {}) {
   `;
 }
 
+function renderStorageListItem(item, options = {}) {
+  const actionableId = getActionableStorageId(item);
+  const title = item?.name || 'Unbekanntes Produkt';
+  const amountLabel = formatBadgeValue(item?.amount, '0');
+  const bestBeforeLabel = formatBadgeValue(item?.best_before_date, '-');
+  const consumeActionLabel = item?.in_stock ? '✅ Verbrauchen' : 'ℹ️ Öffnen';
+  const resolvedImageSource = resolveShoppingImageSource(item?.picture_url, { resolveUrl: options.resolveImageUrl });
+
+  return `
+    <li
+      class="storage-item swipe-item variant-card"
+      data-item-id="${escapeHtml(actionableId)}"
+      data-in-stock="${item?.in_stock ? 'true' : 'false'}"
+    >
+      <div class="swipe-item-action swipe-item-action-left" aria-hidden="true">
+        <span class="swipe-chip swipe-chip-edit">✏️ Bearbeiten</span>
+      </div>
+      <div class="swipe-item-action swipe-item-action-right" aria-hidden="true">
+        <span class="swipe-chip swipe-chip-buy">${escapeHtml(consumeActionLabel)}</span>
+      </div>
+      <div class="storage-item-content shopping-item-content swipe-item-content">
+        <img
+          src="${escapeHtml(resolvedImageSource)}"
+          alt="${escapeHtml(title)}"
+          loading="lazy"
+          data-shopping-image="true"
+          data-fallback-src="${escapeHtml(resolveShoppingImageSource(''))}"
+        />
+        <div class="shopping-item-meta storage-item-main">
+          <div><strong class="storage-item-name">${escapeHtml(title)}</strong></div>
+          <div class="muted storage-item-description">Lager: ${escapeHtml(formatBadgeValue(item?.location_name, '-'))}</div>
+        </div>
+        <div class="shopping-item-badges storage-item-badges">
+          <span class="badge">Menge: ${escapeHtml(amountLabel)}</span>
+          <span class="badge">MHD: ${escapeHtml(bestBeforeLabel)}</span>
+          <button
+            type="button"
+            class="ghost-button storage-item-delete-button"
+            data-action="storage-open-delete"
+            data-item-id="${escapeHtml(actionableId)}"
+          >
+            Löschen
+          </button>
+        </div>
+      </div>
+    </li>
+  `;
+}
+
 function buildStorageTabMarkup(model = {}) {
   const items = Array.isArray(model.items) ? model.items : [];
   const locations = Array.isArray(model.locations) ? model.locations : [];
@@ -378,9 +427,9 @@ function buildStorageTabMarkup(model = {}) {
     }),
   ].join('');
 
-  let gridMarkup = '';
+  let listMarkup = '';
   if (model.loading && !items.length) {
-    gridMarkup = renderTileGrid([
+    listMarkup = renderTileGrid([
       renderStateCard({
         eyebrow: 'Lager',
         title: 'Bestand wird geladen',
@@ -390,7 +439,7 @@ function buildStorageTabMarkup(model = {}) {
       }),
     ], { className: 'storage-grid' });
   } else if (!items.length) {
-    gridMarkup = renderTileGrid([
+    listMarkup = renderTileGrid([
       renderStateCard({
         eyebrow: 'Lager',
         title: 'Keine Produkte gefunden',
@@ -400,7 +449,11 @@ function buildStorageTabMarkup(model = {}) {
       }),
     ], { className: 'storage-grid' });
   } else {
-    gridMarkup = `<div class="variant-grid storage-grid">${items.map((item) => renderStorageProductCard(item, { resolveImageUrl: model.resolveImageUrl })).join('')}</div>`;
+    listMarkup = `
+      <ul class="storage-products-list storage-products-list--native variant-grid" role="list">
+        ${items.map((item) => renderStorageListItem(item, { resolveImageUrl: model.resolveImageUrl })).join('')}
+      </ul>
+    `;
   }
 
   return `
@@ -408,7 +461,7 @@ function buildStorageTabMarkup(model = {}) {
       className: 'hero-card storage-hero-card',
       eyebrow: 'Lager',
       title: 'Lager',
-      description: 'Der Storage-Tab rendert den bisherigen Kachelcharakter jetzt nativ inklusive Filter, Refresh und Bestandsaktionen.',
+      description: 'Der Storage-Tab rendert den Bestand wieder als Legacy-nahe Swipe-Liste inklusive Filter, Refresh und Bestandsaktionen.',
       actions: [
         { label: 'Aktualisieren', className: 'primary-button', dataset: { action: 'storage-refresh' } },
       ],
@@ -430,7 +483,7 @@ function buildStorageTabMarkup(model = {}) {
         <p class="tab-status">${escapeHtml(model.status || 'Bereit.')}</p>
       `,
     })}
-    ${gridMarkup}
+    ${listMarkup}
 
     <div class="shopping-modal${editModal.open ? '' : ' hidden'}">
       <div class="shopping-modal-backdrop" data-action="storage-close-edit"></div>
@@ -630,22 +683,12 @@ class GrocyAITopbar extends HTMLElement {
           <div>
             <p class="eyebrow">Grocy AI Assistant</p>
             <h1>${PANEL_TITLE}</h1>
-            <p class="topbar-path-hint">Native Panel-URL: <code>${escapeHtml(model.panelPath)}</code> · Icon: <code>${escapeHtml(model.panelIcon || PANEL_ICON)}</code></p>
           </div>
           <div class="topbar-meta">
             <p class="topbar-status" aria-live="polite">${escapeHtml(model.status)}</p>
             <span class="activity-spinner${model.busy ? '' : ' hidden'}" aria-label="Lädt"></span>
             <span class="migration-chip">${model.migratedCount}/${model.totalCount} Tabs nativ</span>
           </div>
-        </div>
-        <div class="topbar-quicklinks" aria-label="Schnellaktionen">
-          ${TAB_ORDER.map((tab) => `
-            <a
-              class="quicklink-button${model.activeTab === tab ? ' active' : ''}"
-              href="${escapeHtml(buildPanelTabHref(model.panelPath, tab))}"
-            >${TAB_LABELS[tab]}</a>
-          `).join('')}
-          <button type="button" class="ghost-button" data-action="shopping-open-scanner">📷 Scanner</button>
         </div>
       </header>
     `;
@@ -2496,6 +2539,11 @@ class GrocyAIRecipesTab extends HTMLElement {
 }
 
 class GrocyAIStorageTab extends HTMLElement {
+  constructor() {
+    super();
+    this._cleanupSwipe = null;
+  }
+
   connectedCallback() {
     if (this._bound) return;
     this._bound = true;
@@ -2558,6 +2606,49 @@ class GrocyAIStorageTab extends HTMLElement {
     });
   }
 
+  disconnectedCallback() {
+    this._cleanupSwipe?.();
+    this._cleanupSwipe = null;
+  }
+
+  _rebindSwipeInteractions() {
+    this._cleanupSwipe?.();
+    this._cleanupSwipe = bindSwipeInteractions({
+      root: this,
+      selector: '.storage-item.swipe-item',
+      getPayload: (item) => ({
+        itemId: item.dataset.itemId,
+        inStock: item.dataset.inStock === 'true',
+      }),
+      interactiveElementSelector: '.storage-item-delete-button',
+      onTap: (_, payload) => {
+        if (!payload.itemId) return;
+        this.dispatchEvent(new CustomEvent('storage-open-edit', {
+          bubbles: true,
+          composed: true,
+          detail: { itemId: payload.itemId },
+        }));
+      },
+      onSwipeLeft: async (_, payload) => {
+        if (!payload.itemId) return;
+        const actionName = payload.inStock ? 'storage-open-consume' : 'storage-open-edit';
+        this.dispatchEvent(new CustomEvent(actionName, {
+          bubbles: true,
+          composed: true,
+          detail: { itemId: payload.itemId },
+        }));
+      },
+      onSwipeRight: async (_, payload) => {
+        if (!payload.itemId) return;
+        this.dispatchEvent(new CustomEvent('storage-open-edit', {
+          bubbles: true,
+          composed: true,
+          detail: { itemId: payload.itemId },
+        }));
+      },
+    });
+  }
+
   _render() {
     const snapshot = captureFocusedFormControl(this);
     const model = this._viewModel || {};
@@ -2569,6 +2660,7 @@ class GrocyAIStorageTab extends HTMLElement {
 
     bindShoppingImageFallbacks(this);
     restoreFocusedFormControl(this, snapshot);
+    this._rebindSwipeInteractions();
   }
 
   set viewModel(value) {

@@ -23,6 +23,21 @@ test('dashboard panel ensures its shell exists before assigning child view model
   assert.match(source, /if \(!topbar \|\| !tabNav \|\| !shoppingTab \|\| !recipesTab \|\| !storageTab \|\| !notificationsTab \|\| !modals \|\| !scannerBridge\) \{/);
 });
 
+
+test('topbar markup no longer renders panel URL hints or quicklink pills', async () => {
+  const source = await fs.readFile(dashboardPath, 'utf8');
+  const topbarSection = source.slice(
+    source.indexOf('class GrocyAITopbar extends HTMLElement'),
+    source.indexOf('class GrocyAITabNav extends HTMLElement'),
+  );
+
+  assert.match(topbarSection, /<header class=\"topbar\">/);
+  assert.doesNotMatch(topbarSection, /topbar-path-hint/);
+  assert.doesNotMatch(topbarSection, /topbar-quicklinks/);
+  assert.doesNotMatch(topbarSection, /quicklink-button/);
+  assert.doesNotMatch(topbarSection, /shopping-open-scanner/);
+});
+
 test('dashboard panel keeps product-picture requests on the HA proxy before the API client is ready', async () => {
   const source = await fs.readFile(dashboardPath, 'utf8');
 
@@ -92,10 +107,11 @@ test('recipes and storage tabs are natively migrated in the panel shell', async 
   assert.match(source, /class GrocyAIRecipesTab extends HTMLElement \{[\s\S]*?buildRecipesTabMarkup\(model\)/);
   assert.match(source, /function buildStorageTabMarkup\(model = \{\}\) \{/);
   assert.match(source, /data-role="storage-filter"/);
-  assert.match(source, /data-action="storage-open-edit"/);
-  assert.match(source, /data-action="storage-open-consume"/);
+  assert.match(source, /class="storage-item swipe-item variant-card"/);
+  assert.match(source, /storage-products-list--native/);
   assert.match(source, /data-action="storage-open-delete"/);
   assert.match(source, /class GrocyAIStorageTab extends HTMLElement \{[\s\S]*?buildStorageTabMarkup\(model\)/);
+  assert.match(source, /selector: '\.storage-item\.swipe-item'/);
   assert.match(source, /_initializeStorageTab\(\) \{/);
   assert.match(source, /api\.updateStockProduct\(editModal\.itemId/);
   assert.match(source, /api\.consumeStockProduct\(consumeModal\.itemId/);
