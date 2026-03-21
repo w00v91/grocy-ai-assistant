@@ -18,6 +18,10 @@ const legacyDashboardPath = path.resolve(
   __dirname,
   '../../grocy_ai_assistant/api/static/dashboard.js',
 );
+const sharedShoppingCssPath = path.resolve(
+  __dirname,
+  '../../grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/shopping-ui.css',
+);
 
 test('shared swipe helper exports reusable binding utilities', () => {
   assert.equal(typeof bindSwipeInteractions, 'function');
@@ -59,9 +63,31 @@ test('native shopping tab renders swipe shopping items and rebinds swipe interac
   assert.match(source, /new CustomEvent\('shopping-delete-item'/);
 });
 
+test('native storage tab renders legacy-style swipe list items and rebinds swipe interactions', async () => {
+  const source = await fs.readFile(nativeDashboardPath, 'utf8');
+
+  assert.match(source, /class GrocyAIStorageTab extends HTMLElement/);
+  assert.match(source, /this\._cleanupSwipe = null;/);
+  assert.match(source, /class="storage-item swipe-item variant-card"/);
+  assert.match(source, /data-action="storage-open-delete"/);
+  assert.match(source, /selector: '\.storage-item\.swipe-item'/);
+  assert.match(source, /interactiveElementSelector: '\.storage-item-delete-button'/);
+  assert.match(source, /new CustomEvent\('storage-open-edit'/);
+  assert.match(source, /const actionName = payload\.inStock \? 'storage-open-consume' : 'storage-open-edit';/);
+  assert.match(source, /bindShoppingImageFallbacks\(this\);\s+this\._rebindSwipeInteractions\(\);/);
+});
+
 test('legacy dashboard reuses the shared swipe utility import', async () => {
   const source = await fs.readFile(legacyDashboardPath, 'utf8');
 
   assert.match(source, /import \{ bindSwipeInteractions, resetSwipeVisualState \} from '\.\/panel-frontend\/swipe-interactions\.js';/);
   assert.doesNotMatch(source, /function bindSwipeInteractions\(/);
+});
+
+test('shared shopping card CSS keeps legacy swipe cards in their horizontal layout on narrow screens', async () => {
+  const source = await fs.readFile(sharedShoppingCssPath, 'utf8');
+
+  assert.match(source, /\.shopping-item-card--legacy \.shopping-card__surface \{\s+grid-template-columns: auto minmax\(0, 1fr\);/);
+  assert.match(source, /\.shopping-item-card--legacy \.shopping-card__header,\s+\.shopping-item-card--legacy \.shopping-card__footer,\s+\.shopping-item-card--legacy \.shopping-card__context-item \{\s+align-items: center;\s+flex-direction: row;/);
+  assert.match(source, /@media \(max-width: 640px\) \{[\s\S]*?\.shopping-item-card--legacy \.shopping-card__surface \{\s+grid-template-columns: auto minmax\(0, 1fr\);[\s\S]*?\.shopping-item-card--legacy \.shopping-card__header,[\s\S]*?flex-direction: row;/);
 });

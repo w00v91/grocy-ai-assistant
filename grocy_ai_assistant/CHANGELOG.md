@@ -7,10 +7,18 @@ All notable changes to this project will be documented in this file.
 - Fix (Home-Assistant-Integration/Panel): Die nativen `recipes`-, `storage`- und Modal-Komponenten überspringen bei reinen Feldwert-Updates jetzt vollständige `innerHTML`-Re-Renders und behalten dadurch Fokus, Cursorposition sowie geöffnete Auswahl-/`details`-Listen spürbar stabiler – analog zur Shopping-Suche im nativen Panel.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `7.4.37` erhöht.
 - Test: `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `node --test tests/frontend/test_panel_shell_rendering.mjs`, `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.37` erhöht.
+- Fix (Dashboard/Legacy, Home-Assistant-Integration/Panel): Die geteilte Shopping-Card-CSS hält `shopping-item-card--legacy`-Swipe-Einträge jetzt auch auf schmalen Viewports bewusst im alten horizontalen Legacy-Layout, sodass Bild, Status und Badge-Buttons im Legacy-Dashboard sowie im nativen HA-Panel nicht mehr „durcheinandergewürfelt“ umbrechen.
+- Test: `node --test tests/frontend/test_native_shopping_swipe.mjs`, `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.37` erhöht.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `7.4.37` erhöht.
 
 - Fix (Home-Assistant-Integration/Panel): Die nativen `recipes`-, `storage`- und Modal-Renderer stellen nach State-Updates den fokussierten Formular-Controller inklusive Cursorposition wieder her, damit Texteingaben, Zahlenfelder und Checkbox-/Auswahllisten beim Tippen oder Toggle nicht mehr durch Re-Renders den Fokus verlieren.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `7.4.36` erhöht.
 - Test: `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `node --test tests/frontend/test_panel_shell_rendering.mjs`, `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.36` erhöht.
+- Changed (Home-Assistant-Integration/Panel): Der native `storage`-Tab rendert Lagerprodukte wieder als vertikale Legacy-Liste mit Swipe-Gesten für Bearbeiten/Verbrauchen statt als Kachel-Grid; Löschen bleibt zusätzlich direkt als Button am Listeneintrag verfügbar.
+- Test: `node --test tests/frontend/test_native_shopping_swipe.mjs tests/frontend/test_panel_shell_rendering.mjs`, `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.35` erhöht.
+- Changed (Home-Assistant-Integration/Panel): Die Native-Dashboard-Topbar zeigt keine Tab-Pills und keinen Hinweistext zur Panel-URL bzw. zum Sidebar-Icon mehr, damit der Kopfbereich ruhiger bleibt.
+- Test: `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `node --test tests/frontend/test_panel_shell_rendering.mjs`, `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.36` erhöht.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `7.4.36` erhöht.
 
 - Fix (Home-Assistant-Integration/Panel): Die Swipe-Karten in der nativen Einkaufslistenansicht zeigen `MHD` und `Bestand` jetzt nur noch einmal als Badge; die doppelte Wiederholung in der Zusatz-Metazeile entfällt, während optionale Standortinfos erhalten bleiben.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `7.4.35` erhöht.

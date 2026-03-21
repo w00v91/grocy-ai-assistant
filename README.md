@@ -139,7 +139,7 @@ Der native Panel-Container wertet Tabs jetzt direkt aus der URL aus. Unterstütz
 - `/grocy-ai#tab=recipes`
 - `/grocy-ai/recipes`
 
-Die Query-Variante (`?tab=...`) ist für Home-Assistant-Navigation in der Regel die robusteste Form. Innerhalb des nativen Panels werden außerdem Schnelllinks für diese Deep Links eingeblendet.
+Die Query-Variante (`?tab=...`) ist für Home-Assistant-Navigation in der Regel die robusteste Form.
 
 ## Kopplung Add-on ↔ Integration
 
