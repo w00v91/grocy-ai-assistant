@@ -285,6 +285,7 @@ h1 {
 
 .shopping-list-native__item {
   list-style: none;
+  min-height: 78px;
 }
 
 .swipe-chip {
@@ -379,15 +380,24 @@ h1 {
   border-radius: inherit;
 }
 
-.shopping-item.swipe-item .shopping-card__actions {
-  justify-content: flex-start;
+.shopping-item-content {
+  width: 100%;
+  min-height: 78px;
+}
+
+.shopping-item-card--legacy {
+  height: 100%;
+}
+
+.shopping-item-card--legacy .shopping-card__surface {
+  min-height: 78px;
+  padding: 0.75rem 0.85rem;
 }
 
 .variant-grid--search {
   gap: 10px;
 }
 
-.shopping-card__actions,
 .variant-card--action {
   padding: 0;
   overflow: hidden;
@@ -400,11 +410,6 @@ h1 {
   background: transparent;
   color: inherit;
   text-align: left;
-}
-
-.shopping-item-content {
-  align-items: center;
-  gap: 16px;
 }
 
 .shopping-item-content img,
