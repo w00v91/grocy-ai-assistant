@@ -451,14 +451,14 @@ def create_app() -> FastAPI:
         / "frontend"
     )
     app_instance.mount(
-        "/dashboard-static",
-        StaticFiles(directory=str(static_root)),
-        name="dashboard_static",
-    )
-    app_instance.mount(
         "/dashboard-static/panel-frontend",
         StaticFiles(directory=str(panel_frontend_root)),
         name="dashboard_panel_frontend_static",
+    )
+    app_instance.mount(
+        "/dashboard-static",
+        StaticFiles(directory=str(static_root)),
+        name="dashboard_static",
     )
     app_instance.include_router(router)
 
