@@ -1,3 +1,5 @@
+@import './shopping-ui.css';
+
 :host {
   display: block;
   color: var(--primary-text-color);
@@ -36,8 +38,6 @@
 .section-header,
 .topbar-meta,
 .topbar-quicklinks,
-.shopping-item-card__content,
-.shopping-item-card__actions,
 .button-row,
 .shopping-modal-save-row,
 .migration-checklist {
@@ -46,8 +46,7 @@
 }
 
 .topbar-content,
-.section-header,
-.shopping-item-card__content {
+.section-header {
   justify-content: space-between;
   align-items: flex-start;
 }
@@ -155,9 +154,7 @@ h1 {
   background: color-mix(in srgb, var(--panel-card-background) 94%, var(--primary-background-color));
 }
 
-.shopping-search-shell__header,
-.variant-card__header,
-.variant-card__meta {
+.shopping-search-shell__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -233,18 +230,15 @@ h1 {
   padding: 0;
 }
 
-.shopping-item-card,
-.variant-card {
-  border: 1px solid var(--panel-border-color);
-  border-radius: 16px;
-  padding: 16px;
-  background: color-mix(in srgb, var(--panel-card-background) 90%, var(--primary-background-color));
+.shopping-list-native__item {
+  list-style: none;
 }
 
 .variant-grid--search {
   gap: 10px;
 }
 
+.shopping-card__actions,
 .variant-card--action {
   padding: 0;
   overflow: hidden;
@@ -624,7 +618,7 @@ button:disabled {
 
   .topbar-content,
   .section-header,
-  .shopping-item-card__content {
+  .shopping-card__actions {
     flex-direction: column;
   }
 

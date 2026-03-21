@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Changed (Dashboard/Migration): Die Shopping-UI für Produktsuche, Variantenkarten und Einkaufslisten-Items basiert jetzt auf einem gemeinsamen Frontend-Baustein `shopping-ui.js`/`shopping-ui.css`, den sowohl das Legacy-Dashboard als auch das native Home-Assistant-Panel verwenden.
+- Changed (Dashboard/UI): Das native Shopping-Panel übernimmt damit den Kartenaufbau der Legacy-Einkaufsliste inklusive Variantencard-Struktur, Badge-/Statusdarstellung sowie Bestands- und MHD-Kontext; Navigation/Auth/Container bleiben weiterhin HA-nativ.
+- Changed (API/Static): Das FastAPI-App-Mount stellt die Panel-Frontend-Bausteine zusätzlich unter `/dashboard-static/panel-frontend` bereit, damit das Legacy-Dashboard dieselben UI-Helfer ohne Kopierlogik laden kann.
+- Test: `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/shopping-ui.js`, `node --check grocy_ai_assistant/api/static/dashboard.js`, `node --test tests/frontend/test_shopping_ui_shared.mjs`, `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.22` erhöht.
 - Changed (Home-Assistant-Integration/Panel): Die bisherige `GrocyAIScannerBridge` im nativen HA-Panel wurde durch eine echte Scanner-Web-Component ersetzt, die Kamera, Barcode-Erkennung, Bildanalyse und Ergebnisdarstellung ohne Legacy-iframe direkt im Panel rendert.
 - Changed (Home-Assistant-Integration/Panel): Scanner-Treffer aus Barcode-Lookup und `POST /api/v1/scan/image` werden jetzt unmittelbar in denselben nativen Search-/Varianten-/Add-to-list-Flow übergeben wie Texteingaben, sodass Varianten, Suchstatus und Listen-Updates konsistent bleiben.
 - Changed (Dashboard/Migration): Der native Panel-API-Client unterstützt jetzt die v1-Scanner-Endpunkte für Barcode- und Bildscans; zusätzlich bevorzugt der Shopping-Search-Controller in Browser-Tests die vorhandene `window`-Timer-API.

@@ -1,3 +1,5 @@
+@import url('./panel-frontend/shopping-ui.css');
+
 
 * {
   box-sizing: border-box;
@@ -968,10 +970,6 @@ img {
     margin-left: 0;
   }
 
-  .shopping-item-badges {
-    width: 100%;
-    max-width: 33.333%;
-  }
 }
 .shopping-list-section button { width: 100%; }
 #shopping-list {
@@ -1013,74 +1011,8 @@ img {
 
 .variant-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: 0.75rem;
-}
-.variant-card {
-  background: var(--item-bg);
-  border: 1px solid var(--item-border);
-  border-radius: var(--radius-md);
-  padding: 0.6rem;
-  text-align: center;
-}
-.variant-card button {
-  width: 100%;
-  background: transparent;
-  border: none;
-  padding: 0;
-  color: inherit;
-  position: relative;
-}
-.variant-amount-badge {
-  position: absolute;
-  top: -8px;
-  right: -8px;
-  min-width: 24px;
-  height: 24px;
-  padding: 0 6px;
-  border-radius: 999px;
-  background: var(--accent-primary);
-  color: #fff;
-  font-size: 0.8rem;
-  font-weight: 700;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 1;
-}
-.variant-card img {
-  width: 72px;
-  height: 72px;
-  margin-bottom: 0.4rem;
-  cursor: pointer;
-  z-index: 2;
-}
-
-
-
-.shopping-item-meta {
-  flex: 1;
-  min-width: 0;
-}
-
-.shopping-item-stock-tag {
-  margin-top: 0.35rem;
-}
-
-.shopping-item-badges {
-  margin-left: auto;
-  display: grid;
-  gap: 0.35rem;
-  justify-items: stretch;
-  width: 100%;
-  max-width: 33.333%;
-}
-
-.shopping-item-badges .badge {
-  margin-left: 0;
-  width: 100%;
-  box-sizing: border-box;
-  text-align: center;
 }
 
 .mhd-picker-button,
@@ -1290,12 +1222,17 @@ img {
 }
 
 .shopping-item-content {
-  display: flex;
-  align-items: center;
-  gap: 0.8rem;
   width: 100%;
   min-height: 78px;
-  padding: 0.6rem 0.8rem;
+}
+
+.shopping-item-card--legacy {
+  height: 100%;
+}
+
+.shopping-item-card--legacy .shopping-card__surface {
+  min-height: 78px;
+  padding: 0.75rem 0.85rem;
 }
 .swipe-chip {
   display: inline-flex;

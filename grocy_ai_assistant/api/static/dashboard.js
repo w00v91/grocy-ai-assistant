@@ -2,6 +2,7 @@ import { createDashboardApiClient, getErrorMessage } from './dashboard-api-clien
 import { updateBusyIndicator, renderTabSelection, lockBodyScroll as applyBodyScrollLock, unlockBodyScroll as releaseBodyScrollLock } from './dashboard-dom.js';
 import { createDashboardStore } from './dashboard-store.js';
 import { parseAmountPrefixedSearch, shouldShowClearButton } from './dashboard-shopping-search-helpers.js';
+import { formatAmount, formatBadgeValue, formatStockCount, renderShoppingListItemCard, renderShoppingVariantCard } from './panel-frontend/shopping-ui.js';
 
 const rootElement = document.documentElement;
 const configuredApiKey = rootElement.dataset.configuredApiKey || '';
@@ -974,28 +975,6 @@ function formatValue(value, fallback = 'Nicht verfügbar') {
   const text = String(value || '').trim();
   return text || fallback;
 }
-
-function formatBadgeValue(value, fallback) {
-  const text = String(value || '').trim();
-  return text || fallback;
-}
-
-function formatStockCount(value) {
-  const textValue = String(value ?? '').trim();
-  if (!textValue) return '0';
-
-  const normalized = textValue.replace(',', '.');
-  const parsed = Number(normalized);
-  if (!Number.isFinite(parsed) || parsed < 0) return textValue;
-
-  if (Number.isInteger(parsed)) return String(parsed);
-
-  return parsed.toLocaleString('de-DE', {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  });
-}
-
 function getShoppingAmount() {
   const amountInput = document.getElementById('amount');
   const amount = Number(amountInput?.value || 1);
@@ -1029,16 +1008,26 @@ function renderShoppingList(items) {
         <span class="swipe-chip swipe-chip-delete">🗑 Löschen</span>
       </div>
       <div class="shopping-item-content swipe-item-content">
-        <img src="${toImageSource(item.picture_url)}" alt="${item.product_name}" loading="lazy" />
-        <div class="shopping-item-meta">
-          <div><strong>${item.product_name}</strong></div>
-          <div class="muted">${item.note || 'Keine Notiz'}</div>
-          <div class="shopping-item-stock-tag"><span class="badge">Bestand: ${formatStockCount(item.in_stock)}</span></div>
-        </div>
-        <div class="shopping-item-badges">
-          <button type="button" class="badge amount-increment-button" data-shopping-list-id="${item.id}">Menge: ${formatBadgeValue(item.amount, '-')}</button>
-          <button type="button" class="badge mhd-picker-button" data-mhd-shopping-list-id="${item.id}" data-mhd-product-name="${encodeURIComponent(item.product_name || '')}" data-mhd-current-date="${item.best_before_date || ''}">${item.best_before_date ? item.best_before_date : 'MHD wählen'}</button>
-        </div>
+        ${renderShoppingListItemCard(item, {
+          rootClassName: 'shopping-item-card shopping-item-card--legacy',
+          resolveImageUrl: (url) => toImageSource(url),
+          amountBadge: {
+            element: 'button',
+            variant: 'amount',
+            className: 'amount-increment-button',
+            dataset: { 'shopping-list-id': item.id },
+          },
+          mhdBadge: {
+            element: 'button',
+            variant: 'mhd',
+            className: 'mhd-picker-button',
+            dataset: {
+              'mhd-shopping-list-id': item.id,
+              'mhd-product-name': encodeURIComponent(item.product_name || ''),
+              'mhd-current-date': item.best_before_date || '',
+            },
+          },
+        })}
       </div>
     </li>
   `).join('');
@@ -1131,12 +1120,6 @@ function startShoppingListAutoRefresh() {
   }, shoppingListRefreshMs);
 }
 
-
-const VARIANT_SOURCE_LABELS = {
-  grocy: 'Grocy',
-  ai: 'KI-Vorschlag',
-  input: 'Neu anlegen',
-};
 
 class GrocyVariantResults extends HTMLElement {
   constructor() {
@@ -1241,56 +1224,31 @@ class GrocyVariantResults extends HTMLElement {
 
   createVariantCard(item) {
     const wrapper = document.createElement('div');
-    wrapper.className = 'variant-card';
+    wrapper.innerHTML = renderShoppingVariantCard(item, {
+      amount: this._amount,
+      actionName: 'variant-select',
+      ctaLabel: 'Zur Liste',
+      resolveImageUrl: (url) => toImageSource(url),
+    }).trim();
+    const card = wrapper.firstElementChild;
+    if (!card) return document.createElement('div');
 
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'variant-select';
-
-    const productId = item?.id ?? '';
-    const source = item?.source || 'grocy';
-    const productName = String(item?.name || '');
-    const amount = this._amount;
-
-    button.addEventListener('click', () => {
-      this.dispatchEvent(new CustomEvent('variant-select', {
-        bubbles: true,
-        detail: {
-          productId,
-          productName,
-          source,
-          amount,
-        },
-      }));
-    });
-
-    if (amount) {
-      const badge = document.createElement('span');
-      badge.className = 'variant-amount-badge';
-      badge.setAttribute('aria-label', `Menge ${amount}`);
-      badge.textContent = String(amount);
-      button.appendChild(badge);
+    const button = card.querySelector('[data-action="variant-select"]');
+    if (button) {
+      button.addEventListener('click', () => {
+        this.dispatchEvent(new CustomEvent('variant-select', {
+          bubbles: true,
+          detail: {
+            productId: item?.id ?? item?.product_id ?? '',
+            productName: String(item?.name || item?.product_name || ''),
+            source: item?.source || 'grocy',
+            amount: this._amount,
+          },
+        }));
+      });
     }
 
-    const image = document.createElement('img');
-    image.src = toImageSource(item?.picture_url);
-    image.alt = productName;
-    image.loading = 'lazy';
-    button.appendChild(image);
-
-    const title = document.createElement('div');
-    const strong = document.createElement('strong');
-    strong.textContent = productName;
-    title.appendChild(strong);
-    button.appendChild(title);
-
-    const sourceLabel = document.createElement('small');
-    sourceLabel.className = 'muted';
-    sourceLabel.textContent = VARIANT_SOURCE_LABELS[source] || VARIANT_SOURCE_LABELS.grocy;
-    button.appendChild(sourceLabel);
-
-    wrapper.appendChild(button);
-    return wrapper;
+    return card;
   }
 }
 
