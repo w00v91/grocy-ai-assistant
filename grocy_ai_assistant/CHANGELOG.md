@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Fix (Home-Assistant-Integration/Panel): Die Registrierung der nativen Panel-Webcomponents läuft jetzt über einen robusten `registerCustomElement(...)`-Helper mit DOMException-Fallback, damit Registry-spezifische Reload-/Reuse-Szenarien keine Folgefehler oder irreführenden Sourcemap-404s mehr auslösen.
+- Test: `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `pytest tests/unit/test_addon_config_yaml.py`; Versionsstände auf `7.4.17` erhöht.
+- Fix (Home-Assistant-Integration/Panel): Die Legacy-Bridge-Tabs für Rezepte, Lager und Benachrichtigungen nutzen jetzt eigene Konstruktoren statt denselben `GrocyAILegacyBridgeTab`, damit Home Assistants `CustomElementRegistry` keine `constructor has already been used with this registry`-Exception mehr wirft.
+- Test: `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `pytest tests/unit/test_addon_config_yaml.py`; Versionsstände auf `7.4.16` erhöht.
+- Fix (Home-Assistant-Integration/Panel): Der fehlerhaft zusammengeführte `_switchTab(...)`-Block im nativen Panel-Frontend wurde bereinigt, sodass `grocy-ai-dashboard.js` wieder gültiges JavaScript lädt und Tab-Wechsel/URL-Sync stabil funktionieren.
+- Test: `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `pytest tests/unit/test_addon_config_yaml.py`; Versionsstände auf `7.4.15` erhöht.
+- Fix (Home-Assistant-Integration/Panel): Die native Panel-Registrierung wartet `async_register_panel(...)` jetzt korrekt ab, damit Home Assistant keinen `RuntimeWarning: coroutine was never awaited` mehr für `panel.py` protokolliert.
+- Test: `pytest tests/unit/test_panel.py tests/unit/test_addon_config_yaml.py`, `ruff check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel.py tests/unit/test_panel.py`; Versionsstände auf `7.4.14` erhöht.
+- Changed (Home-Assistant-Integration/Panel): Die Konfigurationsoption `panel_url` entfällt aus Config- und Options-Flow; das Dashboard hängt sich stattdessen immer automatisch als natives Home-Assistant-Panel auf dem festen Pfad `/grocy-ai` in die Seitenleiste ein.
+- Changed (Home-Assistant-Integration/Panel): Die Panel-Registrierung verwendet intern nur noch den bekannten Ingress-Fallback für Legacy-Abschnitte und ignoriert keine benutzerdefinierte Panel-URL mehr.
+- Test: `pytest tests/unit/test_panel.py tests/unit/test_addon_config_yaml.py`; Versionsstände auf `7.4.13` erhöht.
 - Fix (Dashboard/Legacy): Die versehentlich entfernten Status-Helper `getShoppingStatusElement()` und `getRecipeStatusElement()` sind wieder vorhanden, damit Tab-Wechsel, Topbar-Status-Sync und das Laden der Einkaufsliste im Legacy-Dashboard nicht mehr mit `ReferenceError` abbrechen.
 - Test: `node --test tests/frontend/test_legacy_dashboard_status_helpers.mjs`, `node --check grocy_ai_assistant/api/static/dashboard.js`; Versionsstände auf `7.4.12` erhöht.
 - Changed (Dashboard/UI): Die Variantenanzeige im Legacy-Dashboard rendert Treffer jetzt über die native Web-Component `<grocy-variant-results>` mit reaktiven Properties für Varianten, Menge sowie Lade-/Leerzustand statt HTML-String-Zusammenbau.
