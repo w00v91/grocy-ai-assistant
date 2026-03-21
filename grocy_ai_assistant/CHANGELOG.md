@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Fix (Home-Assistant-Integration/Panel): Das native Dashboard fordert seinen echten Home-Assistant-Ingress-Sessionpfad jetzt bei Bedarf per `hassio/ingress/session` an, statt API-Aufrufe auf den statischen Platzhalter `/api/hassio_ingress/grocy_ai_assistant/` zu schicken, sodass Shopping-Requests im nativen Panel nicht mehr mit `503 Service Unavailable` scheitern.
+- Fix (Home-Assistant-Integration/Panel): Legacy-Bridge-Tabs und `open-legacy-dashboard` verwenden denselben aufgelösten Ingress-Pfad wie die nativen Shopping-Requests, damit auch Übergangsbereiche zuverlässig im aktiven HA-Kontext öffnen.
+- Test: `node --test tests/frontend/test_panel_api_base_path.mjs`, `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.19` erhöht.
+
 - Fix (Home-Assistant-Integration/Panel): Das native Dashboard baut seine Shadow-DOM-Shell jetzt deterministisch vor jedem State-Render auf und bricht bei unvollständigen Child-Elementen defensiv ab, damit frühe `hass`-/`route`-Updates nicht mehr mit `Cannot set properties of null (setting 'viewModel')` in `_renderState(...)` abbrechen.
 - Test: `node --test tests/frontend/test_panel_shell_rendering.mjs`, `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `pytest tests/unit/test_addon_config_yaml.py`; Versionsstände auf `7.4.18` erhöht.
 
