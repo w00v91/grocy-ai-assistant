@@ -80,13 +80,15 @@ function buildDataAttributes(dataset = {}) {
 function renderBadge(label, value, options = {}) {
   const variantClassName = options.variant ? ` shopping-badge--${options.variant}` : '';
   const extraClassName = options.className ? ` ${options.className}` : '';
+  const hiddenLabelClassName = options.hideLabel ? ' shopping-badge__label--hidden' : '';
   const element = options.element === 'button' ? 'button' : 'span';
   const typeAttribute = element === 'button' ? ' type="button"' : '';
   const attributes = buildDataAttributes(options.dataset);
   const attributeSuffix = attributes ? ` ${attributes}` : '';
+  const ariaLabel = options.hideLabel ? ` aria-label="${escapeHtml(`${label}: ${value}`)}"` : '';
   return `
-    <${element} class="shopping-badge${variantClassName}${extraClassName}"${typeAttribute}${attributeSuffix}>
-      <span class="shopping-badge__label">${escapeHtml(label)}</span>
+    <${element} class="shopping-badge${variantClassName}${extraClassName}"${typeAttribute}${ariaLabel}${attributeSuffix}>
+      <span class="shopping-badge__label${hiddenLabelClassName}">${escapeHtml(label)}</span>
       <span class="shopping-badge__value">${escapeHtml(value)}</span>
     </${element}>
   `;
@@ -205,7 +207,7 @@ export function renderShoppingListItemCard(item, options = {}) {
   const stockBadge = renderBadge('Bestand', stockLabel, { variant: 'stock' });
   const badges = [
     renderBadge('Menge', amountLabel, options.amountBadge || { variant: 'amount' }),
-    renderBadge('MHD', bestBeforeDate, options.mhdBadge || { variant: 'mhd' }),
+    renderBadge('MHD', bestBeforeDate, { variant: 'mhd', ...(options.mhdBadge || {}) }),
     stockBadgePlacement === 'aside' ? stockBadge : '',
   ].filter(Boolean).join('');
   const statusChipMarkup = options.statusChip === false

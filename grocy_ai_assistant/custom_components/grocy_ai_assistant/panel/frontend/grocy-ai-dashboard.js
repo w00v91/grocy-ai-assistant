@@ -1244,7 +1244,7 @@ class GrocyAIShoppingTab extends HTMLElement {
         ${renderShoppingListItemCard(item, {
           rootClassName: 'shopping-item-card shopping-item-card--legacy',
           contextFields: ['location'],
-          stockBadgePlacement: 'main',
+          statusChip: false,
           resolveImageUrl: model.resolveImageUrl,
           amountBadge: {
             element: 'button',
@@ -1259,6 +1259,7 @@ class GrocyAIShoppingTab extends HTMLElement {
             element: 'button',
             variant: 'mhd',
             className: 'mhd-picker-button',
+            hideLabel: true,
             dataset: {
               action: 'shopping-open-mhd',
               'item-id': item.id,
