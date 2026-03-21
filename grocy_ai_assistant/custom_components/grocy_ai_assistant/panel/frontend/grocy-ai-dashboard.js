@@ -4,6 +4,7 @@ import { createDashboardStore } from './dashboard-store.js';
 import { buildPanelUrlWithTab, DEFAULT_TAB, resolveTabFromLocation, TAB_ORDER } from './tab-routing.js';
 import { createShoppingSearchController, SEARCH_FLOW_STATES } from './shopping-search-controller.js';
 import { bindShoppingImageFallbacks, escapeHtml, formatAmount, renderShoppingListItemCard, renderShoppingVariantCard, resolveShoppingImageSource } from './shopping-ui.js';
+import { renderActionRow, renderCardContainer, renderMetaBadges, renderStateCard, renderTileGrid, renderTwoColumnCardGroup } from './shared-panel-ui.js';
 import { bindSwipeInteractions } from './swipe-interactions.js';
 
 const PANEL_SLUG = 'grocy-ai';
@@ -19,7 +20,7 @@ const TAB_LABELS = {
   notifications: '🔔 Benachrichtigungen',
 };
 const DEFAULT_POLLING_INTERVAL_MS = 5000;
-const DEFAULT_INTEGRATION_VERSION = '7.4.29';
+const DEFAULT_INTEGRATION_VERSION = '7.4.30';
 
 function sn(key) {
   return key === 'common.version' ? 'Version ' : '';
@@ -814,41 +815,222 @@ class GrocyAIShoppingTab extends HTMLElement {
   }
 }
 
+
+function buildLegacyBridgeFrameMarkup(model = {}) {
+  const shouldMountIframe = Boolean(model.active);
+  return `
+    <div class="legacy-frame-shell${shouldMountIframe ? '' : ' hidden'}">
+      ${shouldMountIframe ? `<iframe class="legacy-frame" title="${escapeHtml(model.title || 'Legacy Dashboard')}" src="${escapeHtml(model.legacyUrl || DEFAULT_LEGACY_URL)}"></iframe>` : ''}
+    </div>
+  `;
+}
+
+function buildRecipesPreviewMarkup(model = {}) {
+  const panelPath = model.panelPath || `/${PANEL_SLUG}`;
+  const primaryActions = [
+    { label: 'Legacy-Dashboard öffnen', className: 'primary-button', dataset: { action: 'open-legacy-dashboard' } },
+    { label: 'Rezepte später nativ migrieren', className: 'ghost-button', href: buildPanelTabHref(panelPath, 'shopping') },
+  ];
+  const recipeCards = [
+    renderCardContainer({
+      className: 'panel-preview-card recipes-preview-card',
+      eyebrow: 'Rezepte',
+      title: 'Gespeicherte Grocy-Rezepte',
+      titleTag: 'h3',
+      description: 'Kachelstruktur, Bild-/Meta-Positionen und CTA-Prioritäten bleiben beim späteren nativen Umstieg identisch zum Legacy-Dashboard.',
+      body: renderTileGrid([
+        renderStateCard({
+          eyebrow: 'Referenz',
+          title: 'Rezeptkacheln bleiben Rezeptkacheln',
+          message: 'Bestehende Rezeptkarten werden nicht in reine Textlisten zurückgebaut, sondern übernehmen weiter Badge-, Bild- und Meta-Logik.',
+          stateLabel: 'Referenz aktiv',
+          stateVariant: 'source',
+          meta: ['card', 'shopping-card', 'Badge-/Meta-Struktur'],
+        }),
+      ], { className: 'recipes-preview-grid' }),
+    }),
+    renderCardContainer({
+      className: 'panel-preview-card recipes-preview-card',
+      eyebrow: 'Rezepte',
+      title: 'KI-Rezeptvorschläge',
+      titleTag: 'h3',
+      description: 'Die zweispaltige Gruppierung aus dem Legacy-Markup bleibt als feste Layout-Regel erhalten.',
+      body: renderTileGrid([
+        renderStateCard({
+          eyebrow: 'Grid',
+          title: 'Zweispaltige Card-Gruppen',
+          message: 'Grocy-Rezepte und KI-Vorschläge teilen weiterhin denselben responsiven Grid-Rahmen statt getrennten Listenansichten.',
+          stateLabel: 'Grid bleibt Grid',
+          stateVariant: 'shopping',
+          meta: ['section-header', 'variant-grid', 'zweispaltig'],
+        }),
+      ], { className: 'recipes-preview-grid' }),
+    }),
+  ];
+  const stockCards = [
+    renderCardContainer({
+      className: 'panel-preview-card recipes-preview-card',
+      eyebrow: 'Bestände',
+      title: 'Lagerstandorte',
+      titleTag: 'h3',
+      description: 'Status-, Empty- und Loading-Zustände werden als wiederverwendbare Karten statt als lose Textblöcke vorbereitet.',
+      body: renderTileGrid([
+        renderStateCard({
+          eyebrow: 'Statuskarte',
+          title: 'Standortfilter bleiben separat',
+          message: 'Filter- und Standortkacheln werden als eigenständige Card-Surfaces gerendert und bleiben klar von Rezepttreffern getrennt.',
+          stateLabel: 'Bridge aktiv',
+          stateVariant: 'mhd',
+          meta: ['Status-Karte', 'Empty/Loading-Karte', 'card'],
+        }),
+      ], { className: 'recipes-preview-grid' }),
+    }),
+    renderCardContainer({
+      className: 'panel-preview-card recipes-preview-card',
+      eyebrow: 'Bestände',
+      title: 'Produkte in ausgewählten Standorten',
+      titleTag: 'h3',
+      description: 'Metadaten, Badges und Kachel-Interaktion bleiben mit derselben visuellen Gewichtung wie im Legacy-Dashboard erhalten.',
+      body: renderTileGrid([
+        renderStateCard({
+          eyebrow: 'Metadaten',
+          title: 'Produktkacheln behalten Badges',
+          message: 'Badge-Positionen, Abstände und CTA-Hierarchie orientieren sich weiter am bestehenden Dashboard-Layout.',
+          stateLabel: 'Badges geteilt',
+          stateVariant: 'stock',
+          meta: ['Badge-Positionen', 'Bild-/Meta-Struktur', 'CTA-Priorität'],
+        }),
+      ], { className: 'recipes-preview-grid' }),
+    }),
+  ];
+
+  return `
+    ${renderCardContainer({
+      className: 'hero-card recipes-hero-card',
+      eyebrow: 'Rezepte',
+      title: 'Rezeptvorschläge',
+      description: 'Vor der fachlichen Migration werden zuerst gemeinsame UI-Bausteine aus Shopping und Legacy-Markup als verbindliche Layout-Referenz extrahiert.',
+      actions: primaryActions,
+      body: [
+        renderMetaBadges(['hero-card', 'section-header', 'gleiche Überschriftenhierarchie']),
+        renderActionRow([
+          { label: 'Rezept hinzufügen bleibt primär', className: 'primary-button', dataset: { action: 'open-legacy-dashboard' } },
+          { label: 'Ablaufende Produkte sekundär halten', className: 'secondary-button', dataset: { action: 'open-legacy-dashboard' } },
+        ]),
+      ].join(''),
+    })}
+    ${renderTwoColumnCardGroup(recipeCards, { className: 'recipes-card-group' })}
+    ${renderTwoColumnCardGroup(stockCards, { className: 'recipes-card-group' })}
+    ${renderCardContainer({
+      className: 'legacy-bridge-card',
+      eyebrow: 'Legacy-Bridge',
+      title: model.title || 'Rezepte im Legacy-Dashboard',
+      description: 'Die bestehende Rezeptansicht bleibt bis zur eigentlichen Fachmigration eingebettet, nutzt aber bereits dieselben Shared-Card- und Grid-Regeln wie das künftige native Tab.',
+      body: buildLegacyBridgeFrameMarkup(model),
+    })}
+  `;
+}
+
+function buildStoragePreviewMarkup(model = {}) {
+  const panelPath = model.panelPath || `/${PANEL_SLUG}`;
+  const inventoryCards = [
+    renderCardContainer({
+      className: 'panel-preview-card storage-preview-card',
+      eyebrow: 'Lager',
+      title: 'Filter & Bestand',
+      titleTag: 'h3',
+      description: 'Die Storage-Ansicht behält ihre Header-Hierarchie, Kontrollzeile und Kachelfläche bei.',
+      body: renderTileGrid([
+        renderStateCard({
+          eyebrow: 'Controls',
+          title: 'Filter bleibt über dem Grid',
+          message: 'Suchfeld, Toggle und Aktionsleiste bleiben oberhalb des Produktgrids angeordnet – analog zum Legacy-Markup.',
+          stateLabel: 'Kontrollmuster',
+          stateVariant: 'source',
+          meta: ['section-header', 'button-row', 'card'],
+        }),
+      ], { className: 'storage-preview-grid' }),
+    }),
+    renderCardContainer({
+      className: 'panel-preview-card storage-preview-card',
+      eyebrow: 'Lager',
+      title: 'Produktkacheln',
+      titleTag: 'h3',
+      description: 'Bestandsprodukte bleiben in einer Kachel-/Grid-Darstellung statt in eine einfache Listenansicht zu kippen.',
+      body: renderTileGrid([
+        renderStateCard({
+          eyebrow: 'Grid',
+          title: 'Variant-Grid bleibt Variant-Grid',
+          message: 'Die gemeinsame Grid-Hülle aus Shopping und Lager trägt künftig sowohl Produktkacheln als auch Statuskarten.',
+          stateLabel: 'Grid geteilt',
+          stateVariant: 'shopping',
+          meta: ['variant-grid', 'shopping-card', 'Kachel bleibt Kachel'],
+        }),
+      ], { className: 'storage-preview-grid' }),
+    }),
+  ];
+
+  return `
+    ${renderCardContainer({
+      className: 'hero-card storage-hero-card',
+      eyebrow: 'Lager',
+      title: 'Lager',
+      description: 'Auch vor der eigentlichen Migration wird die visuelle Logik aus dem Legacy-Dashboard beibehalten: Grid bleibt Grid, Modal bleibt Modal und CTAs behalten ihre Gewichtung.',
+      actions: [
+        { label: 'Legacy-Dashboard öffnen', className: 'primary-button', dataset: { action: 'open-legacy-dashboard' } },
+        { label: 'Shopping-Referenz ansehen', className: 'ghost-button', href: buildPanelTabHref(panelPath, 'shopping') },
+      ],
+      body: [
+        renderMetaBadges(['hero-card', 'storage-controls', 'vergleichbare Abstände']),
+        renderActionRow([
+          { label: 'Aktualisieren bleibt primär', className: 'primary-button', dataset: { action: 'open-legacy-dashboard' } },
+          { label: 'Modal bleibt Modal', className: 'secondary-button', dataset: { action: 'open-legacy-dashboard' } },
+        ]),
+      ].join(''),
+    })}
+    ${renderTwoColumnCardGroup(inventoryCards, { className: 'storage-card-group' })}
+    ${renderCardContainer({
+      className: 'panel-preview-card storage-preview-card',
+      eyebrow: 'Statuszustände',
+      title: 'Shared-State-Karten',
+      titleTag: 'h3',
+      description: 'Loading-, Empty- und Statusflächen werden für Lager als wiederverwendbare Card-Surfaces vorbereitet, bevor einzelne Produktaktionen nativ migriert werden.',
+      body: renderTileGrid([
+        renderStateCard({
+          eyebrow: 'Loading',
+          title: 'Ladezustand als Karte',
+          message: 'Asynchrone Storage-Flows bekommen dieselbe Kartenoberfläche wie in Shopping statt einfacher Text-Platzhalter.',
+          stateLabel: 'Loading',
+          stateVariant: 'source',
+          meta: ['Loading-Karte', 'Status-Karte'],
+        }),
+        renderStateCard({
+          eyebrow: 'Empty',
+          title: 'Leere Bestände als Kachel',
+          message: 'Auch leere Zustände bleiben visuell Teil des Grids und rutschen nicht in unstrukturierte Fließtexte ab.',
+          stateLabel: 'Empty',
+          stateVariant: 'mhd',
+          meta: ['Empty-Karte', 'Grid bleibt Grid'],
+        }),
+      ], { className: 'storage-preview-grid storage-preview-grid--dual' }),
+    })}
+    ${renderCardContainer({
+      className: 'legacy-bridge-card',
+      eyebrow: 'Legacy-Bridge',
+      title: model.title || 'Lager im Legacy-Dashboard',
+      description: 'Das Legacy-Lager bleibt vorerst eingebettet, bekommt aber bereits die gemeinsamen Karten-, Grid- und Aktionsmuster als sichtbare Migrationsschicht.',
+      body: buildLegacyBridgeFrameMarkup(model),
+    })}
+  `;
+}
+
 class GrocyAILegacyBridgeTab extends HTMLElement {
   set viewModel(value) {
     this._viewModel = value;
     this._render();
   }
 
-  _render() {
-    const model = this._viewModel || {};
-    const shouldMountIframe = Boolean(model.active);
-    this.innerHTML = `
-      <section class="tab-view${model.active ? '' : ' hidden'}">
-        <section class="card legacy-bridge-card">
-          <div class="section-header section-header-stacked">
-            <div>
-              <p class="eyebrow">Tabweise Migration</p>
-              <h2>${escapeHtml(model.title || 'Dashboard-Bereich')}</h2>
-            </div>
-            <button type="button" class="primary-button" data-action="open-legacy-dashboard">Legacy-Dashboard öffnen</button>
-          </div>
-          <p class="description">
-            Dieser Bereich ist bereits als eigene Frontend-Komponente gekapselt, rendert Inhalte aber vorübergehend weiter über das bestehende
-            Dashboard, bis alle Zustände, Polling-Flows, Modals und Scanner-Funktionen nativ migriert sind.
-          </p>
-          <div class="migration-checklist">
-            <span class="migration-chip">Store-angebunden</span>
-            <span class="migration-chip">Tab-spezifische Bridge</span>
-            <span class="migration-chip">Legacy-Fallback aktiv</span>
-          </div>
-          <div class="legacy-frame-shell${shouldMountIframe ? '' : ' hidden'}">
-            ${shouldMountIframe ? `<iframe class="legacy-frame" title="${escapeHtml(model.title || 'Legacy Dashboard')}" src="${escapeHtml(model.legacyUrl || DEFAULT_LEGACY_URL)}"></iframe>` : ''}
-          </div>
-        </section>
-      </section>
-    `;
-
+  _attachLegacyBridgeListeners(model = {}) {
     const frame = this.querySelector('iframe');
     frame?.addEventListener('load', () => {
       try {
@@ -858,13 +1040,36 @@ class GrocyAILegacyBridgeTab extends HTMLElement {
       }
     }, { once: true });
 
-    this.querySelector('[data-action="open-legacy-dashboard"]')?.addEventListener('click', () => {
-      this.dispatchEvent(new CustomEvent('open-legacy-dashboard', {
-        bubbles: true,
-        composed: true,
-        detail: { tab: model.tabName },
-      }));
+    this.querySelectorAll('[data-action="open-legacy-dashboard"]').forEach((button) => {
+      button.addEventListener('click', () => {
+        this.dispatchEvent(new CustomEvent('open-legacy-dashboard', {
+          bubbles: true,
+          composed: true,
+          detail: { tab: model.tabName },
+        }));
+      });
     });
+  }
+
+  _render() {
+    const model = this._viewModel || {};
+    this.innerHTML = `
+      <section class="tab-view${model.active ? '' : ' hidden'}">
+        ${renderCardContainer({
+          className: 'legacy-bridge-card',
+          eyebrow: 'Tabweise Migration',
+          title: model.title || 'Dashboard-Bereich',
+          description: 'Dieser Bereich ist bereits als eigene Frontend-Komponente gekapselt, rendert Inhalte aber vorübergehend weiter über das bestehende Dashboard, bis alle Zustände, Polling-Flows, Modals und Scanner-Funktionen nativ migriert sind.',
+          actions: [{ label: 'Legacy-Dashboard öffnen', className: 'primary-button', dataset: { action: 'open-legacy-dashboard' } }],
+          body: [
+            renderMetaBadges(['Store-angebunden', 'Tab-spezifische Bridge', 'Legacy-Fallback aktiv']),
+            buildLegacyBridgeFrameMarkup(model),
+          ].join(''),
+        })}
+      </section>
+    `;
+
+    this._attachLegacyBridgeListeners(model);
   }
 }
 
@@ -1635,9 +1840,31 @@ class GrocyAIScannerBridge extends HTMLElement {
   }
 }
 
-class GrocyAIRecipesTab extends GrocyAILegacyBridgeTab {}
+class GrocyAIRecipesTab extends GrocyAILegacyBridgeTab {
+  _render() {
+    const model = this._viewModel || {};
+    this.innerHTML = `
+      <section class="tab-view${model.active ? '' : ' hidden'}">
+        ${buildRecipesPreviewMarkup(model)}
+      </section>
+    `;
 
-class GrocyAIStorageTab extends GrocyAILegacyBridgeTab {}
+    this._attachLegacyBridgeListeners(model);
+  }
+}
+
+class GrocyAIStorageTab extends GrocyAILegacyBridgeTab {
+  _render() {
+    const model = this._viewModel || {};
+    this.innerHTML = `
+      <section class="tab-view${model.active ? '' : ' hidden'}">
+        ${buildStoragePreviewMarkup(model)}
+      </section>
+    `;
+
+    this._attachLegacyBridgeListeners(model);
+  }
+}
 
 class GrocyAINotificationsTab extends GrocyAILegacyBridgeTab {}
 
@@ -1864,12 +2091,14 @@ class GrocyAIDashboardPanel extends HTMLElement {
       active: state.activeTab === 'recipes',
       title: 'Rezepte',
       tabName: 'recipes',
+      panelPath: this._getPanelPath(),
       legacyUrl: this._getResolvedLegacyDashboardUrl(),
     };
     storageTab.viewModel = {
       active: state.activeTab === 'storage',
       title: 'Lager',
       tabName: 'storage',
+      panelPath: this._getPanelPath(),
       legacyUrl: this._getResolvedLegacyDashboardUrl(),
     };
     notificationsTab.viewModel = {

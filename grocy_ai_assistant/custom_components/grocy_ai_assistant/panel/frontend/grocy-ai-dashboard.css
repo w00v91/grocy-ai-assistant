@@ -51,6 +51,23 @@
   align-items: flex-start;
 }
 
+.section-header__copy,
+.section-header__actions,
+.panel-card-group,
+.panel-meta-badges,
+.panel-action-row {
+  display: grid;
+  gap: 12px;
+}
+
+.section-header__copy {
+  min-width: 0;
+}
+
+.section-header__actions {
+  justify-items: end;
+}
+
 .topbar-meta {
   align-items: center;
   flex-wrap: wrap;
@@ -138,6 +155,42 @@ h1 {
 .variant-grid {
   display: grid;
   gap: 12px;
+}
+
+.panel-card-group--two-column {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+}
+
+.panel-preview-card,
+.panel-state-card {
+  height: 100%;
+}
+
+.panel-preview-card {
+  display: grid;
+  gap: 16px;
+}
+
+.panel-state-card .shopping-card__surface {
+  min-height: 100%;
+}
+
+.panel-meta-badges .migration-chip {
+  font-size: 0.82rem;
+}
+
+.panel-action-row {
+  margin-top: 4px;
+}
+
+.recipes-preview-grid,
+.storage-preview-grid {
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.storage-preview-grid--dual {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 }
 
 .search-input-wrapper {
