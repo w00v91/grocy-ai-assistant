@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Changed (Home-Assistant-Integration/Panel): Der native `storage`-Tab rendert Lagerprodukte wieder als vertikale Legacy-Liste mit Swipe-Gesten für Bearbeiten/Verbrauchen statt als Kachel-Grid; Löschen bleibt zusätzlich direkt als Button am Listeneintrag verfügbar.
+- Test: `node --test tests/frontend/test_native_shopping_swipe.mjs tests/frontend/test_panel_shell_rendering.mjs`, `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.35` erhöht.
 - Added (Dokumentation/Migration): `docs/legacy-native-panel-mapping.md` definiert jetzt eine klare visuelle Abnahme für „ähnlicher Stil bei gleicher Funktion“ und verankert `dashboard.html` explizit als Referenz für Karten-, Grid-, Spalten-, Modal- und CTA-Parität pro Tab.
 - Added (Dokumentation/Migration): Für `shopping`, `recipes`, `storage` und `notifications` gibt es jetzt tab-lokale Vergleichslisten mit Legacy-Komponente, nativer Entsprechung, Funktionsgleichheit, Interaktionsform, visuellem Schwerpunkt und erlaubten HA-Mehrwert-Abweichungen.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `7.4.34` erhöht.

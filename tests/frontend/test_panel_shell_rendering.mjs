@@ -82,10 +82,11 @@ test('recipes and storage tabs are natively migrated in the panel shell', async 
   assert.match(source, /class GrocyAIRecipesTab extends HTMLElement \{[\s\S]*?buildRecipesTabMarkup\(model\)/);
   assert.match(source, /function buildStorageTabMarkup\(model = \{\}\) \{/);
   assert.match(source, /data-role="storage-filter"/);
-  assert.match(source, /data-action="storage-open-edit"/);
-  assert.match(source, /data-action="storage-open-consume"/);
+  assert.match(source, /class="storage-item swipe-item variant-card"/);
+  assert.match(source, /storage-products-list--native/);
   assert.match(source, /data-action="storage-open-delete"/);
   assert.match(source, /class GrocyAIStorageTab extends HTMLElement \{[\s\S]*?buildStorageTabMarkup\(model\)/);
+  assert.match(source, /selector: '\.storage-item\.swipe-item'/);
   assert.match(source, /_initializeStorageTab\(\) \{/);
   assert.match(source, /api\.updateStockProduct\(editModal\.itemId/);
   assert.match(source, /api\.consumeStockProduct\(consumeModal\.itemId/);
