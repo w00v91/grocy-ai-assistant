@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Fix (Home-Assistant-Integration/Panel): Das native Shopping-Dashboard überschreibt beim Rendern weder den Shopping-Tab noch die Produktsuche per `innerHTML`; dadurch bleibt die gemountete `<grocy-ai-shopping-search-bar>` im DOM erhalten und das Textfeld zur Produktsuche wird im Integration-Dashboard wieder sichtbar.
+- Test: `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `node --test tests/frontend/test_panel_shell_rendering.mjs`, `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.28` erhöht.
+
 - Fix (Home-Assistant-Integration/Panel): Produktbilder im nativen Shopping-Panel laufen über eine dedizierte öffentliche Home-Assistant-Proxy-Route für `GET /api/dashboard/product-picture`, damit Browser-`<img>`-Requests ohne expliziten Bearer-Header nicht mehr mit `401 Unauthorized` an der HA-Auth scheitern.
 - Test: `pytest tests/unit/test_panel.py tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`, `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `node --test tests/frontend/test_panel_shell_rendering.mjs`; Versionsstände auf `7.4.27` erhöht.
 
