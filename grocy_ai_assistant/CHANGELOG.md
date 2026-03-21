@@ -7,6 +7,10 @@ All notable changes to this project will be documented in this file.
 - Fix (Home-Assistant-Integration/Panel): Die native Bottom-Navigation blendet den `Benachrichtigungen`-Link jetzt aus und verankert die schwebende Fußzeile per fixer Position, höherem `z-index`, Safe-Area-Abstand und zusätzlichem Seiten-Padding dauerhaft oberhalb des übrigen Inhalts.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `7.4.40` erhöht.
 - Test: `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `node --test tests/frontend/test_panel_shell_rendering.mjs`, `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.40` erhöht.
+- Fix (Home-Assistant-Integration/Panel): Die HA-Option `dashboard_polling_interval_seconds` erlaubt jetzt bewusst den Wert `0`, der das automatische Shopping-Polling im nativen Panel komplett deaktiviert, ohne manuelle Refreshes oder Listen-Reloads nach Such-/Mutationsaktionen zu verhindern.
+- Changed (Home-Assistant-Integration/Panel): Die native Panel-Konfiguration reicht das Shopping-Polling-Intervall jetzt explizit an das Frontend weiter; `0` bedeutet deaktiviert, positive Werte bleiben Sekundenintervalle.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `7.4.40` erhöht.
+- Test: `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `node --test tests/frontend/test_panel_shell_rendering.mjs`, `pytest tests/unit/test_config_flow.py tests/unit/test_panel.py tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.40` erhöht.
 
 - Changed (Home-Assistant-Integration/Panel): Der native `storage`-Tab zeigt `Menge`, `MHD` und `Lagerort` in der Swipe-Liste jetzt als Shopping-ähnliche Badges; der Löschen-CTA wandert aus dem Listeneintrag in das Produkt-bearbeiten-Modal.
 - Added (Home-Assistant-Integration/Panel): Das Produkt-bearbeiten-Modal im nativen `storage`-Tab zeigt jetzt ein gleich großes Produktbild sowie einen zusätzlichen CTA zum Löschen des Produktbilds.
