@@ -14,9 +14,15 @@ export const SEARCH_FLOW_STATES = {
 const DEFAULT_VARIANT_DEBOUNCE_MS = 250;
 
 function createDefaultTimerApi() {
+  const setTimeoutImpl = typeof globalThis.window?.setTimeout === 'function'
+    ? globalThis.window.setTimeout.bind(globalThis.window)
+    : (...args) => globalThis.setTimeout(...args);
+  const clearTimeoutImpl = typeof globalThis.window?.clearTimeout === 'function'
+    ? globalThis.window.clearTimeout.bind(globalThis.window)
+    : (...args) => globalThis.clearTimeout(...args);
   return {
-    setTimeout: (...args) => globalThis.setTimeout(...args),
-    clearTimeout: (...args) => globalThis.clearTimeout(...args),
+    setTimeout: (...args) => setTimeoutImpl(...args),
+    clearTimeout: (...args) => clearTimeoutImpl(...args),
   };
 }
 

@@ -239,6 +239,8 @@ class GrocyAIShoppingSearchBar extends HTMLElement {
   constructor() {
     super();
     this._viewModel = {};
+    this._renderedVariantSignature = '';
+    this._renderedStatusSignature = '';
     this._boundInput = (event) => {
       this.dispatchEvent(new CustomEvent('shopping-query-change', {
         bubbles: true,
@@ -279,156 +281,451 @@ class GrocyAIShoppingSearchBar extends HTMLElement {
     this._render();
   }
 
+  _ensureStructure() {
+    if (this._elements) return;
+
+    const shell = document.createElement('section');
+    shell.setAttribute('aria-live', 'polite');
+
+    const header = document.createElement('div');
+    header.className = 'shopping-search-shell__header';
+    const headerCopy = document.createElement('div');
+    const eyebrow = document.createElement('p');
+    eyebrow.className = 'eyebrow';
+    eyebrow.textContent = 'Produktsuche';
+    const title = document.createElement('h3');
+    title.className = 'shopping-search-shell__title';
+    title.textContent = 'Produkt suchen oder Variante wählen';
+    headerCopy.append(eyebrow, title);
+    const stateChip = document.createElement('span');
+    header.append(headerCopy, stateChip);
+
+    const form = document.createElement('form');
+    form.className = 'search-row shopping-search-form';
+    form.dataset.role = 'shopping-search-form';
+    form.addEventListener('submit', (event) => {
+      event.preventDefault();
+      this.dispatchEvent(new CustomEvent('shopping-submit-query', {
+        bubbles: true,
+        composed: true,
+      }));
+    });
+
+    const inputWrapper = document.createElement('div');
+    inputWrapper.className = 'search-input-wrapper';
+
+    const input = document.createElement('input');
+    input.dataset.role = 'shopping-query';
+    input.placeholder = 'z.B. 2 Hafermilch';
+    input.autocomplete = 'off';
+    input.enterKeyHint = 'search';
+    input.setAttribute('aria-describedby', 'shopping-search-helper');
+    input.addEventListener('input', (event) => this._boundInput(event));
+
+    const clearButton = document.createElement('button');
+    clearButton.className = 'clear-input-button';
+    clearButton.type = 'button';
+    clearButton.dataset.action = 'shopping-clear-query';
+    clearButton.setAttribute('aria-label', 'Sucheingabe löschen');
+    clearButton.textContent = '×';
+    clearButton.addEventListener('click', () => {
+      this.dispatchEvent(new CustomEvent('shopping-clear-query', {
+        bubbles: true,
+        composed: true,
+      }));
+    });
+    inputWrapper.append(input, clearButton);
+
+    const submitButton = document.createElement('button');
+    submitButton.className = 'primary-button search-submit-button';
+    submitButton.type = 'submit';
+
+    form.append(inputWrapper, submitButton);
+
+    const helper = document.createElement('p');
+    helper.id = 'shopping-search-helper';
+    helper.className = 'search-helper-text';
+
+    const variantSection = document.createElement('section');
+    const variantHeader = document.createElement('div');
+    variantHeader.className = 'section-header section-header-stacked';
+    const variantHeaderCopy = document.createElement('div');
+    const variantTitle = document.createElement('h3');
+    variantTitle.textContent = 'Gefundene Produktvarianten';
+    const variantHint = document.createElement('p');
+    variantHint.className = 'muted';
+    variantHeaderCopy.append(variantTitle, variantHint);
+    const loadingHint = document.createElement('span');
+    loadingHint.className = 'muted';
+    variantHeader.append(variantHeaderCopy, loadingHint);
+
+    const variantGrid = document.createElement('div');
+    variantGrid.className = 'variant-grid variant-grid--search';
+    variantGrid.setAttribute('role', 'list');
+
+    variantSection.append(variantHeader, variantGrid);
+    shell.append(header, form, helper, variantSection);
+    this.replaceChildren(shell);
+
+    this._elements = {
+      shell,
+      stateChip,
+      form,
+      input,
+      clearButton,
+      submitButton,
+      helper,
+      variantSection,
+      variantHint,
+      loadingHint,
+      variantGrid,
+    };
+  }
+
+  _captureQueryInputState() {
+    const input = this._elements?.input;
+    if (!input) return null;
+    return {
+      isFocused: document.activeElement === input,
+      selectionStart: typeof input.selectionStart === 'number' ? input.selectionStart : null,
+      selectionEnd: typeof input.selectionEnd === 'number' ? input.selectionEnd : null,
+    };
+  }
+
+  _restoreQueryInputState(snapshot) {
+    const input = this._elements?.input;
+    if (!snapshot || !input) return;
+    if (snapshot.isFocused && typeof input.focus === 'function') {
+      input.focus();
+    }
+    if (typeof input.setSelectionRange === 'function'
+      && snapshot.selectionStart !== null
+      && snapshot.selectionEnd !== null) {
+      input.setSelectionRange(snapshot.selectionStart, snapshot.selectionEnd);
+    }
+  }
+
+  _createVariantCard(variant, parsedAmount) {
+    const article = document.createElement('article');
+    article.className = 'variant-card variant-card--action';
+    article.setAttribute('role', 'listitem');
+
+    const button = document.createElement('button');
+    button.className = 'variant-card__button';
+    button.type = 'button';
+    button.dataset.action = 'shopping-select-variant';
+
+    const variantName = variant.product_name || variant.name || 'Unbekanntes Produkt';
+    const variantAmountValue = parsedAmount || variant.amount || variant.default_amount || '1';
+    const variantAmountLabel = formatAmount(variantAmountValue);
+    const variantSource = variant.source || 'grocy';
+    const sourceLabel = variantSource === 'ai'
+      ? 'KI-Vorschlag'
+      : (variantSource === 'input' ? 'Neu anlegen' : 'Grocy');
+
+    button.dataset.productId = String(variant.product_id || variant.id || '');
+    button.dataset.productName = String(variantName);
+    button.dataset.productSource = String(variantSource);
+    button.dataset.amount = String(variantAmountValue);
+    button.addEventListener('click', () => {
+      this.dispatchEvent(new CustomEvent('shopping-select-variant', {
+        bubbles: true,
+        composed: true,
+        detail: { ...button.dataset },
+      }));
+    });
+
+    const header = document.createElement('div');
+    header.className = 'variant-card__header';
+    const strong = document.createElement('strong');
+    strong.textContent = variantName;
+    const badge = document.createElement('span');
+    badge.className = 'variant-amount-badge';
+    badge.textContent = variantAmountLabel;
+    header.append(strong, badge);
+
+    const meta = document.createElement('div');
+    meta.className = 'variant-card__meta';
+    const source = document.createElement('span');
+    source.className = 'muted';
+    source.textContent = sourceLabel;
+    const cta = document.createElement('span');
+    cta.className = 'variant-card__cta';
+    cta.textContent = 'Auswählen';
+    meta.append(source, cta);
+
+    button.append(header, meta);
+    article.append(button);
+    return article;
+  }
+
+  _renderVariantGrid(model, variants) {
+    const { variantGrid } = this._elements;
+    const variantSignature = JSON.stringify({
+      parsedAmount: model.parsedAmount ?? null,
+      showLoadingPlaceholder: !variants.length && Boolean(model.isLoadingVariants),
+      variants: variants.map((variant) => ({
+        id: variant.product_id || variant.id || '',
+        name: variant.product_name || variant.name || '',
+        amount: variant.amount || variant.default_amount || '',
+        source: variant.source || 'grocy',
+      })),
+    });
+    if (variantSignature === this._renderedVariantSignature) return;
+
+    const snapshot = this._captureQueryInputState();
+    this._renderedVariantSignature = variantSignature;
+
+    if (!variants.length && model.isLoadingVariants) {
+      const loadingMessage = document.createElement('p');
+      loadingMessage.className = 'muted';
+      loadingMessage.textContent = 'Lade Vorschläge…';
+      variantGrid.replaceChildren(loadingMessage);
+      this._restoreQueryInputState(snapshot);
+      return;
+    }
+
+    const nodes = variants.map((variant) => this._createVariantCard(variant, model.parsedAmount));
+    variantGrid.replaceChildren(...nodes);
+    this._restoreQueryInputState(snapshot);
+  }
+
   _render() {
+    this._ensureStructure();
     const model = this._viewModel || {};
     const variants = Array.isArray(model.variants) ? model.variants : [];
     const searchUiState = deriveSearchUiState(model);
     const stateLabel = getSearchStateLabel(searchUiState);
     const helperText = model.errorMessage || model.statusMessage || 'Bereit.';
     const hasVisibleVariants = variants.length > 0;
+    const {
+      shell,
+      stateChip,
+      form,
+      input,
+      clearButton,
+      submitButton,
+      helper,
+      variantSection,
+      variantHint,
+      loadingHint,
+    } = this._elements;
 
-    this.innerHTML = `
-      <section class="shopping-search-shell shopping-search-shell--${searchUiState}" aria-live="polite">
-        <div class="shopping-search-shell__header">
-          <div>
-            <p class="eyebrow">Produktsuche</p>
-            <h3 class="shopping-search-shell__title">Produkt suchen oder Variante wählen</h3>
-          </div>
-          <span class="search-state-chip search-state-chip--${searchUiState}">${escapeHtml(stateLabel)}</span>
-        </div>
-        <form class="search-row shopping-search-form" data-role="shopping-search-form" aria-busy="${model.isSubmitting ? 'true' : 'false'}">
-          <div class="search-input-wrapper">
-            <input
-              data-role="shopping-query"
-              value="${escapeHtml(model.query || '')}"
-              placeholder="z.B. 2 Hafermilch"
-              autocomplete="off"
-              enterkeyhint="search"
-              aria-describedby="shopping-search-helper"
-            />
-            <button class="clear-input-button${model.clearButtonVisible ? ' visible' : ''}" type="button" data-action="shopping-clear-query" aria-label="Sucheingabe löschen">×</button>
-          </div>
-          <button class="primary-button search-submit-button" type="submit" ${model.isSubmitting ? 'disabled' : ''}>
-            ${model.isSubmitting ? 'Prüfe…' : 'Produkt prüfen'}
-          </button>
-        </form>
-        <p id="shopping-search-helper" class="search-helper-text${model.errorMessage ? ' search-helper-text--error' : ''}">
-          ${escapeHtml(helperText)}
-        </p>
-        <section class="variant-section${hasVisibleVariants || model.isLoadingVariants ? '' : ' hidden'}">
-          <div class="section-header section-header-stacked">
-            <div>
-              <h3>Gefundene Produktvarianten</h3>
-              ${model.parsedAmount
-                ? `<p class="muted">Erkannte Menge: ${escapeHtml(formatAmount(model.parsedAmount))}</p>`
-                : '<p class="muted">Live-Vorschläge erscheinen direkt unter dem Eingabefeld.</p>'}
-            </div>
-            ${model.isLoadingVariants ? '<span class="muted">Suche läuft…</span>' : ''}
-          </div>
-          <div class="variant-grid variant-grid--search" role="list">
-            ${hasVisibleVariants
-              ? variants.map((variant) => {
-                  const variantName = variant.product_name || variant.name || 'Unbekanntes Produkt';
-                  const variantAmountValue = model.parsedAmount || variant.amount || variant.default_amount || '1';
-                  const variantAmountLabel = formatAmount(variantAmountValue);
-                  const variantSource = variant.source || 'grocy';
-                  const sourceLabel = variantSource === 'ai'
-                    ? 'KI-Vorschlag'
-                    : (variantSource === 'input' ? 'Neu anlegen' : 'Grocy');
-                  return `
-                    <article class="variant-card variant-card--action" role="listitem">
-                      <button
-                        class="variant-card__button"
-                        type="button"
-                        data-action="shopping-select-variant"
-                        data-product-id="${escapeHtml(variant.product_id || variant.id || '')}"
-                        data-product-name="${escapeHtml(variantName)}"
-                        data-product-source="${escapeHtml(variantSource)}"
-                        data-amount="${escapeHtml(variantAmountValue)}"
-                      >
-                        <div class="variant-card__header">
-                          <strong>${escapeHtml(variantName)}</strong>
-                          <span class="variant-amount-badge">${escapeHtml(variantAmountLabel)}</span>
-                        </div>
-                        <div class="variant-card__meta">
-                          <span class="muted">${escapeHtml(sourceLabel)}</span>
-                          <span class="variant-card__cta">Auswählen</span>
-                        </div>
-                      </button>
-                    </article>
-                  `;
-                }).join('')
-              : '<p class="muted">Lade Vorschläge…</p>'}
-          </div>
-        </section>
-      </section>
-    `;
+    const statusSignature = JSON.stringify({
+      query: model.query || '',
+      clearButtonVisible: Boolean(model.clearButtonVisible),
+      isSubmitting: Boolean(model.isSubmitting),
+      isLoadingVariants: Boolean(model.isLoadingVariants),
+      errorMessage: model.errorMessage || '',
+      statusMessage: model.statusMessage || '',
+      parsedAmount: model.parsedAmount ?? null,
+      searchUiState,
+    });
+
+    if (statusSignature !== this._renderedStatusSignature) {
+      this._renderedStatusSignature = statusSignature;
+      shell.className = `shopping-search-shell shopping-search-shell--${searchUiState}`;
+      stateChip.className = `search-state-chip search-state-chip--${searchUiState}`;
+      stateChip.textContent = stateLabel;
+      form.setAttribute('aria-busy', model.isSubmitting ? 'true' : 'false');
+      if (input.value !== String(model.query || '')) {
+        input.value = String(model.query || '');
+      }
+      clearButton.className = `clear-input-button${model.clearButtonVisible ? ' visible' : ''}`;
+      submitButton.disabled = Boolean(model.isSubmitting);
+      submitButton.textContent = model.isSubmitting ? 'Prüfe…' : 'Produkt prüfen';
+      helper.className = `search-helper-text${model.errorMessage ? ' search-helper-text--error' : ''}`;
+      helper.textContent = helperText;
+      variantSection.className = `variant-section${hasVisibleVariants || model.isLoadingVariants ? '' : ' hidden'}`;
+      variantHint.textContent = model.parsedAmount
+        ? `Erkannte Menge: ${formatAmount(model.parsedAmount)}`
+        : 'Live-Vorschläge erscheinen direkt unter dem Eingabefeld.';
+      loadingHint.textContent = model.isLoadingVariants ? 'Suche läuft…' : '';
+    }
+
+    this._renderVariantGrid(model, variants);
   }
 }
 
 class GrocyAIShoppingTab extends HTMLElement {
+  constructor() {
+    super();
+    this._viewModel = {};
+    this._lastListSignature = '';
+    this._lastShellSignature = '';
+  }
+
+  connectedCallback() {
+    this.addEventListener('click', (event) => {
+      const actionTarget = event.target.closest?.('[data-action]');
+      if (!actionTarget) return;
+      this.dispatchEvent(new CustomEvent(actionTarget.dataset.action, {
+        bubbles: true,
+        composed: true,
+        detail: { ...actionTarget.dataset },
+      }));
+    });
+  }
+
   set viewModel(value) {
     this._viewModel = value;
     this._render();
   }
 
+  _ensureStructure() {
+    if (this._elements) return;
+
+    const root = document.createElement('section');
+
+    const heroCard = document.createElement('section');
+    heroCard.className = 'card hero-card shopping-hero-card';
+    const heroHeader = document.createElement('div');
+    heroHeader.className = 'section-header';
+    const heroTitle = document.createElement('h2');
+    heroTitle.textContent = 'Grocy AI Suche';
+    const scannerButton = document.createElement('button');
+    scannerButton.className = 'scanner-popup-button';
+    scannerButton.type = 'button';
+    scannerButton.dataset.action = 'shopping-open-scanner';
+    scannerButton.setAttribute('aria-label', 'Barcode-Scanner öffnen');
+    const scannerIcon = document.createElement('span');
+    scannerIcon.className = 'scanner-barcode-icon';
+    scannerIcon.setAttribute('aria-hidden', 'true');
+    scannerButton.append(scannerIcon);
+    heroHeader.append(heroTitle, scannerButton);
+    const searchBar = document.createElement('grocy-ai-shopping-search-bar');
+    heroCard.append(heroHeader, searchBar);
+
+    const listSection = document.createElement('section');
+    listSection.className = 'card shopping-list-section';
+    const listHeader = document.createElement('div');
+    listHeader.className = 'section-header section-header-stacked';
+    const listTitle = document.createElement('h2');
+    listTitle.textContent = 'Einkaufsliste';
+    const refreshButton = document.createElement('button');
+    refreshButton.className = 'primary-button';
+    refreshButton.type = 'button';
+    refreshButton.dataset.action = 'shopping-refresh';
+    refreshButton.textContent = 'Aktualisieren';
+    listHeader.append(listTitle, refreshButton);
+
+    const list = document.createElement('ul');
+    list.className = 'shopping-list-native';
+    const status = document.createElement('p');
+    status.className = 'tab-status';
+
+    const buttonRow = document.createElement('div');
+    buttonRow.className = 'button-row';
+    const completeAllButton = document.createElement('button');
+    completeAllButton.className = 'success-button';
+    completeAllButton.type = 'button';
+    completeAllButton.dataset.action = 'shopping-complete-all';
+    completeAllButton.textContent = 'Einkauf abschließen';
+    const clearAllButton = document.createElement('button');
+    clearAllButton.className = 'danger-button';
+    clearAllButton.type = 'button';
+    clearAllButton.dataset.action = 'shopping-clear-all';
+    clearAllButton.textContent = 'Einkaufsliste leeren';
+    buttonRow.append(completeAllButton, clearAllButton);
+
+    listSection.append(listHeader, list, status, buttonRow);
+    root.append(heroCard, listSection);
+    this.replaceChildren(root);
+
+    this._elements = {
+      root,
+      searchBar,
+      list,
+      status,
+    };
+  }
+
+  _createShoppingListItem(item) {
+    const listItem = document.createElement('li');
+    listItem.className = 'shopping-item-card';
+
+    const content = document.createElement('div');
+    content.className = 'shopping-item-card__content';
+    const details = document.createElement('div');
+    const title = document.createElement('strong');
+    title.textContent = item.product_name || 'Unbekanntes Produkt';
+    const amount = document.createElement('div');
+    amount.className = 'muted';
+    amount.textContent = `Menge: ${formatAmount(item.amount)}`;
+    const note = document.createElement('div');
+    note.className = 'muted';
+    note.textContent = item.note || 'Keine Notiz';
+    details.append(title, amount, note);
+
+    const actions = document.createElement('div');
+    actions.className = 'shopping-item-card__actions';
+    [
+      ['ghost-button', 'shopping-open-detail', 'Details'],
+      ['ghost-button', 'shopping-open-mhd', 'MHD'],
+      ['ghost-button', 'shopping-increment-item', '+1'],
+      ['success-button', 'shopping-complete-item', 'Erledigt'],
+      ['danger-button', 'shopping-delete-item', 'Löschen'],
+    ].forEach(([className, action, label]) => {
+      const button = document.createElement('button');
+      button.className = className;
+      button.type = 'button';
+      button.dataset.action = action;
+      button.dataset.itemId = String(item.id);
+      button.textContent = label;
+      actions.append(button);
+    });
+
+    content.append(details, actions);
+    listItem.append(content);
+    return listItem;
+  }
+
+  _renderList(model, items) {
+    const { list } = this._elements;
+    const listSignature = JSON.stringify({
+      listLoading: Boolean(model.listLoading),
+      items: items.map((item) => ({
+        id: item.id,
+        product_name: item.product_name || '',
+        amount: formatAmount(item.amount),
+        note: item.note || '',
+      })),
+    });
+    if (listSignature === this._lastListSignature) return;
+    this._lastListSignature = listSignature;
+
+    if (!items.length) {
+      const emptyItem = document.createElement('li');
+      emptyItem.className = 'muted';
+      emptyItem.textContent = model.listLoading ? 'Einkaufsliste wird geladen…' : 'Keine Einträge.';
+      list.replaceChildren(emptyItem);
+      return;
+    }
+
+    list.replaceChildren(...items.map((item) => this._createShoppingListItem(item)));
+  }
+
   _render() {
+    this._ensureStructure();
     const model = this._viewModel || {};
     const variants = Array.isArray(model.variants) ? model.variants : [];
     const items = Array.isArray(model.list) ? model.list : [];
+    const shellSignature = JSON.stringify({
+      active: Boolean(model.active),
+      status: model.status || 'Bereit.',
+    });
 
-    this.innerHTML = `
-      <section class="tab-view${model.active ? '' : ' hidden'}">
-        <section class="card hero-card shopping-hero-card">
-          <div class="section-header">
-            <h2>Grocy AI Suche</h2>
-            <button class="scanner-popup-button" type="button" data-action="shopping-open-scanner" aria-label="Barcode-Scanner öffnen">
-              <span class="scanner-barcode-icon" aria-hidden="true"></span>
-            </button>
-          </div>
-          <grocy-ai-shopping-search-bar></grocy-ai-shopping-search-bar>
-        </section>
+    if (shellSignature !== this._lastShellSignature) {
+      this._lastShellSignature = shellSignature;
+      this._elements.root.className = `tab-view${model.active ? '' : ' hidden'}`;
+      this._elements.status.textContent = model.status || 'Bereit.';
+    }
 
-        <section class="card shopping-list-section">
-          <div class="section-header section-header-stacked">
-            <h2>Einkaufsliste</h2>
-            <button class="primary-button" type="button" data-action="shopping-refresh">Aktualisieren</button>
-          </div>
-          <ul class="shopping-list-native">
-            ${items.length
-              ? items.map((item) => `
-                  <li class="shopping-item-card">
-                    <div class="shopping-item-card__content">
-                      <div>
-                        <strong>${escapeHtml(item.product_name || 'Unbekanntes Produkt')}</strong>
-                        <div class="muted">Menge: ${escapeHtml(formatAmount(item.amount))}</div>
-                        <div class="muted">${escapeHtml(item.note || 'Keine Notiz')}</div>
-                      </div>
-                      <div class="shopping-item-card__actions">
-                        <button class="ghost-button" type="button" data-action="shopping-open-detail" data-item-id="${escapeHtml(item.id)}">Details</button>
-                        <button class="ghost-button" type="button" data-action="shopping-open-mhd" data-item-id="${escapeHtml(item.id)}">MHD</button>
-                        <button class="ghost-button" type="button" data-action="shopping-increment-item" data-item-id="${escapeHtml(item.id)}">+1</button>
-                        <button class="success-button" type="button" data-action="shopping-complete-item" data-item-id="${escapeHtml(item.id)}">Erledigt</button>
-                        <button class="danger-button" type="button" data-action="shopping-delete-item" data-item-id="${escapeHtml(item.id)}">Löschen</button>
-                      </div>
-                    </div>
-                  </li>
-                `).join('')
-              : `<li class="muted">${escapeHtml(model.listLoading ? 'Einkaufsliste wird geladen…' : 'Keine Einträge.')}</li>`}
-          </ul>
-          <p class="tab-status">${escapeHtml(model.status || 'Bereit.')}</p>
-          <div class="button-row">
-            <button class="success-button" type="button" data-action="shopping-complete-all">Einkauf abschließen</button>
-            <button class="danger-button" type="button" data-action="shopping-clear-all">Einkaufsliste leeren</button>
-          </div>
-        </section>
-      </section>
-    `;
-
-    this.querySelector('grocy-ai-shopping-search-bar').viewModel = {
+    this._elements.searchBar.viewModel = {
       ...model,
       variants,
     };
+    this._renderList(model, items);
   }
 }
 

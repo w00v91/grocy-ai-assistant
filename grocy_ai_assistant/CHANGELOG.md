@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Fix (Home-Assistant-Integration/Panel): Die native Shopping-Suche hält Suchfeld und Search-Bar-Host jetzt als statische DOM-Knoten dauerhaft stabil und aktualisiert Status, Attribute sowie Variantenlisten nur noch inkrementell, sodass Debounce-/Varianten-Updates den `shopping-query`-Input nicht mehr per `innerHTML` neu erzeugen.
+- Fix (Home-Assistant-Integration/Panel): Der Shopping-Tab rendert seine Search-Bar nicht mehr bei jedem State-Update neu, wodurch Fokus und Cursorposition des Suchfelds auch während `setQuery(...)`- und Variantenlade-Flows erhalten bleiben und reine Status-/Ladeflag-Wechsel keine unnötigen Listen-Re-Renders auslösen.
+- Test: Frontend-Regressionstests sichern jetzt Fokus-/Cursor-Stabilität für Query- und Varianten-Updates ab (`node --test tests/frontend/test_shopping_search_focus_retention.mjs tests/frontend/shopping_search_controller.test.mjs tests/frontend/test_shopping_search_controller.mjs`, `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`); Versionsstände auf `7.4.22` erhöht.
+
 - Fix (Home-Assistant-Integration/Panel): Der native Dashboard-API-Client sendet Requests an `/api/grocy_ai_assistant/dashboard-proxy` jetzt zusätzlich mit dem aktuellen Home-Assistant-Bearer-Token aus dem Frontend-Kontext, sodass HA-geschützte Proxy-Aufrufe wie die Einkaufsliste im nativen Panel nicht mehr mit `401 Unauthorized` abgewiesen werden.
 - Test: `node --test tests/frontend/test_dashboard_api_client.mjs tests/frontend/test_panel_api_base_path.mjs tests/frontend/test_panel_shell_rendering.mjs`, `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `pytest tests/unit/test_panel.py tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.21` erhöht.
 
