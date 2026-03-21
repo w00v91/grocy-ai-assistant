@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Fix (Home-Assistant-Integration/Panel): Die Swipe-Karten in der nativen Einkaufslistenansicht zeigen `MHD` und `Bestand` jetzt nur noch einmal als Badge; die doppelte Wiederholung in der Zusatz-Metazeile entfällt, während optionale Standortinfos erhalten bleiben.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `7.4.35` erhöht.
+- Test: `node --test tests/frontend/test_shopping_ui_shared.mjs tests/frontend/test_native_shopping_swipe.mjs`, `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.35` erhöht.
 - Fix (Dashboard/Legacy): Die FastAPI-Static-Mounts registrieren `/dashboard-static/panel-frontend` jetzt vor dem allgemeineren `/dashboard-static`, damit Legacy-Imports für `shopping-ui.css`, `shopping-ui.js` und `swipe-interactions.js` hinter Home-Assistant-Ingress nicht mehr im 404-JSON des falschen Mounts landen.
 - Test: `pytest tests/api/test_dashboard.py tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; zusätzlicher API-Regressionstest deckt die verschachtelten Panel-Frontend-Assets direkt ab.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `7.4.35` erhöht.

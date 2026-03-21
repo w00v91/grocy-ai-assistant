@@ -175,11 +175,20 @@ export function renderShoppingListItemCard(item, options = {}) {
     'shopping-card--shopping-item',
     options.rootClassName || '',
   ].filter(Boolean).join(' ');
-  const contextRows = [
-    renderContextRow('Bestand', stockLabel, { variant: 'stock' }),
-    renderContextRow('MHD', bestBeforeDate, { variant: 'mhd' }),
-    item?.location_name ? renderContextRow('Lagerort', item.location_name, { variant: 'location' }) : '',
-  ].filter(Boolean).join('');
+  const contextFields = Array.isArray(options.contextFields)
+    ? options.contextFields
+    : ['stock', 'mhd', 'location'];
+  const contextRowFactories = {
+    stock: () => renderContextRow('Bestand', stockLabel, { variant: 'stock' }),
+    mhd: () => renderContextRow('MHD', bestBeforeDate, { variant: 'mhd' }),
+    location: () => (item?.location_name
+      ? renderContextRow('Lagerort', item.location_name, { variant: 'location' })
+      : ''),
+  };
+  const contextRows = contextFields
+    .map((field) => contextRowFactories[field]?.() || '')
+    .filter(Boolean)
+    .join('');
   const badges = [
     renderBadge('Menge', amountLabel, options.amountBadge || { variant: 'amount' }),
     renderBadge('MHD', bestBeforeDate, options.mhdBadge || { variant: 'mhd' }),
@@ -200,7 +209,7 @@ export function renderShoppingListItemCard(item, options = {}) {
           </div>
           <p class="shopping-card__note">${escapeHtml(note)}</p>
           <div class="shopping-card__badges">${badges}</div>
-          <ul class="shopping-card__context-list">${contextRows}</ul>
+          ${contextRows ? `<ul class="shopping-card__context-list">${contextRows}</ul>` : ''}
           ${actionsMarkup}
         </div>
       </div>

@@ -1044,6 +1044,7 @@ class GrocyAIShoppingTab extends HTMLElement {
       <div class="shopping-item-content swipe-item-content">
         ${renderShoppingListItemCard(item, {
           rootClassName: 'shopping-item-card shopping-item-card--legacy',
+          contextFields: ['location'],
           resolveImageUrl: model.resolveImageUrl,
           amountBadge: {
             element: 'button',
