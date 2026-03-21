@@ -49,7 +49,7 @@ async def async_setup(hass: HomeAssistant) -> None:
     panel_state["legacy_dashboard_url"] = resolved_url
 
     async_remove_panel(hass, PANEL_SLUG)
-    async_register_panel(
+    await async_register_panel(
         hass,
         frontend_url_path=PANEL_SLUG,
         webcomponent_name=PANEL_WEBCOMPONENT,

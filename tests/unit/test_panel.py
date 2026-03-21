@@ -37,7 +37,7 @@ def _load_panel_module(monkeypatch):
     register_calls = []
     remove_calls = []
 
-    def fake_register(*args, **kwargs):
+    async def fake_register(*args, **kwargs):
         register_calls.append((args, kwargs))
 
     def fake_remove(*args, **kwargs):

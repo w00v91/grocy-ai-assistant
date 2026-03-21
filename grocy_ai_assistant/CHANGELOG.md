@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Fix (Home-Assistant-Integration/Panel): Die native Panel-Registrierung wartet `async_register_panel(...)` jetzt korrekt ab, damit Home Assistant keinen `RuntimeWarning: coroutine was never awaited` mehr für `panel.py` protokolliert.
+- Test: `pytest tests/unit/test_panel.py tests/unit/test_addon_config_yaml.py`, `ruff check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel.py tests/unit/test_panel.py`; Versionsstände auf `7.4.14` erhöht.
 - Changed (Home-Assistant-Integration/Panel): Die Konfigurationsoption `panel_url` entfällt aus Config- und Options-Flow; das Dashboard hängt sich stattdessen immer automatisch als natives Home-Assistant-Panel auf dem festen Pfad `/grocy-ai` in die Seitenleiste ein.
 - Changed (Home-Assistant-Integration/Panel): Die Panel-Registrierung verwendet intern nur noch den bekannten Ingress-Fallback für Legacy-Abschnitte und ignoriert keine benutzerdefinierte Panel-URL mehr.
 - Test: `pytest tests/unit/test_panel.py tests/unit/test_addon_config_yaml.py`; Versionsstände auf `7.4.13` erhöht.
