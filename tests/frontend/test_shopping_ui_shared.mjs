@@ -51,6 +51,7 @@ test('shopping list card renders shared badge and action structure', () => {
       { label: 'Details', className: 'ghost-button', actionName: 'shopping-open-detail', dataset: { 'item-id': 9 } },
     ],
     amountBadge: { element: 'button', variant: 'amount', className: 'amount-increment-button', dataset: { 'shopping-list-id': 9 } },
+    contextFields: ['location'],
   });
 
   assert.match(markup, /shopping-card--shopping-item/);
@@ -58,5 +59,7 @@ test('shopping list card renders shared badge and action structure', () => {
   assert.match(markup, /data-shopping-list-id="9"/);
   assert.match(markup, /data-action="shopping-open-detail"/);
   assert.match(markup, /data-shopping-image="true"/);
-  assert.match(markup, /Bestand/);
+  assert.match(markup, /shopping-badge__label">Bestand/);
+  assert.doesNotMatch(markup, /shopping-card__context-label">Bestand/);
+  assert.doesNotMatch(markup, /shopping-card__context-label">MHD/);
 });

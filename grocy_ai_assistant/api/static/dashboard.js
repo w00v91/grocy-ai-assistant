@@ -1011,6 +1011,7 @@ function renderShoppingList(items) {
       <div class="shopping-item-content swipe-item-content">
         ${renderShoppingListItemCard(item, {
           rootClassName: 'shopping-item-card shopping-item-card--legacy',
+          contextFields: ['location'],
           resolveImageUrl: (url) => toImageSource(url),
           amountBadge: {
             element: 'button',
