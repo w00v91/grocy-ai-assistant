@@ -73,6 +73,36 @@ function formatAmount(value) {
   return normalized || '1';
 }
 
+function deriveSearchUiState(model = {}) {
+  if (model.flowState === SEARCH_FLOW_STATES.ERROR || model.errorMessage) return 'error';
+  if (model.flowState === SEARCH_FLOW_STATES.SUBMITTING || model.isSubmitting) return 'submitting';
+  if (model.flowState === SEARCH_FLOW_STATES.LOADING_VARIANTS || model.isLoadingVariants) return 'loading';
+
+  const hasQuery = Boolean(String(model.query || '').trim());
+  const hasVariants = Array.isArray(model.variants) && model.variants.length > 0;
+  if (hasVariants && model.flowState === SEARCH_FLOW_STATES.VARIANTS_READY) return 'suggestions';
+  if (hasQuery) return 'typing';
+  return 'empty';
+}
+
+function getSearchStateLabel(searchUiState) {
+  switch (searchUiState) {
+    case 'typing':
+      return 'Tippt';
+    case 'loading':
+      return 'Lädt Vorschläge';
+    case 'suggestions':
+      return 'Vorschläge sichtbar';
+    case 'submitting':
+      return 'Aktion läuft';
+    case 'error':
+      return 'Fehler';
+    case 'empty':
+    default:
+      return 'Leer';
+  }
+}
+
 function createInitialState() {
   return {
     activeTab: DEFAULT_TAB,
@@ -188,9 +218,10 @@ class GrocyAITabNav extends HTMLElement {
   }
 }
 
-class GrocyAIShoppingTab extends HTMLElement {
+class GrocyAIShoppingSearchBar extends HTMLElement {
   constructor() {
     super();
+    this._viewModel = {};
     this._boundInput = (event) => {
       this.dispatchEvent(new CustomEvent('shopping-query-change', {
         bubbles: true,
@@ -234,9 +265,100 @@ class GrocyAIShoppingTab extends HTMLElement {
   _render() {
     const model = this._viewModel || {};
     const variants = Array.isArray(model.variants) ? model.variants : [];
+    const searchUiState = deriveSearchUiState(model);
+    const stateLabel = getSearchStateLabel(searchUiState);
+    const helperText = model.errorMessage || model.statusMessage || 'Bereit.';
+    const hasVisibleVariants = variants.length > 0;
+
+    this.innerHTML = `
+      <section class="shopping-search-shell shopping-search-shell--${searchUiState}" aria-live="polite">
+        <div class="shopping-search-shell__header">
+          <div>
+            <p class="eyebrow">Produktsuche</p>
+            <h3 class="shopping-search-shell__title">Produkt suchen oder Variante wählen</h3>
+          </div>
+          <span class="search-state-chip search-state-chip--${searchUiState}">${escapeHtml(stateLabel)}</span>
+        </div>
+        <form class="search-row shopping-search-form" data-role="shopping-search-form" aria-busy="${model.isSubmitting ? 'true' : 'false'}">
+          <div class="search-input-wrapper">
+            <input
+              data-role="shopping-query"
+              value="${escapeHtml(model.query || '')}"
+              placeholder="z.B. 2 Hafermilch"
+              autocomplete="off"
+              enterkeyhint="search"
+              aria-describedby="shopping-search-helper"
+            />
+            <button class="clear-input-button${model.clearButtonVisible ? ' visible' : ''}" type="button" data-action="shopping-clear-query" aria-label="Sucheingabe löschen">×</button>
+          </div>
+          <button class="primary-button search-submit-button" type="submit" ${model.isSubmitting ? 'disabled' : ''}>
+            ${model.isSubmitting ? 'Prüfe…' : 'Produkt prüfen'}
+          </button>
+        </form>
+        <p id="shopping-search-helper" class="search-helper-text${model.errorMessage ? ' search-helper-text--error' : ''}">
+          ${escapeHtml(helperText)}
+        </p>
+        <section class="variant-section${hasVisibleVariants || model.isLoadingVariants ? '' : ' hidden'}">
+          <div class="section-header section-header-stacked">
+            <div>
+              <h3>Gefundene Produktvarianten</h3>
+              ${model.parsedAmount
+                ? `<p class="muted">Erkannte Menge: ${escapeHtml(formatAmount(model.parsedAmount))}</p>`
+                : '<p class="muted">Live-Vorschläge erscheinen direkt unter dem Eingabefeld.</p>'}
+            </div>
+            ${model.isLoadingVariants ? '<span class="muted">Suche läuft…</span>' : ''}
+          </div>
+          <div class="variant-grid variant-grid--search" role="list">
+            ${hasVisibleVariants
+              ? variants.map((variant) => {
+                  const variantName = variant.product_name || variant.name || 'Unbekanntes Produkt';
+                  const variantAmountValue = model.parsedAmount || variant.amount || variant.default_amount || '1';
+                  const variantAmountLabel = formatAmount(variantAmountValue);
+                  const variantSource = variant.source || 'grocy';
+                  const sourceLabel = variantSource === 'ai'
+                    ? 'KI-Vorschlag'
+                    : (variantSource === 'input' ? 'Neu anlegen' : 'Grocy');
+                  return `
+                    <article class="variant-card variant-card--action" role="listitem">
+                      <button
+                        class="variant-card__button"
+                        type="button"
+                        data-action="shopping-select-variant"
+                        data-product-id="${escapeHtml(variant.product_id || variant.id || '')}"
+                        data-product-name="${escapeHtml(variantName)}"
+                        data-product-source="${escapeHtml(variantSource)}"
+                        data-amount="${escapeHtml(variantAmountValue)}"
+                      >
+                        <div class="variant-card__header">
+                          <strong>${escapeHtml(variantName)}</strong>
+                          <span class="variant-amount-badge">${escapeHtml(variantAmountLabel)}</span>
+                        </div>
+                        <div class="variant-card__meta">
+                          <span class="muted">${escapeHtml(sourceLabel)}</span>
+                          <span class="variant-card__cta">Auswählen</span>
+                        </div>
+                      </button>
+                    </article>
+                  `;
+                }).join('')
+              : '<p class="muted">Lade Vorschläge…</p>'}
+          </div>
+        </section>
+      </section>
+    `;
+  }
+}
+
+class GrocyAIShoppingTab extends HTMLElement {
+  set viewModel(value) {
+    this._viewModel = value;
+    this._render();
+  }
+
+  _render() {
+    const model = this._viewModel || {};
+    const variants = Array.isArray(model.variants) ? model.variants : [];
     const items = Array.isArray(model.list) ? model.list : [];
-    const hasVariants = Boolean(model.isLoadingVariants) || variants.length > 0;
-    const showSearchStatus = model.statusMessage && model.flowState !== SEARCH_FLOW_STATES.ERROR;
 
     this.innerHTML = `
       <section class="tab-view${model.active ? '' : ' hidden'}">
@@ -247,56 +369,7 @@ class GrocyAIShoppingTab extends HTMLElement {
               <span class="scanner-barcode-icon" aria-hidden="true"></span>
             </button>
           </div>
-          <form class="search-row" data-role="shopping-search-form">
-            <div class="search-input-wrapper">
-              <input
-                data-role="shopping-query"
-                value="${escapeHtml(model.query || '')}"
-                placeholder="z.B. 2 Hafermilch"
-              />
-              <button class="clear-input-button${model.clearButtonVisible ? ' visible' : ''}" type="button" data-action="shopping-clear-query" aria-label="Sucheingabe löschen">×</button>
-            </div>
-            <button class="primary-button" type="submit" ${model.isSubmitting ? 'disabled' : ''}>${model.isSubmitting ? 'Prüfe…' : 'Suchen'}</button>
-          </form>
-          ${showSearchStatus ? `<p class="tab-status">${escapeHtml(model.statusMessage)}</p>` : ''}
-          ${model.errorMessage ? `<p class="tab-status">Fehler: ${escapeHtml(model.errorMessage)}</p>` : ''}
-          <section class="variant-section${hasVariants ? '' : ' hidden'}">
-            <div class="section-header section-header-stacked">
-              <div>
-                <h3>Gefundene Produktvarianten</h3>
-                ${model.parsedAmount ? `<p class="muted">Erkannte Menge: ${escapeHtml(formatAmount(model.parsedAmount))}</p>` : ''}
-              </div>
-              ${model.isLoadingVariants ? '<span class="muted">Suche läuft…</span>' : ''}
-            </div>
-            <div class="variant-grid">
-              ${variants.length
-                ? variants.map((variant) => {
-                    const variantName = variant.product_name || variant.name || 'Unbekanntes Produkt';
-                    const variantAmount = model.parsedAmount || variant.amount || variant.default_amount || '1';
-                    const variantSource = variant.source || 'grocy';
-                    const sourceLabel = variantSource === 'ai'
-                      ? 'KI-Vorschlag'
-                      : (variantSource === 'input' ? 'Neu anlegen' : 'Grocy');
-                    return `
-                      <article class="variant-card">
-                        <strong>${escapeHtml(variantName)}</strong>
-                        <div class="muted">${escapeHtml(formatAmount(variantAmount))}</div>
-                        <div class="muted">${escapeHtml(sourceLabel)}</div>
-                        <button
-                          class="primary-button"
-                          type="button"
-                          data-action="shopping-select-variant"
-                          data-product-id="${escapeHtml(variant.product_id || variant.id || '')}"
-                          data-product-name="${escapeHtml(variantName)}"
-                          data-product-source="${escapeHtml(variantSource)}"
-                          data-amount="${escapeHtml(formatAmount(variantAmount))}"
-                        >Zur Liste</button>
-                      </article>
-                    `;
-                  }).join('')
-                : '<p class="muted">Keine Varianten gefunden.</p>'}
-            </div>
-          </section>
+          <grocy-ai-shopping-search-bar></grocy-ai-shopping-search-bar>
         </section>
 
         <section class="card shopping-list-section">
@@ -334,6 +407,11 @@ class GrocyAIShoppingTab extends HTMLElement {
         </section>
       </section>
     `;
+
+    this.querySelector('grocy-ai-shopping-search-bar').viewModel = {
+      ...model,
+      variants,
+    };
   }
 }
 
@@ -1111,6 +1189,10 @@ if (!customElements.get('grocy-ai-topbar')) {
 
 if (!customElements.get('grocy-ai-tab-nav')) {
   customElements.define('grocy-ai-tab-nav', GrocyAITabNav);
+}
+
+if (!customElements.get('grocy-ai-shopping-search-bar')) {
+  customElements.define('grocy-ai-shopping-search-bar', GrocyAIShoppingSearchBar);
 }
 
 if (!customElements.get('grocy-ai-shopping-tab')) {

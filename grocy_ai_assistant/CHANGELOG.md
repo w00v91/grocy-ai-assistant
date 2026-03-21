@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Changed (Home-Assistant-Integration/Panel): Die native Shopping-Suche rendert jetzt als zweistufige Search-Bar mit expliziten UI-Zuständen für leer, tippt, lädt Vorschläge, Vorschläge sichtbar, Submit und Fehler; Statusmeldungen wie „Prüfe Produkt…“ oder „Füge Produkt hinzu…“ werden reaktiv direkt aus dem Search-State angezeigt.
+- Changed (Dashboard/Migration): Live-Vorschläge aus `loadVariants()` erscheinen in der nativen HA-Oberfläche direkt unter dem Eingabefeld; Variantenauswahl übernimmt weiterhin die bestehende `confirmVariant(...)`-/`searchSuggestedProduct(...)`-Logik inklusive mengenpräfixierter Suche wie `2 Hafermilch`.
+- Test: Frontend-Checks für Search-Controller und Panel ergänzt bzw. aktualisiert (`node --test tests/frontend/test_shopping_search_controller.mjs`, `node --check ...`); Versionsstände auf `7.4.11` erhöht.
+
 - Added (Home-Assistant-Integration/Panel): Der native Panel-Pfad `/grocy-ai` wird jetzt explizit an das Frontend durchgereicht, in README/DOCS dokumentiert und per Lovelace-/Deep-Link-Beispielen für Home-Assistant-Dashboards beschrieben.
 - Changed (Home-Assistant-Integration/Panel): Das native Dashboard unterstützt jetzt Tab-Deep-Links über `/grocy-ai?tab=...`, `#tab=...` und Pfadsegmente wie `/grocy-ai/recipes`; die Topbar zeigt dazu passende Schnelllinks und den finalen Panel-Pfad an.
 - Test: `tests/unit/test_panel.py`, `tests/unit/test_addon_config_yaml.py` und `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`; Versionsstände auf `7.4.10` erhöht.

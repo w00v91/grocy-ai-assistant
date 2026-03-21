@@ -76,6 +76,11 @@ export function createShoppingSearchController({
     const { amountFromName } = parseAmountPrefixedSearch(normalizedQuery);
     const nextFlowState = options.flowState
       || (normalizedQuery.trim() ? SEARCH_FLOW_STATES.TYPING : SEARCH_FLOW_STATES.IDLE);
+    const nextStatusMessage = options.statusMessage ?? (
+      normalizedQuery.trim()
+        ? 'Tippe weiter für Live-Vorschläge oder bestätige mit Enter.'
+        : 'Bereit.'
+    );
 
     return setState({
       query: normalizedQuery,
@@ -83,7 +88,7 @@ export function createShoppingSearchController({
       clearButtonVisible: Boolean(normalizedQuery),
       flowState: nextFlowState,
       errorMessage: options.keepErrorMessage ? getState().errorMessage : '',
-      statusMessage: options.statusMessage ?? (normalizedQuery.trim() ? 'Sucheingabe aktualisiert.' : 'Bereit.'),
+      statusMessage: nextStatusMessage,
     });
   }
 
@@ -139,7 +144,7 @@ export function createShoppingSearchController({
       variants: [],
       isLoadingVariants: true,
       flowState: SEARCH_FLOW_STATES.LOADING_VARIANTS,
-      statusMessage: 'Suche Varianten…',
+      statusMessage: 'Lade Live-Vorschläge…',
       errorMessage: '',
       clearButtonVisible: Boolean(effectiveQuery),
       variantsRequestToken: requestToken,
@@ -158,8 +163,10 @@ export function createShoppingSearchController({
       setState({
         variants,
         isLoadingVariants: false,
-        flowState: SEARCH_FLOW_STATES.VARIANTS_READY,
-        statusMessage: variants.length ? 'Produktvarianten geladen.' : 'Keine Varianten gefunden.',
+        flowState: variants.length ? SEARCH_FLOW_STATES.VARIANTS_READY : SEARCH_FLOW_STATES.TYPING,
+        statusMessage: variants.length
+          ? 'Wähle einen Treffer oder starte die Suche mit Enter.'
+          : 'Keine Live-Vorschläge. Mit Enter direkt suchen.',
         errorMessage: '',
       });
       return variants;
@@ -187,7 +194,7 @@ export function createShoppingSearchController({
     const normalizedAmountOverride = Number(options.amount);
     const amount = Number.isFinite(normalizedAmountOverride) && normalizedAmountOverride > 0
       ? normalizedAmountOverride
-      : (amountFromName ?? Number(getDefaultAmount()) || 1);
+      : ((amountFromName ?? Number(getDefaultAmount())) || 1);
     const forceCreate = options.forceCreate === true;
     const bestBeforeDate = String(options.bestBeforeDate ?? getBestBeforeDate() ?? '').trim();
 
@@ -205,7 +212,7 @@ export function createShoppingSearchController({
       parsedAmount: amountFromName,
       isSubmitting: true,
       flowState: SEARCH_FLOW_STATES.SUBMITTING,
-      statusMessage: forceCreate ? 'Lege Produkt direkt an…' : 'Prüfe Produkt…',
+      statusMessage: forceCreate ? 'Füge Produkt hinzu…' : 'Prüfe Produkt…',
       errorMessage: '',
     });
 
@@ -265,7 +272,7 @@ export function createShoppingSearchController({
     const { amountFromName } = parseAmountPrefixedSearch(getState().query);
     const amount = Number.isFinite(normalizedOverride) && normalizedOverride > 0
       ? normalizedOverride
-      : (amountFromName ?? Number(getDefaultAmount()) || 1);
+      : ((amountFromName ?? Number(getDefaultAmount())) || 1);
     const requestProductName = Number.isFinite(amount) && amount > 0
       ? `${amount} ${productName}`
       : productName;
@@ -284,7 +291,7 @@ export function createShoppingSearchController({
     setState({
       isSubmitting: true,
       flowState: SEARCH_FLOW_STATES.SUBMITTING,
-      statusMessage: `Füge ${productName} zur Einkaufsliste hinzu…`,
+      statusMessage: 'Füge Produkt hinzu…',
       errorMessage: '',
     });
 
@@ -343,7 +350,9 @@ export function createShoppingSearchController({
 
     applyQueryState(prefixedProductName, {
       flowState: prefixedProductName.trim() ? SEARCH_FLOW_STATES.TYPING : SEARCH_FLOW_STATES.IDLE,
-      statusMessage: prefixedProductName.trim() ? 'Produktvorschlag übernommen.' : 'Bereit.',
+      statusMessage: prefixedProductName.trim()
+        ? 'Vorschlag übernommen. Prüfe Produkt…'
+        : 'Bereit.',
     });
     updateClearButtonVisibility();
 
