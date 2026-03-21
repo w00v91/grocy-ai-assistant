@@ -20,7 +20,7 @@ const TAB_LABELS = {
   notifications: '🔔 Benachrichtigungen',
 };
 const DEFAULT_POLLING_INTERVAL_MS = 5000;
-const DEFAULT_INTEGRATION_VERSION = '7.4.35';
+const DEFAULT_INTEGRATION_VERSION = '7.4.36';
 const GROCY_RECIPE_DISPLAY_LIMIT = 3;
 const AI_RECIPE_DISPLAY_LIMIT = 3;
 const TAB_VIEW_STATE = Object.freeze({
@@ -154,6 +154,76 @@ function toImageSource(url, options = {}) {
     return apiBasePath ? `${apiBasePath}${normalizedPath}` : normalizedPath;
   }
   return normalizedPath;
+}
+
+
+function isRestorableTextField(element) {
+  const tagName = String(element?.tagName || '').toLowerCase();
+  if (tagName === 'textarea') return true;
+  if (tagName !== 'input') return false;
+  const inputType = String(element.type || '').toLowerCase();
+  return !['button', 'checkbox', 'color', 'file', 'hidden', 'image', 'radio', 'range', 'reset', 'submit'].includes(inputType);
+}
+
+function buildFocusRestoreSelector(element) {
+  if (!(element instanceof HTMLElement)) return '';
+  const tagName = String(element.tagName || '').toLowerCase();
+  if (!tagName) return '';
+
+  const selectors = [
+    ['id', element.id],
+    ['data-role', element.dataset?.role],
+    ['data-field', element.dataset?.field],
+    ['data-recipe-field', element.dataset?.recipeField],
+    ['name', element.getAttribute?.('name')],
+  ];
+
+  for (const [attribute, rawValue] of selectors) {
+    const value = String(rawValue || '').trim();
+    if (!value) continue;
+    const escapedValue = value.replaceAll('\\', '\\\\').replaceAll('"', '\\"');
+    return `${tagName}[${attribute}="${escapedValue}"]`;
+  }
+
+  return tagName;
+}
+
+function captureFocusedFormControl(root) {
+  if (!(root instanceof HTMLElement)) return null;
+  const activeElement = document.activeElement;
+  if (!(activeElement instanceof HTMLElement) || !root.contains(activeElement)) return null;
+
+  const selector = buildFocusRestoreSelector(activeElement);
+  if (!selector) return null;
+
+  const snapshot = {
+    selector,
+    isTextField: isRestorableTextField(activeElement),
+    selectionStart: null,
+    selectionEnd: null,
+  };
+
+  if (snapshot.isTextField) {
+    snapshot.selectionStart = typeof activeElement.selectionStart === 'number' ? activeElement.selectionStart : null;
+    snapshot.selectionEnd = typeof activeElement.selectionEnd === 'number' ? activeElement.selectionEnd : null;
+  }
+
+  return snapshot;
+}
+
+function restoreFocusedFormControl(root, snapshot) {
+  if (!(root instanceof HTMLElement) || !snapshot?.selector) return;
+  const target = root.querySelector(snapshot.selector);
+  if (!(target instanceof HTMLElement) || typeof target.focus !== 'function') return;
+
+  target.focus();
+  if (!snapshot.isTextField || typeof target.setSelectionRange !== 'function') return;
+  if (snapshot.selectionStart === null || snapshot.selectionEnd === null) return;
+
+  const currentValueLength = String(target.value || '').length;
+  const selectionStart = Math.min(snapshot.selectionStart, currentValueLength);
+  const selectionEnd = Math.min(snapshot.selectionEnd, currentValueLength);
+  target.setSelectionRange(selectionStart, selectionEnd);
 }
 
 function deriveSearchUiState(model = {}) {
@@ -1522,6 +1592,7 @@ class GrocyAIDashboardModals extends HTMLElement {
   }
 
   _render() {
+    const snapshot = captureFocusedFormControl(this);
     const model = this._viewModel || {};
     const detail = model.shopping?.detailModal || { open: false };
     const mhd = model.shopping?.mhdModal || { open: false };
@@ -1644,6 +1715,7 @@ class GrocyAIDashboardModals extends HTMLElement {
         </section>
       </div>
     `;
+    restoreFocusedFormControl(this, snapshot);
   }
 }
 
@@ -2407,12 +2479,14 @@ class GrocyAIRecipesTab extends HTMLElement {
   }
 
   _render() {
+    const snapshot = captureFocusedFormControl(this);
     const model = this._viewModel || {};
     this.innerHTML = `
       <section class="tab-view${model.active ? '' : ' hidden'}">
         ${buildRecipesTabMarkup(model)}
       </section>
     `;
+    restoreFocusedFormControl(this, snapshot);
   }
 
   set viewModel(value) {
@@ -2485,6 +2559,7 @@ class GrocyAIStorageTab extends HTMLElement {
   }
 
   _render() {
+    const snapshot = captureFocusedFormControl(this);
     const model = this._viewModel || {};
     this.innerHTML = `
       <section class="tab-view${model.active ? '' : ' hidden'}">
@@ -2493,6 +2568,7 @@ class GrocyAIStorageTab extends HTMLElement {
     `;
 
     bindShoppingImageFallbacks(this);
+    restoreFocusedFormControl(this, snapshot);
   }
 
   set viewModel(value) {
