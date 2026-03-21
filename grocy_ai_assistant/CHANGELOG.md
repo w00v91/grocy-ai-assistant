@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Fix (Home-Assistant-Integration/Panel): Die Swipe-Karten in der nativen Einkaufslistenansicht zeigen `MHD` und `Bestand` jetzt nur noch einmal als Badge; die doppelte Wiederholung in der Zusatz-Metazeile entfällt, während optionale Standortinfos erhalten bleiben.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `7.4.35` erhöht.
+- Test: `node --test tests/frontend/test_shopping_ui_shared.mjs tests/frontend/test_native_shopping_swipe.mjs`, `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.35` erhöht.
+
 - Added (Dokumentation/Migration): `docs/legacy-native-panel-mapping.md` definiert jetzt eine klare visuelle Abnahme für „ähnlicher Stil bei gleicher Funktion“ und verankert `dashboard.html` explizit als Referenz für Karten-, Grid-, Spalten-, Modal- und CTA-Parität pro Tab.
 - Added (Dokumentation/Migration): Für `shopping`, `recipes`, `storage` und `notifications` gibt es jetzt tab-lokale Vergleichslisten mit Legacy-Komponente, nativer Entsprechung, Funktionsgleichheit, Interaktionsform, visuellem Schwerpunkt und erlaubten HA-Mehrwert-Abweichungen.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `7.4.34` erhöht.
