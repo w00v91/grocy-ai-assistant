@@ -381,6 +381,14 @@ function closeScannerModal() {
   syncModalScrollLock();
 }
 
+function getShoppingStatusElement() {
+  return document.getElementById('status-shopping');
+}
+
+function getRecipeStatusElement() {
+  return document.getElementById('status-recipes');
+}
+
 function getNotificationStatusElement() {
   return document.getElementById('status-notifications');
 }
