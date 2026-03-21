@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Fix (Dashboard/Legacy, Home-Assistant-Integration/Panel): Die geteilte Shopping-Card-CSS hält `shopping-item-card--legacy`-Swipe-Einträge jetzt auch auf schmalen Viewports bewusst im alten horizontalen Legacy-Layout, sodass Bild, Status und Badge-Buttons im Legacy-Dashboard sowie im nativen HA-Panel nicht mehr „durcheinandergewürfelt“ umbrechen.
+- Test: `node --test tests/frontend/test_native_shopping_swipe.mjs`, `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.37` erhöht.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `7.4.37` erhöht.
+
 - Changed (Home-Assistant-Integration/Panel): Der native `storage`-Tab rendert Lagerprodukte wieder als vertikale Legacy-Liste mit Swipe-Gesten für Bearbeiten/Verbrauchen statt als Kachel-Grid; Löschen bleibt zusätzlich direkt als Button am Listeneintrag verfügbar.
 - Test: `node --test tests/frontend/test_native_shopping_swipe.mjs tests/frontend/test_panel_shell_rendering.mjs`, `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.35` erhöht.
 - Changed (Home-Assistant-Integration/Panel): Die Native-Dashboard-Topbar zeigt keine Tab-Pills und keinen Hinweistext zur Panel-URL bzw. zum Sidebar-Icon mehr, damit der Kopfbereich ruhiger bleibt.

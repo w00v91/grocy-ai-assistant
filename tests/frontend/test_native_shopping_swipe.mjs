@@ -18,6 +18,10 @@ const legacyDashboardPath = path.resolve(
   __dirname,
   '../../grocy_ai_assistant/api/static/dashboard.js',
 );
+const sharedShoppingCssPath = path.resolve(
+  __dirname,
+  '../../grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/shopping-ui.css',
+);
 
 test('shared swipe helper exports reusable binding utilities', () => {
   assert.equal(typeof bindSwipeInteractions, 'function');
@@ -78,4 +82,12 @@ test('legacy dashboard reuses the shared swipe utility import', async () => {
 
   assert.match(source, /import \{ bindSwipeInteractions, resetSwipeVisualState \} from '\.\/panel-frontend\/swipe-interactions\.js';/);
   assert.doesNotMatch(source, /function bindSwipeInteractions\(/);
+});
+
+test('shared shopping card CSS keeps legacy swipe cards in their horizontal layout on narrow screens', async () => {
+  const source = await fs.readFile(sharedShoppingCssPath, 'utf8');
+
+  assert.match(source, /\.shopping-item-card--legacy \.shopping-card__surface \{\s+grid-template-columns: auto minmax\(0, 1fr\);/);
+  assert.match(source, /\.shopping-item-card--legacy \.shopping-card__header,\s+\.shopping-item-card--legacy \.shopping-card__footer,\s+\.shopping-item-card--legacy \.shopping-card__context-item \{\s+align-items: center;\s+flex-direction: row;/);
+  assert.match(source, /@media \(max-width: 640px\) \{[\s\S]*?\.shopping-item-card--legacy \.shopping-card__surface \{\s+grid-template-columns: auto minmax\(0, 1fr\);[\s\S]*?\.shopping-item-card--legacy \.shopping-card__header,[\s\S]*?flex-direction: row;/);
 });
