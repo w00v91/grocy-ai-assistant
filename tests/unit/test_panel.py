@@ -90,7 +90,7 @@ def test_panel_registers_native_module_metadata(monkeypatch):
     hass = _FakeHass()
     asyncio.run(panel_module.async_setup(hass))
 
-    assert remove_calls[0][0] == (hass, "grocy-ai")
+    assert remove_calls == []
 
     _, kwargs = register_calls[0]
     assert kwargs["frontend_url_path"] == "grocy-ai"
@@ -138,8 +138,19 @@ def test_panel_unload_removes_sidebar_entry_when_last_registration_is_gone(monke
     asyncio.run(panel_module.async_setup(hass))
 
     asyncio.run(panel_module.async_unload(hass))
-    assert [call[0] for call in remove_calls].count((hass, "grocy-ai")) == 2
+    assert [call[0] for call in remove_calls].count((hass, "grocy-ai")) == 1
 
     asyncio.run(panel_module.async_unload(hass))
-    assert [call[0] for call in remove_calls].count((hass, "grocy-ai")) == 3
+    assert [call[0] for call in remove_calls].count((hass, "grocy-ai")) == 2
     assert panel_module._PANEL_STATE_KEY not in hass.data["grocy_ai_assistant"]
+
+
+def test_panel_reregisters_without_unknown_panel_remove_on_first_setup(monkeypatch):
+    panel_module, register_calls, remove_calls = _load_panel_module(monkeypatch)
+
+    hass = _FakeHass()
+    asyncio.run(panel_module.async_setup(hass))
+    asyncio.run(panel_module.async_setup(hass))
+
+    assert len(register_calls) == 2
+    assert [call[0] for call in remove_calls] == [(hass, "grocy-ai")]

@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Fix (Home-Assistant-Integration/Panel): Die native Panel-Registrierung entfernt einen vorhandenen Sidebar-Eintrag jetzt nur noch nach einer erfolgreichen Vorregistrierung, sodass Home Assistant beim ersten Laden kein `Removing unknown panel grocy-ai` mehr ins Frontend-Log schreibt.
+- Test: `pytest tests/unit/test_panel.py tests/unit/test_addon_config_yaml.py`, `ruff check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel.py tests/unit/test_panel.py tests/unit/test_addon_config_yaml.py`; Versionsstände auf `7.4.17` erhöht.
 - Fix (Home-Assistant-Integration/Panel): Die Registrierung der nativen Panel-Webcomponents läuft jetzt über einen robusten `registerCustomElement(...)`-Helper mit DOMException-Fallback, damit Registry-spezifische Reload-/Reuse-Szenarien keine Folgefehler oder irreführenden Sourcemap-404s mehr auslösen.
 - Test: `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `pytest tests/unit/test_addon_config_yaml.py`; Versionsstände auf `7.4.17` erhöht.
 - Fix (Home-Assistant-Integration/Panel): Die Legacy-Bridge-Tabs für Rezepte, Lager und Benachrichtigungen nutzen jetzt eigene Konstruktoren statt denselben `GrocyAILegacyBridgeTab`, damit Home Assistants `CustomElementRegistry` keine `constructor has already been used with this registry`-Exception mehr wirft.

@@ -27,7 +27,11 @@ async def async_setup(hass: HomeAssistant) -> None:
     domain_data = hass.data.setdefault(DOMAIN, {})
     panel_state = domain_data.setdefault(
         _PANEL_STATE_KEY,
-        {"registrations": 0, "static_paths_registered": False},
+        {
+            "registrations": 0,
+            "static_paths_registered": False,
+            "panel_registered": False,
+        },
     )
 
     resolved_url = DEFAULT_ADDON_INGRESS_PATH
@@ -48,7 +52,8 @@ async def async_setup(hass: HomeAssistant) -> None:
     panel_state["registrations"] += 1
     panel_state["legacy_dashboard_url"] = resolved_url
 
-    async_remove_panel(hass, PANEL_SLUG)
+    if panel_state["panel_registered"]:
+        async_remove_panel(hass, PANEL_SLUG)
     await async_register_panel(
         hass,
         frontend_url_path=PANEL_SLUG,
@@ -68,6 +73,7 @@ async def async_setup(hass: HomeAssistant) -> None:
             "sidebar_title": PANEL_TITLE,
         },
     )
+    panel_state["panel_registered"] = True
 
 
 async def async_unload(hass: HomeAssistant) -> None:
@@ -81,5 +87,6 @@ async def async_unload(hass: HomeAssistant) -> None:
     if panel_state["registrations"] > 0:
         return
 
-    async_remove_panel(hass, PANEL_SLUG)
+    if panel_state["panel_registered"]:
+        async_remove_panel(hass, PANEL_SLUG)
     domain_data.pop(_PANEL_STATE_KEY, None)
