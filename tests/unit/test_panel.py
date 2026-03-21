@@ -88,7 +88,7 @@ def test_panel_registers_native_module_metadata(monkeypatch):
     panel_module, register_calls, remove_calls = _load_panel_module(monkeypatch)
 
     hass = _FakeHass()
-    asyncio.run(panel_module.async_setup(hass, "http://example.local:8000"))
+    asyncio.run(panel_module.async_setup(hass))
 
     assert remove_calls[0][0] == (hass, "grocy-ai")
 
@@ -116,11 +116,9 @@ def test_panel_registers_static_bundle_route_once(monkeypatch):
 
     hass = _FakeHass()
     asyncio.run(
-        panel_module.async_setup(
-            hass, "/api/hassio_ingress/71139b3d_grocy_ai_assistant"
-        )
+        panel_module.async_setup(hass)
     )
-    asyncio.run(panel_module.async_setup(hass, "/api/hassio_ingress/other"))
+    asyncio.run(panel_module.async_setup(hass))
 
     assert len(hass.http.static_path_calls) == 1
     configs = hass.http.static_path_calls[0]
@@ -136,8 +134,8 @@ def test_panel_unload_removes_sidebar_entry_when_last_registration_is_gone(monke
     panel_module, _, remove_calls = _load_panel_module(monkeypatch)
 
     hass = _FakeHass()
-    asyncio.run(panel_module.async_setup(hass, "/api/hassio_ingress/first"))
-    asyncio.run(panel_module.async_setup(hass, "/api/hassio_ingress/second"))
+    asyncio.run(panel_module.async_setup(hass))
+    asyncio.run(panel_module.async_setup(hass))
 
     asyncio.run(panel_module.async_unload(hass))
     assert [call[0] for call in remove_calls].count((hass, "grocy-ai")) == 2
