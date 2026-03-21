@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Fix (Home-Assistant-Integration/Panel): Die Swipe-Einkaufslistenkarte im nativen Dashboard nutzt jetzt dieselben MHD-/Mengen-Badge-Buttons, dieselbe Legacy-Kartenklasse und dieselben Swipe-Labels wie das Legacy-Dashboard, damit keine doppelten bzw. abweichenden Buttons mehr angezeigt werden.
+- Test: `node --test tests/frontend/test_native_shopping_swipe.mjs`, `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.32` erhöht.
+
 - Changed (Home-Assistant-Integration/Panel): Der `recipes`-Tab ist jetzt als erster vollständiger Nicht-Shopping-Tab nativ migriert und rendert Grocy-/KI-Rezeptvorschläge, Lagerstandorte, Produktauswahl, CTA-Aktionen sowie Rezeptdetails/-anlegen ohne Legacy-iframe direkt im HA-Panel.
 - Refactor (Home-Assistant-Integration/Panel): Das native Panel nutzt für Rezeptflows jetzt dieselben bestehenden Backend-Endpunkte wie das Legacy-Dashboard (`recipe-suggestions`, `locations`, `stock-products`, `POST /api/dashboard/recipe/{recipe_id}/add-missing`) über den gemeinsamen Panel-API-Client.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `7.4.31` erhöht.

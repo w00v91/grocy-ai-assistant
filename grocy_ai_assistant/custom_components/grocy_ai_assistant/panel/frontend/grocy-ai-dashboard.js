@@ -20,7 +20,7 @@ const TAB_LABELS = {
   notifications: '🔔 Benachrichtigungen',
 };
 const DEFAULT_POLLING_INTERVAL_MS = 5000;
-const DEFAULT_INTEGRATION_VERSION = '7.4.31';
+const DEFAULT_INTEGRATION_VERSION = '7.4.32';
 const GROCY_RECIPE_DISPLAY_LIMIT = 3;
 const AI_RECIPE_DISPLAY_LIMIT = 3;
 
@@ -772,19 +772,33 @@ class GrocyAIShoppingTab extends HTMLElement {
     listItem.dataset.itemId = String(item.id);
     listItem.innerHTML = `
       <div class="swipe-item-action swipe-item-action-left" aria-hidden="true">
-        <span class="swipe-chip swipe-chip-complete">✅ Erledigt</span>
+        <span class="swipe-chip swipe-chip-buy">🛒 Kaufen</span>
       </div>
       <div class="swipe-item-action swipe-item-action-right" aria-hidden="true">
         <span class="swipe-chip swipe-chip-delete">🗑 Löschen</span>
       </div>
       <div class="shopping-item-content swipe-item-content">
         ${renderShoppingListItemCard(item, {
-          rootClassName: 'shopping-item-card shopping-item-card--native-swipe',
+          rootClassName: 'shopping-item-card shopping-item-card--legacy',
           resolveImageUrl: model.resolveImageUrl,
-          actionButtons: [
-            { label: 'MHD', className: 'ghost-button', actionName: 'shopping-open-mhd', dataset: { 'item-id': item.id } },
-            { label: '+1', className: 'ghost-button', actionName: 'shopping-increment-item', dataset: { 'item-id': item.id } },
-          ],
+          amountBadge: {
+            element: 'button',
+            variant: 'amount',
+            className: 'amount-increment-button',
+            dataset: {
+              action: 'shopping-increment-item',
+              'item-id': item.id,
+            },
+          },
+          mhdBadge: {
+            element: 'button',
+            variant: 'mhd',
+            className: 'mhd-picker-button',
+            dataset: {
+              action: 'shopping-open-mhd',
+              'item-id': item.id,
+            },
+          },
         })}
       </div>
     `;
@@ -797,7 +811,7 @@ class GrocyAIShoppingTab extends HTMLElement {
       root: this,
       selector: '.shopping-item.swipe-item',
       getPayload: (item) => ({ itemId: item.dataset.itemId }),
-      interactiveElementSelector: '.shopping-card__actions button',
+      interactiveElementSelector: '.amount-increment-button, .mhd-picker-button',
       onTap: (_, payload) => {
         this.dispatchEvent(new CustomEvent('shopping-open-detail', {
           bubbles: true,
