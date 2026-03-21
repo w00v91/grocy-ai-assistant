@@ -46,10 +46,14 @@ test('native shopping tab renders swipe shopping items and rebinds swipe interac
   assert.match(source, /import \{ bindSwipeInteractions \} from '\.\/swipe-interactions\.js';/);
   assert.match(source, /this\._cleanupSwipe = null;/);
   assert.match(source, /className = 'shopping-list-native__item shopping-item swipe-item';/);
+  assert.match(source, /swipe-chip swipe-chip-buy">🛒 Kaufen</);
   assert.match(source, /swipe-item-action swipe-item-action-left/);
   assert.match(source, /swipe-item-action swipe-item-action-right/);
   assert.match(source, /selector: '\.shopping-item\.swipe-item'/);
-  assert.match(source, /interactiveElementSelector: '\.shopping-card__actions button'/);
+  assert.match(source, /className: 'amount-increment-button'/);
+  assert.match(source, /className: 'mhd-picker-button'/);
+  assert.match(source, /interactiveElementSelector: '\.amount-increment-button, \.mhd-picker-button'/);
+  assert.doesNotMatch(source, /actionButtons:\s*\[/);
   assert.match(source, /new CustomEvent\('shopping-open-detail'/);
   assert.match(source, /new CustomEvent\('shopping-complete-item'/);
   assert.match(source, /new CustomEvent\('shopping-delete-item'/);

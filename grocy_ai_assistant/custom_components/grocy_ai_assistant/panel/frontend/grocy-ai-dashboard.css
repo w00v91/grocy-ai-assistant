@@ -234,6 +234,10 @@ h1 {
   list-style: none;
 }
 
+.shopping-list-native__item.shopping-item {
+  min-height: 78px;
+}
+
 .swipe-chip {
   display: inline-flex;
   align-items: center;
@@ -241,8 +245,8 @@ h1 {
   font-weight: 700;
   font-size: 0.81rem;
   line-height: 1;
-  background: rgba(255, 255, 255, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.34);
+  background: rgba(255, 255, 255, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.38);
   color: #fff;
   border-radius: 999px;
   padding: 0.38rem 0.62rem;
@@ -259,11 +263,12 @@ h1 {
   position: relative;
   display: block;
   padding: 0;
+  gap: 0;
   overflow: hidden;
   cursor: pointer;
   touch-action: pan-y;
   user-select: none;
-  border-radius: 16px;
+  border-radius: 14px;
   border: 1px solid var(--panel-border-color);
   background: transparent;
 }
@@ -272,8 +277,9 @@ h1 {
   position: relative;
   z-index: 2;
   width: 100%;
+  min-height: 78px;
   border-radius: inherit;
-  background: color-mix(in srgb, var(--panel-card-background) 94%, var(--primary-background-color));
+  background: var(--panel-card-background);
   transform: translate3d(var(--swipe-offset), 0, 0);
   transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
   will-change: transform;
@@ -297,6 +303,7 @@ h1 {
   bottom: 0;
   width: 138px;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   pointer-events: none;
@@ -322,12 +329,14 @@ h1 {
   background: transparent;
 }
 
-.shopping-item.swipe-item .shopping-card__surface {
-  border-radius: inherit;
+.shopping-item-card--legacy {
+  height: 100%;
 }
 
-.shopping-item.swipe-item .shopping-card__actions {
-  justify-content: flex-start;
+.shopping-item.swipe-item .shopping-card__surface {
+  min-height: 78px;
+  padding: 0.75rem 0.85rem;
+  border-radius: inherit;
 }
 
 .variant-grid--search {

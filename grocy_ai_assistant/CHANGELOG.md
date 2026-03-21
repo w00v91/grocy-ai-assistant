@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Fix (Home-Assistant-Integration/Panel): Die nativen Shopping-Swipe-Karten verwenden jetzt wieder dieselben Badge-Buttons, Swipe-Labels und Kartenabstände wie das Legacy-Dashboard; dadurch verschwinden doppelte/dreifache Aktionsbuttons und die Darstellung bleibt zwischen beiden Dashboards konsistent.
+- Test: `node --test tests/frontend/test_native_shopping_swipe.mjs`, `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `pytest tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.30` erhöht.
+
 - Added (Dokumentation/Migration): Neue Mapping-Matrix `docs/legacy-native-panel-mapping.md`, die Legacy-Dashboard und natives Home-Assistant-Panel tabweise für `shopping`, `recipes`, `storage` und `notifications` gegenüberstellt und pro Bereich als Abnahmeliste für die weitere Migration dient.
 - Test: `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.29` erhöht.
 
