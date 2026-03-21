@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Fix (Dashboard/Legacy): Die versehentlich entfernten Status-Helper `getShoppingStatusElement()` und `getRecipeStatusElement()` sind wieder vorhanden, damit Tab-Wechsel, Topbar-Status-Sync und das Laden der Einkaufsliste im Legacy-Dashboard nicht mehr mit `ReferenceError` abbrechen.
+- Test: `node --test tests/frontend/test_legacy_dashboard_status_helpers.mjs`, `node --check grocy_ai_assistant/api/static/dashboard.js`; Versionsstände auf `7.4.12` erhöht.
 - Changed (Dashboard/UI): Die Variantenanzeige im Legacy-Dashboard rendert Treffer jetzt über die native Web-Component `<grocy-variant-results>` mit reaktiven Properties für Varianten, Menge sowie Lade-/Leerzustand statt HTML-String-Zusammenbau.
 - Changed (Dashboard/UI): Variantenauswahl läuft jetzt über explizite `variant-select`-Komponenten-Events; das bestehende Quellverhalten für `grocy`, `ai` und `input` bleibt dabei unverändert.
 - Test: `node --check grocy_ai_assistant/api/static/dashboard.js`; Versionsstände auf `7.4.11` erhöht.
