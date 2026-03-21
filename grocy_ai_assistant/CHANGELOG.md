@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Changed (Dashboard/UI): Die Variantenanzeige im Legacy-Dashboard rendert Treffer jetzt über die native Web-Component `<grocy-variant-results>` mit reaktiven Properties für Varianten, Menge sowie Lade-/Leerzustand statt HTML-String-Zusammenbau.
+- Changed (Dashboard/UI): Variantenauswahl läuft jetzt über explizite `variant-select`-Komponenten-Events; das bestehende Quellverhalten für `grocy`, `ai` und `input` bleibt dabei unverändert.
+- Test: `node --check grocy_ai_assistant/api/static/dashboard.js`; Versionsstände auf `7.4.11` erhöht.
 - Added (Home-Assistant-Integration/Panel): Der native Panel-Pfad `/grocy-ai` wird jetzt explizit an das Frontend durchgereicht, in README/DOCS dokumentiert und per Lovelace-/Deep-Link-Beispielen für Home-Assistant-Dashboards beschrieben.
 - Changed (Home-Assistant-Integration/Panel): Das native Dashboard unterstützt jetzt Tab-Deep-Links über `/grocy-ai?tab=...`, `#tab=...` und Pfadsegmente wie `/grocy-ai/recipes`; die Topbar zeigt dazu passende Schnelllinks und den finalen Panel-Pfad an.
 - Test: `tests/unit/test_panel.py`, `tests/unit/test_addon_config_yaml.py` und `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`; Versionsstände auf `7.4.10` erhöht.
