@@ -20,9 +20,16 @@ const TAB_LABELS = {
   notifications: '🔔 Benachrichtigungen',
 };
 const DEFAULT_POLLING_INTERVAL_MS = 5000;
-const DEFAULT_INTEGRATION_VERSION = '7.4.32';
+const DEFAULT_INTEGRATION_VERSION = '7.4.33';
 const GROCY_RECIPE_DISPLAY_LIMIT = 3;
 const AI_RECIPE_DISPLAY_LIMIT = 3;
+const TAB_VIEW_STATE = Object.freeze({
+  LOADED: 'loaded',
+  LOADING: 'loading',
+  ERROR: 'error',
+  EMPTY: 'empty',
+  EDITING: 'editing',
+});
 
 function sn(key) {
   return key === 'common.version' ? 'Version ' : '';
@@ -426,6 +433,7 @@ function createInitialState() {
     pendingRequests: 0,
     shopping: {
       status: 'Bereit.',
+      viewState: createTabViewState(),
       list: [],
       listLoading: false,
       listLoaded: false,
@@ -441,10 +449,15 @@ function createInitialState() {
         itemId: null,
         value: '',
       },
-      scannerModalOpen: false,
+      scanner: {
+        open: false,
+        status: 'Bereit.',
+        scope: 'shopping',
+      },
     },
     recipes: {
       status: 'Bereit.',
+      viewState: createTabViewState(),
       initialized: false,
       locations: [],
       stockProducts: [],
@@ -472,6 +485,7 @@ function createInitialState() {
     },
     storage: {
       status: 'Bereit.',
+      viewState: createTabViewState(),
       initialized: false,
       loading: false,
       items: [],
@@ -495,6 +509,22 @@ function createInitialState() {
         itemId: null,
       },
     },
+    notifications: {
+      status: 'Benachrichtigungen werden bei Bedarf im Notfallpfad geöffnet.',
+      viewState: createTabViewState({ loaded: true, empty: true }),
+      legacyFallbackUrl: '',
+    },
+  };
+}
+
+function createTabViewState(overrides = {}) {
+  return {
+    loaded: false,
+    loading: false,
+    error: '',
+    empty: false,
+    editing: false,
+    ...overrides,
   };
 }
 
@@ -1728,7 +1758,12 @@ class GrocyAIScannerBridge extends HTMLElement {
     if (!modal) return;
 
     const shouldOpen = Boolean(this._viewModel?.open);
+    modal.dataset.scope = String(this._viewModel?.scope || 'shopping');
     modal.classList.toggle('hidden', !shouldOpen);
+    const statusElement = this._getElement('scanner-status');
+    if (statusElement) {
+      statusElement.textContent = String(this._viewModel?.status || 'Bereit.');
+    }
 
     const rotationSelect = this._getElement('scanner-rotation-select');
     if (rotationSelect && rotationSelect.value !== String(this._rotationDegrees)) {
@@ -2695,19 +2730,10 @@ class GrocyAIDashboardPanel extends HTMLElement {
       || String(panelConfig?.dashboard_api_base_path || panelConfig?.api_base_path || '').replace(/\/+$/, '');
     const migratedCount = MIGRATED_TABS.size;
     const totalCount = TAB_ORDER.length;
-    const activeTabStatus = state.activeTab === 'shopping'
-      ? state.shopping.status
-      : state.activeTab === 'recipes'
-        ? state.recipes.status
-        : state.activeTab === 'storage'
-          ? state.storage.status
-          : state.topbarStatus;
-    const topbarStatus = state.pendingRequests > 0 && searchState.flowState === SEARCH_FLOW_STATES.SUBMITTING
-      ? searchState.statusMessage
-      : activeTabStatus;
+    const topbarStatus = this._resolveActiveTabStatus(state, searchState);
     topbar.viewModel = {
       status: topbarStatus,
-      busy: state.pendingRequests > 0,
+      busy: this._isActiveTabBusy(state),
       migratedCount,
       totalCount,
       panelPath: this._getPanelPath(),
@@ -2737,10 +2763,11 @@ class GrocyAIDashboardPanel extends HTMLElement {
       resolveImageUrl: (url) => resolvePanelImageUrl(url, this._dashboardApi, { apiBasePath: panelImageApiBasePath }),
     };
     notificationsTab.viewModel = {
+      ...state.notifications,
       active: state.activeTab === 'notifications',
       title: 'Benachrichtigungen',
       tabName: 'notifications',
-      legacyUrl: this._getResolvedLegacyDashboardUrl(),
+      legacyUrl: state.notifications.legacyFallbackUrl || this._getResolvedLegacyDashboardEmergencyUrl(),
     };
 
     const activeItem = state.shopping.list.find((item) => String(item.id) === String(state.shopping.detailModal.itemId))
@@ -2758,7 +2785,7 @@ class GrocyAIDashboardPanel extends HTMLElement {
       },
     };
     scannerBridge.viewModel = {
-      open: state.shopping.scannerModalOpen,
+      ...state.shopping.scanner,
     };
     scannerBridge.api = this._api;
   }
@@ -2782,23 +2809,7 @@ class GrocyAIDashboardPanel extends HTMLElement {
     if (shouldUpdateUrl) {
       this._updateBrowserUrlForTab(normalizedTab, { replace: Boolean(options.replaceUrl) });
     }
-
-    if (normalizedTab === DEFAULT_TAB) {
-      this._startShoppingPolling();
-      if (!this._store.getState().shopping.listLoaded) {
-        this._loadShoppingList();
-      }
-    } else {
-      this._stopShoppingPolling();
-    }
-
-    if (normalizedTab === 'recipes' && !this._store.getState().recipes.initialized) {
-      void this._initializeRecipesTab();
-    }
-
-    if (normalizedTab === 'storage' && !this._store.getState().storage.initialized) {
-      void this._initializeStorageTab();
-    }
+    this._activateTab(normalizedTab);
   }
 
   _syncActiveTabFromLocation(options = {}) {
@@ -2823,37 +2834,129 @@ class GrocyAIDashboardPanel extends HTMLElement {
   }
 
   _updateShoppingState(partial) {
-    this._store.update((state) => ({
-      ...state,
-      shopping: {
-        ...state.shopping,
-        ...partial,
-      },
-    }));
+    return this._updateTabState('shopping', partial);
   }
 
   _updateRecipesState(partial) {
-    this._store.update((state) => ({
-      ...state,
-      recipes: {
-        ...state.recipes,
-        ...partial,
-      },
-    }));
+    return this._updateTabState('recipes', partial);
   }
 
   _updateStorageState(partial) {
-    this._store.update((state) => ({
-      ...state,
-      storage: {
-        ...state.storage,
-        ...partial,
-      },
-    }));
+    return this._updateTabState('storage', partial);
+  }
+
+  _updateNotificationsState(partial) {
+    return this._updateTabState('notifications', partial);
+  }
+
+  _updateTabState(tabName, partial) {
+    return this._store.patchIn(tabName, partial);
+  }
+
+  _updateTabViewState(tabName, partial) {
+    return this._store.patchIn([tabName, 'viewState'], partial);
+  }
+
+  _setTabStatus(tabName, status, options = {}) {
+    const currentTabState = this._store.getIn(tabName, {});
+    const nextError = typeof options.error === 'string'
+      ? options.error
+      : (options.state === TAB_VIEW_STATE.ERROR ? status : '');
+    const nextViewState = {
+      ...createTabViewState(currentTabState.viewState || {}),
+      loading: options.state === TAB_VIEW_STATE.LOADING,
+      loaded: options.state === TAB_VIEW_STATE.LOADED
+        ? true
+        : Boolean(currentTabState.viewState?.loaded && options.state !== TAB_VIEW_STATE.ERROR),
+      empty: typeof options.empty === 'boolean'
+        ? options.empty
+        : Boolean(currentTabState.viewState?.empty),
+      editing: options.state === TAB_VIEW_STATE.EDITING,
+      error: nextError,
+    };
+
+    this._updateTabState(tabName, { status });
+    this._updateTabViewState(tabName, nextViewState);
+
+    if (options.syncTopbar !== false) {
+      this._store.patch({ topbarStatus: status });
+    }
+  }
+
+  _setTabModalState(tabName, modalKey, modalState, options = {}) {
+    this._store.setIn([tabName, modalKey], modalState);
+
+    if (typeof options.editing === 'boolean') {
+      this._updateTabViewState(tabName, { editing: options.editing });
+    }
+
+    if (tabName === 'shopping') {
+      this._syncShoppingPolling();
+    }
+  }
+
+  _resolveActiveTabStatus(state, searchState) {
+    if (state.pendingRequests > 0 && searchState.flowState === SEARCH_FLOW_STATES.SUBMITTING) {
+      return searchState.statusMessage;
+    }
+
+    if (state.activeTab === 'shopping') return state.shopping.status;
+    if (state.activeTab === 'recipes') return state.recipes.status;
+    if (state.activeTab === 'storage') return state.storage.status;
+    return state.notifications.status || state.topbarStatus;
+  }
+
+  _isActiveTabBusy(state) {
+    const activeState = state[state.activeTab];
+    return Boolean(activeState?.viewState?.loading || activeState?.viewState?.editing || state.pendingRequests > 0);
+  }
+
+  _syncShoppingPolling() {
+    if (this._canPollShopping({ requireNoTimer: true })) {
+      this._startShoppingPolling();
+      return;
+    }
+    if (!this._canPollShopping({ requireNoTimer: false })) {
+      this._stopShoppingPolling();
+    }
+  }
+
+  _canPollShopping({ requireNoTimer = true } = {}) {
+    const state = this._store.getState();
+    if (state.activeTab !== 'shopping') return false;
+    if (requireNoTimer && state.shopping.pollTimer) return false;
+    if (state.shopping.detailModal.open || state.shopping.mhdModal.open || state.shopping.scanner.open) return false;
+    if (state.shopping.viewState.editing) return false;
+    return true;
+  }
+
+  _activateTab(tabName) {
+    if (tabName === DEFAULT_TAB) {
+      this._syncShoppingPolling();
+      if (!this._store.getState().shopping.listLoaded) {
+        this._loadShoppingList();
+      }
+    } else {
+      this._stopShoppingPolling();
+    }
+
+    if (tabName === 'recipes' && !this._store.getState().recipes.initialized) {
+      void this._initializeRecipesTab();
+    }
+
+    if (tabName === 'storage' && !this._store.getState().storage.initialized) {
+      void this._initializeStorageTab();
+    }
+
+    if (tabName === 'notifications') {
+      this._updateNotificationsState({
+        legacyFallbackUrl: this._getResolvedLegacyDashboardEmergencyUrl(),
+      });
+    }
   }
 
   async _initializeRecipesTab() {
-    this._updateRecipesState({ status: 'Lade Lagerstandorte…' });
+    this._setTabStatus('recipes', 'Lade Lagerstandorte…', { state: TAB_VIEW_STATE.LOADING, syncTopbar: false });
     await this._runRequest(async () => {
       const api = await this._getDashboardApiOrThrow();
       const { response, payload } = await api.fetchLocations();
@@ -2867,7 +2970,7 @@ class GrocyAIDashboardPanel extends HTMLElement {
       await this._loadRecipeStockProducts();
     }, {
       onError: (message) => {
-        this._updateRecipesState({ status: `Fehler: ${message}` });
+        this._setTabStatus('recipes', `Fehler: ${message}`, { state: TAB_VIEW_STATE.ERROR, error: message, syncTopbar: false });
       },
     });
   }
@@ -2894,7 +2997,7 @@ class GrocyAIDashboardPanel extends HTMLElement {
   }
 
   async _loadRecipeStockProducts() {
-    this._updateRecipesState({ status: 'Lade Produkte in ausgewählten Standorten…' });
+    this._setTabStatus('recipes', 'Lade Produkte in ausgewählten Standorten…', { state: TAB_VIEW_STATE.LOADING, syncTopbar: false });
     await this._runRequest(async () => {
       const api = await this._getDashboardApiOrThrow();
       const recipeState = this._store.getState().recipes;
@@ -2917,6 +3020,12 @@ class GrocyAIDashboardPanel extends HTMLElement {
           ? 'Bestand aktualisiert. Lade Rezeptvorschläge bei Bedarf manuell.'
           : 'Bestand geladen. Lade Rezeptvorschläge bei Bedarf manuell.',
       });
+      this._updateTabViewState('recipes', {
+        loaded: true,
+        loading: false,
+        empty: normalizedPayload.length === 0,
+        error: '',
+      });
 
       if (!hasStockChanged && !recipeState.hasLoadedInitialSuggestions) {
         this._updateRecipesState({ hasLoadedInitialSuggestions: true });
@@ -2924,7 +3033,7 @@ class GrocyAIDashboardPanel extends HTMLElement {
       }
     }, {
       onError: (message) => {
-        this._updateRecipesState({ status: `Fehler: ${message}` });
+        this._setTabStatus('recipes', `Fehler: ${message}`, { state: TAB_VIEW_STATE.ERROR, error: message, syncTopbar: false });
       },
     });
   }
@@ -2982,21 +3091,17 @@ class GrocyAIDashboardPanel extends HTMLElement {
 
   _openRecipeDetail(item) {
     if (!item || typeof item !== 'object') return;
-    this._updateRecipesState({
-      detailModal: {
-        open: true,
-        item,
-      },
-    });
+    this._setTabModalState('recipes', 'detailModal', {
+      open: true,
+      item,
+    }, { editing: true });
   }
 
   _closeRecipeDetail() {
-    this._updateRecipesState({
-      detailModal: {
-        open: false,
-        item: null,
-      },
-    });
+    this._setTabModalState('recipes', 'detailModal', {
+      open: false,
+      item: null,
+    }, { editing: false });
   }
 
   async _addMissingRecipeProducts() {
@@ -3023,22 +3128,18 @@ class GrocyAIDashboardPanel extends HTMLElement {
 
   _openRecipeCreateModal() {
     const createModal = this._store.getState().recipes.createModal;
-    this._updateRecipesState({
-      createModal: {
-        ...createModal,
-        open: true,
-      },
-    });
+    this._setTabModalState('recipes', 'createModal', {
+      ...createModal,
+      open: true,
+    }, { editing: true });
   }
 
   _closeRecipeCreateModal() {
     const createModal = this._store.getState().recipes.createModal;
-    this._updateRecipesState({
-      createModal: {
-        ...createModal,
-        open: false,
-      },
-    });
+    this._setTabModalState('recipes', 'createModal', {
+      ...createModal,
+      open: false,
+    }, { editing: false });
   }
 
   _setRecipeCreateMethod(method) {
@@ -3062,8 +3163,7 @@ class GrocyAIDashboardPanel extends HTMLElement {
   }
 
   _setRecipeStatus(message) {
-    this._updateRecipesState({ status: message });
-    this._store.patch({ topbarStatus: message });
+    this._setTabStatus('recipes', message, { state: TAB_VIEW_STATE.LOADED });
   }
 
   _submitRecipeCreateWebscrape() {
@@ -3114,7 +3214,8 @@ class GrocyAIDashboardPanel extends HTMLElement {
   }
 
   async _initializeStorageTab() {
-    this._updateStorageState({ status: 'Lade Lagerstandorte…', loading: true });
+    this._setTabStatus('storage', 'Lade Lagerstandorte…', { state: TAB_VIEW_STATE.LOADING, syncTopbar: false });
+    this._updateStorageState({ loading: true });
     await this._runRequest(async () => {
       const api = await this._getDashboardApiOrThrow();
       const { response, payload } = await api.fetchLocations();
@@ -3128,7 +3229,8 @@ class GrocyAIDashboardPanel extends HTMLElement {
       await this._loadStorageProducts({ silent: true });
     }, {
       onError: (message) => {
-        this._updateStorageState({ loading: false, status: `Fehler: ${message}` });
+        this._updateStorageState({ loading: false });
+        this._setTabStatus('storage', `Fehler: ${message}`, { state: TAB_VIEW_STATE.ERROR, error: message, syncTopbar: false });
       },
     });
   }
@@ -3168,10 +3270,17 @@ class GrocyAIDashboardPanel extends HTMLElement {
           ? `Lagerbestand geladen (${items.length} Produkte, ${outOfStockCount} nicht auf Lager${fallbackProductIds > 0 ? `, ${fallbackProductIds} via Produkt-ID` : ''}).`
           : `Lagerbestand geladen (${items.length} Produkte).`,
       });
+      this._updateTabViewState('storage', {
+        loaded: true,
+        loading: false,
+        empty: items.length === 0,
+        error: '',
+      });
       this._store.patch({ topbarStatus: `Lager aktualisiert (${items.length} Produkte).` });
     }, {
       onError: (message) => {
-        this._updateStorageState({ loading: false, status: `Fehler: ${message}` });
+        this._updateStorageState({ loading: false });
+        this._setTabStatus('storage', `Fehler: ${message}`, { state: TAB_VIEW_STATE.ERROR, error: message, syncTopbar: false });
       },
     });
   }
@@ -3192,27 +3301,23 @@ class GrocyAIDashboardPanel extends HTMLElement {
   _openStorageEdit(itemId) {
     const item = this._findStorageItem(itemId);
     if (!item) return;
-    this._updateStorageState({
-      editModal: {
-        open: true,
-        itemId: getActionableStorageId(item),
-        amount: formatAmount(item.amount, '0'),
-        bestBeforeDate: formatStorageDateLabel(item.best_before_date, ''),
-        locationId: item.location_id ? String(item.location_id) : '',
-      },
-    });
+    this._setTabModalState('storage', 'editModal', {
+      open: true,
+      itemId: getActionableStorageId(item),
+      amount: formatAmount(item.amount, '0'),
+      bestBeforeDate: formatStorageDateLabel(item.best_before_date, ''),
+      locationId: item.location_id ? String(item.location_id) : '',
+    }, { editing: true });
   }
 
   _closeStorageEdit() {
-    this._updateStorageState({
-      editModal: {
-        open: false,
-        itemId: null,
-        amount: '',
-        bestBeforeDate: '',
-        locationId: '',
-      },
-    });
+    this._setTabModalState('storage', 'editModal', {
+      open: false,
+      itemId: null,
+      amount: '',
+      bestBeforeDate: '',
+      locationId: '',
+    }, { editing: false });
   }
 
   _updateStorageEditInput(detail) {
@@ -3266,23 +3371,19 @@ class GrocyAIDashboardPanel extends HTMLElement {
   _openStorageConsume(itemId) {
     const item = this._findStorageItem(itemId);
     if (!item) return;
-    this._updateStorageState({
-      consumeModal: {
-        open: true,
-        itemId: getActionableStorageId(item),
-        amount: '1',
-      },
-    });
+    this._setTabModalState('storage', 'consumeModal', {
+      open: true,
+      itemId: getActionableStorageId(item),
+      amount: '1',
+    }, { editing: true });
   }
 
   _closeStorageConsume() {
-    this._updateStorageState({
-      consumeModal: {
-        open: false,
-        itemId: null,
-        amount: '1',
-      },
-    });
+    this._setTabModalState('storage', 'consumeModal', {
+      open: false,
+      itemId: null,
+      amount: '1',
+    }, { editing: false });
   }
 
   _updateStorageConsumeInput(detail) {
@@ -3330,21 +3431,17 @@ class GrocyAIDashboardPanel extends HTMLElement {
   _openStorageDelete(itemId) {
     const item = this._findStorageItem(itemId);
     if (!item) return;
-    this._updateStorageState({
-      deleteModal: {
-        open: true,
-        itemId: getActionableStorageId(item),
-      },
-    });
+    this._setTabModalState('storage', 'deleteModal', {
+      open: true,
+      itemId: getActionableStorageId(item),
+    }, { editing: true });
   }
 
   _closeStorageDelete() {
-    this._updateStorageState({
-      deleteModal: {
-        open: false,
-        itemId: null,
-      },
-    });
+    this._setTabModalState('storage', 'deleteModal', {
+      open: false,
+      itemId: null,
+    }, { editing: false });
   }
 
   async _confirmStorageDelete() {
@@ -3411,21 +3508,32 @@ class GrocyAIDashboardPanel extends HTMLElement {
 
   async _loadShoppingList(options = {}) {
     this._updateShoppingState({ listLoading: !options.silent, status: options.silent ? this._store.getState().shopping.status : 'Lade Einkaufsliste…' });
+    if (!options.silent) {
+      this._updateTabViewState('shopping', { loading: true, error: '' });
+    }
     await this._runRequest(async () => {
       const api = await this._getDashboardApiOrThrow();
       const { response, payload } = await api.fetchShoppingList();
       if (!response.ok) throw new Error(getErrorMessage(payload, 'Einkaufsliste konnte nicht geladen werden.'));
+      const list = Array.isArray(payload) ? payload : [];
       this._updateShoppingState({
-        list: Array.isArray(payload) ? payload : [],
+        list,
         listLoading: false,
         listLoaded: true,
         status: 'Einkaufsliste aktualisiert.',
       });
+      this._updateTabViewState('shopping', {
+        loaded: true,
+        loading: false,
+        empty: list.length === 0,
+        error: '',
+      });
       this._store.patch({ topbarStatus: 'Einkaufsliste aktualisiert.' });
-      this._startShoppingPolling();
+      this._syncShoppingPolling();
     }, {
       onError: (message) => {
         this._updateShoppingState({ listLoading: false, status: `Fehler: ${message}` });
+        this._updateTabViewState('shopping', { loading: false, error: message });
       },
     });
   }
@@ -3434,25 +3542,21 @@ class GrocyAIDashboardPanel extends HTMLElement {
   _openShoppingDetail(itemId) {
     const item = this._store.getState().shopping.list.find((entry) => String(entry.id) === String(itemId));
     if (!item) return;
-    this._updateShoppingState({
-      detailModal: {
-        open: true,
-        itemId: item.id,
-        amount: formatAmount(item.amount),
-        note: item.note || '',
-      },
-    });
+    this._setTabModalState('shopping', 'detailModal', {
+      open: true,
+      itemId: item.id,
+      amount: formatAmount(item.amount),
+      note: item.note || '',
+    }, { editing: true });
   }
 
   _closeShoppingDetail() {
-    this._updateShoppingState({
-      detailModal: {
-        open: false,
-        itemId: null,
-        amount: '',
-        note: '',
-      },
-    });
+    this._setTabModalState('shopping', 'detailModal', {
+      open: false,
+      itemId: null,
+      amount: '',
+      note: '',
+    }, { editing: false });
   }
 
   _updateShoppingModalInput(detail) {
@@ -3503,23 +3607,19 @@ class GrocyAIDashboardPanel extends HTMLElement {
   _openMhdModal(itemId) {
     const item = this._store.getState().shopping.list.find((entry) => String(entry.id) === String(itemId));
     if (!item) return;
-    this._updateShoppingState({
-      mhdModal: {
-        open: true,
-        itemId: item.id,
-        value: item.best_before_date || '',
-      },
-    });
+    this._setTabModalState('shopping', 'mhdModal', {
+      open: true,
+      itemId: item.id,
+      value: item.best_before_date || '',
+    }, { editing: true });
   }
 
   _closeMhdModal() {
-    this._updateShoppingState({
-      mhdModal: {
-        open: false,
-        itemId: null,
-        value: '',
-      },
-    });
+    this._setTabModalState('shopping', 'mhdModal', {
+      open: false,
+      itemId: null,
+      value: '',
+    }, { editing: false });
   }
 
   async _saveMhd() {
@@ -3637,25 +3737,40 @@ class GrocyAIDashboardPanel extends HTMLElement {
   }
 
   _setScannerOpen(open) {
-    this._updateShoppingState({ scannerModalOpen: Boolean(open) });
+    this._store.updateIn(['shopping', 'scanner'], (scannerState = {}) => ({
+      ...scannerState,
+      open: Boolean(open),
+    }));
+    const shoppingState = this._store.getState().shopping;
+    this._updateTabViewState('shopping', {
+      editing: Boolean(open || shoppingState.detailModal.open || shoppingState.mhdModal.open),
+    });
+    this._syncShoppingPolling();
   }
 
   _openScannerBridge() {
     this._switchTab('shopping', { syncHistory: true, announce: false });
     this._setScannerOpen(true);
+    this._updateTabViewState('shopping', { editing: true });
     this._store.patch({ topbarStatus: 'Scanner geöffnet.' });
   }
 
   _updateScannerStatus(message) {
-    if (!this._store.getState().shopping.scannerModalOpen) return;
+    if (!this._store.getState().shopping.scanner.open) return;
+    this._store.updateIn(['shopping', 'scanner'], (scannerState = {}) => ({
+      ...scannerState,
+      status: String(message || 'Scanner bereit.'),
+    }));
     this._store.patch({ topbarStatus: String(message || 'Scanner bereit.') });
   }
 
   async _handleScannerDetection(detail) {
+    if (this._store.getState().shopping.scanner.scope !== 'shopping') return;
     const productName = String(detail?.productName || '').trim();
     if (!productName) return;
 
     this._setScannerOpen(false);
+    this._updateTabViewState('shopping', { editing: false });
     this._store.patch({ topbarStatus: `Scanner erkennt ${productName}. Übergabe an Einkauf…` });
 
     await this._runRequest(async () => {
@@ -3674,12 +3789,9 @@ class GrocyAIDashboardPanel extends HTMLElement {
   }
 
   _startShoppingPolling() {
-    const state = this._store.getState();
-    if (state.activeTab !== 'shopping' || state.shopping.pollTimer) return;
+    if (!this._canPollShopping({ requireNoTimer: true })) return;
     const timer = window.setInterval(() => {
-      const latestState = this._store.getState();
-      if (latestState.activeTab !== 'shopping') return;
-      if (latestState.shopping.detailModal.open || latestState.shopping.mhdModal.open || latestState.shopping.scannerModalOpen) return;
+      if (!this._canPollShopping({ requireNoTimer: false })) return;
       this._loadShoppingList({ silent: true });
     }, this._shoppingPollIntervalMs);
     this._updateShoppingState({ pollTimer: timer });
@@ -3737,12 +3849,14 @@ class GrocyAIDashboardPanel extends HTMLElement {
     return this._panel?.config ?? {};
   }
 
-  _getLegacyDashboardUrl() {
-    return this._getPanelConfig().legacy_dashboard_url || DEFAULT_LEGACY_URL;
+  _getLegacyDashboardEmergencyUrl() {
+    return this._getPanelConfig().legacy_dashboard_emergency_url
+      || this._getPanelConfig().legacy_dashboard_url
+      || DEFAULT_LEGACY_URL;
   }
 
-  _getResolvedLegacyDashboardUrl() {
-    return buildLegacyDashboardUrl(this._dashboardApiBasePath, this._getLegacyDashboardUrl());
+  _getResolvedLegacyDashboardEmergencyUrl() {
+    return buildLegacyDashboardUrl(this._dashboardApiBasePath, this._getLegacyDashboardEmergencyUrl());
   }
 
   _getPanelPath() {
@@ -3754,7 +3868,7 @@ class GrocyAIDashboardPanel extends HTMLElement {
   }
 
   _openLegacyDashboard(tab) {
-    const url = new URL(this._getResolvedLegacyDashboardUrl(), window.location.origin);
+    const url = new URL(this._getResolvedLegacyDashboardEmergencyUrl(), window.location.origin);
     if (tab) {
       url.hash = `tab=${tab}`;
     }

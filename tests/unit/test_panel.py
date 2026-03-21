@@ -127,7 +127,7 @@ def test_panel_registers_native_module_metadata(monkeypatch):
         == "/api/grocy_ai_assistant/dashboard-proxy"
     )
     assert (
-        kwargs["config"]["legacy_dashboard_url"]
+        kwargs["config"]["legacy_dashboard_emergency_url"]
         == "/api/grocy_ai_assistant/dashboard-proxy/"
     )
     assert kwargs["config"]["panel_path"] == "/grocy-ai"

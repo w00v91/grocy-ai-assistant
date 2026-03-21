@@ -169,7 +169,7 @@ async def async_setup(hass: HomeAssistant) -> None:
 
     panel_state["registrations"] += 1
     panel_state["dashboard_api_base_path"] = PANEL_PROXY_URL_BASE
-    panel_state["legacy_dashboard_url"] = f"{PANEL_PROXY_URL_BASE}/"
+    panel_state["legacy_dashboard_emergency_url"] = f"{PANEL_PROXY_URL_BASE}/"
 
     if panel_state["panel_registered"]:
         async_remove_panel(hass, PANEL_SLUG)
@@ -186,7 +186,7 @@ async def async_setup(hass: HomeAssistant) -> None:
             "panel_path": PANEL_PATH,
             "panel_title": PANEL_TITLE,
             "panel_icon": PANEL_ICON,
-            "legacy_dashboard_url": f"{PANEL_PROXY_URL_BASE}/",
+            "legacy_dashboard_emergency_url": f"{PANEL_PROXY_URL_BASE}/",
             "page_title": PANEL_TITLE,
             "route": f"/{PANEL_SLUG}",
             "sidebar_icon": PANEL_ICON,
