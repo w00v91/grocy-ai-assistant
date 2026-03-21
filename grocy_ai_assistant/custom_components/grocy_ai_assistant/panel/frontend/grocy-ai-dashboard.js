@@ -630,23 +630,8 @@ class GrocyAIDashboardPanel extends HTMLElement {
   }
 
   connectedCallback() {
+    this._ensureShell();
     if (!this.shadowRoot) return;
-
-    this.shadowRoot.innerHTML = `
-      <link rel="stylesheet" href="${STYLE_URL.href}">
-      <section class="page-shell">
-        <grocy-ai-topbar></grocy-ai-topbar>
-        <section class="dashboard-content">
-          <grocy-ai-shopping-tab></grocy-ai-shopping-tab>
-          <grocy-ai-recipes-tab></grocy-ai-recipes-tab>
-          <grocy-ai-storage-tab></grocy-ai-storage-tab>
-          <grocy-ai-notifications-tab></grocy-ai-notifications-tab>
-        </section>
-        <grocy-ai-dashboard-modals></grocy-ai-dashboard-modals>
-        <grocy-ai-scanner-bridge></grocy-ai-scanner-bridge>
-        <grocy-ai-tab-nav></grocy-ai-tab-nav>
-      </section>
-    `;
 
     this._bindEvents();
     window.addEventListener('popstate', this._handlePopState);
@@ -690,6 +675,26 @@ class GrocyAIDashboardPanel extends HTMLElement {
     this._renderState(this._store.getState());
   }
 
+  _ensureShell() {
+    if (!this.shadowRoot || this.shadowRoot.querySelector('grocy-ai-topbar')) return;
+
+    this.shadowRoot.innerHTML = `
+      <link rel="stylesheet" href="${STYLE_URL.href}">
+      <section class="page-shell">
+        <grocy-ai-topbar></grocy-ai-topbar>
+        <section class="dashboard-content">
+          <grocy-ai-shopping-tab></grocy-ai-shopping-tab>
+          <grocy-ai-recipes-tab></grocy-ai-recipes-tab>
+          <grocy-ai-storage-tab></grocy-ai-storage-tab>
+          <grocy-ai-notifications-tab></grocy-ai-notifications-tab>
+        </section>
+        <grocy-ai-dashboard-modals></grocy-ai-dashboard-modals>
+        <grocy-ai-scanner-bridge></grocy-ai-scanner-bridge>
+        <grocy-ai-tab-nav></grocy-ai-tab-nav>
+      </section>
+    `;
+  }
+
   _bindEvents() {
     const root = this.shadowRoot;
     if (!root) return;
@@ -719,7 +724,20 @@ class GrocyAIDashboardPanel extends HTMLElement {
   }
 
   _renderState(state) {
+    this._ensureShell();
     if (!this.shadowRoot) return;
+
+    const topbar = this.shadowRoot.querySelector('grocy-ai-topbar');
+    const tabNav = this.shadowRoot.querySelector('grocy-ai-tab-nav');
+    const shoppingTab = this.shadowRoot.querySelector('grocy-ai-shopping-tab');
+    const recipesTab = this.shadowRoot.querySelector('grocy-ai-recipes-tab');
+    const storageTab = this.shadowRoot.querySelector('grocy-ai-storage-tab');
+    const notificationsTab = this.shadowRoot.querySelector('grocy-ai-notifications-tab');
+    const modals = this.shadowRoot.querySelector('grocy-ai-dashboard-modals');
+    const scannerBridge = this.shadowRoot.querySelector('grocy-ai-scanner-bridge');
+    if (!topbar || !tabNav || !shoppingTab || !recipesTab || !storageTab || !notificationsTab || !modals || !scannerBridge) {
+      return;
+    }
 
     const searchState = this._shoppingSearch.getState();
     const migratedCount = MIGRATED_TABS.size;
@@ -727,7 +745,7 @@ class GrocyAIDashboardPanel extends HTMLElement {
     const topbarStatus = state.pendingRequests > 0 && searchState.flowState === SEARCH_FLOW_STATES.SUBMITTING
       ? searchState.statusMessage
       : state.topbarStatus;
-    this.shadowRoot.querySelector('grocy-ai-topbar').viewModel = {
+    topbar.viewModel = {
       status: topbarStatus,
       busy: state.pendingRequests > 0,
       migratedCount,
@@ -736,27 +754,27 @@ class GrocyAIDashboardPanel extends HTMLElement {
       panelIcon: this._getPanelIcon(),
       activeTab: state.activeTab,
     };
-    this.shadowRoot.querySelector('grocy-ai-tab-nav').viewModel = {
+    tabNav.viewModel = {
       activeTab: state.activeTab,
     };
-    this.shadowRoot.querySelector('grocy-ai-shopping-tab').viewModel = {
+    shoppingTab.viewModel = {
       ...state.shopping,
       ...searchState,
       active: state.activeTab === 'shopping',
     };
-    this.shadowRoot.querySelector('grocy-ai-recipes-tab').viewModel = {
+    recipesTab.viewModel = {
       active: state.activeTab === 'recipes',
       title: 'Rezepte',
       tabName: 'recipes',
       legacyUrl: this._getLegacyDashboardUrl(),
     };
-    this.shadowRoot.querySelector('grocy-ai-storage-tab').viewModel = {
+    storageTab.viewModel = {
       active: state.activeTab === 'storage',
       title: 'Lager',
       tabName: 'storage',
       legacyUrl: this._getLegacyDashboardUrl(),
     };
-    this.shadowRoot.querySelector('grocy-ai-notifications-tab').viewModel = {
+    notificationsTab.viewModel = {
       active: state.activeTab === 'notifications',
       title: 'Benachrichtigungen',
       tabName: 'notifications',
@@ -766,12 +784,12 @@ class GrocyAIDashboardPanel extends HTMLElement {
     const activeItem = state.shopping.list.find((item) => String(item.id) === String(state.shopping.detailModal.itemId))
       || state.shopping.list.find((item) => String(item.id) === String(state.shopping.mhdModal.itemId))
       || null;
-    this.shadowRoot.querySelector('grocy-ai-dashboard-modals').viewModel = {
+    modals.viewModel = {
       detailModal: state.shopping.detailModal,
       mhdModal: state.shopping.mhdModal,
       activeItem,
     };
-    this.shadowRoot.querySelector('grocy-ai-scanner-bridge').viewModel = {
+    scannerBridge.viewModel = {
       open: state.shopping.scannerModalOpen,
     };
   }
