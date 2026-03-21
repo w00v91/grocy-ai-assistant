@@ -90,6 +90,46 @@ function formatAmount(value) {
   return normalized || '1';
 }
 
+function toImageSource(url, options = {}) {
+  const normalizedUrl = String(url ?? '').trim();
+  if (!normalizedUrl) return 'https://placehold.co/80x80?text=Kein+Bild';
+
+  const requestedSize = String(options?.size || '').trim().toLowerCase();
+  const isMobileViewport = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(max-width: 768px)').matches;
+  const normalizedSize = requestedSize === 'full'
+    ? 'full'
+    : (requestedSize === 'mobile' || isMobileViewport ? 'mobile' : 'thumb');
+  const apiBasePath = String(options?.apiBasePath || '').replace(/\/+$/, '');
+
+  if (normalizedUrl.startsWith('data:')) return normalizedUrl;
+  if (normalizedUrl.startsWith('http://') || normalizedUrl.startsWith('https://')) {
+    const isExternal = (() => {
+      try {
+        return new URL(normalizedUrl).host !== window.location.host;
+      } catch (_) {
+        return false;
+      }
+    })();
+
+    if (window.location.protocol === 'https:' && isExternal && normalizedUrl.startsWith('http://')) {
+      return `https://${normalizedUrl.slice('http://'.length)}`;
+    }
+    return normalizedUrl;
+  }
+
+  const normalizedPath = `/${normalizedUrl.replace(/^\/+/, '')}`;
+  if (normalizedPath.startsWith('/api/dashboard/product-picture?')) {
+    const proxiedUrl = new URL(apiBasePath ? `${apiBasePath}${normalizedPath}` : normalizedPath, window.location.origin);
+    proxiedUrl.searchParams.set('size', normalizedSize);
+    return proxiedUrl.toString();
+  }
+
+  if (normalizedPath.startsWith('/api/')) {
+    return apiBasePath ? `${apiBasePath}${normalizedPath}` : normalizedPath;
+  }
+  return normalizedPath;
+}
+
 function deriveSearchUiState(model = {}) {
   if (model.flowState === SEARCH_FLOW_STATES.ERROR || model.errorMessage) return 'error';
   if (model.flowState === SEARCH_FLOW_STATES.SUBMITTING || model.isSubmitting) return 'submitting';
@@ -544,6 +584,90 @@ class GrocyAIShoppingSearchBar extends HTMLElement {
     }
 
     this._renderVariantGrid(model, variants);
+    const imageBasePath = model.imageBasePath || '';
+
+    this.innerHTML = `
+      <section class="shopping-search-shell shopping-search-shell--${searchUiState}" aria-live="polite">
+        <div class="shopping-search-shell__header">
+          <div>
+            <p class="eyebrow">Produktsuche</p>
+            <h3 class="shopping-search-shell__title">Produkt suchen oder Variante wählen</h3>
+          </div>
+          <span class="search-state-chip search-state-chip--${searchUiState}">${escapeHtml(stateLabel)}</span>
+        </div>
+        <form class="search-row shopping-search-form" data-role="shopping-search-form" aria-busy="${model.isSubmitting ? 'true' : 'false'}">
+          <div class="search-input-wrapper">
+            <input
+              data-role="shopping-query"
+              value="${escapeHtml(model.query || '')}"
+              placeholder="z.B. 2 Hafermilch"
+              autocomplete="off"
+              enterkeyhint="search"
+              aria-describedby="shopping-search-helper"
+            />
+            <button class="clear-input-button${model.clearButtonVisible ? ' visible' : ''}" type="button" data-action="shopping-clear-query" aria-label="Sucheingabe löschen">×</button>
+          </div>
+          <button class="primary-button search-submit-button" type="submit" ${model.isSubmitting ? 'disabled' : ''}>
+            ${model.isSubmitting ? 'Prüfe…' : 'Produkt prüfen'}
+          </button>
+        </form>
+        <p id="shopping-search-helper" class="search-helper-text${model.errorMessage ? ' search-helper-text--error' : ''}">
+          ${escapeHtml(helperText)}
+        </p>
+        <section class="variant-section${hasVisibleVariants || model.isLoadingVariants ? '' : ' hidden'}">
+          <div class="section-header section-header-stacked">
+            <div>
+              <h3>Gefundene Produktvarianten</h3>
+              ${model.parsedAmount
+                ? `<p class="muted">Erkannte Menge: ${escapeHtml(formatAmount(model.parsedAmount))}</p>`
+                : '<p class="muted">Live-Vorschläge erscheinen direkt unter dem Eingabefeld.</p>'}
+            </div>
+            ${model.isLoadingVariants ? '<span class="muted">Suche läuft…</span>' : ''}
+          </div>
+          <div class="variant-grid variant-grid--search" role="list">
+            ${hasVisibleVariants
+              ? variants.map((variant) => {
+                  const variantName = variant.product_name || variant.name || 'Unbekanntes Produkt';
+                  const variantAmountValue = model.parsedAmount || variant.amount || variant.default_amount || '1';
+                  const variantAmountLabel = formatAmount(variantAmountValue);
+                  const variantSource = variant.source || 'grocy';
+                  const sourceLabel = variantSource === 'ai'
+                    ? 'KI-Vorschlag'
+                    : (variantSource === 'input' ? 'Neu anlegen' : 'Grocy');
+                  return `
+                    <article class="variant-card variant-card--action" role="listitem">
+                      <button
+                        class="variant-card__button"
+                        type="button"
+                        data-action="shopping-select-variant"
+                        data-product-id="${escapeHtml(variant.product_id || variant.id || '')}"
+                        data-product-name="${escapeHtml(variantName)}"
+                        data-product-source="${escapeHtml(variantSource)}"
+                        data-amount="${escapeHtml(variantAmountValue)}"
+                      >
+                        <img
+                          class="variant-card__image"
+                          src="${escapeHtml(toImageSource(variant.picture_url, { apiBasePath: imageBasePath }))}"
+                          alt="${escapeHtml(variantName)}"
+                          loading="lazy"
+                        />
+                        <div class="variant-card__header">
+                          <strong>${escapeHtml(variantName)}</strong>
+                          <span class="variant-amount-badge">${escapeHtml(variantAmountLabel)}</span>
+                        </div>
+                        <div class="variant-card__meta">
+                          <span class="muted">${escapeHtml(sourceLabel)}</span>
+                          <span class="variant-card__cta">Auswählen</span>
+                        </div>
+                      </button>
+                    </article>
+                  `;
+                }).join('')
+              : '<p class="muted">Lade Vorschläge…</p>'}
+          </div>
+        </section>
+      </section>
+    `;
   }
 }
 
@@ -720,10 +844,65 @@ class GrocyAIShoppingTab extends HTMLElement {
       this._elements.root.className = `tab-view${model.active ? '' : ' hidden'}`;
       this._elements.status.textContent = model.status || 'Bereit.';
     }
+    const imageBasePath = model.imageBasePath || '';
+
+    this.innerHTML = `
+      <section class="tab-view${model.active ? '' : ' hidden'}">
+        <section class="card hero-card shopping-hero-card">
+          <div class="section-header">
+            <h2>Grocy AI Suche</h2>
+            <button class="scanner-popup-button" type="button" data-action="shopping-open-scanner" aria-label="Barcode-Scanner öffnen">
+              <span class="scanner-barcode-icon" aria-hidden="true"></span>
+            </button>
+          </div>
+          <grocy-ai-shopping-search-bar></grocy-ai-shopping-search-bar>
+        </section>
+
+        <section class="card shopping-list-section">
+          <div class="section-header section-header-stacked">
+            <h2>Einkaufsliste</h2>
+            <button class="primary-button" type="button" data-action="shopping-refresh">Aktualisieren</button>
+          </div>
+          <ul class="shopping-list-native">
+            ${items.length
+              ? items.map((item) => `
+                  <li class="shopping-item-card">
+                    <div class="shopping-item-card__content shopping-item-content">
+                      <img
+                        src="${escapeHtml(toImageSource(item.picture_url, { apiBasePath: imageBasePath }))}"
+                        alt="${escapeHtml(item.product_name || 'Unbekanntes Produkt')}"
+                        loading="lazy"
+                      />
+                      <div class="shopping-item-meta">
+                        <strong>${escapeHtml(item.product_name || 'Unbekanntes Produkt')}</strong>
+                        <div class="muted">Menge: ${escapeHtml(formatAmount(item.amount))}</div>
+                        <div class="muted">${escapeHtml(item.note || 'Keine Notiz')}</div>
+                      </div>
+                      <div class="shopping-item-card__actions">
+                        <button class="ghost-button" type="button" data-action="shopping-open-detail" data-item-id="${escapeHtml(item.id)}">Details</button>
+                        <button class="ghost-button" type="button" data-action="shopping-open-mhd" data-item-id="${escapeHtml(item.id)}">MHD</button>
+                        <button class="ghost-button" type="button" data-action="shopping-increment-item" data-item-id="${escapeHtml(item.id)}">+1</button>
+                        <button class="success-button" type="button" data-action="shopping-complete-item" data-item-id="${escapeHtml(item.id)}">Erledigt</button>
+                        <button class="danger-button" type="button" data-action="shopping-delete-item" data-item-id="${escapeHtml(item.id)}">Löschen</button>
+                      </div>
+                    </div>
+                  </li>
+                `).join('')
+              : `<li class="muted">${escapeHtml(model.listLoading ? 'Einkaufsliste wird geladen…' : 'Keine Einträge.')}</li>`}
+          </ul>
+          <p class="tab-status">${escapeHtml(model.status || 'Bereit.')}</p>
+          <div class="button-row">
+            <button class="success-button" type="button" data-action="shopping-complete-all">Einkauf abschließen</button>
+            <button class="danger-button" type="button" data-action="shopping-clear-all">Einkaufsliste leeren</button>
+          </div>
+        </section>
+      </section>
+    `;
 
     this._elements.searchBar.viewModel = {
       ...model,
       variants,
+      imageBasePath,
     };
     this._renderList(model, items);
   }
@@ -1107,6 +1286,7 @@ class GrocyAIDashboardPanel extends HTMLElement {
       ...state.shopping,
       ...searchState,
       active: state.activeTab === 'shopping',
+      imageBasePath: this._dashboardApiBasePath,
     };
     recipesTab.viewModel = {
       active: state.activeTab === 'recipes',
