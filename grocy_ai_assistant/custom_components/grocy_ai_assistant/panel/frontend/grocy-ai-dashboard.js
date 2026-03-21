@@ -591,59 +591,6 @@ class GrocyAIShoppingSearchBar extends HTMLElement {
     }
 
     this._renderVariantGrid(model, variants);
-    const imageBasePath = model.imageBasePath || '';
-
-    this.innerHTML = `
-      <section class="shopping-search-shell shopping-search-shell--${searchUiState}" aria-live="polite">
-        <div class="shopping-search-shell__header">
-          <div>
-            <p class="eyebrow">Produktsuche</p>
-            <h3 class="shopping-search-shell__title">Produkt suchen oder Variante wählen</h3>
-          </div>
-          <span class="search-state-chip search-state-chip--${searchUiState}">${escapeHtml(stateLabel)}</span>
-        </div>
-        <form class="search-row shopping-search-form" data-role="shopping-search-form" aria-busy="${model.isSubmitting ? 'true' : 'false'}">
-          <div class="search-input-wrapper">
-            <input
-              data-role="shopping-query"
-              value="${escapeHtml(model.query || '')}"
-              placeholder="z.B. 2 Hafermilch"
-              autocomplete="off"
-              enterkeyhint="search"
-              aria-describedby="shopping-search-helper"
-            />
-            <button class="clear-input-button${model.clearButtonVisible ? ' visible' : ''}" type="button" data-action="shopping-clear-query" aria-label="Sucheingabe löschen">×</button>
-          </div>
-          <button class="primary-button search-submit-button" type="submit" ${model.isSubmitting ? 'disabled' : ''}>
-            ${model.isSubmitting ? 'Prüfe…' : 'Produkt prüfen'}
-          </button>
-        </form>
-        <p id="shopping-search-helper" class="search-helper-text${model.errorMessage ? ' search-helper-text--error' : ''}">
-          ${escapeHtml(helperText)}
-        </p>
-        <section class="variant-section${hasVisibleVariants || model.isLoadingVariants ? '' : ' hidden'}">
-          <div class="section-header section-header-stacked">
-            <div>
-              <h3>Gefundene Produktvarianten</h3>
-              ${model.parsedAmount
-                ? `<p class="muted">Erkannte Menge: ${escapeHtml(formatAmount(model.parsedAmount))}</p>`
-                : '<p class="muted">Live-Vorschläge erscheinen direkt unter dem Eingabefeld.</p>'}
-            </div>
-            ${model.isLoadingVariants ? '<span class="muted">Suche läuft…</span>' : ''}
-          </div>
-          <div class="variant-grid variant-grid--search" role="list">
-            ${hasVisibleVariants
-              ? variants.map((variant) => renderShoppingVariantCard(variant, {
-                  amount: model.parsedAmount || variant.amount || variant.default_amount || '1',
-                  actionName: 'shopping-select-variant',
-                  ctaLabel: 'Auswählen',
-                  resolveImageUrl: model.resolveImageUrl,
-                })).join('')
-              : '<p class="muted">Lade Vorschläge…</p>'}
-          </div>
-        </section>
-      </section>
-    `;
   }
 }
 
@@ -808,7 +755,6 @@ class GrocyAIShoppingTab extends HTMLElement {
   _render() {
     this._ensureStructure();
     const model = this._viewModel || {};
-    const variants = Array.isArray(model.variants) ? model.variants : [];
     const items = Array.isArray(model.list) ? model.list : [];
     const shellSignature = JSON.stringify({
       active: Boolean(model.active),
@@ -820,56 +766,9 @@ class GrocyAIShoppingTab extends HTMLElement {
       this._elements.root.className = `tab-view${model.active ? '' : ' hidden'}`;
       this._elements.status.textContent = model.status || 'Bereit.';
     }
-    const imageBasePath = model.imageBasePath || '';
-
-    this.innerHTML = `
-      <section class="tab-view${model.active ? '' : ' hidden'}">
-        <section class="card hero-card shopping-hero-card">
-          <div class="section-header">
-            <h2>Grocy AI Suche</h2>
-            <button class="scanner-popup-button" type="button" data-action="shopping-open-scanner" aria-label="Barcode-Scanner öffnen">
-              <span class="scanner-barcode-icon" aria-hidden="true"></span>
-            </button>
-          </div>
-          <grocy-ai-shopping-search-bar></grocy-ai-shopping-search-bar>
-        </section>
-
-        <section class="card shopping-list-section">
-          <div class="section-header section-header-stacked">
-            <h2>Einkaufsliste</h2>
-            <button class="primary-button" type="button" data-action="shopping-refresh">Aktualisieren</button>
-          </div>
-          <ul class="shopping-list-native">
-            ${items.length
-              ? items.map((item) => `
-                  <li class="shopping-list-native__item">
-                    ${renderShoppingListItemCard(item, {
-                      resolveImageUrl: model.resolveImageUrl,
-                      actionButtons: [
-                        { label: 'Details', className: 'ghost-button', actionName: 'shopping-open-detail', dataset: { 'item-id': item.id } },
-                        { label: 'MHD', className: 'ghost-button', actionName: 'shopping-open-mhd', dataset: { 'item-id': item.id } },
-                        { label: '+1', className: 'ghost-button', actionName: 'shopping-increment-item', dataset: { 'item-id': item.id } },
-                        { label: 'Erledigt', className: 'success-button', actionName: 'shopping-complete-item', dataset: { 'item-id': item.id } },
-                        { label: 'Löschen', className: 'danger-button', actionName: 'shopping-delete-item', dataset: { 'item-id': item.id } },
-                      ],
-                    })}
-                  </li>
-                `).join('')
-              : `<li class="muted">${escapeHtml(model.listLoading ? 'Einkaufsliste wird geladen…' : 'Keine Einträge.')}</li>`}
-          </ul>
-          <p class="tab-status">${escapeHtml(model.status || 'Bereit.')}</p>
-          <div class="button-row">
-            <button class="success-button" type="button" data-action="shopping-complete-all">Einkauf abschließen</button>
-            <button class="danger-button" type="button" data-action="shopping-clear-all">Einkaufsliste leeren</button>
-          </div>
-        </section>
-      </section>
-    `;
 
     this._elements.searchBar.viewModel = {
       ...model,
-      variants,
-      imageBasePath,
     };
     this._renderList(model, items);
   }
