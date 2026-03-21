@@ -9,6 +9,10 @@ const dashboardPath = path.resolve(
   __dirname,
   '../../grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js',
 );
+const dashboardCssPath = path.resolve(
+  __dirname,
+  '../../grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.css',
+);
 
 test('dashboard panel ensures its shell exists before assigning child view models', async () => {
   const source = await fs.readFile(dashboardPath, 'utf8');
@@ -176,4 +180,13 @@ test('shopping polling can be disabled without breaking manual and mutation-trig
   assert.match(source, /async _completeShoppingItem\(itemId\) \{[\s\S]*?await this\._loadShoppingList\(\{ silent: true \}\);/);
   assert.match(source, /async _deleteShoppingItem\(itemId\) \{[\s\S]*?await this\._loadShoppingList\(\{ silent: true \}\);/);
   assert.match(source, /async _completeAllShopping\(\) \{[\s\S]*?await this\._loadShoppingList\(\{ silent: true \}\);/);
+});
+
+
+test('dashboard shell uses a centered half-width desktop layout like the legacy dashboard', async () => {
+  const source = await fs.readFile(dashboardCssPath, 'utf8');
+
+  assert.match(source, /--dashboard-shell-max-width: 100%;/);
+  assert.match(source, /\.page-shell \{[\s\S]*?width: min\(var\(--dashboard-shell-max-width\), 100%\);[\s\S]*?margin: 0 auto;/);
+  assert.match(source, /@media \(min-width: 1200px\) \{[\s\S]*?:host \{[\s\S]*?--dashboard-shell-max-width: min\(960px, 50vw\);/);
 });
