@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Fix (Home-Assistant-Integration/Panel): Die nativen `recipes`-, `storage`- und Modal-Renderer stellen nach State-Updates den fokussierten Formular-Controller inklusive Cursorposition wieder her, damit Texteingaben, Zahlenfelder und Checkbox-/Auswahllisten beim Tippen oder Toggle nicht mehr durch Re-Renders den Fokus verlieren.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `7.4.36` erhöht.
+- Test: `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `node --test tests/frontend/test_panel_shell_rendering.mjs`, `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.36` erhöht.
 - Changed (Home-Assistant-Integration/Panel): Der native `storage`-Tab rendert Lagerprodukte wieder als vertikale Legacy-Liste mit Swipe-Gesten für Bearbeiten/Verbrauchen statt als Kachel-Grid; Löschen bleibt zusätzlich direkt als Button am Listeneintrag verfügbar.
 - Test: `node --test tests/frontend/test_native_shopping_swipe.mjs tests/frontend/test_panel_shell_rendering.mjs`, `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.35` erhöht.
 - Changed (Home-Assistant-Integration/Panel): Die Native-Dashboard-Topbar zeigt keine Tab-Pills und keinen Hinweistext zur Panel-URL bzw. zum Sidebar-Icon mehr, damit der Kopfbereich ruhiger bleibt.
