@@ -52,8 +52,9 @@ test('shopping list card renders shared badge and action structure', () => {
       { label: 'Details', className: 'ghost-button', actionName: 'shopping-open-detail', dataset: { 'item-id': 9 } },
     ],
     amountBadge: { element: 'button', variant: 'amount', className: 'amount-increment-button', dataset: { 'shopping-list-id': 9 } },
+    mhdBadge: { element: 'button', variant: 'mhd', className: 'mhd-picker-button', hideLabel: true, dataset: { 'item-id': 9 } },
     contextFields: ['location'],
-    stockBadgePlacement: 'main',
+    statusChip: false,
   });
 
   assert.match(markup, /shopping-card--shopping-item/);
@@ -64,8 +65,11 @@ test('shopping list card renders shared badge and action structure', () => {
   assert.match(markup, /shopping-card__body--swipe/);
   assert.match(markup, /shopping-card__detail-label">Lagerort/);
   assert.match(markup, /Kühlschrank/);
-  assert.match(markup, /shopping-status-chip--shopping/);
-  assert.match(markup, /shopping-card__note">laktosefrei<\/p>\s*<div class="shopping-card__badges shopping-card__badges--main">[\s\S]*?shopping-badge__label">Bestand/);
+  assert.doesNotMatch(markup, /shopping-status-chip--shopping/);
+  assert.match(markup, /shopping-card__note">laktosefrei<\/p>[\s\S]*?shopping-badge__value">2026-03-30<\/span>/);
+assert.match(markup, /shopping-badge__label--hidden">MHD<\/span>/);
+assert.match(markup, /aria-label="MHD: 2026-03-30"/);
+assert.match(markup, /shopping-card__badges shopping-card__badges--stacked">[\s\S]*?shopping-badge__label">Bestand/);
   assert.doesNotMatch(markup, /shopping-card__context-label">Bestand/);
   assert.doesNotMatch(markup, /shopping-card__context-label">MHD/);
   assert.doesNotMatch(markup, /shopping-card__context-label">Lagerort/);

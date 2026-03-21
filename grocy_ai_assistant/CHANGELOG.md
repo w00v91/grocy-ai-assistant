@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Fix (Home-Assistant-Integration/Panel): In der nativen Einkaufsliste entfällt das sichtbare `MHD`-Präfix im MHD-Badge; gleichzeitig verschwindet das `Offen`-Badge und `Bestand` sitzt wieder in der rechten Badge-Spalte an dessen Stelle.
+- Changed (Home-Assistant-Integration/Panel): Mobile Shopping-Karten im nativen Dashboard wurden kompakter abgestimmt (kleinere Abstände, Thumbnails, Badge- und Textgrößen), damit die Einkaufsliste auf Handybildschirmen weniger überladen wirkt.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.2` erhöht.
+- Test: `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/shopping-ui.js`, `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `node --test tests/frontend/test_shopping_ui_shared.mjs tests/frontend/test_panel_shell_rendering.mjs`, `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `8.0.2` erhöht.
+
 - Fix (Home-Assistant-Integration/Panel): In der nativen Einkaufsliste erscheint das `Bestand`-Badge wieder unter Produktname bzw. Notiz statt in der rechten Badge-Spalte, damit die Karten näher am früheren Layout bleiben.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.1` erhöht.
 - Test: `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/shopping-ui.js`, `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `node --test tests/frontend/test_shopping_ui_shared.mjs tests/frontend/test_native_shopping_swipe.mjs`, `pytest tests/unit/test_panel.py tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `8.0.1` erhöht.
