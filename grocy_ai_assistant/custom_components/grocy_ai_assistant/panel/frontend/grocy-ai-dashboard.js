@@ -20,7 +20,7 @@ const TAB_LABELS = {
 const DEFAULT_POLLING_INTERVAL_MS = 5000;
 
 
-function resolvePanelImageUrl(url, dashboardApi) {
+function resolvePanelImageUrl(url, dashboardApi, options = {}) {
   const normalized = String(url || '').trim();
   if (!normalized) return resolveShoppingImageSource(normalized);
   if (normalized.startsWith('data:') || normalized.startsWith('http://') || normalized.startsWith('https://')) {
@@ -28,8 +28,12 @@ function resolvePanelImageUrl(url, dashboardApi) {
   }
 
   const normalizedPath = '/' + normalized.replace(/^\/+/, '');
+  const normalizedApiBasePath = String(options?.apiBasePath || '').replace(/\/+$/, '');
   if (normalizedPath.startsWith('/api/')) {
-    return dashboardApi?.buildUrl ? dashboardApi.buildUrl(normalizedPath) : normalizedPath;
+    if (dashboardApi?.buildUrl) {
+      return dashboardApi.buildUrl(normalizedPath);
+    }
+    return normalizedApiBasePath ? `${normalizedApiBasePath}${normalizedPath}` : normalizedPath;
   }
 
   return normalizedPath;
@@ -1881,6 +1885,9 @@ class GrocyAIDashboardPanel extends HTMLElement {
     }
 
     const searchState = this._shoppingSearch.getState();
+    const panelConfig = this._getPanelConfig();
+    const panelImageApiBasePath = this._dashboardApiBasePath
+      || String(panelConfig?.dashboard_api_base_path || panelConfig?.api_base_path || '').replace(/\/+$/, '');
     const migratedCount = MIGRATED_TABS.size;
     const totalCount = TAB_ORDER.length;
     const topbarStatus = state.pendingRequests > 0 && searchState.flowState === SEARCH_FLOW_STATES.SUBMITTING
@@ -1902,7 +1909,7 @@ class GrocyAIDashboardPanel extends HTMLElement {
       ...state.shopping,
       ...searchState,
       active: state.activeTab === 'shopping',
-      resolveImageUrl: (url) => resolvePanelImageUrl(url, this._dashboardApi),
+      resolveImageUrl: (url) => resolvePanelImageUrl(url, this._dashboardApi, { apiBasePath: panelImageApiBasePath }),
     };
     recipesTab.viewModel = {
       active: state.activeTab === 'recipes',
