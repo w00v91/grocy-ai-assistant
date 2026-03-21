@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Added (Dokumentation/Migration): Neue Mapping-Matrix `docs/legacy-native-panel-mapping.md`, die Legacy-Dashboard und natives Home-Assistant-Panel tabweise für `shopping`, `recipes`, `storage` und `notifications` gegenüberstellt und pro Bereich als Abnahmeliste für die weitere Migration dient.
+- Test: `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.29` erhöht.
+
 - Changed (Home-Assistant-Integration/Panel): Die native Shopping-Liste nutzt jetzt dieselbe Swipe-Interaktion wie das Legacy-Dashboard für Primäraktionen; Tap öffnet Details, ein Swipe nach rechts markiert Einträge als erledigt und ein Swipe nach links löscht sie direkt im HA-Panel.
 - Refactor (Dashboard/Migration): Die Swipe-Logik wurde in ein gemeinsames Frontend-Modul `swipe-interactions.js` extrahiert, das sowohl vom Legacy-Dashboard als auch vom nativen Panel verwendet wird.
 - Test: `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/swipe-interactions.js`, `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `node --check grocy_ai_assistant/api/static/dashboard.js`, `node --test tests/frontend/test_native_shopping_swipe.mjs tests/frontend/test_panel_shell_rendering.mjs tests/frontend/test_shopping_ui_shared.mjs`, `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.28` erhöht.
