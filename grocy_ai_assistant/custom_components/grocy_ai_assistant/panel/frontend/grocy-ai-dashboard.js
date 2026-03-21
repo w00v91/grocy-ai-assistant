@@ -93,6 +93,60 @@ function readTabFromPath(pathname) {
   return normalizeTabName(segments.at(-1));
 }
 
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
+function formatAmount(value) {
+  const normalized = String(value ?? '').trim();
+  return normalized || '1';
+}
+
+function toImageSource(url, options = {}) {
+  const normalizedUrl = String(url ?? '').trim();
+  if (!normalizedUrl) return 'https://placehold.co/80x80?text=Kein+Bild';
+
+  const requestedSize = String(options?.size || '').trim().toLowerCase();
+  const isMobileViewport = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(max-width: 768px)').matches;
+  const normalizedSize = requestedSize === 'full'
+    ? 'full'
+    : (requestedSize === 'mobile' || isMobileViewport ? 'mobile' : 'thumb');
+  const apiBasePath = String(options?.apiBasePath || '').replace(/\/+$/, '');
+
+  if (normalizedUrl.startsWith('data:')) return normalizedUrl;
+  if (normalizedUrl.startsWith('http://') || normalizedUrl.startsWith('https://')) {
+    const isExternal = (() => {
+      try {
+        return new URL(normalizedUrl).host !== window.location.host;
+      } catch (_) {
+        return false;
+      }
+    })();
+
+    if (window.location.protocol === 'https:' && isExternal && normalizedUrl.startsWith('http://')) {
+      return `https://${normalizedUrl.slice('http://'.length)}`;
+    }
+    return normalizedUrl;
+  }
+
+  const normalizedPath = `/${normalizedUrl.replace(/^\/+/, '')}`;
+  if (normalizedPath.startsWith('/api/dashboard/product-picture?')) {
+    const proxiedUrl = new URL(apiBasePath ? `${apiBasePath}${normalizedPath}` : normalizedPath, window.location.origin);
+    proxiedUrl.searchParams.set('size', normalizedSize);
+    return proxiedUrl.toString();
+  }
+
+  if (normalizedPath.startsWith('/api/')) {
+    return apiBasePath ? `${apiBasePath}${normalizedPath}` : normalizedPath;
+  }
+  return normalizedPath;
+}
+
 function deriveSearchUiState(model = {}) {
   if (model.flowState === SEARCH_FLOW_STATES.ERROR || model.errorMessage) return 'error';
   if (model.flowState === SEARCH_FLOW_STATES.SUBMITTING || model.isSubmitting) return 'submitting';
@@ -242,6 +296,8 @@ class GrocyAIShoppingSearchBar extends HTMLElement {
   constructor() {
     super();
     this._viewModel = {};
+    this._renderedVariantSignature = '';
+    this._renderedStatusSignature = '';
     this._boundInput = (event) => {
       this.dispatchEvent(new CustomEvent('shopping-query-change', {
         bubbles: true,
@@ -282,13 +338,270 @@ class GrocyAIShoppingSearchBar extends HTMLElement {
     this._render();
   }
 
+  _ensureStructure() {
+    if (this._elements) return;
+
+    const shell = document.createElement('section');
+    shell.setAttribute('aria-live', 'polite');
+
+    const header = document.createElement('div');
+    header.className = 'shopping-search-shell__header';
+    const headerCopy = document.createElement('div');
+    const eyebrow = document.createElement('p');
+    eyebrow.className = 'eyebrow';
+    eyebrow.textContent = 'Produktsuche';
+    const title = document.createElement('h3');
+    title.className = 'shopping-search-shell__title';
+    title.textContent = 'Produkt suchen oder Variante wählen';
+    headerCopy.append(eyebrow, title);
+    const stateChip = document.createElement('span');
+    header.append(headerCopy, stateChip);
+
+    const form = document.createElement('form');
+    form.className = 'search-row shopping-search-form';
+    form.dataset.role = 'shopping-search-form';
+    form.addEventListener('submit', (event) => {
+      event.preventDefault();
+      this.dispatchEvent(new CustomEvent('shopping-submit-query', {
+        bubbles: true,
+        composed: true,
+      }));
+    });
+
+    const inputWrapper = document.createElement('div');
+    inputWrapper.className = 'search-input-wrapper';
+
+    const input = document.createElement('input');
+    input.dataset.role = 'shopping-query';
+    input.placeholder = 'z.B. 2 Hafermilch';
+    input.autocomplete = 'off';
+    input.enterKeyHint = 'search';
+    input.setAttribute('aria-describedby', 'shopping-search-helper');
+    input.addEventListener('input', (event) => this._boundInput(event));
+
+    const clearButton = document.createElement('button');
+    clearButton.className = 'clear-input-button';
+    clearButton.type = 'button';
+    clearButton.dataset.action = 'shopping-clear-query';
+    clearButton.setAttribute('aria-label', 'Sucheingabe löschen');
+    clearButton.textContent = '×';
+    clearButton.addEventListener('click', () => {
+      this.dispatchEvent(new CustomEvent('shopping-clear-query', {
+        bubbles: true,
+        composed: true,
+      }));
+    });
+    inputWrapper.append(input, clearButton);
+
+    const submitButton = document.createElement('button');
+    submitButton.className = 'primary-button search-submit-button';
+    submitButton.type = 'submit';
+
+    form.append(inputWrapper, submitButton);
+
+    const helper = document.createElement('p');
+    helper.id = 'shopping-search-helper';
+    helper.className = 'search-helper-text';
+
+    const variantSection = document.createElement('section');
+    const variantHeader = document.createElement('div');
+    variantHeader.className = 'section-header section-header-stacked';
+    const variantHeaderCopy = document.createElement('div');
+    const variantTitle = document.createElement('h3');
+    variantTitle.textContent = 'Gefundene Produktvarianten';
+    const variantHint = document.createElement('p');
+    variantHint.className = 'muted';
+    variantHeaderCopy.append(variantTitle, variantHint);
+    const loadingHint = document.createElement('span');
+    loadingHint.className = 'muted';
+    variantHeader.append(variantHeaderCopy, loadingHint);
+
+    const variantGrid = document.createElement('div');
+    variantGrid.className = 'variant-grid variant-grid--search';
+    variantGrid.setAttribute('role', 'list');
+
+    variantSection.append(variantHeader, variantGrid);
+    shell.append(header, form, helper, variantSection);
+    this.replaceChildren(shell);
+
+    this._elements = {
+      shell,
+      stateChip,
+      form,
+      input,
+      clearButton,
+      submitButton,
+      helper,
+      variantSection,
+      variantHint,
+      loadingHint,
+      variantGrid,
+    };
+  }
+
+  _captureQueryInputState() {
+    const input = this._elements?.input;
+    if (!input) return null;
+    return {
+      isFocused: document.activeElement === input,
+      selectionStart: typeof input.selectionStart === 'number' ? input.selectionStart : null,
+      selectionEnd: typeof input.selectionEnd === 'number' ? input.selectionEnd : null,
+    };
+  }
+
+  _restoreQueryInputState(snapshot) {
+    const input = this._elements?.input;
+    if (!snapshot || !input) return;
+    if (snapshot.isFocused && typeof input.focus === 'function') {
+      input.focus();
+    }
+    if (typeof input.setSelectionRange === 'function'
+      && snapshot.selectionStart !== null
+      && snapshot.selectionEnd !== null) {
+      input.setSelectionRange(snapshot.selectionStart, snapshot.selectionEnd);
+    }
+  }
+
+  _createVariantCard(variant, parsedAmount) {
+    const article = document.createElement('article');
+    article.className = 'variant-card variant-card--action';
+    article.setAttribute('role', 'listitem');
+
+    const button = document.createElement('button');
+    button.className = 'variant-card__button';
+    button.type = 'button';
+    button.dataset.action = 'shopping-select-variant';
+
+    const variantName = variant.product_name || variant.name || 'Unbekanntes Produkt';
+    const variantAmountValue = parsedAmount || variant.amount || variant.default_amount || '1';
+    const variantAmountLabel = formatAmount(variantAmountValue);
+    const variantSource = variant.source || 'grocy';
+    const sourceLabel = variantSource === 'ai'
+      ? 'KI-Vorschlag'
+      : (variantSource === 'input' ? 'Neu anlegen' : 'Grocy');
+
+    button.dataset.productId = String(variant.product_id || variant.id || '');
+    button.dataset.productName = String(variantName);
+    button.dataset.productSource = String(variantSource);
+    button.dataset.amount = String(variantAmountValue);
+    button.addEventListener('click', () => {
+      this.dispatchEvent(new CustomEvent('shopping-select-variant', {
+        bubbles: true,
+        composed: true,
+        detail: { ...button.dataset },
+      }));
+    });
+
+    const header = document.createElement('div');
+    header.className = 'variant-card__header';
+    const strong = document.createElement('strong');
+    strong.textContent = variantName;
+    const badge = document.createElement('span');
+    badge.className = 'variant-amount-badge';
+    badge.textContent = variantAmountLabel;
+    header.append(strong, badge);
+
+    const meta = document.createElement('div');
+    meta.className = 'variant-card__meta';
+    const source = document.createElement('span');
+    source.className = 'muted';
+    source.textContent = sourceLabel;
+    const cta = document.createElement('span');
+    cta.className = 'variant-card__cta';
+    cta.textContent = 'Auswählen';
+    meta.append(source, cta);
+
+    button.append(header, meta);
+    article.append(button);
+    return article;
+  }
+
+  _renderVariantGrid(model, variants) {
+    const { variantGrid } = this._elements;
+    const variantSignature = JSON.stringify({
+      parsedAmount: model.parsedAmount ?? null,
+      showLoadingPlaceholder: !variants.length && Boolean(model.isLoadingVariants),
+      variants: variants.map((variant) => ({
+        id: variant.product_id || variant.id || '',
+        name: variant.product_name || variant.name || '',
+        amount: variant.amount || variant.default_amount || '',
+        source: variant.source || 'grocy',
+      })),
+    });
+    if (variantSignature === this._renderedVariantSignature) return;
+
+    const snapshot = this._captureQueryInputState();
+    this._renderedVariantSignature = variantSignature;
+
+    if (!variants.length && model.isLoadingVariants) {
+      const loadingMessage = document.createElement('p');
+      loadingMessage.className = 'muted';
+      loadingMessage.textContent = 'Lade Vorschläge…';
+      variantGrid.replaceChildren(loadingMessage);
+      this._restoreQueryInputState(snapshot);
+      return;
+    }
+
+    const nodes = variants.map((variant) => this._createVariantCard(variant, model.parsedAmount));
+    variantGrid.replaceChildren(...nodes);
+    this._restoreQueryInputState(snapshot);
+  }
+
   _render() {
+    this._ensureStructure();
     const model = this._viewModel || {};
     const variants = Array.isArray(model.variants) ? model.variants : [];
     const searchUiState = deriveSearchUiState(model);
     const stateLabel = getSearchStateLabel(searchUiState);
     const helperText = model.errorMessage || model.statusMessage || 'Bereit.';
     const hasVisibleVariants = variants.length > 0;
+    const {
+      shell,
+      stateChip,
+      form,
+      input,
+      clearButton,
+      submitButton,
+      helper,
+      variantSection,
+      variantHint,
+      loadingHint,
+    } = this._elements;
+
+    const statusSignature = JSON.stringify({
+      query: model.query || '',
+      clearButtonVisible: Boolean(model.clearButtonVisible),
+      isSubmitting: Boolean(model.isSubmitting),
+      isLoadingVariants: Boolean(model.isLoadingVariants),
+      errorMessage: model.errorMessage || '',
+      statusMessage: model.statusMessage || '',
+      parsedAmount: model.parsedAmount ?? null,
+      searchUiState,
+    });
+
+    if (statusSignature !== this._renderedStatusSignature) {
+      this._renderedStatusSignature = statusSignature;
+      shell.className = `shopping-search-shell shopping-search-shell--${searchUiState}`;
+      stateChip.className = `search-state-chip search-state-chip--${searchUiState}`;
+      stateChip.textContent = stateLabel;
+      form.setAttribute('aria-busy', model.isSubmitting ? 'true' : 'false');
+      if (input.value !== String(model.query || '')) {
+        input.value = String(model.query || '');
+      }
+      clearButton.className = `clear-input-button${model.clearButtonVisible ? ' visible' : ''}`;
+      submitButton.disabled = Boolean(model.isSubmitting);
+      submitButton.textContent = model.isSubmitting ? 'Prüfe…' : 'Produkt prüfen';
+      helper.className = `search-helper-text${model.errorMessage ? ' search-helper-text--error' : ''}`;
+      helper.textContent = helperText;
+      variantSection.className = `variant-section${hasVisibleVariants || model.isLoadingVariants ? '' : ' hidden'}`;
+      variantHint.textContent = model.parsedAmount
+        ? `Erkannte Menge: ${formatAmount(model.parsedAmount)}`
+        : 'Live-Vorschläge erscheinen direkt unter dem Eingabefeld.';
+      loadingHint.textContent = model.isLoadingVariants ? 'Suche läuft…' : '';
+    }
+
+    this._renderVariantGrid(model, variants);
+    const imageBasePath = model.imageBasePath || '';
 
     this.innerHTML = `
       <section class="shopping-search-shell shopping-search-shell--${searchUiState}" aria-live="polite">
@@ -345,15 +658,179 @@ class GrocyAIShoppingSearchBar extends HTMLElement {
 }
 
 class GrocyAIShoppingTab extends HTMLElement {
+  constructor() {
+    super();
+    this._viewModel = {};
+    this._lastListSignature = '';
+    this._lastShellSignature = '';
+  }
+
+  connectedCallback() {
+    this.addEventListener('click', (event) => {
+      const actionTarget = event.target.closest?.('[data-action]');
+      if (!actionTarget) return;
+      this.dispatchEvent(new CustomEvent(actionTarget.dataset.action, {
+        bubbles: true,
+        composed: true,
+        detail: { ...actionTarget.dataset },
+      }));
+    });
+  }
+
   set viewModel(value) {
     this._viewModel = value;
     this._render();
   }
 
+  _ensureStructure() {
+    if (this._elements) return;
+
+    const root = document.createElement('section');
+
+    const heroCard = document.createElement('section');
+    heroCard.className = 'card hero-card shopping-hero-card';
+    const heroHeader = document.createElement('div');
+    heroHeader.className = 'section-header';
+    const heroTitle = document.createElement('h2');
+    heroTitle.textContent = 'Grocy AI Suche';
+    const scannerButton = document.createElement('button');
+    scannerButton.className = 'scanner-popup-button';
+    scannerButton.type = 'button';
+    scannerButton.dataset.action = 'shopping-open-scanner';
+    scannerButton.setAttribute('aria-label', 'Barcode-Scanner öffnen');
+    const scannerIcon = document.createElement('span');
+    scannerIcon.className = 'scanner-barcode-icon';
+    scannerIcon.setAttribute('aria-hidden', 'true');
+    scannerButton.append(scannerIcon);
+    heroHeader.append(heroTitle, scannerButton);
+    const searchBar = document.createElement('grocy-ai-shopping-search-bar');
+    heroCard.append(heroHeader, searchBar);
+
+    const listSection = document.createElement('section');
+    listSection.className = 'card shopping-list-section';
+    const listHeader = document.createElement('div');
+    listHeader.className = 'section-header section-header-stacked';
+    const listTitle = document.createElement('h2');
+    listTitle.textContent = 'Einkaufsliste';
+    const refreshButton = document.createElement('button');
+    refreshButton.className = 'primary-button';
+    refreshButton.type = 'button';
+    refreshButton.dataset.action = 'shopping-refresh';
+    refreshButton.textContent = 'Aktualisieren';
+    listHeader.append(listTitle, refreshButton);
+
+    const list = document.createElement('ul');
+    list.className = 'shopping-list-native';
+    const status = document.createElement('p');
+    status.className = 'tab-status';
+
+    const buttonRow = document.createElement('div');
+    buttonRow.className = 'button-row';
+    const completeAllButton = document.createElement('button');
+    completeAllButton.className = 'success-button';
+    completeAllButton.type = 'button';
+    completeAllButton.dataset.action = 'shopping-complete-all';
+    completeAllButton.textContent = 'Einkauf abschließen';
+    const clearAllButton = document.createElement('button');
+    clearAllButton.className = 'danger-button';
+    clearAllButton.type = 'button';
+    clearAllButton.dataset.action = 'shopping-clear-all';
+    clearAllButton.textContent = 'Einkaufsliste leeren';
+    buttonRow.append(completeAllButton, clearAllButton);
+
+    listSection.append(listHeader, list, status, buttonRow);
+    root.append(heroCard, listSection);
+    this.replaceChildren(root);
+
+    this._elements = {
+      root,
+      searchBar,
+      list,
+      status,
+    };
+  }
+
+  _createShoppingListItem(item) {
+    const listItem = document.createElement('li');
+    listItem.className = 'shopping-item-card';
+
+    const content = document.createElement('div');
+    content.className = 'shopping-item-card__content';
+    const details = document.createElement('div');
+    const title = document.createElement('strong');
+    title.textContent = item.product_name || 'Unbekanntes Produkt';
+    const amount = document.createElement('div');
+    amount.className = 'muted';
+    amount.textContent = `Menge: ${formatAmount(item.amount)}`;
+    const note = document.createElement('div');
+    note.className = 'muted';
+    note.textContent = item.note || 'Keine Notiz';
+    details.append(title, amount, note);
+
+    const actions = document.createElement('div');
+    actions.className = 'shopping-item-card__actions';
+    [
+      ['ghost-button', 'shopping-open-detail', 'Details'],
+      ['ghost-button', 'shopping-open-mhd', 'MHD'],
+      ['ghost-button', 'shopping-increment-item', '+1'],
+      ['success-button', 'shopping-complete-item', 'Erledigt'],
+      ['danger-button', 'shopping-delete-item', 'Löschen'],
+    ].forEach(([className, action, label]) => {
+      const button = document.createElement('button');
+      button.className = className;
+      button.type = 'button';
+      button.dataset.action = action;
+      button.dataset.itemId = String(item.id);
+      button.textContent = label;
+      actions.append(button);
+    });
+
+    content.append(details, actions);
+    listItem.append(content);
+    return listItem;
+  }
+
+  _renderList(model, items) {
+    const { list } = this._elements;
+    const listSignature = JSON.stringify({
+      listLoading: Boolean(model.listLoading),
+      items: items.map((item) => ({
+        id: item.id,
+        product_name: item.product_name || '',
+        amount: formatAmount(item.amount),
+        note: item.note || '',
+      })),
+    });
+    if (listSignature === this._lastListSignature) return;
+    this._lastListSignature = listSignature;
+
+    if (!items.length) {
+      const emptyItem = document.createElement('li');
+      emptyItem.className = 'muted';
+      emptyItem.textContent = model.listLoading ? 'Einkaufsliste wird geladen…' : 'Keine Einträge.';
+      list.replaceChildren(emptyItem);
+      return;
+    }
+
+    list.replaceChildren(...items.map((item) => this._createShoppingListItem(item)));
+  }
+
   _render() {
+    this._ensureStructure();
     const model = this._viewModel || {};
     const variants = Array.isArray(model.variants) ? model.variants : [];
     const items = Array.isArray(model.list) ? model.list : [];
+    const shellSignature = JSON.stringify({
+      active: Boolean(model.active),
+      status: model.status || 'Bereit.',
+    });
+
+    if (shellSignature !== this._lastShellSignature) {
+      this._lastShellSignature = shellSignature;
+      this._elements.root.className = `tab-view${model.active ? '' : ' hidden'}`;
+      this._elements.status.textContent = model.status || 'Bereit.';
+    }
+    const imageBasePath = model.imageBasePath || '';
 
     this.innerHTML = `
       <section class="tab-view${model.active ? '' : ' hidden'}">
@@ -399,10 +876,12 @@ class GrocyAIShoppingTab extends HTMLElement {
       </section>
     `;
 
-    this.querySelector('grocy-ai-shopping-search-bar').viewModel = {
+    this._elements.searchBar.viewModel = {
       ...model,
       variants,
+      imageBasePath,
     };
+    this._renderList(model, items);
   }
 }
 
@@ -538,41 +1017,692 @@ class GrocyAIDashboardModals extends HTMLElement {
 }
 
 class GrocyAIScannerBridge extends HTMLElement {
+  constructor() {
+    super();
+    this._api = null;
+    this._viewModel = { open: false };
+    this._domReady = false;
+    this._stream = null;
+    this._scannerInterval = null;
+    this._llavaTimer = null;
+    this._llavaAbortController = null;
+    this._preferredFocusMode = '';
+    this._focusRefreshTimer = null;
+    this._selectedDeviceId = '';
+    this._knownDevices = [];
+    this._lastBarcode = '';
+    this._lastBarcodeAt = 0;
+    this._lastImageScanAt = 0;
+    this._stableCandidate = '';
+    this._stableCount = 0;
+    this._rotationDegrees = 0;
+    this._resultPayload = null;
+    this._detectionInFlight = false;
+    this._llavaInFlight = false;
+    this._scanStartedAt = 0;
+    this._lastLightCheckAt = 0;
+    this._boundClick = (event) => this._handleClick(event);
+    this._boundChange = (event) => this._handleChange(event);
+  }
+
   connectedCallback() {
-    this.addEventListener('click', (event) => {
-      const actionTarget = event.target.closest('[data-action]');
-      if (!actionTarget) return;
-      this.dispatchEvent(new CustomEvent(actionTarget.dataset.action, {
-        bubbles: true,
-        composed: true,
-      }));
-    });
+    if (!this._domReady) {
+      this._renderShell();
+      this.addEventListener('click', this._boundClick);
+      this.addEventListener('change', this._boundChange);
+      this._domReady = true;
+    }
+    this._applyViewModel();
+  }
+
+  disconnectedCallback() {
+    this.removeEventListener('click', this._boundClick);
+    this.removeEventListener('change', this._boundChange);
+    this._stopScanner();
+    this._domReady = false;
+  }
+
+  set api(value) {
+    this._api = value;
   }
 
   set viewModel(value) {
-    this._viewModel = value;
-    this._render();
+    this._viewModel = value || { open: false };
+    this._applyViewModel();
   }
 
-  _render() {
-    const model = this._viewModel || { open: false };
+  _renderShell() {
     this.innerHTML = `
-      <div class="shopping-modal${model.open ? '' : ' hidden'}">
+      <div class="shopping-modal hidden" data-role="scanner-modal">
         <div class="shopping-modal-backdrop" data-action="shopping-close-scanner"></div>
-        <section class="shopping-modal-content card scanner-bridge-content">
+        <section class="shopping-modal-content card scanner-modal-content">
           <button class="shopping-modal-close" type="button" data-action="shopping-close-scanner" aria-label="Scanner schließen">×</button>
-          <h3>Scanner-Bridge</h3>
+          <div class="scanner-modal-header">
+            <div>
+              <p class="eyebrow">Nativer Scanner</p>
+              <h3>Kamera, Barcode und Bildanalyse</h3>
+            </div>
+            <span class="migration-chip">Kein Legacy-iframe mehr</span>
+          </div>
           <p class="description">
-            Scanner und Kamera-Workflows bleiben während der schrittweisen Migration zunächst im bisherigen Dashboard aktiv.
-            So bleiben Polling, Barcode-Erkennung, LLaVA-Trigger und Produktanlage unverändert verfügbar.
+            Barcodes werden direkt im nativen Panel erkannt. Falls kein Barcode gefunden wird, kann derselbe Kamera-Frame über die Bildanalyse an <code>POST /api/v1/scan/image</code> übergeben werden.
           </p>
+          <div class="scanner-controls-grid">
+            <label>
+              <span class="muted">Kamera</span>
+              <select data-role="scanner-camera-select"></select>
+            </label>
+            <label>
+              <span class="muted">Rotation</span>
+              <select data-role="scanner-rotation-select">
+                <option value="0">0°</option>
+                <option value="90">90°</option>
+                <option value="180">180°</option>
+                <option value="270">270°</option>
+              </select>
+            </label>
+          </div>
+          <div class="scanner-video-shell">
+            <video class="scanner-video hidden" data-role="scanner-video" playsinline autoplay muted></video>
+            <div class="scanner-frame-overlay hidden" data-role="scanner-frame-overlay" aria-hidden="true"></div>
+            <p class="scanner-light-warning hidden" data-role="scanner-light-warning">Wenig Licht erkannt – bitte Kamera näher ans Produkt halten oder Beleuchtung erhöhen.</p>
+          </div>
+          <canvas class="hidden" data-role="scanner-canvas"></canvas>
+          <pre class="scanner-capabilities-log" data-role="scanner-capabilities-log"></pre>
+          <p class="tab-status" data-role="scanner-status" aria-live="polite">Bereit.</p>
           <div class="button-row">
-            <button class="primary-button" type="button" data-action="open-legacy-dashboard">Legacy-Dashboard öffnen</button>
+            <button class="primary-button" type="button" data-action="shopping-start-scanner">Scanner starten</button>
+            <button class="ghost-button hidden" type="button" data-action="shopping-stop-scanner">Scanner stoppen</button>
+            <button class="secondary-button" type="button" data-action="shopping-scan-image">Bild analysieren</button>
             <button class="ghost-button" type="button" data-action="shopping-close-scanner">Schließen</button>
           </div>
+          <section class="scanner-result hidden" data-role="scanner-result"></section>
         </section>
       </div>
     `;
+  }
+
+  _applyViewModel() {
+    if (!this.isConnected || !this._domReady) return;
+    const modal = this._getElement('scanner-modal');
+    if (!modal) return;
+
+    const shouldOpen = Boolean(this._viewModel?.open);
+    modal.classList.toggle('hidden', !shouldOpen);
+
+    const rotationSelect = this._getElement('scanner-rotation-select');
+    if (rotationSelect && rotationSelect.value !== String(this._rotationDegrees)) {
+      rotationSelect.value = String(this._rotationDegrees);
+    }
+
+    if (shouldOpen) {
+      void this._refreshDevices();
+      if (!this._stream) {
+        void this._startScanner();
+      }
+      return;
+    }
+
+    this._stopScanner();
+  }
+
+  _getElement(role) {
+    return this.querySelector(`[data-role="${role}"]`);
+  }
+
+  _handleClick(event) {
+    const actionTarget = event.target.closest('[data-action]');
+    if (!actionTarget) return;
+
+    switch (actionTarget.dataset.action) {
+      case 'shopping-close-scanner':
+        this.dispatchEvent(new CustomEvent('shopping-close-scanner', { bubbles: true, composed: true }));
+        break;
+      case 'shopping-start-scanner':
+        void this._startScanner();
+        break;
+      case 'shopping-stop-scanner':
+        this._stopScanner();
+        break;
+      case 'shopping-scan-image':
+        void this._scanCurrentFrame('manual');
+        break;
+      default:
+        break;
+    }
+  }
+
+  _handleChange(event) {
+    if (event.target.matches('[data-role="scanner-camera-select"]')) {
+      this._selectedDeviceId = event.target.value || '';
+      if (this._stream) {
+        void this._startScanner();
+      }
+      return;
+    }
+
+    if (event.target.matches('[data-role="scanner-rotation-select"]')) {
+      this._rotationDegrees = this._parseRotationDegrees(event.target.value);
+      this._applyVideoRotation();
+    }
+  }
+
+  _setStatus(message) {
+    const element = this._getElement('scanner-status');
+    if (element) element.textContent = String(message || 'Bereit.');
+    this.dispatchEvent(new CustomEvent('shopping-scanner-status', {
+      bubbles: true,
+      composed: true,
+      detail: { message: String(message || 'Bereit.') },
+    }));
+  }
+
+  _renderResult(payload) {
+    const result = this._getElement('scanner-result');
+    if (!result) return;
+
+    if (!payload) {
+      this._resultPayload = null;
+      result.classList.add('hidden');
+      result.innerHTML = '';
+      return;
+    }
+
+    this._resultPayload = payload;
+    result.classList.remove('hidden');
+    result.innerHTML = `
+      <div class="scanner-result-card">
+        <div class="scanner-result-card__header">
+          <div>
+            <p class="eyebrow">Erkanntes Produkt</p>
+            <h3>${escapeHtml(payload.product_name || 'Unbekanntes Produkt')}</h3>
+          </div>
+          <span class="search-state-chip search-state-chip--suggestions">${escapeHtml(payload.source || 'scanner')}</span>
+        </div>
+        <div class="shopping-details-grid">
+          <div><strong>Barcode</strong><span>${escapeHtml(payload.barcode || '-')}</span></div>
+          <div><strong>Marke</strong><span>${escapeHtml(payload.brand || '-')}</span></div>
+          <div><strong>Menge</strong><span>${escapeHtml(payload.quantity || payload.hint || '1')}</span></div>
+          <div><strong>Hinweis</strong><span>${escapeHtml(payload.hint || payload.ingredients_text || '-')}</span></div>
+        </div>
+        <p class="muted">Das erkannte Produkt wird direkt in denselben nativen Such-/Varianten-/Add-to-list-Flow übergeben wie eine manuelle Texteingabe.</p>
+      </div>
+    `;
+  }
+
+  async _refreshDevices() {
+    const select = this._getElement('scanner-camera-select');
+    if (!select || !navigator.mediaDevices?.enumerateDevices) return;
+
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      this._knownDevices = devices.filter((device) => device.kind === 'videoinput');
+      select.innerHTML = [
+        '<option value="">Automatisch (Rückkamera)</option>',
+        ...this._knownDevices.map((device, index) => {
+          const label = device.label || `Kamera ${index + 1}`;
+          const selected = this._selectedDeviceId === device.deviceId ? ' selected' : '';
+          return `<option value="${escapeHtml(device.deviceId)}"${selected}>${escapeHtml(label)}</option>`;
+        }),
+      ].join('');
+      select.value = this._selectedDeviceId || '';
+    } catch (error) {
+      this._setStatus(`Kameras konnten nicht geladen werden: ${error.message}`);
+    }
+  }
+
+  _parseRotationDegrees(value) {
+    const rotation = Number(value);
+    return [0, 90, 180, 270].includes(rotation) ? rotation : 0;
+  }
+
+  _applyVideoRotation() {
+    const video = this._getElement('scanner-video');
+    if (!video) return;
+    video.classList.remove('rotated-90', 'rotated-180', 'rotated-270');
+    if (this._rotationDegrees === 90) video.classList.add('rotated-90');
+    if (this._rotationDegrees === 180) video.classList.add('rotated-180');
+    if (this._rotationDegrees === 270) video.classList.add('rotated-270');
+  }
+
+  _setLightWarningVisible(visible) {
+    this._getElement('scanner-light-warning')?.classList.toggle('hidden', !visible);
+  }
+
+  _setCapabilitiesLog(capabilities, settings) {
+    const element = this._getElement('scanner-capabilities-log');
+    if (!element) return;
+    element.textContent = JSON.stringify({
+      selected_device_id: this._selectedDeviceId || null,
+      capabilities: capabilities || null,
+      settings: settings || null,
+    }, null, 2);
+  }
+
+  _normalizeBarcodeForLookup(barcode) {
+    const digitsOnly = String(barcode || '').replace(/\D/g, '');
+    if (!digitsOnly) return '';
+    if (digitsOnly.length >= 16 && digitsOnly.startsWith('01')) {
+      const gtin14 = digitsOnly.slice(2, 16);
+      return gtin14.startsWith('0') ? gtin14.slice(1) : gtin14;
+    }
+    if ([8, 12, 13, 14].includes(digitsOnly.length)) return digitsOnly;
+    if (digitsOnly.length > 14) return digitsOnly.slice(-13);
+    return digitsOnly;
+  }
+
+  _registerScannerCandidate(rawBarcode) {
+    const normalized = this._normalizeBarcodeForLookup(rawBarcode);
+    if (!normalized || normalized.length < 8) return '';
+    if (normalized === this._lastBarcode) {
+      this._stableCandidate = normalized;
+      this._stableCount = 2;
+      return '';
+    }
+    if (normalized === this._stableCandidate) {
+      this._stableCount += 1;
+    } else {
+      this._stableCandidate = normalized;
+      this._stableCount = 1;
+    }
+    if (this._stableCount < 2) return '';
+    this._stableCandidate = '';
+    this._stableCount = 0;
+    return normalized;
+  }
+
+  async _startScanner() {
+    const startButton = this.querySelector('[data-action="shopping-start-scanner"]');
+    const stopButton = this.querySelector('[data-action="shopping-stop-scanner"]');
+    const video = this._getElement('scanner-video');
+    if (!video) return;
+
+    if (!navigator.mediaDevices?.getUserMedia) {
+      this._setStatus('Kamera wird in diesem Browser/WebView nicht unterstützt.');
+      return;
+    }
+
+    this._stopScanner({ keepStatus: true });
+    this._setStatus('Scanner startet…');
+
+    try {
+      this._stream = await this._getCompatibleScannerStream();
+      await this._refreshDevices();
+      await this._optimizeScannerTrack(this._stream);
+      this._scheduleScannerFocusRefresh(this._stream);
+      video.srcObject = this._stream;
+      await video.play();
+      video.classList.remove('hidden');
+      this._applyVideoRotation();
+      this._getElement('scanner-frame-overlay')?.classList.remove('hidden');
+      startButton?.classList.add('hidden');
+      stopButton?.classList.remove('hidden');
+      this._setStatus('Scanner aktiv. Barcode vor die Kamera halten oder Bildanalyse starten.');
+      this._scanStartedAt = Date.now();
+      this._lastBarcodeAt = Date.now();
+      this._lastLightCheckAt = 0;
+      this._setLightWarningVisible(false);
+      this._scheduleLlavaFallback();
+      this._startBarcodeLoop(video);
+    } catch (error) {
+      const name = String(error?.name || '');
+      if (!window.isSecureContext) {
+        this._setStatus('Kamerazugriff benötigt eine sichere Verbindung (HTTPS/Home-Assistant-App).');
+      } else if (name === 'NotAllowedError' || name === 'SecurityError') {
+        this._setStatus('Kamera-Berechtigung wurde verweigert.');
+      } else if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
+        this._setStatus('Keine Kamera gefunden.');
+      } else {
+        this._setStatus(`Kamera konnte nicht gestartet werden: ${error.message}`);
+      }
+    }
+  }
+
+  _startBarcodeLoop(video) {
+    const canvas = this._getElement('scanner-canvas');
+    const detector = 'BarcodeDetector' in window
+      ? new window.BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e'] })
+      : null;
+
+    this._scannerInterval = window.setInterval(async () => {
+      if (!this._stream || !video.videoWidth || !video.videoHeight || !this._viewModel?.open) return;
+      this._evaluateScannerLight(video, canvas);
+      if (Date.now() - this._scanStartedAt < 1200) return;
+      if (!detector || this._detectionInFlight) return;
+
+      try {
+        const source = this._getScannerDetectionSource(video, canvas, 1.35);
+        const barcodes = await detector.detect(source);
+        if (!barcodes.length) return;
+        const stableBarcode = this._registerScannerCandidate(String(barcodes[0].rawValue || '').trim());
+        if (!stableBarcode) return;
+        this._detectionInFlight = true;
+        try {
+          await this._lookupBarcode(stableBarcode);
+        } finally {
+          this._detectionInFlight = false;
+        }
+      } catch (_) {
+        // Ignore detector errors and keep scanning.
+      }
+    }, 900);
+  }
+
+  async _lookupBarcode(barcode) {
+    if (!this._api) {
+      this._setStatus('Scanner-API ist noch nicht initialisiert.');
+      return;
+    }
+
+    const normalized = this._normalizeBarcodeForLookup(barcode);
+    if (normalized.length < 8) return;
+
+    this._lastBarcode = normalized;
+    this._lastBarcodeAt = Date.now();
+    this._setStatus(`Barcode erkannt: ${normalized}. Lade Produktdaten…`);
+
+    const { response, payload } = await this._api.lookupBarcode(normalized);
+    if (!response.ok) {
+      this._setStatus(getErrorMessage(payload, 'Barcode konnte nicht abgefragt werden.'));
+      return;
+    }
+
+    if (!payload?.found) {
+      this._renderResult(null);
+      this._setStatus(`Kein Produkt für Barcode ${normalized} gefunden.`);
+      return;
+    }
+
+    const resultPayload = {
+      ...payload,
+      hint: payload.quantity || '',
+    };
+    this._renderResult(resultPayload);
+    this._setStatus(`Produkt erkannt: ${payload.product_name || normalized}. Übergabe an Einkaufsflow…`);
+    this._emitScannerDetection(resultPayload);
+  }
+
+  _emitScannerDetection(payload) {
+    const productName = String(payload?.product_name || '').trim();
+    if (!productName) return;
+    const detail = {
+      productName,
+      amount: 1,
+      source: payload?.source || 'scanner',
+      barcode: payload?.barcode || '',
+      payload,
+    };
+    this.dispatchEvent(new CustomEvent('shopping-scanner-detected', {
+      bubbles: true,
+      composed: true,
+      detail,
+    }));
+  }
+
+  _captureFrameBase64() {
+    const video = this._getElement('scanner-video');
+    const canvas = this._getElement('scanner-canvas');
+    if (!video || !canvas || !video.videoWidth || !video.videoHeight) return '';
+
+    const context = canvas.getContext('2d', { willReadFrequently: true });
+    if (!context) return '';
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    return String(canvas.toDataURL('image/jpeg', 0.9)).replace(/^data:image\/\w+;base64,/, '');
+  }
+
+  _scheduleLlavaFallback() {
+    if (this._llavaTimer) window.clearTimeout(this._llavaTimer);
+    this._llavaTimer = window.setTimeout(() => {
+      if (!this._viewModel?.open || !this._stream) return;
+      const elapsed = Date.now() - this._lastBarcodeAt;
+      const cooldownElapsed = Date.now() - this._lastImageScanAt;
+      if (elapsed >= 5000 && cooldownElapsed >= 15000) {
+        void this._scanCurrentFrame('timeout');
+      }
+      this._scheduleLlavaFallback();
+    }, 5000);
+  }
+
+  async _scanCurrentFrame(reason = 'manual') {
+    if (!this._api) {
+      this._setStatus('Scanner-API ist noch nicht initialisiert.');
+      return;
+    }
+    if (this._llavaInFlight) return;
+
+    const imageBase64 = this._captureFrameBase64();
+    if (!imageBase64) {
+      this._setStatus('Kein Kamerabild für die Bildanalyse verfügbar.');
+      return;
+    }
+
+    this._llavaAbortController?.abort();
+    this._llavaAbortController = new AbortController();
+    this._llavaInFlight = true;
+    this._lastImageScanAt = Date.now();
+    this._setStatus(reason === 'timeout'
+      ? 'Kein Barcode gefunden. Starte Bildanalyse…'
+      : 'Analysiere aktuelles Kamerabild…');
+
+    const timeoutHandle = window.setTimeout(() => this._llavaAbortController?.abort(), 45000);
+    try {
+      const { response, payload } = await this._api.scanImage(imageBase64, {
+        signal: this._llavaAbortController.signal,
+      });
+      if (!response.ok) {
+        this._setStatus(getErrorMessage(payload, 'Bildanalyse konnte nicht ausgeführt werden.'));
+        return;
+      }
+      if (!payload?.success || !payload?.product_name) {
+        this._renderResult(null);
+        this._setStatus('Die Bildanalyse hat kein eindeutiges Produkt erkannt.');
+        return;
+      }
+
+      const resultPayload = {
+        found: true,
+        barcode: '',
+        product_name: payload.product_name,
+        brand: payload.brand || '',
+        quantity: payload.hint || '1',
+        ingredients_text: payload.hint || '',
+        hint: payload.hint || '',
+        source: payload.source || 'ollama_llava',
+      };
+      this._renderResult(resultPayload);
+      this._setStatus(`Bildanalyse erkannt: ${payload.product_name}. Übergabe an Einkaufsflow…`);
+      this._emitScannerDetection(resultPayload);
+    } catch (error) {
+      if (error?.name === 'AbortError') {
+        this._setStatus('Bildanalyse wurde wegen Zeitüberschreitung beendet.');
+      } else {
+        this._setStatus(`Bildanalyse fehlgeschlagen: ${error.message}`);
+      }
+    } finally {
+      window.clearTimeout(timeoutHandle);
+      this._llavaInFlight = false;
+    }
+  }
+
+  _evaluateScannerLight(video, canvas) {
+    if (!video?.videoWidth || !video?.videoHeight || !canvas) return;
+    const now = Date.now();
+    if ((now - this._lastLightCheckAt) < 1500) return;
+    this._lastLightCheckAt = now;
+
+    const context = canvas.getContext('2d', { willReadFrequently: true });
+    if (!context) return;
+
+    canvas.width = 64;
+    canvas.height = 36;
+    context.drawImage(video, 0, 0, 64, 36);
+    const pixels = context.getImageData(0, 0, 64, 36).data;
+    let brightnessTotal = 0;
+    for (let index = 0; index < pixels.length; index += 4) {
+      brightnessTotal += (pixels[index] + pixels[index + 1] + pixels[index + 2]) / 3;
+    }
+
+    const averageBrightness = brightnessTotal / (pixels.length / 4);
+    this._setLightWarningVisible(averageBrightness < 72);
+  }
+
+  _getScannerDetectionSource(video, canvas, zoomFactor) {
+    if (!canvas || !video || !video.videoWidth || !video.videoHeight || zoomFactor <= 1) {
+      return video;
+    }
+
+    const context = canvas.getContext('2d', { willReadFrequently: true });
+    if (!context) return video;
+
+    const frameRatioWidth = 0.72;
+    const frameRatioHeight = 0.38;
+    const sourceWidth = Math.round((video.videoWidth * frameRatioWidth) / zoomFactor);
+    const sourceHeight = Math.round((video.videoHeight * frameRatioHeight) / zoomFactor);
+    const sourceX = Math.max(0, Math.round((video.videoWidth - sourceWidth) / 2));
+    const sourceY = Math.max(0, Math.round((video.videoHeight - sourceHeight) / 2));
+    const autoPortraitQuarterTurn = this._rotationDegrees === 0 && sourceHeight > sourceWidth;
+    const rotation = autoPortraitQuarterTurn ? 90 : this._rotationDegrees;
+    const isQuarterTurn = rotation === 90 || rotation === 270;
+
+    canvas.width = isQuarterTurn ? sourceHeight : sourceWidth;
+    canvas.height = isQuarterTurn ? sourceWidth : sourceHeight;
+    context.save();
+    context.clearRect(0, 0, canvas.width, canvas.height);
+
+    if (rotation === 90) {
+      context.translate(canvas.width, 0);
+      context.rotate(Math.PI / 2);
+    } else if (rotation === 180) {
+      context.translate(canvas.width, canvas.height);
+      context.rotate(Math.PI);
+    } else if (rotation === 270) {
+      context.translate(0, canvas.height);
+      context.rotate(-Math.PI / 2);
+    }
+
+    context.drawImage(video, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, sourceWidth, sourceHeight);
+    context.restore();
+    return canvas;
+  }
+
+  async _getCompatibleScannerStream() {
+    const selectedDeviceConstraint = this._selectedDeviceId
+      ? { deviceId: { exact: this._selectedDeviceId } }
+      : { facingMode: { exact: 'environment' } };
+    const fallbackFacingConstraint = this._selectedDeviceId
+      ? { deviceId: { exact: this._selectedDeviceId } }
+      : { facingMode: { ideal: 'environment' } };
+
+    const streamProfiles = [
+      { video: { ...selectedDeviceConstraint, width: { ideal: 2560 }, height: { ideal: 1440 } }, audio: false },
+      { video: { ...fallbackFacingConstraint, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false },
+      { video: { ...fallbackFacingConstraint, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false },
+      { video: this._selectedDeviceId ? { deviceId: { exact: this._selectedDeviceId } } : { facingMode: 'environment' }, audio: false },
+      { video: true, audio: false },
+    ];
+
+    let lastError = null;
+    for (const constraints of streamProfiles) {
+      try {
+        return await navigator.mediaDevices.getUserMedia(constraints);
+      } catch (error) {
+        lastError = error;
+      }
+    }
+    throw lastError || new Error('Kamera konnte nicht initialisiert werden.');
+  }
+
+  async _optimizeScannerTrack(stream) {
+    const videoTrack = stream?.getVideoTracks?.()[0];
+    if (!videoTrack) return;
+    const capabilities = videoTrack.getCapabilities ? videoTrack.getCapabilities() : null;
+    const settings = videoTrack.getSettings ? videoTrack.getSettings() : null;
+    this._setCapabilitiesLog(capabilities, settings);
+
+    const constraints = {};
+    if (capabilities?.focusMode?.includes('continuous')) {
+      constraints.focusMode = 'continuous';
+    } else if (capabilities?.focusMode?.includes('single-shot')) {
+      constraints.focusMode = 'single-shot';
+    } else if (capabilities?.focusMode?.includes('manual')) {
+      constraints.focusMode = 'manual';
+    }
+    this._preferredFocusMode = constraints.focusMode || '';
+
+    if (capabilities?.zoom) {
+      const minZoom = Number(capabilities.zoom.min || 1);
+      const maxZoom = Number(capabilities.zoom.max || minZoom);
+      constraints.zoom = Math.max(minZoom, Math.min(maxZoom, 1.4));
+    }
+
+    if (!Object.keys(constraints).length || typeof videoTrack.applyConstraints !== 'function') return;
+    try {
+      await videoTrack.applyConstraints({ advanced: [constraints] });
+    } catch (_) {
+      // Keep default stream settings if optimizations are unsupported.
+    }
+  }
+
+  _scheduleScannerFocusRefresh(stream) {
+    if (this._focusRefreshTimer) window.clearInterval(this._focusRefreshTimer);
+    if (!stream || !['single-shot', 'continuous'].includes(this._preferredFocusMode)) return;
+
+    const videoTrack = stream.getVideoTracks?.()[0];
+    if (!videoTrack || typeof videoTrack.applyConstraints !== 'function') return;
+
+    this._focusRefreshTimer = window.setInterval(() => {
+      if (!this._stream || !this._viewModel?.open) return;
+      videoTrack.applyConstraints({ advanced: [{ focusMode: this._preferredFocusMode }] }).catch(() => {});
+    }, 2000);
+  }
+
+  _stopScanner(options = {}) {
+    if (this._scannerInterval) {
+      window.clearInterval(this._scannerInterval);
+      this._scannerInterval = null;
+    }
+    if (this._llavaTimer) {
+      window.clearTimeout(this._llavaTimer);
+      this._llavaTimer = null;
+    }
+    if (this._focusRefreshTimer) {
+      window.clearInterval(this._focusRefreshTimer);
+      this._focusRefreshTimer = null;
+    }
+
+    this._llavaAbortController?.abort();
+    this._llavaAbortController = null;
+    this._preferredFocusMode = '';
+    this._llavaInFlight = false;
+    this._detectionInFlight = false;
+    this._stableCandidate = '';
+    this._stableCount = 0;
+    this._lastBarcode = '';
+
+    if (this._stream) {
+      this._stream.getTracks().forEach((track) => track.stop());
+      this._stream = null;
+    }
+
+    const video = this._getElement('scanner-video');
+    if (video) {
+      video.pause();
+      video.srcObject = null;
+      video.classList.add('hidden');
+      video.classList.remove('rotated-90', 'rotated-180', 'rotated-270');
+    }
+
+    this._getElement('scanner-frame-overlay')?.classList.add('hidden');
+    this._setLightWarningVisible(false);
+    this.querySelector('[data-action="shopping-start-scanner"]')?.classList.remove('hidden');
+    this.querySelector('[data-action="shopping-stop-scanner"]')?.classList.add('hidden');
+
+    if (!options.keepStatus && this._viewModel?.open) {
+      this._setStatus('Scanner gestoppt.');
+    }
   }
 }
 
@@ -743,6 +1873,8 @@ class GrocyAIDashboardPanel extends HTMLElement {
     root.addEventListener('shopping-clear-all', () => this._clearAllShopping());
     root.addEventListener('shopping-open-scanner', () => this._openScannerBridge());
     root.addEventListener('shopping-close-scanner', () => this._setScannerOpen(false));
+    root.addEventListener('shopping-scanner-status', (event) => this._updateScannerStatus(event.detail?.message));
+    root.addEventListener('shopping-scanner-detected', (event) => this._handleScannerDetection(event.detail));
     root.addEventListener('open-legacy-dashboard', (event) => this._openLegacyDashboard(event.detail?.tab));
   }
 
@@ -816,6 +1948,7 @@ class GrocyAIDashboardPanel extends HTMLElement {
     scannerBridge.viewModel = {
       open: state.shopping.scannerModalOpen,
     };
+    scannerBridge.api = this._api;
   }
 
   _switchTab(tab, options = {}) {
@@ -1149,7 +2282,34 @@ class GrocyAIDashboardPanel extends HTMLElement {
   _openScannerBridge() {
     this._switchTab('shopping', { syncHistory: true, announce: false });
     this._setScannerOpen(true);
-    this._store.patch({ topbarStatus: 'Scanner-Bridge geöffnet.' });
+    this._store.patch({ topbarStatus: 'Scanner geöffnet.' });
+  }
+
+  _updateScannerStatus(message) {
+    if (!this._store.getState().shopping.scannerModalOpen) return;
+    this._store.patch({ topbarStatus: String(message || 'Scanner bereit.') });
+  }
+
+  async _handleScannerDetection(detail) {
+    const productName = String(detail?.productName || '').trim();
+    if (!productName) return;
+
+    this._setScannerOpen(false);
+    this._store.patch({ topbarStatus: `Scanner erkennt ${productName}. Übergabe an Einkauf…` });
+
+    await this._runRequest(async () => {
+      await this._getDashboardApiOrThrow();
+      const result = await this._shoppingSearch.actions.searchSuggestedProduct(productName, {
+        amount: detail?.amount || 1,
+      });
+      const searchState = this._shoppingSearch.getState();
+      this._store.patch({ topbarStatus: searchState.errorMessage || searchState.statusMessage });
+      if (!result.ok && searchState.errorMessage) {
+        throw new Error(searchState.errorMessage);
+      }
+    }, {
+      onError: () => {},
+    });
   }
 
   _startShoppingPolling() {

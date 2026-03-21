@@ -56,3 +56,33 @@ test('dashboard api client keeps explicit request headers while adding auth head
 
   delete globalThis.fetch;
 });
+
+test('dashboard api client routes native scanner requests through v1 endpoints', async () => {
+  const calls = [];
+  globalThis.fetch = async (url, options = {}) => {
+    calls.push({ url, options });
+    return {
+      ok: true,
+      async json() {
+        return { success: true };
+      },
+    };
+  };
+
+  const client = createDashboardApiClient({
+    apiBasePath: '/api/grocy_ai_assistant/dashboard-proxy',
+    getAuthHeaders: () => ({ Authorization: 'Bearer ha-access-token' }),
+  });
+
+  await client.lookupBarcode('1234567890123');
+  await client.scanImage('base64-image');
+
+  assert.equal(calls[0].url, '/api/grocy_ai_assistant/dashboard-proxy/api/v1/barcode/1234567890123');
+  assert.equal(calls[0].options.headers.Authorization, 'Bearer ha-access-token');
+  assert.equal(calls[1].url, '/api/grocy_ai_assistant/dashboard-proxy/api/v1/scan/image');
+  assert.equal(calls[1].options.method, 'POST');
+  assert.equal(calls[1].options.headers['Content-Type'], 'application/json');
+  assert.match(calls[1].options.body, /base64-image/);
+
+  delete globalThis.fetch;
+});
