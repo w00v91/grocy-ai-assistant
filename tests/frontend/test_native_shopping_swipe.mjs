@@ -56,6 +56,7 @@ test('native shopping tab renders swipe shopping items and rebinds swipe interac
   assert.match(source, /className: 'mhd-picker-button'/);
   assert.match(source, /rootClassName: 'shopping-item-card shopping-item-card--legacy'/);
   assert.match(source, /contextFields: \['location'\]/);
+  assert.match(source, /stockBadgePlacement: 'main'/);
   assert.match(source, /selector: '\.shopping-item\.swipe-item'/);
   assert.match(source, /interactiveElementSelector: '\.amount-increment-button, \.mhd-picker-button'/);
   assert.match(source, /new CustomEvent\('shopping-open-detail'/);

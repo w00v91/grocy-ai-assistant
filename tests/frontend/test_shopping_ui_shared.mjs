@@ -53,6 +53,7 @@ test('shopping list card renders shared badge and action structure', () => {
     ],
     amountBadge: { element: 'button', variant: 'amount', className: 'amount-increment-button', dataset: { 'shopping-list-id': 9 } },
     contextFields: ['location'],
+    stockBadgePlacement: 'main',
   });
 
   assert.match(markup, /shopping-card--shopping-item/);
@@ -64,7 +65,7 @@ test('shopping list card renders shared badge and action structure', () => {
   assert.match(markup, /shopping-card__detail-label">Lagerort/);
   assert.match(markup, /Kühlschrank/);
   assert.match(markup, /shopping-status-chip--shopping/);
-  assert.match(markup, /shopping-badge__label">Bestand/);
+  assert.match(markup, /shopping-card__note">laktosefrei<\/p>\s*<div class="shopping-card__badges shopping-card__badges--main">[\s\S]*?shopping-badge__label">Bestand/);
   assert.doesNotMatch(markup, /shopping-card__context-label">Bestand/);
   assert.doesNotMatch(markup, /shopping-card__context-label">MHD/);
   assert.doesNotMatch(markup, /shopping-card__context-label">Lagerort/);
