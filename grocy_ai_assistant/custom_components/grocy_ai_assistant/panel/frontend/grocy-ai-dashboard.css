@@ -37,7 +37,6 @@
 .topbar-content,
 .section-header,
 .topbar-meta,
-.topbar-quicklinks,
 .button-row,
 .shopping-modal-save-row,
 .migration-checklist {
@@ -117,8 +116,7 @@ h1 {
 .description,
 .muted,
 .tab-status,
-.topbar-status,
-.topbar-path-hint {
+.topbar-status {
   color: var(--secondary-text-color);
   line-height: 1.5;
 }
@@ -499,7 +497,6 @@ select {
 .ghost-button,
 .danger-button,
 .tab-button,
-.quicklink-button,
 .scanner-popup-button,
 .clear-input-button {
   transition: transform 0.15s ease, opacity 0.15s ease;
@@ -508,8 +505,7 @@ select {
 .primary-button,
 .success-button,
 .scanner-popup-button,
-.tab-button.active,
-.quicklink-button.active {
+.tab-button.active {
   background: var(--primary-color);
   color: var(--text-primary-color, #fff);
 }
@@ -517,7 +513,6 @@ select {
 .secondary-button,
 .ghost-button,
 .tab-button,
-.quicklink-button,
 .clear-input-button {
   background: color-mix(in srgb, var(--primary-color) 10%, var(--panel-card-background));
   color: var(--primary-text-color);
@@ -540,23 +535,8 @@ button:disabled {
 
 
 
-.topbar-quicklinks {
-  margin-top: 16px;
-  flex-wrap: wrap;
-}
 
-.topbar-path-hint code {
-  font-family: var(--code-font-family, monospace);
-}
 
-.quicklink-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 999px;
-  padding: 12px 18px;
-  text-decoration: none;
-}
 
 .bottom-tabbar {
   position: sticky;
@@ -1155,23 +1135,8 @@ button:disabled {
     min-width: 0;
   }
 
-  .topbar-quicklinks {
-    margin-top: 16px;
-    flex-wrap: wrap;
-  }
 
-  .topbar-path-hint code {
-    font-family: var(--code-font-family, monospace);
-  }
 
-  .quicklink-button {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 999px;
-    padding: 12px 18px;
-    text-decoration: none;
-  }
 
   .recipe-item-native__button,
   .stock-item {
