@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Changed (Home-Assistant-Integration/Panel): Der `recipes`-Tab ist jetzt als erster vollständiger Nicht-Shopping-Tab nativ migriert und rendert Grocy-/KI-Rezeptvorschläge, Lagerstandorte, Produktauswahl, CTA-Aktionen sowie Rezeptdetails/-anlegen ohne Legacy-iframe direkt im HA-Panel.
+- Refactor (Home-Assistant-Integration/Panel): Das native Panel nutzt für Rezeptflows jetzt dieselben bestehenden Backend-Endpunkte wie das Legacy-Dashboard (`recipe-suggestions`, `locations`, `stock-products`, `POST /api/dashboard/recipe/{recipe_id}/add-missing`) über den gemeinsamen Panel-API-Client.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `7.4.31` erhöht.
+- Test: `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/dashboard-api-client.js`, `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.31` erhöht.
+
 - Refactor (Home-Assistant-Integration/Panel): Neue Shared-Renderer in `panel/frontend/shared-panel-ui.js` extrahieren Kartencontainer, zweispaltige Card-Gruppen, Status-/Empty-/Loading-Karten, Aktionsleisten und Kachel-Grids aus der bestehenden Shopping-UI als wiederverwendbare Bausteine.
 - Changed (Home-Assistant-Integration/Panel): Die Tabs `recipes` und `storage` nutzen diese Shared-Bausteine jetzt zuerst für ihre Migrations-/Bridge-Oberflächen und übernehmen dabei Überschriftenhierarchie, Grid-/Kachel-Logik, CTA-Gewichtung sowie Badge-/Meta-Abstände aus `dashboard.html`; Shopping bleibt Referenzimplementierung.
 - Changed (Dashboard/UI): Gemeinsame Panel-/Shopping-CSS deckt jetzt zusätzliche Status-Chip-Varianten und Grid-/Card-Group-Regeln für die neuen Shared-Renderer ab.

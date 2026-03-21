@@ -116,6 +116,29 @@ export function createDashboardApiClient({ apiBasePath = '', ingressPrefix = '',
         body: JSON.stringify(payload),
       });
     },
+    fetchLocations() {
+      return request('/api/dashboard/locations');
+    },
+    fetchStockProducts({ includeAllProducts = false, query = '', locationIds = [] } = {}) {
+      const params = new URLSearchParams();
+      if (includeAllProducts) params.set('include_all_products', 'true');
+      if (query) params.set('q', query);
+      if (Array.isArray(locationIds) && locationIds.length) params.set('location_ids', locationIds.join(','));
+      const path = params.size ? `/api/dashboard/stock-products?${params.toString()}` : '/api/dashboard/stock-products';
+      return request(path);
+    },
+    fetchRecipeSuggestions(payload) {
+      return request('/api/dashboard/recipe-suggestions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+    },
+    addMissingRecipeProducts(recipeId) {
+      return request(`/api/dashboard/recipe/${encodeURIComponent(recipeId)}/add-missing`, {
+        method: 'POST',
+      });
+    },
     lookupBarcode(barcode) {
       return request(`/api/v1/barcode/${encodeURIComponent(barcode)}`);
     },

@@ -12,7 +12,7 @@ const PANEL_TITLE = 'Grocy AI';
 const PANEL_ICON = 'mdi:brain';
 const DEFAULT_LEGACY_URL = '/api/hassio_ingress/grocy_ai_assistant/';
 const STYLE_URL = new URL('./grocy-ai-dashboard.css', import.meta.url);
-const MIGRATED_TABS = new Set(['shopping']);
+const MIGRATED_TABS = new Set(['shopping', 'recipes']);
 const TAB_LABELS = {
   shopping: '🛒 Einkauf',
   recipes: '🍳 Rezepte',
@@ -20,7 +20,9 @@ const TAB_LABELS = {
   notifications: '🔔 Benachrichtigungen',
 };
 const DEFAULT_POLLING_INTERVAL_MS = 5000;
-const DEFAULT_INTEGRATION_VERSION = '7.4.30';
+const DEFAULT_INTEGRATION_VERSION = '7.4.31';
+const GROCY_RECIPE_DISPLAY_LIMIT = 3;
+const AI_RECIPE_DISPLAY_LIMIT = 3;
 
 function sn(key) {
   return key === 'common.version' ? 'Version ' : '';
@@ -177,6 +179,37 @@ function getSearchStateLabel(searchUiState) {
   }
 }
 
+function normalizeStockProduct(item) {
+  const productId = Number(item?.id ?? item?.product_id ?? 0);
+  const stockId = Number(item?.stock_id ?? item?.stockId ?? 0);
+  return {
+    ...item,
+    id: Number.isFinite(productId) && productId > 0 ? productId : null,
+    stock_id: Number.isFinite(stockId) && stockId > 0 ? stockId : null,
+    in_stock: Boolean(item?.in_stock ?? true),
+  };
+}
+
+function buildStockSignature(items) {
+  return JSON.stringify(
+    (Array.isArray(items) ? items : []).map((item) => ({
+      id: item.id ?? null,
+      stock_id: item.stock_id ?? null,
+      amount: item.amount ?? null,
+      best_before_date: item.best_before_date ?? '',
+      location_id: item.location_id ?? null,
+    })),
+  );
+}
+
+function getRecipeSuggestionDescription(item) {
+  const reason = String(item?.reason || '').trim();
+  const preparation = String(item?.preparation || '').replace(/\s+/g, ' ').trim();
+  if (reason) return reason;
+  if (!preparation) return 'Keine zusätzliche Beschreibung verfügbar.';
+  return preparation.length > 120 ? `${preparation.slice(0, 117)}...` : preparation;
+}
+
 function createInitialState() {
   return {
     activeTab: DEFAULT_TAB,
@@ -200,6 +233,33 @@ function createInitialState() {
         value: '',
       },
       scannerModalOpen: false,
+    },
+    recipes: {
+      status: 'Bereit.',
+      initialized: false,
+      locations: [],
+      stockProducts: [],
+      grocyRecipes: [],
+      aiRecipes: [],
+      selectedLocationIds: [],
+      selectedProductIds: [],
+      stockSignature: null,
+      hasLoadedInitialSuggestions: false,
+      expiringWithinDays: 3,
+      detailModal: {
+        open: false,
+        item: null,
+      },
+      createModal: {
+        open: false,
+        method: 'webscrape',
+        webscrapeUrl: '',
+        aiPrompt: '',
+        manualTitle: '',
+        manualServings: '2',
+        manualIngredients: '',
+        manualPreparation: '',
+      },
     },
   };
 }
@@ -825,46 +885,112 @@ function buildLegacyBridgeFrameMarkup(model = {}) {
   `;
 }
 
-function buildRecipesPreviewMarkup(model = {}) {
-  const panelPath = model.panelPath || `/${PANEL_SLUG}`;
-  const primaryActions = [
-    { label: 'Legacy-Dashboard öffnen', className: 'primary-button', dataset: { action: 'open-legacy-dashboard' } },
-    { label: 'Rezepte später nativ migrieren', className: 'ghost-button', href: buildPanelTabHref(panelPath, 'shopping') },
-  ];
+function renderRecipeListMarkup(items, emptyText, options = {}) {
+  const normalizedItems = Array.isArray(items) ? items : [];
+  if (!normalizedItems.length) {
+    return `<ul class="recipe-list-native"><li class="muted">${escapeHtml(emptyText)}</li></ul>`;
+  }
+
+  return `
+    <ul class="recipe-list-native">
+      ${normalizedItems.map((item) => {
+        const payload = encodeURIComponent(JSON.stringify(item));
+        const description = getRecipeSuggestionDescription(item);
+        const imageSrc = item.picture_url
+          ? toImageSource(item.picture_url, { apiBasePath: options.apiBasePath || '' })
+          : '';
+        return `
+          <li class="recipe-item-native">
+            <button type="button" class="recipe-item-native__button" data-action="recipes-open-detail" data-recipe-item="${payload}">
+              ${imageSrc
+                ? `<img class="recipe-thumb" src="${escapeHtml(imageSrc)}" alt="${escapeHtml(item.title || 'Rezeptbild')}" loading="lazy" />`
+                : '<div class="recipe-thumb recipe-thumb-fallback">🍽️</div>'}
+              <span class="recipe-item-copy">
+                <span class="recipe-item-title">${escapeHtml(item.title || 'Unbenanntes Rezept')}</span>
+                <span class="muted recipe-item-description">${escapeHtml(description)}</span>
+              </span>
+            </button>
+          </li>
+        `;
+      }).join('')}
+    </ul>
+  `;
+}
+
+function renderRecipeLocationFiltersMarkup(locations, selectedLocationIds) {
+  const items = Array.isArray(locations) ? locations : [];
+  const selectedIds = new Set(selectedLocationIds);
+  if (!items.length) {
+    return '<div class="muted">Keine Lagerstandorte gefunden.</div>';
+  }
+
+  return `
+    <details class="location-dropdown" open>
+      <summary>Lagerstandorte auswählen (${items.length})</summary>
+      <div class="location-options">
+        ${items.map((item) => `
+          <label class="stock-item">
+            <input
+              type="checkbox"
+              data-role="recipes-location"
+              value="${escapeHtml(item.id)}"
+              ${selectedIds.size === 0 || selectedIds.has(Number(item.id)) ? 'checked' : ''}
+            />
+            <span><strong>${escapeHtml(item.name || `Lagerort ${item.id}`)}</strong></span>
+          </label>
+        `).join('')}
+      </div>
+    </details>
+  `;
+}
+
+function renderRecipeStockProductsMarkup(products, selectedProductIds) {
+  const items = (Array.isArray(products) ? products : []).map(normalizeStockProduct);
+  const selectedIds = new Set(selectedProductIds);
+  return `
+    <details class="location-dropdown" open>
+      <summary>Produkte auswählen (${items.length})</summary>
+      <div class="stock-options">
+        ${items.length ? items.map((item) => `
+          <label class="stock-item">
+            <input
+              type="checkbox"
+              data-role="recipes-product"
+              value="${escapeHtml(item.id)}"
+              ${selectedIds.size === 0 || selectedIds.has(Number(item.id)) ? 'checked' : ''}
+            />
+            <span class="stock-item-name"><strong>${escapeHtml(item.name || 'Unbekanntes Produkt')}</strong></span>
+            <span class="stock-item-attributes">
+              <span class="badge">Menge: ${escapeHtml(formatAmount(item.amount) || '-')}</span>
+              <span class="badge">MHD: ${escapeHtml(item.best_before_date || '-')}</span>
+            </span>
+          </label>
+        `).join('') : '<div class="muted">Keine Produkte für die ausgewählten Lagerstandorte gefunden.</div>'}
+      </div>
+    </details>
+  `;
+}
+
+function buildRecipesTabMarkup(model = {}) {
+  const grocyRecipes = Array.isArray(model.grocyRecipes) ? model.grocyRecipes : [];
+  const aiRecipes = Array.isArray(model.aiRecipes) ? model.aiRecipes : [];
+  const locations = Array.isArray(model.locations) ? model.locations : [];
+  const stockProducts = Array.isArray(model.stockProducts) ? model.stockProducts : [];
+
   const recipeCards = [
     renderCardContainer({
       className: 'panel-preview-card recipes-preview-card',
       eyebrow: 'Rezepte',
       title: 'Gespeicherte Grocy-Rezepte',
       titleTag: 'h3',
-      description: 'Kachelstruktur, Bild-/Meta-Positionen und CTA-Prioritäten bleiben beim späteren nativen Umstieg identisch zum Legacy-Dashboard.',
-      body: renderTileGrid([
-        renderStateCard({
-          eyebrow: 'Referenz',
-          title: 'Rezeptkacheln bleiben Rezeptkacheln',
-          message: 'Bestehende Rezeptkarten werden nicht in reine Textlisten zurückgebaut, sondern übernehmen weiter Badge-, Bild- und Meta-Logik.',
-          stateLabel: 'Referenz aktiv',
-          stateVariant: 'source',
-          meta: ['card', 'shopping-card', 'Badge-/Meta-Struktur'],
-        }),
-      ], { className: 'recipes-preview-grid' }),
+      body: renderRecipeListMarkup(grocyRecipes, 'Keine gespeicherten Grocy-Rezepte gefunden.', model),
     }),
     renderCardContainer({
       className: 'panel-preview-card recipes-preview-card',
       eyebrow: 'Rezepte',
       title: 'KI-Rezeptvorschläge',
       titleTag: 'h3',
-      description: 'Die zweispaltige Gruppierung aus dem Legacy-Markup bleibt als feste Layout-Regel erhalten.',
-      body: renderTileGrid([
-        renderStateCard({
-          eyebrow: 'Grid',
-          title: 'Zweispaltige Card-Gruppen',
-          message: 'Grocy-Rezepte und KI-Vorschläge teilen weiterhin denselben responsiven Grid-Rahmen statt getrennten Listenansichten.',
-          stateLabel: 'Grid bleibt Grid',
-          stateVariant: 'shopping',
-          meta: ['section-header', 'variant-grid', 'zweispaltig'],
-        }),
-      ], { className: 'recipes-preview-grid' }),
+      body: renderRecipeListMarkup(aiRecipes, 'Keine KI-Rezepte erzeugt.', model),
     }),
   ];
   const stockCards = [
@@ -873,34 +999,14 @@ function buildRecipesPreviewMarkup(model = {}) {
       eyebrow: 'Bestände',
       title: 'Lagerstandorte',
       titleTag: 'h3',
-      description: 'Status-, Empty- und Loading-Zustände werden als wiederverwendbare Karten statt als lose Textblöcke vorbereitet.',
-      body: renderTileGrid([
-        renderStateCard({
-          eyebrow: 'Statuskarte',
-          title: 'Standortfilter bleiben separat',
-          message: 'Filter- und Standortkacheln werden als eigenständige Card-Surfaces gerendert und bleiben klar von Rezepttreffern getrennt.',
-          stateLabel: 'Bridge aktiv',
-          stateVariant: 'mhd',
-          meta: ['Status-Karte', 'Empty/Loading-Karte', 'card'],
-        }),
-      ], { className: 'recipes-preview-grid' }),
+      body: renderRecipeLocationFiltersMarkup(locations, model.selectedLocationIds || []),
     }),
     renderCardContainer({
       className: 'panel-preview-card recipes-preview-card',
       eyebrow: 'Bestände',
       title: 'Produkte in ausgewählten Standorten',
       titleTag: 'h3',
-      description: 'Metadaten, Badges und Kachel-Interaktion bleiben mit derselben visuellen Gewichtung wie im Legacy-Dashboard erhalten.',
-      body: renderTileGrid([
-        renderStateCard({
-          eyebrow: 'Metadaten',
-          title: 'Produktkacheln behalten Badges',
-          message: 'Badge-Positionen, Abstände und CTA-Hierarchie orientieren sich weiter am bestehenden Dashboard-Layout.',
-          stateLabel: 'Badges geteilt',
-          stateVariant: 'stock',
-          meta: ['Badge-Positionen', 'Bild-/Meta-Struktur', 'CTA-Priorität'],
-        }),
-      ], { className: 'recipes-preview-grid' }),
+      body: renderRecipeStockProductsMarkup(stockProducts, model.selectedProductIds || []),
     }),
   ];
 
@@ -909,24 +1015,44 @@ function buildRecipesPreviewMarkup(model = {}) {
       className: 'hero-card recipes-hero-card',
       eyebrow: 'Rezepte',
       title: 'Rezeptvorschläge',
-      description: 'Vor der fachlichen Migration werden zuerst gemeinsame UI-Bausteine aus Shopping und Legacy-Markup als verbindliche Layout-Referenz extrahiert.',
-      actions: primaryActions,
+      description: 'Der erste vollständig native Nicht-Shopping-Tab übernimmt Vorschläge, Standortfilter, Produktauswahl und Dialoge direkt aus dem Legacy-Dashboard.',
+      actions: [
+        { label: 'Rezept hinzufügen', className: 'primary-button', dataset: { action: 'recipes-open-create' } },
+      ],
       body: [
-        renderMetaBadges(['hero-card', 'section-header', 'gleiche Überschriftenhierarchie']),
+        renderMetaBadges(['Grocy-Rezepte', 'KI-Vorschläge', 'native Dialoge']),
         renderActionRow([
-          { label: 'Rezept hinzufügen bleibt primär', className: 'primary-button', dataset: { action: 'open-legacy-dashboard' } },
-          { label: 'Ablaufende Produkte sekundär halten', className: 'secondary-button', dataset: { action: 'open-legacy-dashboard' } },
-        ]),
+          { label: 'Rezeptvorschläge laden', className: 'primary-button', dataset: { action: 'recipes-load-suggestions' } },
+        ], { className: 'recipes-primary-actions' }),
       ].join(''),
     })}
     ${renderTwoColumnCardGroup(recipeCards, { className: 'recipes-card-group' })}
     ${renderTwoColumnCardGroup(stockCards, { className: 'recipes-card-group' })}
     ${renderCardContainer({
-      className: 'legacy-bridge-card',
-      eyebrow: 'Legacy-Bridge',
-      title: model.title || 'Rezepte im Legacy-Dashboard',
-      description: 'Die bestehende Rezeptansicht bleibt bis zur eigentlichen Fachmigration eingebettet, nutzt aber bereits dieselben Shared-Card- und Grid-Regeln wie das künftige native Tab.',
-      body: buildLegacyBridgeFrameMarkup(model),
+      className: 'panel-preview-card recipes-preview-card',
+      eyebrow: 'Aktionen',
+      title: 'Rezeptvorschläge laden',
+      titleTag: 'h3',
+      body: `
+        <div class="recipe-actions">
+          <div class="expiring-search-controls">
+            <label for="recipes-expiring-days">Ablauf in Tagen</label>
+            <input
+              id="recipes-expiring-days"
+              class="ha-control"
+              data-role="recipes-expiring-days"
+              type="number"
+              min="1"
+              max="30"
+              value="${escapeHtml(model.expiringWithinDays || 3)}"
+            />
+            <button class="secondary-button" type="button" data-action="recipes-load-expiring">
+              Mit bald ablaufenden Produkten suchen
+            </button>
+          </div>
+          <p class="tab-status">${escapeHtml(model.status || 'Bereit.')}</p>
+        </div>
+      `,
     })}
   `;
 }
@@ -1086,13 +1212,26 @@ class GrocyAIDashboardModals extends HTMLElement {
     });
     this.addEventListener('input', (event) => {
       const field = event.target.closest('[data-field]');
-      if (!field) return;
-      this.dispatchEvent(new CustomEvent('shopping-modal-input', {
+      if (field) {
+        this.dispatchEvent(new CustomEvent('shopping-modal-input', {
+          bubbles: true,
+          composed: true,
+          detail: {
+            field: field.dataset.field,
+            value: field.value,
+          },
+        }));
+        return;
+      }
+
+      const recipeField = event.target.closest('[data-recipe-field]');
+      if (!recipeField) return;
+      this.dispatchEvent(new CustomEvent('recipes-create-input', {
         bubbles: true,
         composed: true,
         detail: {
-          field: field.dataset.field,
-          value: field.value,
+          field: recipeField.dataset.recipeField,
+          value: recipeField.value,
         },
       }));
     });
@@ -1105,9 +1244,15 @@ class GrocyAIDashboardModals extends HTMLElement {
 
   _render() {
     const model = this._viewModel || {};
-    const detail = model.detailModal || { open: false };
-    const mhd = model.mhdModal || { open: false };
-    const item = model.activeItem || null;
+    const detail = model.shopping?.detailModal || { open: false };
+    const mhd = model.shopping?.mhdModal || { open: false };
+    const item = model.shopping?.activeItem || null;
+    const recipeDetail = model.recipes?.detailModal || { open: false, item: null };
+    const recipeCreate = model.recipes?.createModal || { open: false, method: 'webscrape' };
+    const recipeItem = recipeDetail.item || null;
+    const recipeImageSource = recipeItem?.picture_url ? toImageSource(recipeItem.picture_url, { size: 'full', apiBasePath: model.recipes?.apiBasePath || '' }) : '';
+    const missingProducts = Array.isArray(recipeItem?.missing_products) ? recipeItem.missing_products : [];
+    const ingredients = Array.isArray(recipeItem?.ingredients) ? recipeItem.ingredients : [];
 
     this.innerHTML = `
       <div class="shopping-modal${detail.open ? '' : ' hidden'}">
@@ -1144,6 +1289,79 @@ class GrocyAIDashboardModals extends HTMLElement {
             <button class="secondary-button" type="button" data-action="shopping-reset-mhd">Zurücksetzen</button>
             <button class="success-button" type="button" data-action="shopping-save-mhd">Speichern</button>
           </div>
+        </section>
+      </div>
+
+      <div class="shopping-modal${recipeDetail.open ? '' : ' hidden'}">
+        <div class="shopping-modal-backdrop" data-action="recipes-close-detail"></div>
+        <section class="shopping-modal-content card recipe-modal-content">
+          <button class="shopping-modal-close recipe-modal-close" type="button" data-action="recipes-close-detail" aria-label="Rezeptdetails schließen">×</button>
+          ${recipeImageSource ? `
+            <div class="recipe-modal-image-wrapper" aria-hidden="false">
+              <img class="recipe-modal-image" src="${escapeHtml(recipeImageSource)}" alt="${escapeHtml(recipeItem?.title || 'Rezeptbild')}" loading="lazy" />
+            </div>
+          ` : ''}
+          <h3>${escapeHtml(recipeItem?.title || 'Rezeptdetails')}</h3>
+          <div class="muted">${escapeHtml(recipeItem?.reason || '')}</div>
+          <h4>Zutaten (mit Mengen)</h4>
+          <ul class="recipe-modal-list">
+            ${ingredients.length
+              ? ingredients.map((ingredient) => `<li>${escapeHtml(ingredient)}</li>`).join('')
+              : '<li class="muted">Keine Zutatenliste vorhanden.</li>'}
+          </ul>
+          <h4>Zubereitung</h4>
+          <p class="recipe-modal-preparation">${escapeHtml(recipeItem?.preparation || 'Keine Zubereitungsdetails vorhanden.')}</p>
+          <h4>Fehlende Produkte</h4>
+          <ul class="recipe-modal-list">
+            ${missingProducts.length
+              ? missingProducts.map((product) => `<li>${escapeHtml(product?.name || String(product || ''))}</li>`).join('')
+              : '<li class="muted">Keine fehlenden Produkte.</li>'}
+          </ul>
+          <button
+            class="success-button"
+            type="button"
+            data-action="recipes-add-missing"
+            ${!(recipeItem?.source === 'grocy' && Number.isInteger(recipeItem?.recipe_id)) ? 'disabled' : ''}
+          >Alles hinzufügen</button>
+        </section>
+      </div>
+
+      <div class="shopping-modal${recipeCreate.open ? '' : ' hidden'}">
+        <div class="shopping-modal-backdrop" data-action="recipes-close-create"></div>
+        <section class="shopping-modal-content card recipe-create-modal-content">
+          <button class="shopping-modal-close recipe-modal-close" type="button" data-action="recipes-close-create" aria-label="Rezept hinzufügen schließen">×</button>
+          <h3>Rezept hinzufügen</h3>
+          <p class="muted">Wähle eine Methode, um ein Rezept schnell anzulegen.</p>
+          <div class="recipe-create-methods">
+            <button class="ghost-button${recipeCreate.method === 'webscrape' ? ' active' : ''}" type="button" data-action="recipes-set-create-method" data-method="webscrape">WebScrape</button>
+            <button class="ghost-button${recipeCreate.method === 'ai' ? ' active' : ''}" type="button" data-action="recipes-set-create-method" data-method="ai">KI</button>
+            <button class="ghost-button${recipeCreate.method === 'manual' ? ' active' : ''}" type="button" data-action="recipes-set-create-method" data-method="manual">Manuell</button>
+          </div>
+
+          <section class="recipe-create-panel${recipeCreate.method === 'webscrape' ? '' : ' hidden'}">
+            <label for="recipe-webscrape-url-native">Webseite / URL</label>
+            <input id="recipe-webscrape-url-native" class="ha-control" data-recipe-field="webscrapeUrl" type="url" placeholder="https://example.com/rezept" value="${escapeHtml(recipeCreate.webscrapeUrl || '')}" />
+            <p class="muted">Die URL wird für das spätere Scraping inkl. KI-gestützter Attribut-Extraktion vorbereitet.</p>
+            <button class="primary-button" type="button" data-action="recipes-submit-create-webscrape">URL übernehmen</button>
+          </section>
+
+          <section class="recipe-create-panel${recipeCreate.method === 'ai' ? '' : ' hidden'}">
+            <label for="recipe-ai-prompt-native">Rezept-Anfrage für KI</label>
+            <textarea id="recipe-ai-prompt-native" class="ha-control" data-recipe-field="aiPrompt" placeholder="z.B. Erstelle ein vegetarisches Pasta-Rezept für 2 Personen...">${escapeHtml(recipeCreate.aiPrompt || '')}</textarea>
+            <button class="primary-button" type="button" data-action="recipes-submit-create-ai">KI-Anfrage übernehmen</button>
+          </section>
+
+          <section class="recipe-create-panel${recipeCreate.method === 'manual' ? '' : ' hidden'}">
+            <label for="recipe-manual-title-native">Rezeptname</label>
+            <input id="recipe-manual-title-native" class="ha-control" data-recipe-field="manualTitle" type="text" placeholder="z.B. Schnelle Gemüsesuppe" value="${escapeHtml(recipeCreate.manualTitle || '')}" />
+            <label for="recipe-manual-servings-native">Portionen</label>
+            <input id="recipe-manual-servings-native" class="ha-control" data-recipe-field="manualServings" type="number" min="1" step="1" value="${escapeHtml(recipeCreate.manualServings || '2')}" />
+            <label for="recipe-manual-ingredients-native">Zutaten (eine pro Zeile)</label>
+            <textarea id="recipe-manual-ingredients-native" class="ha-control" data-recipe-field="manualIngredients" placeholder="2 Karotten&#10;1 Zwiebel&#10;500 ml Gemüsebrühe">${escapeHtml(recipeCreate.manualIngredients || '')}</textarea>
+            <label for="recipe-manual-preparation-native">Zubereitung</label>
+            <textarea id="recipe-manual-preparation-native" class="ha-control" data-recipe-field="manualPreparation" placeholder="1) Gemüse schneiden ...">${escapeHtml(recipeCreate.manualPreparation || '')}</textarea>
+            <button class="success-button" type="button" data-action="recipes-submit-create-manual">Schnell erfassen</button>
+          </section>
         </section>
       </div>
     `;
@@ -1840,16 +2058,82 @@ class GrocyAIScannerBridge extends HTMLElement {
   }
 }
 
-class GrocyAIRecipesTab extends GrocyAILegacyBridgeTab {
+class GrocyAIRecipesTab extends HTMLElement {
+  connectedCallback() {
+    if (this._bound) return;
+    this._bound = true;
+    this.addEventListener('click', (event) => {
+      const actionTarget = event.target.closest('[data-action]');
+      if (!actionTarget) return;
+      const detail = { ...actionTarget.dataset };
+
+      if (actionTarget.dataset.recipeItem) {
+        try {
+          detail.item = JSON.parse(decodeURIComponent(actionTarget.dataset.recipeItem));
+        } catch (_) {
+          detail.item = null;
+        }
+      }
+
+      this.dispatchEvent(new CustomEvent(actionTarget.dataset.action, {
+        bubbles: true,
+        composed: true,
+        detail,
+      }));
+    });
+
+    this.addEventListener('change', (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLInputElement)) return;
+
+      if (target.dataset.role === 'recipes-location') {
+        this.dispatchEvent(new CustomEvent('recipes-location-selection-change', {
+          bubbles: true,
+          composed: true,
+          detail: {
+            locationIds: Array.from(this.querySelectorAll('input[data-role="recipes-location"]:checked'))
+              .map((checkbox) => Number(checkbox.value))
+              .filter((value) => Number.isFinite(value) && value > 0),
+          },
+        }));
+      }
+
+      if (target.dataset.role === 'recipes-product') {
+        this.dispatchEvent(new CustomEvent('recipes-product-selection-change', {
+          bubbles: true,
+          composed: true,
+          detail: {
+            productIds: Array.from(this.querySelectorAll('input[data-role="recipes-product"]:checked'))
+              .map((checkbox) => Number(checkbox.value))
+              .filter((value) => Number.isFinite(value) && value > 0),
+          },
+        }));
+      }
+
+      if (target.dataset.role === 'recipes-expiring-days') {
+        this.dispatchEvent(new CustomEvent('recipes-expiring-days-change', {
+          bubbles: true,
+          composed: true,
+          detail: {
+            value: target.value,
+          },
+        }));
+      }
+    });
+  }
+
   _render() {
     const model = this._viewModel || {};
     this.innerHTML = `
       <section class="tab-view${model.active ? '' : ' hidden'}">
-        ${buildRecipesPreviewMarkup(model)}
+        ${buildRecipesTabMarkup(model)}
       </section>
     `;
+  }
 
-    this._attachLegacyBridgeListeners(model);
+  set viewModel(value) {
+    this._viewModel = value;
+    this._render();
   }
 }
 
@@ -2041,6 +2325,21 @@ class GrocyAIDashboardPanel extends HTMLElement {
     root.addEventListener('shopping-close-scanner', () => this._setScannerOpen(false));
     root.addEventListener('shopping-scanner-status', (event) => this._updateScannerStatus(event.detail?.message));
     root.addEventListener('shopping-scanner-detected', (event) => this._handleScannerDetection(event.detail));
+    root.addEventListener('recipes-load-suggestions', () => this._loadRecipeSuggestions());
+    root.addEventListener('recipes-load-expiring', () => this._loadExpiringRecipeSuggestions());
+    root.addEventListener('recipes-location-selection-change', (event) => this._updateRecipeLocationSelection(event.detail?.locationIds || []));
+    root.addEventListener('recipes-product-selection-change', (event) => this._updateRecipeProductSelection(event.detail?.productIds || []));
+    root.addEventListener('recipes-expiring-days-change', (event) => this._updateRecipeExpiringDays(event.detail?.value));
+    root.addEventListener('recipes-open-detail', (event) => this._openRecipeDetail(event.detail?.item));
+    root.addEventListener('recipes-close-detail', () => this._closeRecipeDetail());
+    root.addEventListener('recipes-add-missing', () => this._addMissingRecipeProducts());
+    root.addEventListener('recipes-open-create', () => this._openRecipeCreateModal());
+    root.addEventListener('recipes-close-create', () => this._closeRecipeCreateModal());
+    root.addEventListener('recipes-set-create-method', (event) => this._setRecipeCreateMethod(event.detail?.method || event.target?.dataset?.method));
+    root.addEventListener('recipes-create-input', (event) => this._updateRecipeCreateInput(event.detail));
+    root.addEventListener('recipes-submit-create-webscrape', () => this._submitRecipeCreateWebscrape());
+    root.addEventListener('recipes-submit-create-ai', () => this._submitRecipeCreateAiPrompt());
+    root.addEventListener('recipes-submit-create-manual', () => this._submitRecipeCreateManual());
     root.addEventListener('open-legacy-dashboard', (event) => this._openLegacyDashboard(event.detail?.tab));
   }
 
@@ -2066,9 +2365,14 @@ class GrocyAIDashboardPanel extends HTMLElement {
       || String(panelConfig?.dashboard_api_base_path || panelConfig?.api_base_path || '').replace(/\/+$/, '');
     const migratedCount = MIGRATED_TABS.size;
     const totalCount = TAB_ORDER.length;
+    const activeTabStatus = state.activeTab === 'shopping'
+      ? state.shopping.status
+      : state.activeTab === 'recipes'
+        ? state.recipes.status
+        : state.topbarStatus;
     const topbarStatus = state.pendingRequests > 0 && searchState.flowState === SEARCH_FLOW_STATES.SUBMITTING
       ? searchState.statusMessage
-      : state.topbarStatus;
+      : activeTabStatus;
     topbar.viewModel = {
       status: topbarStatus,
       busy: state.pendingRequests > 0,
@@ -2088,11 +2392,9 @@ class GrocyAIDashboardPanel extends HTMLElement {
       resolveImageUrl: (url) => resolvePanelImageUrl(url, this._dashboardApi, { apiBasePath: panelImageApiBasePath }),
     };
     recipesTab.viewModel = {
+      ...state.recipes,
       active: state.activeTab === 'recipes',
-      title: 'Rezepte',
-      tabName: 'recipes',
-      panelPath: this._getPanelPath(),
-      legacyUrl: this._getResolvedLegacyDashboardUrl(),
+      apiBasePath: panelImageApiBasePath,
     };
     storageTab.viewModel = {
       active: state.activeTab === 'storage',
@@ -2112,9 +2414,15 @@ class GrocyAIDashboardPanel extends HTMLElement {
       || state.shopping.list.find((item) => String(item.id) === String(state.shopping.mhdModal.itemId))
       || null;
     modals.viewModel = {
-      detailModal: state.shopping.detailModal,
-      mhdModal: state.shopping.mhdModal,
-      activeItem,
+      shopping: {
+        detailModal: state.shopping.detailModal,
+        mhdModal: state.shopping.mhdModal,
+        activeItem,
+      },
+      recipes: {
+        ...state.recipes,
+        apiBasePath: panelImageApiBasePath,
+      },
     };
     scannerBridge.viewModel = {
       open: state.shopping.scannerModalOpen,
@@ -2150,6 +2458,10 @@ class GrocyAIDashboardPanel extends HTMLElement {
     } else {
       this._stopShoppingPolling();
     }
+
+    if (normalizedTab === 'recipes' && !this._store.getState().recipes.initialized) {
+      void this._initializeRecipesTab();
+    }
   }
 
   _syncActiveTabFromLocation(options = {}) {
@@ -2181,6 +2493,277 @@ class GrocyAIDashboardPanel extends HTMLElement {
         ...partial,
       },
     }));
+  }
+
+  _updateRecipesState(partial) {
+    this._store.update((state) => ({
+      ...state,
+      recipes: {
+        ...state.recipes,
+        ...partial,
+      },
+    }));
+  }
+
+  async _initializeRecipesTab() {
+    this._updateRecipesState({ status: 'Lade Lagerstandorte…' });
+    await this._runRequest(async () => {
+      const api = await this._getDashboardApiOrThrow();
+      const { response, payload } = await api.fetchLocations();
+      if (!response.ok) throw new Error(getErrorMessage(payload, 'Standorte konnten nicht geladen werden.'));
+
+      this._updateRecipesState({
+        initialized: true,
+        locations: Array.isArray(payload) ? payload : [],
+      });
+
+      await this._loadRecipeStockProducts();
+    }, {
+      onError: (message) => {
+        this._updateRecipesState({ status: `Fehler: ${message}` });
+      },
+    });
+  }
+
+  _updateRecipeLocationSelection(locationIds) {
+    const normalizedLocationIds = (Array.isArray(locationIds) ? locationIds : [])
+      .map((value) => Number(value))
+      .filter((value) => Number.isFinite(value) && value > 0);
+    this._updateRecipesState({ selectedLocationIds: normalizedLocationIds });
+    void this._loadRecipeStockProducts();
+  }
+
+  _updateRecipeProductSelection(productIds) {
+    const normalizedProductIds = (Array.isArray(productIds) ? productIds : [])
+      .map((value) => Number(value))
+      .filter((value) => Number.isFinite(value) && value > 0);
+    this._updateRecipesState({ selectedProductIds: normalizedProductIds });
+  }
+
+  _updateRecipeExpiringDays(value) {
+    const parsedDays = Number(value || 3);
+    const expiringWithinDays = Math.min(30, Math.max(1, Number.isFinite(parsedDays) ? Math.round(parsedDays) : 3));
+    this._updateRecipesState({ expiringWithinDays });
+  }
+
+  async _loadRecipeStockProducts() {
+    this._updateRecipesState({ status: 'Lade Produkte in ausgewählten Standorten…' });
+    await this._runRequest(async () => {
+      const api = await this._getDashboardApiOrThrow();
+      const recipeState = this._store.getState().recipes;
+      const { response, payload } = await api.fetchStockProducts({
+        locationIds: recipeState.selectedLocationIds,
+      });
+      if (!response.ok) throw new Error(getErrorMessage(payload, 'Bestand konnte nicht geladen werden.'));
+
+      const normalizedPayload = (Array.isArray(payload) ? payload : []).map(normalizeStockProduct);
+      const availableProductIds = new Set(normalizedPayload.map((item) => item.id).filter(Boolean));
+      const selectedProductIds = recipeState.selectedProductIds.filter((id) => availableProductIds.has(id));
+      const nextStockSignature = buildStockSignature(normalizedPayload);
+      const hasStockChanged = recipeState.stockSignature !== null && recipeState.stockSignature !== nextStockSignature;
+
+      this._updateRecipesState({
+        stockProducts: normalizedPayload,
+        selectedProductIds: selectedProductIds.length ? selectedProductIds : normalizedPayload.map((item) => item.id).filter(Boolean),
+        stockSignature: nextStockSignature,
+        status: hasStockChanged
+          ? 'Bestand aktualisiert. Lade Rezeptvorschläge bei Bedarf manuell.'
+          : 'Bestand geladen. Lade Rezeptvorschläge bei Bedarf manuell.',
+      });
+
+      if (!hasStockChanged && !recipeState.hasLoadedInitialSuggestions) {
+        this._updateRecipesState({ hasLoadedInitialSuggestions: true });
+        await this._loadRecipeSuggestions({ usePrefetchedCache: true });
+      }
+    }, {
+      onError: (message) => {
+        this._updateRecipesState({ status: `Fehler: ${message}` });
+      },
+    });
+  }
+
+  async _loadRecipeSuggestions(options = {}) {
+    this._updateRecipesState({ status: 'Lade Rezeptvorschläge…' });
+    await this._runRequest(async () => {
+      const api = await this._getDashboardApiOrThrow();
+      const recipeState = this._store.getState().recipes;
+      const usePrefetchedCache = Boolean(options.usePrefetchedCache);
+      const selectedProductIds = usePrefetchedCache ? [] : recipeState.selectedProductIds;
+      const selectedLocationIds = usePrefetchedCache ? [] : recipeState.selectedLocationIds;
+      const soonExpiringOnly = Boolean(options.soonExpiringOnly);
+      const expiringWithinDays = Number(options.expiringWithinDays || recipeState.expiringWithinDays || 3);
+
+      this._updateRecipesState({
+        selectedProductIds,
+        selectedLocationIds,
+        expiringWithinDays,
+        status: soonExpiringOnly
+          ? `Lade Rezepte mit bald ablaufenden Produkten (<= ${expiringWithinDays} Tage)…`
+          : usePrefetchedCache
+            ? 'Lade initiale Rezeptvorschläge aus dem Cache…'
+            : selectedProductIds.length
+              ? 'Lade Rezeptvorschläge für Auswahl…'
+              : 'Lade Rezeptvorschläge aus dem aktuellen Lagerbestand…',
+      });
+
+      const { response, payload } = await api.fetchRecipeSuggestions({
+        product_ids: selectedProductIds,
+        location_ids: selectedLocationIds,
+        soon_expiring_only: soonExpiringOnly,
+        expiring_within_days: expiringWithinDays,
+      });
+      if (!response.ok) throw new Error(getErrorMessage(payload, 'Rezeptvorschläge konnten nicht geladen werden.'));
+
+      this._updateRecipesState({
+        grocyRecipes: (payload.grocy_recipes || []).slice(0, GROCY_RECIPE_DISPLAY_LIMIT),
+        aiRecipes: (payload.ai_recipes || []).slice(0, AI_RECIPE_DISPLAY_LIMIT),
+        status: 'Rezeptvorschläge geladen für: Alles',
+      });
+      this._store.patch({ topbarStatus: 'Rezeptvorschläge geladen für: Alles' });
+    }, {
+      onError: (message) => {
+        this._updateRecipesState({ status: `Fehler: ${message}` });
+      },
+    });
+  }
+
+  _loadExpiringRecipeSuggestions() {
+    const expiringWithinDays = Math.min(30, Math.max(1, Number(this._store.getState().recipes.expiringWithinDays || 3)));
+    this._updateRecipesState({ expiringWithinDays });
+    void this._loadRecipeSuggestions({ soonExpiringOnly: true, expiringWithinDays });
+  }
+
+  _openRecipeDetail(item) {
+    if (!item || typeof item !== 'object') return;
+    this._updateRecipesState({
+      detailModal: {
+        open: true,
+        item,
+      },
+    });
+  }
+
+  _closeRecipeDetail() {
+    this._updateRecipesState({
+      detailModal: {
+        open: false,
+        item: null,
+      },
+    });
+  }
+
+  async _addMissingRecipeProducts() {
+    const recipeItem = this._store.getState().recipes.detailModal.item;
+    if (!(recipeItem?.source === 'grocy' && Number.isInteger(recipeItem?.recipe_id))) return;
+
+    this._updateRecipesState({ status: 'Füge fehlende Produkte hinzu…' });
+    await this._runRequest(async () => {
+      const api = await this._getDashboardApiOrThrow();
+      const { response, payload } = await api.addMissingRecipeProducts(recipeItem.recipe_id);
+      if (!response.ok) throw new Error(getErrorMessage(payload, 'Fehlende Produkte konnten nicht hinzugefügt werden.'));
+
+      const successMessage = payload?.message || 'Fehlende Produkte wurden hinzugefügt.';
+      this._closeRecipeDetail();
+      this._updateRecipesState({ status: successMessage });
+      this._store.patch({ topbarStatus: successMessage });
+      await this._loadShoppingList({ silent: true });
+    }, {
+      onError: (message) => {
+        this._updateRecipesState({ status: `Fehler: ${message}` });
+      },
+    });
+  }
+
+  _openRecipeCreateModal() {
+    const createModal = this._store.getState().recipes.createModal;
+    this._updateRecipesState({
+      createModal: {
+        ...createModal,
+        open: true,
+      },
+    });
+  }
+
+  _closeRecipeCreateModal() {
+    const createModal = this._store.getState().recipes.createModal;
+    this._updateRecipesState({
+      createModal: {
+        ...createModal,
+        open: false,
+      },
+    });
+  }
+
+  _setRecipeCreateMethod(method) {
+    const nextMethod = ['webscrape', 'ai', 'manual'].includes(method) ? method : 'webscrape';
+    this._updateRecipesState({
+      createModal: {
+        ...this._store.getState().recipes.createModal,
+        method: nextMethod,
+      },
+    });
+  }
+
+  _updateRecipeCreateInput(detail) {
+    if (!detail?.field) return;
+    this._updateRecipesState({
+      createModal: {
+        ...this._store.getState().recipes.createModal,
+        [detail.field]: detail.value,
+      },
+    });
+  }
+
+  _setRecipeStatus(message) {
+    this._updateRecipesState({ status: message });
+    this._store.patch({ topbarStatus: message });
+  }
+
+  _submitRecipeCreateWebscrape() {
+    const { webscrapeUrl } = this._store.getState().recipes.createModal;
+    const rawUrl = String(webscrapeUrl || '').trim();
+    if (!rawUrl) {
+      this._setRecipeStatus('Bitte zuerst eine URL für WebScrape eingeben.');
+      return;
+    }
+
+    try {
+      const parsedUrl = new URL(rawUrl);
+      this._setRecipeStatus(`WebScrape-URL erfasst: ${parsedUrl.toString()}`);
+      this._closeRecipeCreateModal();
+    } catch (_) {
+      this._setRecipeStatus('Bitte eine gültige URL angeben (inkl. http/https).');
+    }
+  }
+
+  _submitRecipeCreateAiPrompt() {
+    const prompt = String(this._store.getState().recipes.createModal.aiPrompt || '').trim();
+    if (!prompt) {
+      this._setRecipeStatus('Bitte eine KI-Anfrage für das Rezept eingeben.');
+      return;
+    }
+
+    this._setRecipeStatus('KI-Rezeptanfrage erfasst. Nächster Schritt: Attribut-Extraktion anbinden.');
+    this._closeRecipeCreateModal();
+  }
+
+  _submitRecipeCreateManual() {
+    const createModal = this._store.getState().recipes.createModal;
+    const title = String(createModal.manualTitle || '').trim();
+    const ingredientsRaw = String(createModal.manualIngredients || '').trim();
+    if (!title) {
+      this._setRecipeStatus('Bitte einen Rezeptnamen eingeben.');
+      return;
+    }
+    if (!ingredientsRaw) {
+      this._setRecipeStatus('Bitte mindestens eine Zutat für das manuelle Rezept eingeben.');
+      return;
+    }
+
+    const servings = Number(createModal.manualServings || '1');
+    const ingredientCount = ingredientsRaw.split('\n').map((entry) => entry.trim()).filter(Boolean).length;
+    this._setRecipeStatus(`Manuelles Rezept erfasst: ${title} (${Math.max(1, servings)} Portionen, ${ingredientCount} Zutaten).`);
+    this._closeRecipeCreateModal();
   }
 
   _updateShoppingQuery(query) {

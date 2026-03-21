@@ -69,13 +69,17 @@ test('native panel binds shared shopping image fallbacks after list and variant 
 });
 
 
-test('recipes and storage tabs render shared preview cards before their legacy iframe bridge', async () => {
+test('recipes tab is natively migrated while storage still keeps shared preview cards before its legacy iframe bridge', async () => {
   const source = await fs.readFile(dashboardPath, 'utf8');
 
   assert.match(source, /import \{ renderActionRow, renderCardContainer, renderMetaBadges, renderStateCard, renderTileGrid, renderTwoColumnCardGroup \} from '\.\/shared-panel-ui\.js';/);
-  assert.match(source, /function buildRecipesPreviewMarkup\(model = \{\}\) \{/);
+  assert.match(source, /const MIGRATED_TABS = new Set\(\['shopping', 'recipes'\]\);/);
+  assert.match(source, /function buildRecipesTabMarkup\(model = \{\}\) \{/);
   assert.match(source, /renderTwoColumnCardGroup\(recipeCards, \{ className: 'recipes-card-group' \}\)/);
-  assert.match(source, /class GrocyAIRecipesTab extends GrocyAILegacyBridgeTab \{[\s\S]*?buildRecipesPreviewMarkup\(model\)/);
+  assert.match(source, /dataset: \{ action: 'recipes-load-suggestions' \}/);
+  assert.match(source, /data-action="recipes-load-expiring"|dataset: \{ action: 'recipes-load-expiring' \}/);
+  assert.match(source, /dataset: \{ action: 'recipes-open-create' \}/);
+  assert.match(source, /class GrocyAIRecipesTab extends HTMLElement \{[\s\S]*?buildRecipesTabMarkup\(model\)/);
   assert.match(source, /function buildStoragePreviewMarkup\(model = \{\}\) \{/);
   assert.match(source, /renderTileGrid\(\[[\s\S]*?title: 'Ladezustand als Karte'/);
   assert.match(source, /class GrocyAIStorageTab extends GrocyAILegacyBridgeTab \{[\s\S]*?buildStoragePreviewMarkup\(model\)/);
