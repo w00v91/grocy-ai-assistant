@@ -585,6 +585,12 @@ class GrocyAIScannerBridge extends HTMLElement {
   }
 }
 
+class GrocyAIRecipesTab extends GrocyAILegacyBridgeTab {}
+
+class GrocyAIStorageTab extends GrocyAILegacyBridgeTab {}
+
+class GrocyAINotificationsTab extends GrocyAILegacyBridgeTab {}
+
 class GrocyAIDashboardPanel extends HTMLElement {
   constructor() {
     super();
@@ -1179,15 +1185,15 @@ if (!customElements.get('grocy-ai-shopping-tab')) {
 }
 
 if (!customElements.get('grocy-ai-recipes-tab')) {
-  customElements.define('grocy-ai-recipes-tab', GrocyAILegacyBridgeTab);
+  customElements.define('grocy-ai-recipes-tab', GrocyAIRecipesTab);
 }
 
 if (!customElements.get('grocy-ai-storage-tab')) {
-  customElements.define('grocy-ai-storage-tab', GrocyAILegacyBridgeTab);
+  customElements.define('grocy-ai-storage-tab', GrocyAIStorageTab);
 }
 
 if (!customElements.get('grocy-ai-notifications-tab')) {
-  customElements.define('grocy-ai-notifications-tab', GrocyAILegacyBridgeTab);
+  customElements.define('grocy-ai-notifications-tab', GrocyAINotificationsTab);
 }
 
 if (!customElements.get('grocy-ai-dashboard-modals')) {
