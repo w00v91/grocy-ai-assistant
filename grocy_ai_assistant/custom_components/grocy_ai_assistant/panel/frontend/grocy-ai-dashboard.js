@@ -1,4 +1,5 @@
 import { createDashboardApiClient, getErrorMessage } from './dashboard-api-client.js';
+import { buildLegacyDashboardUrl, resolveDashboardApiBasePath } from './panel-api-base-path.js';
 import { createDashboardStore } from './dashboard-store.js';
 import { buildPanelUrlWithTab, DEFAULT_TAB, resolveTabFromLocation, TAB_ORDER } from './tab-routing.js';
 import { createShoppingSearchController, SEARCH_FLOW_STATES } from './shopping-search-controller.js';
@@ -618,8 +619,11 @@ class GrocyAIDashboardPanel extends HTMLElement {
     this._unsubscribe = null;
     this._searchUnsubscribe = null;
     this._shoppingPollIntervalMs = DEFAULT_POLLING_INTERVAL_MS;
+    this._dashboardApiBasePath = '';
+    this._initialDataLoadStarted = false;
+    this._apiBasePathPromise = null;
     this._store = createDashboardStore(createInitialState());
-    this._api = createDashboardApiClient({ apiBasePath: this._getLegacyDashboardUrl() });
+    this._api = createDashboardApiClient();
     this._handlePopState = () => this._syncActiveTabFromLocation({ updateUrl: false });
     this._shoppingSearch = createShoppingSearchController({
       api: this._api,
@@ -630,7 +634,95 @@ class GrocyAIDashboardPanel extends HTMLElement {
   }
 
   connectedCallback() {
+    this._ensureShell();
     if (!this.shadowRoot) return;
+
+    this._bindEvents();
+    window.addEventListener('popstate', this._handlePopState);
+    this._unsubscribe = this._store.subscribe((state) => this._renderState(state));
+    this._applyRouteState({ syncHistory: false, announce: false });
+    this._syncActiveTabFromLocation({ replaceUrl: true });
+    this._searchUnsubscribe = this._shoppingSearch.subscribe(() => this._renderState(this._store.getState()));
+    this._ensureInitialDataLoad();
+  }
+
+  disconnectedCallback() {
+    this._unsubscribe?.();
+    window.removeEventListener('popstate', this._handlePopState);
+    this._searchUnsubscribe?.();
+    this._shoppingSearch.dispose();
+    this._stopShoppingPolling();
+  }
+
+  set hass(value) {
+    this._hass = value;
+    this._shoppingPollIntervalMs = this._resolveShoppingPollingInterval();
+    void this._ensureDashboardApiClient();
+    this._renderState(this._store.getState());
+    this._ensureInitialDataLoad();
+  }
+
+  set route(value) {
+    this._route = value;
+    this._applyRouteState({ syncHistory: false, announce: false });
+    this._syncActiveTabFromLocation({ replaceUrl: true });
+    this._renderState(this._store.getState());
+  }
+
+  set panel(value) {
+    this._panel = value;
+    void this._ensureDashboardApiClient({ forceRefresh: true });
+    this._renderState(this._store.getState());
+  }
+
+  set narrow(value) {
+    this._narrow = Boolean(value);
+    this._renderState(this._store.getState());
+  }
+
+  async _ensureDashboardApiClient(options = {}) {
+    const { forceRefresh = false } = options;
+    if (!forceRefresh && this._dashboardApiBasePath) return this._dashboardApiBasePath;
+    if (this._apiBasePathPromise && !forceRefresh) return this._apiBasePathPromise;
+
+    this._apiBasePathPromise = (async () => {
+      const nextBasePath = await resolveDashboardApiBasePath({
+        panelConfig: this._getPanelConfig(),
+        hass: this._hass,
+        location: window.location,
+      });
+      if (nextBasePath && nextBasePath !== this._dashboardApiBasePath) {
+        this._dashboardApiBasePath = nextBasePath;
+        this._api = createDashboardApiClient({ apiBasePath: nextBasePath });
+        this._shoppingSearch.setApi(this._api);
+        this._renderState(this._store.getState());
+      }
+      return this._dashboardApiBasePath;
+    })();
+
+    try {
+      return await this._apiBasePathPromise;
+    } finally {
+      this._apiBasePathPromise = null;
+    }
+  }
+
+  async _getDashboardApiOrThrow() {
+    const apiBasePath = await this._ensureDashboardApiClient();
+    if (!apiBasePath) {
+      throw new Error('Dashboard-Ingress konnte nicht initialisiert werden.');
+    }
+    return this._api;
+  }
+
+  _ensureInitialDataLoad() {
+    if (this._initialDataLoadStarted || !this.isConnected || !this._hass) return;
+    this._initialDataLoadStarted = true;
+    void this._loadShoppingList();
+  }
+
+  _ensureShell() {
+    if (!this.shadowRoot || this.shadowRoot.querySelector('grocy-ai-topbar')) return;
 
     this.shadowRoot.innerHTML = `
       <link rel="stylesheet" href="${STYLE_URL.href}">
@@ -647,47 +739,6 @@ class GrocyAIDashboardPanel extends HTMLElement {
         <grocy-ai-tab-nav></grocy-ai-tab-nav>
       </section>
     `;
-
-    this._bindEvents();
-    window.addEventListener('popstate', this._handlePopState);
-    this._unsubscribe = this._store.subscribe((state) => this._renderState(state));
-    this._applyRouteState({ syncHistory: false, announce: false });
-    this._syncActiveTabFromLocation({ replaceUrl: true });
-    this._searchUnsubscribe = this._shoppingSearch.subscribe(() => this._renderState(this._store.getState()));
-    this._loadShoppingList();
-  }
-
-  disconnectedCallback() {
-    this._unsubscribe?.();
-    window.removeEventListener('popstate', this._handlePopState);
-    this._searchUnsubscribe?.();
-    this._shoppingSearch.dispose();
-    this._stopShoppingPolling();
-  }
-
-  set hass(value) {
-    this._hass = value;
-    this._shoppingPollIntervalMs = this._resolveShoppingPollingInterval();
-    this._renderState(this._store.getState());
-  }
-
-  set route(value) {
-    this._route = value;
-    this._applyRouteState({ syncHistory: false, announce: false });
-    this._syncActiveTabFromLocation({ replaceUrl: true });
-    this._renderState(this._store.getState());
-  }
-
-  set panel(value) {
-    this._panel = value;
-    this._api = createDashboardApiClient({ apiBasePath: this._getLegacyDashboardUrl() });
-    this._shoppingSearch.setApi(this._api);
-    this._renderState(this._store.getState());
-  }
-
-  set narrow(value) {
-    this._narrow = Boolean(value);
-    this._renderState(this._store.getState());
   }
 
   _bindEvents() {
@@ -719,7 +770,20 @@ class GrocyAIDashboardPanel extends HTMLElement {
   }
 
   _renderState(state) {
+    this._ensureShell();
     if (!this.shadowRoot) return;
+
+    const topbar = this.shadowRoot.querySelector('grocy-ai-topbar');
+    const tabNav = this.shadowRoot.querySelector('grocy-ai-tab-nav');
+    const shoppingTab = this.shadowRoot.querySelector('grocy-ai-shopping-tab');
+    const recipesTab = this.shadowRoot.querySelector('grocy-ai-recipes-tab');
+    const storageTab = this.shadowRoot.querySelector('grocy-ai-storage-tab');
+    const notificationsTab = this.shadowRoot.querySelector('grocy-ai-notifications-tab');
+    const modals = this.shadowRoot.querySelector('grocy-ai-dashboard-modals');
+    const scannerBridge = this.shadowRoot.querySelector('grocy-ai-scanner-bridge');
+    if (!topbar || !tabNav || !shoppingTab || !recipesTab || !storageTab || !notificationsTab || !modals || !scannerBridge) {
+      return;
+    }
 
     const searchState = this._shoppingSearch.getState();
     const migratedCount = MIGRATED_TABS.size;
@@ -727,7 +791,7 @@ class GrocyAIDashboardPanel extends HTMLElement {
     const topbarStatus = state.pendingRequests > 0 && searchState.flowState === SEARCH_FLOW_STATES.SUBMITTING
       ? searchState.statusMessage
       : state.topbarStatus;
-    this.shadowRoot.querySelector('grocy-ai-topbar').viewModel = {
+    topbar.viewModel = {
       status: topbarStatus,
       busy: state.pendingRequests > 0,
       migratedCount,
@@ -736,42 +800,42 @@ class GrocyAIDashboardPanel extends HTMLElement {
       panelIcon: this._getPanelIcon(),
       activeTab: state.activeTab,
     };
-    this.shadowRoot.querySelector('grocy-ai-tab-nav').viewModel = {
+    tabNav.viewModel = {
       activeTab: state.activeTab,
     };
-    this.shadowRoot.querySelector('grocy-ai-shopping-tab').viewModel = {
+    shoppingTab.viewModel = {
       ...state.shopping,
       ...searchState,
       active: state.activeTab === 'shopping',
     };
-    this.shadowRoot.querySelector('grocy-ai-recipes-tab').viewModel = {
+    recipesTab.viewModel = {
       active: state.activeTab === 'recipes',
       title: 'Rezepte',
       tabName: 'recipes',
-      legacyUrl: this._getLegacyDashboardUrl(),
+      legacyUrl: this._getResolvedLegacyDashboardUrl(),
     };
-    this.shadowRoot.querySelector('grocy-ai-storage-tab').viewModel = {
+    storageTab.viewModel = {
       active: state.activeTab === 'storage',
       title: 'Lager',
       tabName: 'storage',
-      legacyUrl: this._getLegacyDashboardUrl(),
+      legacyUrl: this._getResolvedLegacyDashboardUrl(),
     };
-    this.shadowRoot.querySelector('grocy-ai-notifications-tab').viewModel = {
+    notificationsTab.viewModel = {
       active: state.activeTab === 'notifications',
       title: 'Benachrichtigungen',
       tabName: 'notifications',
-      legacyUrl: this._getLegacyDashboardUrl(),
+      legacyUrl: this._getResolvedLegacyDashboardUrl(),
     };
 
     const activeItem = state.shopping.list.find((item) => String(item.id) === String(state.shopping.detailModal.itemId))
       || state.shopping.list.find((item) => String(item.id) === String(state.shopping.mhdModal.itemId))
       || null;
-    this.shadowRoot.querySelector('grocy-ai-dashboard-modals').viewModel = {
+    modals.viewModel = {
       detailModal: state.shopping.detailModal,
       mhdModal: state.shopping.mhdModal,
       activeItem,
     };
-    this.shadowRoot.querySelector('grocy-ai-scanner-bridge').viewModel = {
+    scannerBridge.viewModel = {
       open: state.shopping.scannerModalOpen,
     };
   }
@@ -847,6 +911,7 @@ class GrocyAIDashboardPanel extends HTMLElement {
 
   async _submitShoppingQuery() {
     await this._runRequest(async () => {
+      await this._getDashboardApiOrThrow();
       const result = await this._shoppingSearch.actions.searchProduct();
       const searchState = this._shoppingSearch.getState();
       this._store.patch({ topbarStatus: searchState.errorMessage || searchState.statusMessage });
@@ -860,6 +925,7 @@ class GrocyAIDashboardPanel extends HTMLElement {
 
   async _selectShoppingVariant(detail) {
     await this._runRequest(async () => {
+      await this._getDashboardApiOrThrow();
       const result = await this._shoppingSearch.actions.selectVariant(detail);
       const searchState = this._shoppingSearch.getState();
       this._store.patch({ topbarStatus: searchState.errorMessage || searchState.statusMessage });
@@ -874,7 +940,8 @@ class GrocyAIDashboardPanel extends HTMLElement {
   async _loadShoppingList(options = {}) {
     this._updateShoppingState({ listLoading: !options.silent, status: options.silent ? this._store.getState().shopping.status : 'Lade Einkaufsliste…' });
     await this._runRequest(async () => {
-      const { response, payload } = await this._api.fetchShoppingList();
+      const api = await this._getDashboardApiOrThrow();
+      const { response, payload } = await api.fetchShoppingList();
       if (!response.ok) throw new Error(getErrorMessage(payload, 'Einkaufsliste konnte nicht geladen werden.'));
       this._updateShoppingState({
         list: Array.isArray(payload) ? payload : [],
@@ -944,8 +1011,9 @@ class GrocyAIDashboardPanel extends HTMLElement {
 
     this._updateShoppingState({ status: 'Speichere Produktdetails…' });
     await this._runRequest(async () => {
-      const amountRequest = this._api.updateShoppingListItemAmount(detailModal.itemId, detailModal.amount);
-      const noteRequest = this._api.updateShoppingListItemNote(detailModal.itemId, detailModal.note || '');
+      const api = await this._getDashboardApiOrThrow();
+      const amountRequest = api.updateShoppingListItemAmount(detailModal.itemId, detailModal.amount);
+      const noteRequest = api.updateShoppingListItemNote(detailModal.itemId, detailModal.note || '');
       const [amountResult, noteResult] = await Promise.all([amountRequest, noteRequest]);
       if (!amountResult.response.ok) throw new Error(getErrorMessage(amountResult.payload, 'Menge konnte nicht gespeichert werden.'));
       if (!noteResult.response.ok) throw new Error(getErrorMessage(noteResult.payload, 'Notiz konnte nicht gespeichert werden.'));
@@ -988,7 +1056,8 @@ class GrocyAIDashboardPanel extends HTMLElement {
 
     this._updateShoppingState({ status: 'Speichere MHD…' });
     await this._runRequest(async () => {
-      const { response, payload } = await this._api.updateShoppingListItemBestBefore(mhdModal.itemId, mhdModal.value);
+      const api = await this._getDashboardApiOrThrow();
+      const { response, payload } = await api.updateShoppingListItemBestBefore(mhdModal.itemId, mhdModal.value);
       if (!response.ok) throw new Error(getErrorMessage(payload, 'MHD konnte nicht gespeichert werden.'));
       this._closeMhdModal();
       this._store.patch({ topbarStatus: 'MHD gespeichert.' });
@@ -1007,7 +1076,8 @@ class GrocyAIDashboardPanel extends HTMLElement {
 
     this._updateShoppingState({ status: 'Setze MHD zurück…' });
     await this._runRequest(async () => {
-      const { response, payload } = await this._api.resetShoppingListItemBestBefore(mhdModal.itemId);
+      const api = await this._getDashboardApiOrThrow();
+      const { response, payload } = await api.resetShoppingListItemBestBefore(mhdModal.itemId);
       if (!response.ok) throw new Error(getErrorMessage(payload, 'MHD konnte nicht zurückgesetzt werden.'));
       this._closeMhdModal();
       this._store.patch({ topbarStatus: 'MHD zurückgesetzt.' });
@@ -1025,7 +1095,7 @@ class GrocyAIDashboardPanel extends HTMLElement {
       itemId,
       statusText: 'Menge wird erhöht…',
       successText: 'Menge erhöht.',
-      request: () => this._api.incrementShoppingItemAmount(itemId),
+      request: async () => (await this._getDashboardApiOrThrow()).incrementShoppingItemAmount(itemId),
     });
   }
 
@@ -1034,7 +1104,7 @@ class GrocyAIDashboardPanel extends HTMLElement {
       itemId,
       statusText: 'Eintrag wird abgeschlossen…',
       successText: 'Eintrag abgeschlossen.',
-      request: () => this._api.completeShoppingListItem(itemId),
+      request: async () => (await this._getDashboardApiOrThrow()).completeShoppingListItem(itemId),
     });
   }
 
@@ -1043,14 +1113,15 @@ class GrocyAIDashboardPanel extends HTMLElement {
       itemId,
       statusText: 'Eintrag wird gelöscht…',
       successText: 'Eintrag gelöscht.',
-      request: () => this._api.deleteShoppingListItem(itemId),
+      request: async () => (await this._getDashboardApiOrThrow()).deleteShoppingListItem(itemId),
     });
   }
 
   async _completeAllShopping() {
     this._updateShoppingState({ status: 'Schließe Einkauf ab…' });
     await this._runRequest(async () => {
-      const { response, payload } = await this._api.completeShoppingList();
+      const api = await this._getDashboardApiOrThrow();
+      const { response, payload } = await api.completeShoppingList();
       if (!response.ok) throw new Error(getErrorMessage(payload, 'Einkauf konnte nicht abgeschlossen werden.'));
       this._store.patch({ topbarStatus: 'Einkauf abgeschlossen.' });
       this._updateShoppingState({ status: 'Einkauf abgeschlossen.' });
@@ -1065,7 +1136,8 @@ class GrocyAIDashboardPanel extends HTMLElement {
   async _clearAllShopping() {
     this._updateShoppingState({ status: 'Leere Einkaufsliste…' });
     await this._runRequest(async () => {
-      const { response, payload } = await this._api.clearShoppingList();
+      const api = await this._getDashboardApiOrThrow();
+      const { response, payload } = await api.clearShoppingList();
       if (!response.ok) throw new Error(getErrorMessage(payload, 'Einkaufsliste konnte nicht geleert werden.'));
       this._store.patch({ topbarStatus: 'Einkaufsliste geleert.' });
       this._updateShoppingState({ status: 'Einkaufsliste geleert.' });
@@ -1155,6 +1227,10 @@ class GrocyAIDashboardPanel extends HTMLElement {
     return this._getPanelConfig().legacy_dashboard_url || DEFAULT_LEGACY_URL;
   }
 
+  _getResolvedLegacyDashboardUrl() {
+    return buildLegacyDashboardUrl(this._dashboardApiBasePath, this._getLegacyDashboardUrl());
+  }
+
   _getPanelPath() {
     return this._getPanelConfig().panel_path || `/${PANEL_SLUG}`;
   }
@@ -1164,7 +1240,7 @@ class GrocyAIDashboardPanel extends HTMLElement {
   }
 
   _openLegacyDashboard(tab) {
-    const url = new URL(this._getLegacyDashboardUrl(), window.location.origin);
+    const url = new URL(this._getResolvedLegacyDashboardUrl(), window.location.origin);
     if (tab) {
       url.hash = `tab=${tab}`;
     }

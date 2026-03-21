@@ -12,12 +12,16 @@ async function parseJsonSafe(response) {
   }
 }
 
-export function createDashboardApiClient({ apiBasePath = '' } = {}) {
+export function createDashboardApiClient({ apiBasePath = '', ingressPrefix = '' } = {}) {
   function buildUrl(path) {
     const normalizedPath = '/' + String(path || '').replace(/^\/+/, '');
     const normalizedBase = String(apiBasePath || '').replace(/\/+$/, '');
-    if (!normalizedBase) return normalizedPath;
-    return `${normalizedBase}${normalizedPath}`;
+    if (normalizedBase) return `${normalizedBase}${normalizedPath}`;
+
+    const normalizedIngressPrefix = String(ingressPrefix || '').replace(/\/+$/, '');
+    if (normalizedIngressPrefix) return `${normalizedIngressPrefix}${normalizedPath}`;
+
+    return normalizedPath;
   }
 
   async function request(path, options = {}) {
