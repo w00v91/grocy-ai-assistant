@@ -46,6 +46,7 @@ test('shopping list card renders shared badge and action structure', () => {
     note: 'laktosefrei',
     in_stock: '1',
     best_before_date: '2026-03-30',
+    location_name: 'Kühlschrank',
   }, {
     actionButtons: [
       { label: 'Details', className: 'ghost-button', actionName: 'shopping-open-detail', dataset: { 'item-id': 9 } },
@@ -59,7 +60,12 @@ test('shopping list card renders shared badge and action structure', () => {
   assert.match(markup, /data-shopping-list-id="9"/);
   assert.match(markup, /data-action="shopping-open-detail"/);
   assert.match(markup, /data-shopping-image="true"/);
+  assert.match(markup, /shopping-card__meta/);
+  assert.match(markup, /shopping-card__badges--header/);
+  assert.match(markup, /shopping-badge__label">Lagerort/);
+  assert.match(markup, /Kühlschrank/);
   assert.match(markup, /shopping-badge__label">Bestand/);
   assert.doesNotMatch(markup, /shopping-card__context-label">Bestand/);
   assert.doesNotMatch(markup, /shopping-card__context-label">MHD/);
+  assert.doesNotMatch(markup, /shopping-card__context-label">Lagerort/);
 });
