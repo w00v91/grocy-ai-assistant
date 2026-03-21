@@ -6,6 +6,26 @@ export const VARIANT_SOURCE_LABELS = {
 
 const DEFAULT_IMAGE_PLACEHOLDER = 'https://placehold.co/80x80?text=Kein+Bild';
 
+export function bindShoppingImageFallbacks(root = document) {
+  if (!root?.querySelectorAll) return;
+
+  root.querySelectorAll('img[data-shopping-image]').forEach((image) => {
+    const applyFallback = () => {
+      if (image.dataset.fallbackApplied === 'true') return;
+      image.dataset.fallbackApplied = 'true';
+      image.src = image.dataset.fallbackSrc || DEFAULT_IMAGE_PLACEHOLDER;
+    };
+
+    if (image.dataset.fallbackBound !== 'true') {
+      image.dataset.fallbackBound = 'true';
+      image.addEventListener('error', applyFallback);
+    }
+    if (image.complete && image.naturalWidth === 0) {
+      applyFallback();
+    }
+  });
+}
+
 export function escapeHtml(value) {
   return String(value ?? '')
     .replaceAll('&', '&amp;')
@@ -119,7 +139,7 @@ export function renderShoppingVariantCard(variant, options = {}) {
       <button class="shopping-card__button variant-card__button" type="button" ${buildDataAttributes(dataset)}>
         <div class="shopping-card__surface">
           <div class="shopping-card__media-wrap">
-            <img class="shopping-card__media" src="${escapeHtml(resolvedImageSource)}" alt="${escapeHtml(variantName)}" loading="lazy" />
+            <img class="shopping-card__media" src="${escapeHtml(resolvedImageSource)}" alt="${escapeHtml(variantName)}" loading="lazy" data-shopping-image="true" data-fallback-src="${escapeHtml(DEFAULT_IMAGE_PLACEHOLDER)}" />
             <span class="shopping-badge shopping-badge--amount variant-amount-badge">${escapeHtml(amountLabel)}</span>
           </div>
           <div class="shopping-card__body">
@@ -172,7 +192,7 @@ export function renderShoppingListItemCard(item, options = {}) {
   return `
     <div class="${rootClassName}">
       <div class="shopping-card__surface">
-        <img class="shopping-card__media" src="${escapeHtml(resolvedImageSource)}" alt="${escapeHtml(title)}" loading="lazy" />
+        <img class="shopping-card__media" src="${escapeHtml(resolvedImageSource)}" alt="${escapeHtml(title)}" loading="lazy" data-shopping-image="true" data-fallback-src="${escapeHtml(DEFAULT_IMAGE_PLACEHOLDER)}" />
         <div class="shopping-card__body">
           <div class="shopping-card__header">
             <strong class="shopping-card__title">${escapeHtml(title)}</strong>

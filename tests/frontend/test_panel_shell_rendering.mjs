@@ -59,3 +59,11 @@ test('shopping tab and search bar keep their stable DOM shells instead of replac
   );
   assert.match(shoppingTabSection, /this\._elements\.searchBar\.viewModel = \{\s+\.\.\.model,\s+\};/);
 });
+
+test('native panel binds shared shopping image fallbacks after list and variant renders', async () => {
+  const source = await fs.readFile(dashboardPath, 'utf8');
+
+  assert.match(source, /import \{ bindShoppingImageFallbacks, escapeHtml, formatAmount, renderShoppingListItemCard, renderShoppingVariantCard, resolveShoppingImageSource \} from '\.\/shopping-ui\.js';/);
+  assert.match(source, /variantGrid\.replaceChildren\(\.\.\.nodes\);\s+bindShoppingImageFallbacks\(this\);/);
+  assert.match(source, /list\.replaceChildren\(\.\.\.items\.map\(\(item\) => this\._createShoppingListItem\(item, model\)\)\);\s+bindShoppingImageFallbacks\(this\);/);
+});

@@ -34,36 +34,51 @@ export function bindSwipeInteractions({
 
   items.forEach((item) => {
     let startX = 0;
+    let startY = 0;
     let deltaX = 0;
+    let horizontalDragLocked = false;
     let pointerId = null;
     let isDragging = false;
+    let lastTouchStartAt = 0;
 
     resetSwipeVisualState(item);
 
-    const handlePointerDown = (event) => {
-      if (interactiveElementSelector && event.target.closest(interactiveElementSelector)) {
-        return;
-      }
-
-      pointerId = event.pointerId;
-      startX = event.clientX;
+    const beginInteraction = ({ clientX, clientY }) => {
+      startX = clientX;
+      startY = clientY;
       deltaX = 0;
+      horizontalDragLocked = false;
       isDragging = true;
       item.classList.remove('swipe-commit-left', 'swipe-commit-right');
       item.classList.add('dragging');
-      if (typeof item.setPointerCapture === 'function') {
-        item.setPointerCapture(pointerId);
-      }
     };
 
-    const handlePointerMove = (event) => {
-      if (!isDragging || event.pointerId !== pointerId) {
+    const updateInteraction = ({ clientX, clientY, cancelable = false, preventDefault = null }) => {
+      if (!isDragging) {
         return;
       }
 
-      const distance = event.clientX - startX;
+      const distanceX = clientX - startX;
+      const distanceY = clientY - startY;
+      if (!horizontalDragLocked) {
+        if (Math.abs(distanceY) > Math.abs(distanceX) && Math.abs(distanceY) > 10) {
+          isDragging = false;
+          pointerId = null;
+          resetSwipeVisualState(item);
+          return;
+        }
+
+        if (Math.abs(distanceX) > 6) {
+          horizontalDragLocked = true;
+        }
+      }
+
+      if (horizontalDragLocked && cancelable && typeof preventDefault === 'function') {
+        preventDefault();
+      }
+
       const dragScale = 0.8;
-      deltaX = Math.max(-maxDistance, Math.min(maxDistance, distance * dragScale));
+      deltaX = Math.max(-maxDistance, Math.min(maxDistance, distanceX * dragScale));
 
       const rightProgress = Math.min(Math.max(deltaX / commitDistance, 0), 1);
       const leftProgress = Math.min(Math.max((-deltaX) / commitDistance, 0), 1);
@@ -73,6 +88,28 @@ export function bindSwipeInteractions({
       item.style.setProperty('--swipe-progress-left', leftProgress.toFixed(3));
       item.style.setProperty('--swipe-progress-right', rightProgress.toFixed(3));
       item.style.setProperty('--swipe-glow', glow);
+    };
+
+    const handlePointerDown = (event) => {
+      if (interactiveElementSelector && event.target?.closest?.(interactiveElementSelector)) {
+        return;
+      }
+      if (event.pointerType === 'touch' && (Date.now() - lastTouchStartAt) < 800) {
+        return;
+      }
+
+      pointerId = event.pointerId;
+      beginInteraction({ clientX: event.clientX, clientY: event.clientY });
+      if (typeof item.setPointerCapture === 'function') {
+        item.setPointerCapture(pointerId);
+      }
+    };
+
+    const handlePointerMove = (event) => {
+      if (!isDragging || event.pointerId !== pointerId) {
+        return;
+      }
+      updateInteraction({ clientX: event.clientX, clientY: event.clientY });
     };
 
     const handlePointerCancel = () => {
@@ -114,10 +151,86 @@ export function bindSwipeInteractions({
       resetSwipeVisualState(item);
     };
 
+    const getPrimaryTouch = (event) => event.touches?.[0] || event.changedTouches?.[0] || null;
+
+    const handleTouchStart = (event) => {
+      if (interactiveElementSelector && event.target?.closest?.(interactiveElementSelector)) {
+        return;
+      }
+
+      const touch = getPrimaryTouch(event);
+      if (!touch) return;
+
+      lastTouchStartAt = Date.now();
+      beginInteraction({ clientX: touch.clientX, clientY: touch.clientY });
+    };
+
+    const handleTouchMove = (event) => {
+      if (!isDragging) return;
+      const touch = getPrimaryTouch(event);
+      if (!touch) return;
+      updateInteraction({
+        clientX: touch.clientX,
+        clientY: touch.clientY,
+        cancelable: event.cancelable,
+        preventDefault: () => event.preventDefault(),
+      });
+    };
+
+    const handleTouchCancel = () => {
+      isDragging = false;
+      pointerId = null;
+      resetSwipeVisualState(item);
+    };
+
+    const handleTouchEnd = async (event) => {
+      if (!isDragging) {
+        return;
+      }
+
+      const touch = getPrimaryTouch(event);
+      if (touch) {
+        updateInteraction({
+          clientX: touch.clientX,
+          clientY: touch.clientY,
+          cancelable: event.cancelable,
+          preventDefault: () => event.preventDefault(),
+        });
+      }
+
+      isDragging = false;
+      pointerId = null;
+      item.classList.remove('dragging');
+
+      const payload = getPayload(item);
+
+      if (deltaX <= -commitDistance) {
+        item.classList.add('swipe-commit-left');
+        if (onSwipeLeft) await onSwipeLeft(item, payload);
+        return;
+      }
+
+      if (deltaX >= commitDistance) {
+        item.classList.add('swipe-commit-right');
+        if (onSwipeRight) await onSwipeRight(item, payload);
+        return;
+      }
+
+      if (Math.abs(deltaX) < 14 && onTap) {
+        onTap(item, payload);
+      }
+
+      resetSwipeVisualState(item);
+    };
+
     item.addEventListener('pointerdown', handlePointerDown, signalOptions);
     item.addEventListener('pointermove', handlePointerMove, signalOptions);
     item.addEventListener('pointercancel', handlePointerCancel, signalOptions);
     item.addEventListener('pointerup', handlePointerUp, signalOptions);
+    item.addEventListener('touchstart', handleTouchStart, { ...signalOptions, passive: true });
+    item.addEventListener('touchmove', handleTouchMove, { ...signalOptions, passive: false });
+    item.addEventListener('touchcancel', handleTouchCancel, signalOptions);
+    item.addEventListener('touchend', handleTouchEnd, signalOptions);
 
     if (!abortController) {
       manualCleanup.push(() => {
@@ -125,6 +238,10 @@ export function bindSwipeInteractions({
         item.removeEventListener('pointermove', handlePointerMove);
         item.removeEventListener('pointercancel', handlePointerCancel);
         item.removeEventListener('pointerup', handlePointerUp);
+        item.removeEventListener('touchstart', handleTouchStart);
+        item.removeEventListener('touchmove', handleTouchMove);
+        item.removeEventListener('touchcancel', handleTouchCancel);
+        item.removeEventListener('touchend', handleTouchEnd);
       });
     }
   });

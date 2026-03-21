@@ -191,6 +191,7 @@ async def async_setup(hass: HomeAssistant) -> None:
             "route": f"/{PANEL_SLUG}",
             "sidebar_icon": PANEL_ICON,
             "sidebar_title": PANEL_TITLE,
+            "integration_version": INTEGRATION_VERSION,
         },
     )
     panel_state["panel_registered"] = True
