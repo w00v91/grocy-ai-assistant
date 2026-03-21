@@ -4,6 +4,7 @@ import { createDashboardStore } from './dashboard-store.js';
 import { buildPanelUrlWithTab, DEFAULT_TAB, resolveTabFromLocation, TAB_ORDER } from './tab-routing.js';
 import { createShoppingSearchController, SEARCH_FLOW_STATES } from './shopping-search-controller.js';
 import { escapeHtml, formatAmount, renderShoppingListItemCard, renderShoppingVariantCard, resolveShoppingImageSource } from './shopping-ui.js';
+import { bindSwipeInteractions } from './swipe-interactions.js';
 
 const PANEL_SLUG = 'grocy-ai';
 const PANEL_TITLE = 'Grocy AI';
@@ -600,10 +601,8 @@ class GrocyAIShoppingTab extends HTMLElement {
     this._viewModel = {};
     this._lastListSignature = '';
     this._lastShellSignature = '';
-  }
-
-  connectedCallback() {
-    this.addEventListener('click', (event) => {
+    this._cleanupSwipe = null;
+    this._boundClick = (event) => {
       const actionTarget = event.target.closest?.('[data-action]');
       if (!actionTarget) return;
       this.dispatchEvent(new CustomEvent(actionTarget.dataset.action, {
@@ -611,7 +610,17 @@ class GrocyAIShoppingTab extends HTMLElement {
         composed: true,
         detail: { ...actionTarget.dataset },
       }));
-    });
+    };
+  }
+
+  connectedCallback() {
+    this.addEventListener('click', this._boundClick);
+  }
+
+  disconnectedCallback() {
+    this.removeEventListener('click', this._boundClick);
+    this._cleanupSwipe?.();
+    this._cleanupSwipe = null;
   }
 
   set viewModel(value) {
@@ -687,44 +696,60 @@ class GrocyAIShoppingTab extends HTMLElement {
     };
   }
 
-  _createShoppingListItem(item) {
+  _createShoppingListItem(item, model) {
     const listItem = document.createElement('li');
-    listItem.className = 'shopping-item-card';
-
-    const content = document.createElement('div');
-    content.className = 'shopping-item-card__content';
-    const details = document.createElement('div');
-    const title = document.createElement('strong');
-    title.textContent = item.product_name || 'Unbekanntes Produkt';
-    const amount = document.createElement('div');
-    amount.className = 'muted';
-    amount.textContent = `Menge: ${formatAmount(item.amount)}`;
-    const note = document.createElement('div');
-    note.className = 'muted';
-    note.textContent = item.note || 'Keine Notiz';
-    details.append(title, amount, note);
-
-    const actions = document.createElement('div');
-    actions.className = 'shopping-item-card__actions';
-    [
-      ['ghost-button', 'shopping-open-detail', 'Details'],
-      ['ghost-button', 'shopping-open-mhd', 'MHD'],
-      ['ghost-button', 'shopping-increment-item', '+1'],
-      ['success-button', 'shopping-complete-item', 'Erledigt'],
-      ['danger-button', 'shopping-delete-item', 'Löschen'],
-    ].forEach(([className, action, label]) => {
-      const button = document.createElement('button');
-      button.className = className;
-      button.type = 'button';
-      button.dataset.action = action;
-      button.dataset.itemId = String(item.id);
-      button.textContent = label;
-      actions.append(button);
-    });
-
-    content.append(details, actions);
-    listItem.append(content);
+    listItem.className = 'shopping-list-native__item shopping-item swipe-item';
+    listItem.dataset.itemId = String(item.id);
+    listItem.innerHTML = `
+      <div class="swipe-item-action swipe-item-action-left" aria-hidden="true">
+        <span class="swipe-chip swipe-chip-complete">✅ Erledigt</span>
+      </div>
+      <div class="swipe-item-action swipe-item-action-right" aria-hidden="true">
+        <span class="swipe-chip swipe-chip-delete">🗑 Löschen</span>
+      </div>
+      <div class="shopping-item-content swipe-item-content">
+        ${renderShoppingListItemCard(item, {
+          rootClassName: 'shopping-item-card shopping-item-card--native-swipe',
+          resolveImageUrl: model.resolveImageUrl,
+          actionButtons: [
+            { label: 'MHD', className: 'ghost-button', actionName: 'shopping-open-mhd', dataset: { 'item-id': item.id } },
+            { label: '+1', className: 'ghost-button', actionName: 'shopping-increment-item', dataset: { 'item-id': item.id } },
+          ],
+        })}
+      </div>
+    `;
     return listItem;
+  }
+
+  _rebindSwipeInteractions() {
+    this._cleanupSwipe?.();
+    this._cleanupSwipe = bindSwipeInteractions({
+      root: this,
+      selector: '.shopping-item.swipe-item',
+      getPayload: (item) => ({ itemId: item.dataset.itemId }),
+      interactiveElementSelector: '.shopping-card__actions button',
+      onTap: (_, payload) => {
+        this.dispatchEvent(new CustomEvent('shopping-open-detail', {
+          bubbles: true,
+          composed: true,
+          detail: { itemId: payload.itemId },
+        }));
+      },
+      onSwipeLeft: async (_, payload) => {
+        this.dispatchEvent(new CustomEvent('shopping-delete-item', {
+          bubbles: true,
+          composed: true,
+          detail: { itemId: payload.itemId },
+        }));
+      },
+      onSwipeRight: async (_, payload) => {
+        this.dispatchEvent(new CustomEvent('shopping-complete-item', {
+          bubbles: true,
+          composed: true,
+          detail: { itemId: payload.itemId },
+        }));
+      },
+    });
   }
 
   _renderList(model, items) {
@@ -736,10 +761,14 @@ class GrocyAIShoppingTab extends HTMLElement {
         product_name: item.product_name || '',
         amount: formatAmount(item.amount),
         note: item.note || '',
+        best_before_date: item.best_before_date || '',
       })),
     });
     if (listSignature === this._lastListSignature) return;
     this._lastListSignature = listSignature;
+
+    this._cleanupSwipe?.();
+    this._cleanupSwipe = null;
 
     if (!items.length) {
       const emptyItem = document.createElement('li');
@@ -749,7 +778,8 @@ class GrocyAIShoppingTab extends HTMLElement {
       return;
     }
 
-    list.replaceChildren(...items.map((item) => this._createShoppingListItem(item)));
+    list.replaceChildren(...items.map((item) => this._createShoppingListItem(item, model)));
+    this._rebindSwipeInteractions();
   }
 
   _render() {
@@ -769,6 +799,8 @@ class GrocyAIShoppingTab extends HTMLElement {
 
     this._elements.searchBar.viewModel = {
       ...model,
+      variants,
+      imageBasePath: model.imageBasePath || '',
     };
     this._renderList(model, items);
   }
