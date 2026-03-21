@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Changed (Home-Assistant-Integration/Panel): Nach erfolgreichem Start protokolliert das native Panel jetzt zusätzlich ein `GROCY-AI`-Konsole-Banner mit der aktuellen Integrationsversion `7.4.29` im Browser-Log.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `7.4.29` erhöht.
+- Test: `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`.
+
 - Fix (Home-Assistant-Integration/Panel): Die gemeinsame Swipe-Logik unterstützt im nativen Dashboard jetzt zusätzlich echte `touchstart`-/`touchmove`-/`touchend`-Events samt Vertikal-Scroll-Erkennung, sodass Wischgesten in mobilen Home-Assistant-WebViews wieder zuverlässig ausgelöst werden.
 - Fix (Home-Assistant-Integration/Panel): Native Shopping-Karten und Variantentreffer registrieren jetzt einen gemeinsamen Bild-Fallback, der fehlgeschlagene Produktbild-Requests automatisch auf das Platzhalterbild umstellt; dadurch verschwinden leere bzw. kaputte Bildrahmen im nativen Dashboard.
 - Test: `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/swipe-interactions.js`, `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/shopping-ui.js`, `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `node --test tests/frontend/test_native_shopping_swipe.mjs tests/frontend/test_panel_shell_rendering.mjs tests/frontend/test_shopping_ui_shared.mjs`, `pytest tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.29` erhöht.

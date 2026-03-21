@@ -19,7 +19,15 @@ const TAB_LABELS = {
   notifications: '🔔 Benachrichtigungen',
 };
 const DEFAULT_POLLING_INTERVAL_MS = 5000;
+const DEFAULT_INTEGRATION_VERSION = '7.4.29';
 
+function sn(key) {
+  return key === 'common.version' ? 'Version ' : '';
+}
+
+function logIntegrationStartupBanner(version) {
+  console.info(`%c  GROCY-AI %c ${sn("common.version")}${version} %c`, "background-color: #555;color: #fff;padding: 3px 2px 3px 3px;border: 1px solid #555;border-radius: 3px 0 0 3px;font-family: Roboto,Verdana,Geneva,sans-serif;text-shadow: 0 1px 0 rgba(1, 1, 1, 0.3)", "background-color: transparent;color: #555;padding: 3px 3px 3px 2px;border: 1px solid #555; border-radius: 0 3px 3px 0;font-family: Roboto,Verdana,Geneva,sans-serif", "background-color: transparent");
+}
 
 function resolvePanelImageUrl(url, dashboardApi, options = {}) {
   const normalized = String(url || '').trim();
@@ -1647,6 +1655,7 @@ class GrocyAIDashboardPanel extends HTMLElement {
     this._dashboardApiBasePath = '';
     this._initialDataLoadStarted = false;
     this._apiBasePathPromise = null;
+    this._startupBannerLogged = false;
     this._store = createDashboardStore(createInitialState());
     this._api = createDashboardApiClient({ getAuthHeaders: () => this._getHomeAssistantAuthHeaders() });
     this._handlePopState = () => this._syncActiveTabFromLocation({ updateUrl: false });
@@ -1669,6 +1678,7 @@ class GrocyAIDashboardPanel extends HTMLElement {
     this._syncActiveTabFromLocation({ replaceUrl: true });
     this._searchUnsubscribe = this._shoppingSearch.subscribe(() => this._renderState(this._store.getState()));
     this._ensureInitialDataLoad();
+    this._logStartupBanner();
   }
 
   disconnectedCallback() {
@@ -1747,6 +1757,14 @@ class GrocyAIDashboardPanel extends HTMLElement {
     if (this._initialDataLoadStarted || !this.isConnected || !this._hass) return;
     this._initialDataLoadStarted = true;
     void this._loadShoppingList();
+  }
+
+  _logStartupBanner() {
+    if (this._startupBannerLogged) return;
+
+    const version = this._getPanelConfig().integration_version || DEFAULT_INTEGRATION_VERSION;
+    logIntegrationStartupBanner(version);
+    this._startupBannerLogged = true;
   }
 
   _ensureShell() {
