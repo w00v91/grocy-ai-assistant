@@ -623,7 +623,7 @@ class GrocyAIDashboardPanel extends HTMLElement {
     this._initialDataLoadStarted = false;
     this._apiBasePathPromise = null;
     this._store = createDashboardStore(createInitialState());
-    this._api = createDashboardApiClient();
+    this._api = createDashboardApiClient({ getAuthHeaders: () => this._getHomeAssistantAuthHeaders() });
     this._handlePopState = () => this._syncActiveTabFromLocation({ updateUrl: false });
     this._shoppingSearch = createShoppingSearchController({
       api: this._api,
@@ -693,7 +693,10 @@ class GrocyAIDashboardPanel extends HTMLElement {
       });
       if (nextBasePath && nextBasePath !== this._dashboardApiBasePath) {
         this._dashboardApiBasePath = nextBasePath;
-        this._api = createDashboardApiClient({ apiBasePath: nextBasePath });
+        this._api = createDashboardApiClient({
+          apiBasePath: nextBasePath,
+          getAuthHeaders: () => this._getHomeAssistantAuthHeaders(),
+        });
         this._shoppingSearch.setApi(this._api);
         this._renderState(this._store.getState());
       }
@@ -1217,6 +1220,21 @@ class GrocyAIDashboardPanel extends HTMLElement {
     const value = Number(this._hass?.states?.['sensor.grocy_ai_status']?.attributes?.dashboard_polling_interval_seconds ?? 5);
     if (!Number.isFinite(value) || value < 1) return DEFAULT_POLLING_INTERVAL_MS;
     return value * 1000;
+  }
+
+  _getHomeAssistantAccessToken() {
+    const directToken = this._hass?.auth?.data?.accessToken;
+    if (directToken) return directToken;
+
+    const connectionToken = this._hass?.connection?.options?.auth?.accessToken;
+    if (connectionToken) return connectionToken;
+
+    return '';
+  }
+
+  _getHomeAssistantAuthHeaders() {
+    const accessToken = this._getHomeAssistantAccessToken();
+    return accessToken ? { Authorization: `Bearer ${accessToken}` } : {};
   }
 
   _getPanelConfig() {

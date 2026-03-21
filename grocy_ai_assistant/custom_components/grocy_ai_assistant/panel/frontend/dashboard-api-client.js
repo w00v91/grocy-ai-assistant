@@ -12,7 +12,15 @@ async function parseJsonSafe(response) {
   }
 }
 
-export function createDashboardApiClient({ apiBasePath = '', ingressPrefix = '' } = {}) {
+function resolveRequestHeaders(options = {}, getAuthHeaders) {
+  const authHeaders = typeof getAuthHeaders === 'function' ? (getAuthHeaders() || {}) : {};
+  return {
+    ...authHeaders,
+    ...(options.headers || {}),
+  };
+}
+
+export function createDashboardApiClient({ apiBasePath = '', ingressPrefix = '', getAuthHeaders = null } = {}) {
   function buildUrl(path) {
     const normalizedPath = '/' + String(path || '').replace(/^\/+/, '');
     const normalizedBase = String(apiBasePath || '').replace(/\/+$/, '');
@@ -27,6 +35,7 @@ export function createDashboardApiClient({ apiBasePath = '', ingressPrefix = '' 
   async function request(path, options = {}) {
     const response = await fetch(buildUrl(path), {
       ...options,
+      headers: resolveRequestHeaders(options, getAuthHeaders),
       credentials: 'same-origin',
     });
     const payload = await parseJsonSafe(response);
