@@ -1,3 +1,5 @@
+@import './shopping-ui.css';
+
 :host {
   display: block;
   color: var(--primary-text-color);
@@ -35,8 +37,6 @@
 .section-header,
 .topbar-meta,
 .topbar-quicklinks,
-.shopping-item-card__content,
-.shopping-item-card__actions,
 .button-row,
 .shopping-modal-save-row,
 .migration-checklist {
@@ -45,8 +45,7 @@
 }
 
 .topbar-content,
-.section-header,
-.shopping-item-card__content {
+.section-header {
   justify-content: space-between;
   align-items: flex-start;
 }
@@ -154,9 +153,7 @@ h1 {
   background: color-mix(in srgb, var(--panel-card-background) 94%, var(--primary-background-color));
 }
 
-.shopping-search-shell__header,
-.variant-card__header,
-.variant-card__meta {
+.shopping-search-shell__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -232,55 +229,15 @@ h1 {
   padding: 0;
 }
 
-.shopping-item-card,
-.variant-card {
-  border: 1px solid var(--panel-border-color);
-  border-radius: 16px;
-  padding: 16px;
-  background: color-mix(in srgb, var(--panel-card-background) 90%, var(--primary-background-color));
+.shopping-list-native__item {
+  list-style: none;
 }
 
 .variant-grid--search {
   gap: 10px;
 }
 
-.variant-card--action {
-  padding: 0;
-  overflow: hidden;
-}
-
-.variant-card__button {
-  width: 100%;
-  padding: 16px;
-  border-radius: 0;
-  background: transparent;
-  color: inherit;
-  text-align: left;
-}
-
-.variant-card__button:hover {
-  background: color-mix(in srgb, var(--primary-color) 7%, var(--panel-card-background));
-}
-
-.variant-card__cta {
-  font-weight: 600;
-  color: var(--primary-color);
-}
-
-.variant-amount-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 40px;
-  padding: 6px 10px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--primary-color) 14%, var(--panel-card-background));
-  color: var(--primary-text-color);
-  font-size: 0.8rem;
-  font-weight: 700;
-}
-
-.shopping-item-card__actions,
+.shopping-card__actions,
 .button-row,
 .shopping-modal-save-row,
 .migration-checklist {
@@ -484,14 +441,12 @@ button:disabled {
 
   .topbar-content,
   .section-header,
-  .shopping-item-card__content {
+  .shopping-card__actions {
     flex-direction: column;
   }
 
   .shopping-search-shell__header,
-  .shopping-search-form,
-  .variant-card__header,
-  .variant-card__meta {
+  .shopping-search-form {
     grid-template-columns: 1fr;
     flex-direction: column;
     align-items: stretch;

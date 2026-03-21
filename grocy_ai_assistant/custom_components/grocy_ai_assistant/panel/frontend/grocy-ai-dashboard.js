@@ -3,6 +3,7 @@ import { buildLegacyDashboardUrl, resolveDashboardApiBasePath } from './panel-ap
 import { createDashboardStore } from './dashboard-store.js';
 import { buildPanelUrlWithTab, DEFAULT_TAB, resolveTabFromLocation, TAB_ORDER } from './tab-routing.js';
 import { createShoppingSearchController, SEARCH_FLOW_STATES } from './shopping-search-controller.js';
+import { escapeHtml, formatAmount, renderShoppingListItemCard, renderShoppingVariantCard, resolveShoppingImageSource } from './shopping-ui.js';
 
 const PANEL_SLUG = 'grocy-ai';
 const PANEL_TITLE = 'Grocy AI';
@@ -17,6 +18,22 @@ const TAB_LABELS = {
   notifications: '🔔 Benachrichtigungen',
 };
 const DEFAULT_POLLING_INTERVAL_MS = 5000;
+
+
+function resolvePanelImageUrl(url, dashboardApi) {
+  const normalized = String(url || '').trim();
+  if (!normalized) return resolveShoppingImageSource(normalized);
+  if (normalized.startsWith('data:') || normalized.startsWith('http://') || normalized.startsWith('https://')) {
+    return normalized;
+  }
+
+  const normalizedPath = '/' + normalized.replace(/^\/+/, '');
+  if (normalizedPath.startsWith('/api/')) {
+    return dashboardApi?.buildUrl ? dashboardApi.buildUrl(normalizedPath) : normalizedPath;
+  }
+
+  return normalizedPath;
+}
 
 
 function registerCustomElement(tagName, elementClass) {
@@ -74,20 +91,6 @@ function readTabFromPath(pathname) {
     return normalizeTabName(segments[panelIndex + 1]);
   }
   return normalizeTabName(segments.at(-1));
-}
-
-function escapeHtml(value) {
-  return String(value ?? '')
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#39;');
-}
-
-function formatAmount(value) {
-  const normalized = String(value ?? '').trim();
-  return normalized || '1';
 }
 
 function deriveSearchUiState(model = {}) {
@@ -327,37 +330,12 @@ class GrocyAIShoppingSearchBar extends HTMLElement {
           </div>
           <div class="variant-grid variant-grid--search" role="list">
             ${hasVisibleVariants
-              ? variants.map((variant) => {
-                  const variantName = variant.product_name || variant.name || 'Unbekanntes Produkt';
-                  const variantAmountValue = model.parsedAmount || variant.amount || variant.default_amount || '1';
-                  const variantAmountLabel = formatAmount(variantAmountValue);
-                  const variantSource = variant.source || 'grocy';
-                  const sourceLabel = variantSource === 'ai'
-                    ? 'KI-Vorschlag'
-                    : (variantSource === 'input' ? 'Neu anlegen' : 'Grocy');
-                  return `
-                    <article class="variant-card variant-card--action" role="listitem">
-                      <button
-                        class="variant-card__button"
-                        type="button"
-                        data-action="shopping-select-variant"
-                        data-product-id="${escapeHtml(variant.product_id || variant.id || '')}"
-                        data-product-name="${escapeHtml(variantName)}"
-                        data-product-source="${escapeHtml(variantSource)}"
-                        data-amount="${escapeHtml(variantAmountValue)}"
-                      >
-                        <div class="variant-card__header">
-                          <strong>${escapeHtml(variantName)}</strong>
-                          <span class="variant-amount-badge">${escapeHtml(variantAmountLabel)}</span>
-                        </div>
-                        <div class="variant-card__meta">
-                          <span class="muted">${escapeHtml(sourceLabel)}</span>
-                          <span class="variant-card__cta">Auswählen</span>
-                        </div>
-                      </button>
-                    </article>
-                  `;
-                }).join('')
+              ? variants.map((variant) => renderShoppingVariantCard(variant, {
+                  amount: model.parsedAmount || variant.amount || variant.default_amount || '1',
+                  actionName: 'shopping-select-variant',
+                  ctaLabel: 'Auswählen',
+                  resolveImageUrl: model.resolveImageUrl,
+                })).join('')
               : '<p class="muted">Lade Vorschläge…</p>'}
           </div>
         </section>
@@ -397,21 +375,17 @@ class GrocyAIShoppingTab extends HTMLElement {
           <ul class="shopping-list-native">
             ${items.length
               ? items.map((item) => `
-                  <li class="shopping-item-card">
-                    <div class="shopping-item-card__content">
-                      <div>
-                        <strong>${escapeHtml(item.product_name || 'Unbekanntes Produkt')}</strong>
-                        <div class="muted">Menge: ${escapeHtml(formatAmount(item.amount))}</div>
-                        <div class="muted">${escapeHtml(item.note || 'Keine Notiz')}</div>
-                      </div>
-                      <div class="shopping-item-card__actions">
-                        <button class="ghost-button" type="button" data-action="shopping-open-detail" data-item-id="${escapeHtml(item.id)}">Details</button>
-                        <button class="ghost-button" type="button" data-action="shopping-open-mhd" data-item-id="${escapeHtml(item.id)}">MHD</button>
-                        <button class="ghost-button" type="button" data-action="shopping-increment-item" data-item-id="${escapeHtml(item.id)}">+1</button>
-                        <button class="success-button" type="button" data-action="shopping-complete-item" data-item-id="${escapeHtml(item.id)}">Erledigt</button>
-                        <button class="danger-button" type="button" data-action="shopping-delete-item" data-item-id="${escapeHtml(item.id)}">Löschen</button>
-                      </div>
-                    </div>
+                  <li class="shopping-list-native__item">
+                    ${renderShoppingListItemCard(item, {
+                      resolveImageUrl: model.resolveImageUrl,
+                      actionButtons: [
+                        { label: 'Details', className: 'ghost-button', actionName: 'shopping-open-detail', dataset: { 'item-id': item.id } },
+                        { label: 'MHD', className: 'ghost-button', actionName: 'shopping-open-mhd', dataset: { 'item-id': item.id } },
+                        { label: '+1', className: 'ghost-button', actionName: 'shopping-increment-item', dataset: { 'item-id': item.id } },
+                        { label: 'Erledigt', className: 'success-button', actionName: 'shopping-complete-item', dataset: { 'item-id': item.id } },
+                        { label: 'Löschen', className: 'danger-button', actionName: 'shopping-delete-item', dataset: { 'item-id': item.id } },
+                      ],
+                    })}
                   </li>
                 `).join('')
               : `<li class="muted">${escapeHtml(model.listLoading ? 'Einkaufsliste wird geladen…' : 'Keine Einträge.')}</li>`}
@@ -810,6 +784,7 @@ class GrocyAIDashboardPanel extends HTMLElement {
       ...state.shopping,
       ...searchState,
       active: state.activeTab === 'shopping',
+      resolveImageUrl: (url) => resolvePanelImageUrl(url, this._dashboardApi),
     };
     recipesTab.viewModel = {
       active: state.activeTab === 'recipes',

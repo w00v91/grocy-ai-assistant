@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Changed (Dashboard/Migration): Die Shopping-UI für Produktsuche, Variantenkarten und Einkaufslisten-Items basiert jetzt auf einem gemeinsamen Frontend-Baustein `shopping-ui.js`/`shopping-ui.css`, den sowohl das Legacy-Dashboard als auch das native Home-Assistant-Panel verwenden.
+- Changed (Dashboard/UI): Das native Shopping-Panel übernimmt damit den Kartenaufbau der Legacy-Einkaufsliste inklusive Variantencard-Struktur, Badge-/Statusdarstellung sowie Bestands- und MHD-Kontext; Navigation/Auth/Container bleiben weiterhin HA-nativ.
+- Changed (API/Static): Das FastAPI-App-Mount stellt die Panel-Frontend-Bausteine zusätzlich unter `/dashboard-static/panel-frontend` bereit, damit das Legacy-Dashboard dieselben UI-Helfer ohne Kopierlogik laden kann.
+- Test: `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/shopping-ui.js`, `node --check grocy_ai_assistant/api/static/dashboard.js`, `node --test tests/frontend/test_shopping_ui_shared.mjs`, `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.22` erhöht.
+
 - Fix (Home-Assistant-Integration/Panel): Der native Dashboard-API-Client sendet Requests an `/api/grocy_ai_assistant/dashboard-proxy` jetzt zusätzlich mit dem aktuellen Home-Assistant-Bearer-Token aus dem Frontend-Kontext, sodass HA-geschützte Proxy-Aufrufe wie die Einkaufsliste im nativen Panel nicht mehr mit `401 Unauthorized` abgewiesen werden.
 - Test: `node --test tests/frontend/test_dashboard_api_client.mjs tests/frontend/test_panel_api_base_path.mjs tests/frontend/test_panel_shell_rendering.mjs`, `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `pytest tests/unit/test_panel.py tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.21` erhöht.
 

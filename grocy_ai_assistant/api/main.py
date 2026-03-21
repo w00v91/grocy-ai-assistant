@@ -442,10 +442,23 @@ async def _lifespan(app: FastAPI):
 def create_app() -> FastAPI:
     """Create and configure the FastAPI application instance."""
     app_instance = FastAPI(title="Grocy AI Assistant API", lifespan=_lifespan)
+    static_root = Path(__file__).parent / "static"
+    panel_frontend_root = (
+        Path(__file__).resolve().parents[1]
+        / "custom_components"
+        / "grocy_ai_assistant"
+        / "panel"
+        / "frontend"
+    )
     app_instance.mount(
         "/dashboard-static",
-        StaticFiles(directory=str(Path(__file__).parent / "static")),
+        StaticFiles(directory=str(static_root)),
         name="dashboard_static",
+    )
+    app_instance.mount(
+        "/dashboard-static/panel-frontend",
+        StaticFiles(directory=str(panel_frontend_root)),
+        name="dashboard_panel_frontend_static",
     )
     app_instance.include_router(router)
 
