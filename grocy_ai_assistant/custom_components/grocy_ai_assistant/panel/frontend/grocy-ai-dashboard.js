@@ -18,6 +18,22 @@ const TAB_LABELS = {
 const DEFAULT_POLLING_INTERVAL_MS = 5000;
 
 
+function registerCustomElement(tagName, elementClass) {
+  if (customElements.get(tagName)) return;
+
+  try {
+    customElements.define(tagName, elementClass);
+  } catch (error) {
+    if (!(error instanceof DOMException) || !String(error.message || '').includes('already been used with this registry')) {
+      throw error;
+    }
+
+    if (customElements.get(tagName)) return;
+    customElements.define(tagName, class extends elementClass {});
+  }
+}
+
+
 function normalizeTabName(value, fallback = null) {
   const normalized = String(value ?? '').trim().toLowerCase();
   return TAB_ORDER.includes(normalized) ? normalized : fallback;
@@ -1168,42 +1184,13 @@ class GrocyAIDashboardPanel extends HTMLElement {
   }
 }
 
-if (!customElements.get('grocy-ai-topbar')) {
-  customElements.define('grocy-ai-topbar', GrocyAITopbar);
-}
-
-if (!customElements.get('grocy-ai-tab-nav')) {
-  customElements.define('grocy-ai-tab-nav', GrocyAITabNav);
-}
-
-if (!customElements.get('grocy-ai-shopping-search-bar')) {
-  customElements.define('grocy-ai-shopping-search-bar', GrocyAIShoppingSearchBar);
-}
-
-if (!customElements.get('grocy-ai-shopping-tab')) {
-  customElements.define('grocy-ai-shopping-tab', GrocyAIShoppingTab);
-}
-
-if (!customElements.get('grocy-ai-recipes-tab')) {
-  customElements.define('grocy-ai-recipes-tab', GrocyAIRecipesTab);
-}
-
-if (!customElements.get('grocy-ai-storage-tab')) {
-  customElements.define('grocy-ai-storage-tab', GrocyAIStorageTab);
-}
-
-if (!customElements.get('grocy-ai-notifications-tab')) {
-  customElements.define('grocy-ai-notifications-tab', GrocyAINotificationsTab);
-}
-
-if (!customElements.get('grocy-ai-dashboard-modals')) {
-  customElements.define('grocy-ai-dashboard-modals', GrocyAIDashboardModals);
-}
-
-if (!customElements.get('grocy-ai-scanner-bridge')) {
-  customElements.define('grocy-ai-scanner-bridge', GrocyAIScannerBridge);
-}
-
-if (!customElements.get('grocy-ai-dashboard-panel')) {
-  customElements.define('grocy-ai-dashboard-panel', GrocyAIDashboardPanel);
-}
+registerCustomElement('grocy-ai-topbar', GrocyAITopbar);
+registerCustomElement('grocy-ai-tab-nav', GrocyAITabNav);
+registerCustomElement('grocy-ai-shopping-search-bar', GrocyAIShoppingSearchBar);
+registerCustomElement('grocy-ai-shopping-tab', GrocyAIShoppingTab);
+registerCustomElement('grocy-ai-recipes-tab', GrocyAIRecipesTab);
+registerCustomElement('grocy-ai-storage-tab', GrocyAIStorageTab);
+registerCustomElement('grocy-ai-notifications-tab', GrocyAINotificationsTab);
+registerCustomElement('grocy-ai-dashboard-modals', GrocyAIDashboardModals);
+registerCustomElement('grocy-ai-scanner-bridge', GrocyAIScannerBridge);
+registerCustomElement('grocy-ai-dashboard-panel', GrocyAIDashboardPanel);
