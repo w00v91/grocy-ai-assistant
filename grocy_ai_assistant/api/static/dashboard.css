@@ -995,8 +995,20 @@ img {
   border-top: 1px solid var(--item-border);
 }
 
-.variant-section h2 {
-  margin-bottom: 0.6rem;
+.variant-section h3 {
+  margin: 0 0 0.6rem;
+}
+
+#variant-results[hidden] {
+  display: none;
+}
+
+.variant-feedback {
+  margin: 0;
+  padding: 0.85rem 1rem;
+  background: var(--item-bg);
+  border: 1px dashed var(--item-border);
+  border-radius: var(--radius-md);
 }
 
 .variant-grid {

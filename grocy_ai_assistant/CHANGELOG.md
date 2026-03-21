@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Changed (Dashboard/UI): Die Variantenanzeige im Legacy-Dashboard rendert Treffer jetzt über die native Web-Component `<grocy-variant-results>` mit reaktiven Properties für Varianten, Menge sowie Lade-/Leerzustand statt HTML-String-Zusammenbau.
+- Changed (Dashboard/UI): Variantenauswahl läuft jetzt über explizite `variant-select`-Komponenten-Events; das bestehende Quellverhalten für `grocy`, `ai` und `input` bleibt dabei unverändert.
+- Test: `node --check grocy_ai_assistant/api/static/dashboard.js`; Versionsstände auf `7.4.11` erhöht.
 - Changed (Home-Assistant-Integration/Panel): Die native Shopping-Suche rendert jetzt als zweistufige Search-Bar mit expliziten UI-Zuständen für leer, tippt, lädt Vorschläge, Vorschläge sichtbar, Submit und Fehler; Statusmeldungen wie „Prüfe Produkt…“ oder „Füge Produkt hinzu…“ werden reaktiv direkt aus dem Search-State angezeigt.
 - Changed (Dashboard/Migration): Live-Vorschläge aus `loadVariants()` erscheinen in der nativen HA-Oberfläche direkt unter dem Eingabefeld; Variantenauswahl übernimmt weiterhin die bestehende `confirmVariant(...)`-/`searchSuggestedProduct(...)`-Logik inklusive mengenpräfixierter Suche wie `2 Hafermilch`.
 - Test: Frontend-Checks für Search-Controller und Panel ergänzt bzw. aktualisiert (`node --test tests/frontend/test_shopping_search_controller.mjs`, `node --check ...`); Versionsstände auf `7.4.11` erhöht.

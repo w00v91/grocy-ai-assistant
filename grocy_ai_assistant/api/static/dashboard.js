@@ -1123,37 +1123,205 @@ function startShoppingListAutoRefresh() {
   }, shoppingListRefreshMs);
 }
 
-function renderVariants(items, options = {}) {
-  const list = document.getElementById('variant-list');
-  const section = document.getElementById('variant-section');
-  const parsedAmount = Number(options.amount);
-  const hasParsedAmount = Number.isFinite(parsedAmount) && parsedAmount > 0;
-  if (!items.length) {
-    list.innerHTML = '';
-    section.classList.add('hidden');
-    return;
+
+const VARIANT_SOURCE_LABELS = {
+  grocy: 'Grocy',
+  ai: 'KI-Vorschlag',
+  input: 'Neu anlegen',
+};
+
+class GrocyVariantResults extends HTMLElement {
+  constructor() {
+    super();
+    this._variants = [];
+    this._amount = null;
+    this._loading = false;
+    this._active = false;
+    this._listElement = document.createElement('div');
+    this._listElement.className = 'variant-grid';
+    this._statusElement = document.createElement('p');
+    this._statusElement.className = 'variant-feedback muted';
   }
 
-  section.classList.remove('hidden');
+  connectedCallback() {
+    if (!this._statusElement.isConnected) {
+      this.append(this._statusElement, this._listElement);
+    }
+    this.render();
+  }
 
-  list.innerHTML = items.map((item) => {
-    const productId = item.id ?? '';
-    const source = item.source || 'grocy';
-    const sourceLabel = source === 'ai' ? 'KI-Vorschlag' : (source === 'input' ? 'Neu anlegen' : 'Grocy');
-    const amountBadge = hasParsedAmount
-      ? `<span class="variant-amount-badge" aria-label="Menge ${parsedAmount}">${parsedAmount}</span>`
-      : '';
-    return `
-    <div class="variant-card">
-      <button type="button" class="variant-select" data-product-id="${productId}" data-product-name="${encodeURIComponent(item.name)}" data-product-source="${source}" data-product-amount="${hasParsedAmount ? parsedAmount : ''}">
-        ${amountBadge}
-        <img src="${toImageSource(item.picture_url)}" alt="${item.name}" loading="lazy" />
-        <div><strong>${item.name}</strong></div>
-        <small class="muted">${sourceLabel}</small>
-      </button>
-    </div>
-  `;
-  }).join('');
+  set variants(value) {
+    this._variants = Array.isArray(value) ? value : [];
+    this.render();
+  }
+
+  get variants() {
+    return this._variants;
+  }
+
+  set amount(value) {
+    const parsedAmount = Number(value);
+    this._amount = Number.isFinite(parsedAmount) && parsedAmount > 0 ? parsedAmount : null;
+    this.render();
+  }
+
+  get amount() {
+    return this._amount;
+  }
+
+  set loading(value) {
+    this._loading = Boolean(value);
+    this.render();
+  }
+
+  get loading() {
+    return this._loading;
+  }
+
+  set active(value) {
+    this._active = Boolean(value);
+    this.render();
+  }
+
+  get active() {
+    return this._active;
+  }
+
+  render() {
+    this.hidden = !this._active;
+    if (!this.isConnected || !this._active) {
+      this.replaceChildren(this._statusElement, this._listElement);
+      this._statusElement.hidden = true;
+      this._listElement.replaceChildren();
+      return;
+    }
+
+    if (!this._statusElement.isConnected || !this._listElement.isConnected) {
+      this.replaceChildren(this._statusElement, this._listElement);
+    }
+
+    if (this._loading) {
+      this.renderLoading();
+      return;
+    }
+
+    if (!this._variants.length) {
+      this.renderEmpty();
+      return;
+    }
+
+    this.renderList();
+  }
+
+  renderLoading() {
+    this._listElement.replaceChildren();
+    this._statusElement.hidden = false;
+    this._statusElement.textContent = 'Suche Produktvarianten …';
+  }
+
+  renderEmpty() {
+    this._listElement.replaceChildren();
+    this._statusElement.hidden = false;
+    this._statusElement.textContent = 'Keine Produktvarianten gefunden.';
+  }
+
+  renderList() {
+    this._statusElement.hidden = true;
+    const cards = this._variants.map((item) => this.createVariantCard(item));
+    this._listElement.replaceChildren(...cards);
+  }
+
+  createVariantCard(item) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'variant-card';
+
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'variant-select';
+
+    const productId = item?.id ?? '';
+    const source = item?.source || 'grocy';
+    const productName = String(item?.name || '');
+    const amount = this._amount;
+
+    button.addEventListener('click', () => {
+      this.dispatchEvent(new CustomEvent('variant-select', {
+        bubbles: true,
+        detail: {
+          productId,
+          productName,
+          source,
+          amount,
+        },
+      }));
+    });
+
+    if (amount) {
+      const badge = document.createElement('span');
+      badge.className = 'variant-amount-badge';
+      badge.setAttribute('aria-label', `Menge ${amount}`);
+      badge.textContent = String(amount);
+      button.appendChild(badge);
+    }
+
+    const image = document.createElement('img');
+    image.src = toImageSource(item?.picture_url);
+    image.alt = productName;
+    image.loading = 'lazy';
+    button.appendChild(image);
+
+    const title = document.createElement('div');
+    const strong = document.createElement('strong');
+    strong.textContent = productName;
+    title.appendChild(strong);
+    button.appendChild(title);
+
+    const sourceLabel = document.createElement('small');
+    sourceLabel.className = 'muted';
+    sourceLabel.textContent = VARIANT_SOURCE_LABELS[source] || VARIANT_SOURCE_LABELS.grocy;
+    button.appendChild(sourceLabel);
+
+    wrapper.appendChild(button);
+    return wrapper;
+  }
+}
+
+if (!customElements.get('grocy-variant-results')) {
+  customElements.define('grocy-variant-results', GrocyVariantResults);
+}
+
+function getVariantSectionElement() {
+  return document.getElementById('variant-section');
+}
+
+function getVariantResultsElement() {
+  return document.getElementById('variant-results');
+}
+
+function setVariantResultsState({ active, loading, items, amount } = {}) {
+  const section = getVariantSectionElement();
+  const results = getVariantResultsElement();
+  if (!results) return;
+  if (typeof amount !== 'undefined') results.amount = amount;
+  if (typeof items !== 'undefined') results.variants = items;
+  if (typeof loading !== 'undefined') results.loading = loading;
+  if (typeof active !== 'undefined') {
+    results.active = active;
+    section?.classList.toggle('hidden', !active);
+  }
+}
+
+function clearVariantResults() {
+  setVariantResultsState({ active: false, loading: false, items: [], amount: null });
+}
+
+function renderVariants(items, options = {}) {
+  setVariantResultsState({
+    active: true,
+    loading: false,
+    items,
+    amount: options.amount,
+  });
 }
 
 async function loadVariants() {
@@ -1168,22 +1336,25 @@ async function loadVariants() {
   const query = productName.trim();
   const requestToken = ++dashboardState.variantsRequestToken;
   if (!query) {
-    document.getElementById('variant-list').innerHTML = '';
-    document.getElementById('variant-section').classList.add('hidden');
+    clearVariantResults();
     return;
   }
 
   try {
+    setVariantResultsState({ active: true, loading: true, items: [], amount: amountFromName });
     const { response, payload } = await dashboardApi.searchVariants(query);
+    if (requestToken !== dashboardState.variantsRequestToken) return;
     if (!response.ok) {
+      setVariantResultsState({ active: true, loading: false, items: [], amount: amountFromName });
       status.textContent = getErrorMessage(payload, 'Varianten konnten nicht geladen werden.');
       return;
     }
 
-    if (requestToken !== dashboardState.variantsRequestToken) return;
     renderVariants(payload, { amount: amountFromName });
 
   } catch (_) {
+    if (requestToken !== dashboardState.variantsRequestToken) return;
+    setVariantResultsState({ active: true, loading: false, items: [], amount: amountFromName });
     status.textContent = 'Varianten konnten nicht geladen werden (Netzwerk-/Ingress-Fehler).';
   }
 
@@ -1227,8 +1398,7 @@ async function confirmVariant(productId, productName, amountOverride = null) {
         return;
       }
 
-      document.getElementById('variant-list').innerHTML = '';
-      document.getElementById('variant-section').classList.add('hidden');
+      clearVariantResults();
       await loadShoppingList();
     }
   } catch (_) {
@@ -1725,8 +1895,7 @@ async function searchProduct(options = {}) {
         return;
       }
 
-      document.getElementById('variant-list').innerHTML = '';
-      document.getElementById('variant-section').classList.add('hidden');
+      clearVariantResults();
       await loadShoppingList();
     }
   } catch (_) {
@@ -1736,15 +1905,13 @@ async function searchProduct(options = {}) {
   });
 }
 
-document.getElementById('variant-list').addEventListener('click', (event) => {
-  const target = event.target.closest('.variant-select');
-  if (!target) return;
-
-  const productIdRaw = target.dataset.productId;
+getVariantResultsElement()?.addEventListener('variant-select', (event) => {
+  const detail = event.detail || {};
+  const productIdRaw = detail.productId;
   const productId = Number(productIdRaw);
-  const productName = decodeURIComponent(target.dataset.productName || '');
-  const productAmount = Number(target.dataset.productAmount || '');
-  const source = target.dataset.productSource || 'grocy';
+  const productName = String(detail.productName || '');
+  const productAmount = Number(detail.amount ?? '');
+  const source = detail.source || 'grocy';
 
   if (source === 'input') {
     searchSuggestedProduct(productName, { forceCreate: true, amount: productAmount });
