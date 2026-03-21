@@ -14,31 +14,18 @@ test('detectIngressBasePath reads the real ingress session prefix from the brows
   );
 });
 
-test('resolveDashboardApiBasePath creates an ingress session for native panels outside ingress paths', async () => {
-  const calls = [];
+test('resolveDashboardApiBasePath prefers the Home Assistant proxy base path from panel config', async () => {
   const apiBasePath = await resolveDashboardApiBasePath({
-    panelConfig: { legacy_dashboard_url: '/api/hassio_ingress/grocy_ai_assistant/' },
-    hass: {
-      user: { id: 'user-123' },
-      async callApi(method, path, payload) {
-        calls.push({ method, path, payload });
-        return { data: { session: '71139b3d_grocy_ai_assistant' } };
-      },
-    },
+    panelConfig: { dashboard_api_base_path: '/api/grocy_ai_assistant/dashboard-proxy' },
     location: new URL('http://homeassistant.local:8123/grocy-ai'),
   });
 
-  assert.equal(apiBasePath, '/api/hassio_ingress/71139b3d_grocy_ai_assistant');
-  assert.deepEqual(calls, [{
-    method: 'POST',
-    path: 'hassio/ingress/session',
-    payload: { user_id: 'user-123' },
-  }]);
+  assert.equal(apiBasePath, '/api/grocy_ai_assistant/dashboard-proxy');
 });
 
-test('buildLegacyDashboardUrl reuses the resolved ingress session for legacy bridges', () => {
+test('buildLegacyDashboardUrl reuses the resolved proxy base path for legacy bridges', () => {
   assert.equal(
-    buildLegacyDashboardUrl('/api/hassio_ingress/71139b3d_grocy_ai_assistant', '/api/hassio_ingress/grocy_ai_assistant/'),
-    '/api/hassio_ingress/71139b3d_grocy_ai_assistant/',
+    buildLegacyDashboardUrl('/api/grocy_ai_assistant/dashboard-proxy', '/api/hassio_ingress/grocy_ai_assistant/'),
+    '/api/grocy_ai_assistant/dashboard-proxy/',
   );
 });

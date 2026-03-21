@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Fix (Home-Assistant-Integration/Panel): Das native Dashboard nutzt für Shopping-Requests jetzt einen Home-Assistant-authentifizierten Proxy unter `/api/grocy_ai_assistant/dashboard-proxy`, statt im Browser privilegierte Supervisor-/Ingress-Session-Endpunkte aufzurufen; dadurch entfallen die `401 Unauthorized`-Fehler von `hassio/ingress/session`.
+- Fix (Home-Assistant-Integration/Panel): Der Proxy reicht sowohl Dashboard-API-Aufrufe als auch die Legacy-Dashboard-HTML-/Asset-Routen an das Add-on weiter und setzt dabei den passenden Prefix-Header, sodass native Requests und Legacy-Fallbacks denselben stabilen HA-Pfad verwenden.
+- Test: `node --test tests/frontend/test_panel_api_base_path.mjs tests/frontend/test_panel_shell_rendering.mjs`, `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `pytest tests/unit/test_panel.py tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.20` erhöht.
+
 - Fix (Home-Assistant-Integration/Panel): Das native Dashboard fordert seinen echten Home-Assistant-Ingress-Sessionpfad jetzt bei Bedarf per `hassio/ingress/session` an, statt API-Aufrufe auf den statischen Platzhalter `/api/hassio_ingress/grocy_ai_assistant/` zu schicken, sodass Shopping-Requests im nativen Panel nicht mehr mit `503 Service Unavailable` scheitern.
 - Fix (Home-Assistant-Integration/Panel): Legacy-Bridge-Tabs und `open-legacy-dashboard` verwenden denselben aufgelösten Ingress-Pfad wie die nativen Shopping-Requests, damit auch Übergangsbereiche zuverlässig im aktiven HA-Kontext öffnen.
 - Test: `node --test tests/frontend/test_panel_api_base_path.mjs`, `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.19` erhöht.

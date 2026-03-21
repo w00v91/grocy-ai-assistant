@@ -10,7 +10,7 @@ export function detectIngressBasePath(pathname = '') {
   return match ? match[0] : '';
 }
 
-export async function resolveDashboardApiBasePath({ panelConfig = {}, hass = null, location = null } = {}) {
+export async function resolveDashboardApiBasePath({ panelConfig = {}, location = null } = {}) {
   const configuredApiBasePath = normalizeBasePath(
     panelConfig.dashboard_api_base_path || panelConfig.api_base_path,
   );
@@ -18,16 +18,6 @@ export async function resolveDashboardApiBasePath({ panelConfig = {}, hass = nul
 
   const ingressBasePath = detectIngressBasePath(location?.pathname || '');
   if (ingressBasePath) return ingressBasePath;
-
-  if (typeof hass?.callApi === 'function' && hass?.user?.id) {
-    const response = await hass.callApi('POST', 'hassio/ingress/session', {
-      user_id: hass.user.id,
-    });
-    const session = response?.data?.session || response?.session || '';
-    if (session) {
-      return `/api/hassio_ingress/${encodeURIComponent(session)}`;
-    }
-  }
 
   return '';
 }
