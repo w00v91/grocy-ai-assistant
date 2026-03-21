@@ -11,7 +11,6 @@ from .addon_client import AddonClient
 from .const import (
     CONF_API_BASE_URL,
     DEFAULT_ADDON_BASE_URL,
-    DEFAULT_ADDON_PANEL_URL,
     DOMAIN,
     INTEGRATION_VERSION,
 )
@@ -126,7 +125,7 @@ def _migrate_entry_payload(payload: dict) -> dict:
     migrated = dict(payload)
     if CONF_API_BASE_URL not in migrated and migrated.get("addon_base_url"):
         migrated[CONF_API_BASE_URL] = migrated["addon_base_url"]
-    migrated.setdefault("panel_url", DEFAULT_ADDON_PANEL_URL)
+    migrated.pop("panel_url", None)
     return migrated
 
 
@@ -141,10 +140,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     _LOGGER.info("Setting up Grocy AI Assistant for entry %s", entry.entry_id)
 
-    await dashboard_panel.async_setup(
-        hass,
-        hass.data[DOMAIN][entry.entry_id].get("panel_url", DEFAULT_ADDON_PANEL_URL),
-    )
+    await dashboard_panel.async_setup(hass)
 
     response_reset_unsubs = hass.data[DOMAIN].setdefault("_response_reset_unsubs", {})
     response_timing_stats = hass.data[DOMAIN].setdefault("_response_timing_stats", {})

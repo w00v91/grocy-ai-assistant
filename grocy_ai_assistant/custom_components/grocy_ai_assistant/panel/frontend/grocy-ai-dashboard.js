@@ -585,6 +585,12 @@ class GrocyAIScannerBridge extends HTMLElement {
   }
 }
 
+class GrocyAIRecipesTab extends GrocyAILegacyBridgeTab {}
+
+class GrocyAIStorageTab extends GrocyAILegacyBridgeTab {}
+
+class GrocyAINotificationsTab extends GrocyAILegacyBridgeTab {}
+
 class GrocyAIDashboardPanel extends HTMLElement {
   constructor() {
     super();
@@ -758,23 +764,19 @@ class GrocyAIDashboardPanel extends HTMLElement {
     const normalizedTab = normalizeTabName(tab);
     if (!normalizedTab) return;
 
-    const { syncHistory = true, announce = true } = options;
-    this._store.patch({
-      activeTab: normalizedTab,
-      topbarStatus: announce ? `${TAB_LABELS[normalizedTab]} geöffnet.` : this._store.getState().topbarStatus,
-    });
-    if (normalizedTab === 'shopping') {
-    if (!TAB_ORDER.includes(tab)) return;
-
-    const normalizedTab = tab;
     const currentState = this._store.getState();
     const stateChanged = currentState.activeTab !== normalizedTab;
+    const { syncHistory = true, announce = true } = options;
+    const shouldUpdateUrl = options.updateUrl ?? syncHistory;
 
     if (stateChanged || options.forceStatus) {
-      this._store.patch({ activeTab: normalizedTab, topbarStatus: `${TAB_LABELS[normalizedTab]} geöffnet.` });
+      this._store.patch({
+        activeTab: normalizedTab,
+        topbarStatus: announce ? `${TAB_LABELS[normalizedTab]} geöffnet.` : currentState.topbarStatus,
+      });
     }
 
-    if (options.updateUrl !== false) {
+    if (shouldUpdateUrl) {
       this._updateBrowserUrlForTab(normalizedTab, { replace: Boolean(options.replaceUrl) });
     }
 
@@ -785,9 +787,6 @@ class GrocyAIDashboardPanel extends HTMLElement {
       }
     } else {
       this._stopShoppingPolling();
-    }
-    if (syncHistory) {
-      this._syncBrowserUrl(normalizedTab);
     }
   }
 
@@ -1126,20 +1125,6 @@ class GrocyAIDashboardPanel extends HTMLElement {
     );
   }
 
-  _syncBrowserUrl(tab) {
-    const panelPath = this._getPanelPath();
-    const url = new URL(window.location.href);
-    url.pathname = panelPath;
-    if (tab === 'shopping') {
-      url.search = '';
-      url.hash = '';
-    } else {
-      url.search = `?tab=${tab}`;
-      url.hash = '';
-    }
-    window.history.replaceState(window.history.state, '', url.toString());
-  }
-
   _resolveShoppingPollingInterval() {
     const value = Number(this._hass?.states?.['sensor.grocy_ai_status']?.attributes?.dashboard_polling_interval_seconds ?? 5);
     if (!Number.isFinite(value) || value < 1) return DEFAULT_POLLING_INTERVAL_MS;
@@ -1200,15 +1185,15 @@ if (!customElements.get('grocy-ai-shopping-tab')) {
 }
 
 if (!customElements.get('grocy-ai-recipes-tab')) {
-  customElements.define('grocy-ai-recipes-tab', GrocyAILegacyBridgeTab);
+  customElements.define('grocy-ai-recipes-tab', GrocyAIRecipesTab);
 }
 
 if (!customElements.get('grocy-ai-storage-tab')) {
-  customElements.define('grocy-ai-storage-tab', GrocyAILegacyBridgeTab);
+  customElements.define('grocy-ai-storage-tab', GrocyAIStorageTab);
 }
 
 if (!customElements.get('grocy-ai-notifications-tab')) {
-  customElements.define('grocy-ai-notifications-tab', GrocyAILegacyBridgeTab);
+  customElements.define('grocy-ai-notifications-tab', GrocyAINotificationsTab);
 }
 
 if (!customElements.get('grocy-ai-dashboard-modals')) {
