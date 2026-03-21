@@ -75,13 +75,17 @@ def _load_panel_module(monkeypatch):
     monkeypatch.setitem(sys.modules, f"{package_name}.const", const_module)
 
     addon_client_module = types.ModuleType(f"{package_name}.addon_client")
+    addon_client_instances = []
 
     class _AddonClient:
         def __init__(self, *args, **kwargs):
             self.args = args
             self.kwargs = kwargs
+            self.calls = []
+            addon_client_instances.append(self)
 
         async def request_raw(self, *args, **kwargs):
+            self.calls.append((args, kwargs))
             return {"status": 200, "body": b"{}", "headers": {"Content-Type": "application/json"}}
 
     addon_client_module.AddonClient = _AddonClient
@@ -101,11 +105,11 @@ def _load_panel_module(monkeypatch):
     module = importlib.util.module_from_spec(spec)
     assert spec and spec.loader
     spec.loader.exec_module(module)
-    return module, register_calls, remove_calls
+    return module, register_calls, remove_calls, addon_client_instances
 
 
 def test_panel_registers_native_module_metadata(monkeypatch):
-    panel_module, register_calls, remove_calls = _load_panel_module(monkeypatch)
+    panel_module, register_calls, remove_calls, _ = _load_panel_module(monkeypatch)
 
     hass = _FakeHass()
     asyncio.run(panel_module.async_setup(hass))
@@ -136,21 +140,24 @@ def test_panel_registers_native_module_metadata(monkeypatch):
 
 
 def test_panel_registers_dashboard_proxy_view_once(monkeypatch):
-    panel_module, _, _ = _load_panel_module(monkeypatch)
+    panel_module, _, _, _ = _load_panel_module(monkeypatch)
 
     hass = _FakeHass()
     asyncio.run(panel_module.async_setup(hass))
     asyncio.run(panel_module.async_setup(hass))
 
-    assert len(hass.http.registered_views) == 1
+    assert len(hass.http.registered_views) == 2
+    assert hass.http.registered_views[0].url == panel_module.PANEL_PICTURE_PROXY_URL
+    assert hass.http.registered_views[0].requires_auth is False
     assert (
-        hass.http.registered_views[0].url
+        hass.http.registered_views[1].url
         == "/api/grocy_ai_assistant/dashboard-proxy/{path:.*}"
     )
+    assert hass.http.registered_views[1].requires_auth is True
 
 
 def test_panel_registers_static_bundle_route_once(monkeypatch):
-    panel_module, _, _ = _load_panel_module(monkeypatch)
+    panel_module, _, _, _ = _load_panel_module(monkeypatch)
 
     hass = _FakeHass()
     asyncio.run(
@@ -169,7 +176,7 @@ def test_panel_registers_static_bundle_route_once(monkeypatch):
 
 
 def test_panel_unload_removes_sidebar_entry_when_last_registration_is_gone(monkeypatch):
-    panel_module, _, remove_calls = _load_panel_module(monkeypatch)
+    panel_module, _, remove_calls, _ = _load_panel_module(monkeypatch)
 
     hass = _FakeHass()
     asyncio.run(panel_module.async_setup(hass))
@@ -184,7 +191,7 @@ def test_panel_unload_removes_sidebar_entry_when_last_registration_is_gone(monke
 
 
 def test_panel_reregisters_without_unknown_panel_remove_on_first_setup(monkeypatch):
-    panel_module, register_calls, remove_calls = _load_panel_module(monkeypatch)
+    panel_module, register_calls, remove_calls, _ = _load_panel_module(monkeypatch)
 
     hass = _FakeHass()
     asyncio.run(panel_module.async_setup(hass))
@@ -192,3 +199,30 @@ def test_panel_reregisters_without_unknown_panel_remove_on_first_setup(monkeypat
 
     assert len(register_calls) == 2
     assert [call[0] for call in remove_calls] == [(hass, "grocy-ai")]
+
+
+def test_public_product_picture_proxy_forwards_get_without_ha_auth(monkeypatch):
+    panel_module, _, _, addon_client_instances = _load_panel_module(monkeypatch)
+
+    hass = _FakeHass()
+    asyncio.run(panel_module.async_setup(hass))
+
+    picture_proxy_view = hass.http.registered_views[0]
+
+    class _FakeRequest:
+        method = "GET"
+        query = {"src": "http://homeassistant.local:9192/api/files/productpictures/test.png", "size": "thumb"}
+        headers = {"Accept": "image/png"}
+
+        async def read(self):
+            return b""
+
+    response = asyncio.run(picture_proxy_view.get(_FakeRequest()))
+
+    assert response.status == 200
+    assert addon_client_instances
+    args, kwargs = addon_client_instances[-1].calls[0]
+    assert args == ("GET", "/api/dashboard/product-picture")
+    assert kwargs["query_params"] == _FakeRequest.query
+    assert kwargs["headers"]["Accept"] == "image/png"
+    assert kwargs["headers"]["X-Ingress-Path"] == "/api/grocy_ai_assistant/dashboard-proxy"

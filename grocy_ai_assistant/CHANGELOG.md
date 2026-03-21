@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Fix (Home-Assistant-Integration/Panel): Produktbilder im nativen Shopping-Panel laufen über eine dedizierte öffentliche Home-Assistant-Proxy-Route für `GET /api/dashboard/product-picture`, damit Browser-`<img>`-Requests ohne expliziten Bearer-Header nicht mehr mit `401 Unauthorized` an der HA-Auth scheitern.
+- Test: `pytest tests/unit/test_panel.py tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`, `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `node --test tests/frontend/test_panel_shell_rendering.mjs`; Versionsstände auf `7.4.27` erhöht.
+
 - Fix (Home-Assistant-Integration/Panel): Produktbilder im nativen Shopping-Panel verwenden für `/api/dashboard/product-picture` bereits beim ersten Render den konfigurierten Home-Assistant-Proxy-Prefix, auch wenn der Dashboard-API-Client noch nicht initialisiert ist; dadurch laufen Thumbnail-Requests nicht mehr versehentlich direkt gegen Home Assistant unter `/api/dashboard/...` und enden nicht mehr in `404 Not Found`.
 - Test: `node --test tests/frontend/test_panel_shell_rendering.mjs`, `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.26` erhöht.
 
