@@ -1,5 +1,5 @@
 name: Grocy AI Assistant
-version: 7.4.20
+version: 7.4.21
 slug: grocy_ai_assistant
 dependencies:
 - a0d49513_grocy

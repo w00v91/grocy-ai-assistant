@@ -71,7 +71,7 @@ def _load_panel_module(monkeypatch):
     const_module.CONF_API_BASE_URL = "api_base_url"
     const_module.DEFAULT_ADDON_BASE_URL = "http://local-grocy-ai-assistant:8000"
     const_module.DOMAIN = "grocy_ai_assistant"
-    const_module.INTEGRATION_VERSION = "7.4.20"
+    const_module.INTEGRATION_VERSION = "7.4.21"
     monkeypatch.setitem(sys.modules, f"{package_name}.const", const_module)
 
     addon_client_module = types.ModuleType(f"{package_name}.addon_client")
