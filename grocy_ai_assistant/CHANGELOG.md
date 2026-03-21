@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Fix (Home-Assistant-Integration/Panel): Die native Shopping-Suche hält Suchfeld und Search-Bar-Host jetzt als statische DOM-Knoten dauerhaft stabil und aktualisiert Status, Attribute sowie Variantenlisten nur noch inkrementell, sodass Debounce-/Varianten-Updates den `shopping-query`-Input nicht mehr per `innerHTML` neu erzeugen.
+- Fix (Home-Assistant-Integration/Panel): Der Shopping-Tab rendert seine Search-Bar nicht mehr bei jedem State-Update neu, wodurch Fokus und Cursorposition des Suchfelds auch während `setQuery(...)`- und Variantenlade-Flows erhalten bleiben und reine Status-/Ladeflag-Wechsel keine unnötigen Listen-Re-Renders auslösen.
+- Test: Frontend-Regressionstests sichern jetzt Fokus-/Cursor-Stabilität für Query- und Varianten-Updates ab (`node --test tests/frontend/test_shopping_search_focus_retention.mjs tests/frontend/shopping_search_controller.test.mjs tests/frontend/test_shopping_search_controller.mjs`, `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`); Versionsstände auf `7.4.22` erhöht.
 - Changed (Home-Assistant-Integration/Panel): Die native Shopping-Liste rendert jetzt Produktbilder mit derselben `toImageSource(...)`-Fallback-Logik wie das Legacy-Dashboard, sodass leere/fehlende `picture_url`-Werte auf ein stabiles Platzhalterbild statt auf kaputte Bildrahmen fallen.
 - Changed (Home-Assistant-Integration/Panel): Die Variantenkarten der nativen Shopping-Suche zeigen nun ebenfalls Produktbilder; die Panel-CSS übernimmt Größen, Seitenverhältnis, Objektanpassung und Abstände analog zur Legacy-Optik.
 - Test: `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`; Versionsstand der Integration auf `7.4.22` erhöht.
