@@ -127,6 +127,34 @@ export function createDashboardApiClient({ apiBasePath = '', ingressPrefix = '',
       const path = params.size ? `/api/dashboard/stock-products?${params.toString()}` : '/api/dashboard/stock-products';
       return request(path);
     },
+    consumeStockProduct(stockId, { amount = 1, productId = null } = {}) {
+      const suffix = Number.isFinite(Number(productId)) && Number(productId) > 0
+        ? `?product_id=${encodeURIComponent(productId)}`
+        : '';
+      return request(`/api/dashboard/stock-products/${encodeURIComponent(stockId)}/consume${suffix}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount }),
+      });
+    },
+    updateStockProduct(stockId, payload, { productId = null } = {}) {
+      const suffix = Number.isFinite(Number(productId)) && Number(productId) > 0
+        ? `?product_id=${encodeURIComponent(productId)}`
+        : '';
+      return request(`/api/dashboard/stock-products/${encodeURIComponent(stockId)}${suffix}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+    },
+    deleteStockProduct(stockId, { productId = null } = {}) {
+      const suffix = Number.isFinite(Number(productId)) && Number(productId) > 0
+        ? `?product_id=${encodeURIComponent(productId)}`
+        : '';
+      return request(`/api/dashboard/stock-products/${encodeURIComponent(stockId)}${suffix}`, {
+        method: 'DELETE',
+      });
+    },
     fetchRecipeSuggestions(payload) {
       return request('/api/dashboard/recipe-suggestions', {
         method: 'POST',

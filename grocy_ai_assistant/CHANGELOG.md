@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Changed (Home-Assistant-Integration/Panel): Der `storage`-Tab ist jetzt nativ migriert und rendert den Lagerbestand als echtes Grid mit Bild, Bestandsinfos, Lagerort, MHD/Metadaten sowie Quick Actions statt als Legacy-Fallback.
+- Changed (Home-Assistant-Integration/Panel): Native Storage-Filter übernehmen Textsuche, Toggle „Alle Produkte anzeigen“, manuelles Refresh sowie die Dialog-Flows für Bearbeiten, Lagerort ändern, Verbrauchen und Löschen über die bestehenden Dashboard-Endpunkte.
+- Test: `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/dashboard-api-client.js`, `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `node --test tests/frontend/test_dashboard_api_client.mjs tests/frontend/test_panel_shell_rendering.mjs`, `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.32` erhöht.
 - Fix (Home-Assistant-Integration/Panel): Die Swipe-Einkaufslistenkarte im nativen Dashboard nutzt jetzt dieselben MHD-/Mengen-Badge-Buttons, dieselbe Legacy-Kartenklasse und dieselben Swipe-Labels wie das Legacy-Dashboard, damit keine doppelten bzw. abweichenden Buttons mehr angezeigt werden.
 - Test: `node --test tests/frontend/test_native_shopping_swipe.mjs`, `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.32` erhöht.
 
