@@ -19,8 +19,9 @@ const TAB_LABELS = {
   storage: '📦 Lager',
   notifications: '🔔 Benachrichtigungen',
 };
-const DEFAULT_POLLING_INTERVAL_MS = 5000;
-const DEFAULT_INTEGRATION_VERSION = '7.4.39';
+const DEFAULT_POLLING_INTERVAL_SECONDS = 5;
+const DEFAULT_POLLING_INTERVAL_MS = DEFAULT_POLLING_INTERVAL_SECONDS * 1000;
+const DEFAULT_INTEGRATION_VERSION = '7.4.40';
 const GROCY_RECIPE_DISPLAY_LIMIT = 3;
 const AI_RECIPE_DISPLAY_LIMIT = 3;
 const TAB_VIEW_STATE = Object.freeze({
@@ -2826,6 +2827,7 @@ class GrocyAIDashboardPanel extends HTMLElement {
   set hass(value) {
     this._hass = value;
     this._shoppingPollIntervalMs = this._resolveShoppingPollingInterval();
+    this._syncShoppingPolling();
     void this._ensureDashboardApiClient();
     this._renderState(this._store.getState());
     this._ensureInitialDataLoad();
@@ -3184,6 +3186,10 @@ class GrocyAIDashboardPanel extends HTMLElement {
   }
 
   _syncShoppingPolling() {
+    if (!Number.isFinite(this._shoppingPollIntervalMs) || this._shoppingPollIntervalMs <= 0) {
+      this._stopShoppingPolling();
+      return;
+    }
     if (this._canPollShopping({ requireNoTimer: true })) {
       this._startShoppingPolling();
       return;
@@ -4069,6 +4075,10 @@ class GrocyAIDashboardPanel extends HTMLElement {
   }
 
   _startShoppingPolling() {
+    if (!Number.isFinite(this._shoppingPollIntervalMs) || this._shoppingPollIntervalMs <= 0) {
+      this._stopShoppingPolling();
+      return;
+    }
     if (!this._canPollShopping({ requireNoTimer: true })) return;
     const timer = window.setInterval(() => {
       if (!this._canPollShopping({ requireNoTimer: false })) return;
@@ -4105,8 +4115,12 @@ class GrocyAIDashboardPanel extends HTMLElement {
   }
 
   _resolveShoppingPollingInterval() {
-    const value = Number(this._hass?.states?.['sensor.grocy_ai_status']?.attributes?.dashboard_polling_interval_seconds ?? 5);
-    if (!Number.isFinite(value) || value < 1) return DEFAULT_POLLING_INTERVAL_MS;
+    const configuredValue = this._getPanelConfig().dashboard_polling_interval_seconds
+      ?? this._hass?.states?.['sensor.grocy_ai_status']?.attributes?.dashboard_polling_interval_seconds
+      ?? DEFAULT_POLLING_INTERVAL_SECONDS;
+    const value = Number(configuredValue);
+    if (!Number.isFinite(value) || value < 0) return DEFAULT_POLLING_INTERVAL_MS;
+    if (value === 0) return null;
     return value * 1000;
   }
 

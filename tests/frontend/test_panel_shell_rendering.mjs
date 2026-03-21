@@ -136,3 +136,20 @@ test('shopping polling respects document visibility and refreshes silently when 
   assert.match(source, /_canPollShopping\(\{ requireNoTimer = true \} = \{\}\) \{\s+const state = this\._store\.getState\(\);\s+if \(document\.hidden\) return false;/);
   assert.match(source, /_handleDocumentVisibilityChange\(\) \{\s+this\._syncShoppingPolling\(\);\s+if \(document\.hidden\) return;\s+if \(!this\._canPollShopping\(\{ requireNoTimer: false \}\)\) return;\s+void this\._loadShoppingList\(\{ silent: true \}\);\s+\}/);
 });
+
+
+test('shopping polling can be disabled without breaking manual and mutation-triggered refreshes', async () => {
+  const source = await fs.readFile(dashboardPath, 'utf8');
+
+  assert.match(source, /set hass\(value\) \{\s+this\._hass = value;\s+this\._shoppingPollIntervalMs = this\._resolveShoppingPollingInterval\(\);\s+this\._syncShoppingPolling\(\);/);
+  assert.match(source, /_resolveShoppingPollingInterval\(\) \{\s+const configuredValue = this\._getPanelConfig\(\)\.dashboard_polling_interval_seconds\s+\?\? this\._hass\?\.states\?\.\['sensor\.grocy_ai_status'\]\?\.attributes\?\.dashboard_polling_interval_seconds\s+\?\? DEFAULT_POLLING_INTERVAL_SECONDS;\s+const value = Number\(configuredValue\);\s+if \(!Number\.isFinite\(value\) \|\| value < 0\) return DEFAULT_POLLING_INTERVAL_MS;\s+if \(value === 0\) return null;/);
+  assert.match(source, /_syncShoppingPolling\(\) \{\s+if \(!Number\.isFinite\(this\._shoppingPollIntervalMs\) \|\| this\._shoppingPollIntervalMs <= 0\) \{\s+this\._stopShoppingPolling\(\);\s+return;\s+\}/);
+  assert.match(source, /_startShoppingPolling\(\) \{\s+if \(!Number\.isFinite\(this\._shoppingPollIntervalMs\) \|\| this\._shoppingPollIntervalMs <= 0\) \{\s+this\._stopShoppingPolling\(\);\s+return;\s+\}/);
+  assert.match(source, /onShoppingListChanged: async \(\) => \{\s+await this\._loadShoppingList\(\{ silent: true \}\);\s+\},/);
+  assert.match(source, /root\.addEventListener\('shopping-refresh', \(\) => this\._loadShoppingList\(\)\);/);
+  assert.match(source, /async _saveShoppingDetail\(\) \{[\s\S]*?await this\._loadShoppingList\(\{ silent: true \}\);/);
+  assert.match(source, /async _saveMhd\(\) \{[\s\S]*?await this\._loadShoppingList\(\{ silent: true \}\);/);
+  assert.match(source, /async _completeShoppingItem\(itemId\) \{[\s\S]*?await this\._loadShoppingList\(\{ silent: true \}\);/);
+  assert.match(source, /async _deleteShoppingItem\(itemId\) \{[\s\S]*?await this\._loadShoppingList\(\{ silent: true \}\);/);
+  assert.match(source, /async _completeAllShopping\(\) \{[\s\S]*?await this\._loadShoppingList\(\{ silent: true \}\);/);
+});

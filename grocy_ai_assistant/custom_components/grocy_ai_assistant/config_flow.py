@@ -8,6 +8,7 @@ from .const import (
     CONF_API_KEY,
     CONF_DASHBOARD_POLLING_INTERVAL_SECONDS,
     CONF_DEBUG_MODE,
+    DASHBOARD_POLLING_DISABLED_INTERVAL_SECONDS,
     DEFAULT_DASHBOARD_POLLING_INTERVAL_SECONDS,
     DOMAIN,
 )
@@ -89,7 +90,12 @@ class GrocyAIOptionsFlowHandler(config_entries.OptionsFlow):
                                 ),
                             )
                         ),
-                    ): vol.All(vol.Coerce(int), vol.Range(min=1, max=60)),
+                    ): vol.All(
+                        vol.Coerce(int),
+                        vol.Range(
+                            min=DASHBOARD_POLLING_DISABLED_INTERVAL_SECONDS, max=60
+                        ),
+                    ),
                 }
             ),
         )

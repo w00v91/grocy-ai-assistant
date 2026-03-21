@@ -9,7 +9,9 @@ from homeassistant.core import HomeAssistant
 from .addon_client import AddonClient
 from .const import (
     CONF_API_BASE_URL,
+    CONF_DASHBOARD_POLLING_INTERVAL_SECONDS,
     DEFAULT_ADDON_BASE_URL,
+    DEFAULT_DASHBOARD_POLLING_INTERVAL_SECONDS,
     DOMAIN,
     INTEGRATION_VERSION,
 )
@@ -183,6 +185,10 @@ async def async_setup(hass: HomeAssistant) -> None:
         config={
             "frontend_base_url": PANEL_FRONTEND_URL_BASE,
             "dashboard_api_base_path": PANEL_PROXY_URL_BASE,
+            "dashboard_polling_interval_seconds": _resolve_active_config(hass).get(
+                CONF_DASHBOARD_POLLING_INTERVAL_SECONDS,
+                DEFAULT_DASHBOARD_POLLING_INTERVAL_SECONDS,
+            ),
             "panel_path": PANEL_PATH,
             "panel_title": PANEL_TITLE,
             "panel_icon": PANEL_ICON,
