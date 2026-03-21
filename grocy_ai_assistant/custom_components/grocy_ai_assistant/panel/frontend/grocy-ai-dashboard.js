@@ -90,6 +90,46 @@ function formatAmount(value) {
   return normalized || '1';
 }
 
+function toImageSource(url, options = {}) {
+  const normalizedUrl = String(url ?? '').trim();
+  if (!normalizedUrl) return 'https://placehold.co/80x80?text=Kein+Bild';
+
+  const requestedSize = String(options?.size || '').trim().toLowerCase();
+  const isMobileViewport = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(max-width: 768px)').matches;
+  const normalizedSize = requestedSize === 'full'
+    ? 'full'
+    : (requestedSize === 'mobile' || isMobileViewport ? 'mobile' : 'thumb');
+  const apiBasePath = String(options?.apiBasePath || '').replace(/\/+$/, '');
+
+  if (normalizedUrl.startsWith('data:')) return normalizedUrl;
+  if (normalizedUrl.startsWith('http://') || normalizedUrl.startsWith('https://')) {
+    const isExternal = (() => {
+      try {
+        return new URL(normalizedUrl).host !== window.location.host;
+      } catch (_) {
+        return false;
+      }
+    })();
+
+    if (window.location.protocol === 'https:' && isExternal && normalizedUrl.startsWith('http://')) {
+      return `https://${normalizedUrl.slice('http://'.length)}`;
+    }
+    return normalizedUrl;
+  }
+
+  const normalizedPath = `/${normalizedUrl.replace(/^\/+/, '')}`;
+  if (normalizedPath.startsWith('/api/dashboard/product-picture?')) {
+    const proxiedUrl = new URL(apiBasePath ? `${apiBasePath}${normalizedPath}` : normalizedPath, window.location.origin);
+    proxiedUrl.searchParams.set('size', normalizedSize);
+    return proxiedUrl.toString();
+  }
+
+  if (normalizedPath.startsWith('/api/')) {
+    return apiBasePath ? `${apiBasePath}${normalizedPath}` : normalizedPath;
+  }
+  return normalizedPath;
+}
+
 function deriveSearchUiState(model = {}) {
   if (model.flowState === SEARCH_FLOW_STATES.ERROR || model.errorMessage) return 'error';
   if (model.flowState === SEARCH_FLOW_STATES.SUBMITTING || model.isSubmitting) return 'submitting';
@@ -286,6 +326,7 @@ class GrocyAIShoppingSearchBar extends HTMLElement {
     const stateLabel = getSearchStateLabel(searchUiState);
     const helperText = model.errorMessage || model.statusMessage || 'Bereit.';
     const hasVisibleVariants = variants.length > 0;
+    const imageBasePath = model.imageBasePath || '';
 
     this.innerHTML = `
       <section class="shopping-search-shell shopping-search-shell--${searchUiState}" aria-live="polite">
@@ -346,6 +387,12 @@ class GrocyAIShoppingSearchBar extends HTMLElement {
                         data-product-source="${escapeHtml(variantSource)}"
                         data-amount="${escapeHtml(variantAmountValue)}"
                       >
+                        <img
+                          class="variant-card__image"
+                          src="${escapeHtml(toImageSource(variant.picture_url, { apiBasePath: imageBasePath }))}"
+                          alt="${escapeHtml(variantName)}"
+                          loading="lazy"
+                        />
                         <div class="variant-card__header">
                           <strong>${escapeHtml(variantName)}</strong>
                           <span class="variant-amount-badge">${escapeHtml(variantAmountLabel)}</span>
@@ -376,6 +423,7 @@ class GrocyAIShoppingTab extends HTMLElement {
     const model = this._viewModel || {};
     const variants = Array.isArray(model.variants) ? model.variants : [];
     const items = Array.isArray(model.list) ? model.list : [];
+    const imageBasePath = model.imageBasePath || '';
 
     this.innerHTML = `
       <section class="tab-view${model.active ? '' : ' hidden'}">
@@ -398,8 +446,13 @@ class GrocyAIShoppingTab extends HTMLElement {
             ${items.length
               ? items.map((item) => `
                   <li class="shopping-item-card">
-                    <div class="shopping-item-card__content">
-                      <div>
+                    <div class="shopping-item-card__content shopping-item-content">
+                      <img
+                        src="${escapeHtml(toImageSource(item.picture_url, { apiBasePath: imageBasePath }))}"
+                        alt="${escapeHtml(item.product_name || 'Unbekanntes Produkt')}"
+                        loading="lazy"
+                      />
+                      <div class="shopping-item-meta">
                         <strong>${escapeHtml(item.product_name || 'Unbekanntes Produkt')}</strong>
                         <div class="muted">Menge: ${escapeHtml(formatAmount(item.amount))}</div>
                         <div class="muted">${escapeHtml(item.note || 'Keine Notiz')}</div>
@@ -428,6 +481,7 @@ class GrocyAIShoppingTab extends HTMLElement {
     this.querySelector('grocy-ai-shopping-search-bar').viewModel = {
       ...model,
       variants,
+      imageBasePath,
     };
   }
 }
@@ -810,6 +864,7 @@ class GrocyAIDashboardPanel extends HTMLElement {
       ...state.shopping,
       ...searchState,
       active: state.activeTab === 'shopping',
+      imageBasePath: this._dashboardApiBasePath,
     };
     recipesTab.viewModel = {
       active: state.activeTab === 'recipes',
