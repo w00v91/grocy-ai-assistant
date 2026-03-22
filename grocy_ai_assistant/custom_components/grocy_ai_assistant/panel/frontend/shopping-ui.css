@@ -133,6 +133,7 @@
   font-size: 0.82rem;
   font-weight: 700;
   border: 1px solid transparent;
+  white-space: nowrap;
 }
 
 .shopping-badge {
@@ -383,6 +384,8 @@ button.shopping-badge {
   }
 
   .shopping-item-card--legacy .shopping-card__body--swipe {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
     gap: 0.45rem;
   }
 
@@ -393,11 +396,12 @@ button.shopping-badge {
     flex-direction: row;
   }
 
+  .shopping-item-card--legacy .shopping-card__aside,
   .shopping-item-card--legacy .shopping-card__meta,
   .shopping-item-card--legacy .shopping-card__badges--header,
   .shopping-item-card--legacy .shopping-card__badges--stacked {
-    justify-items: flex-start;
-    justify-content: flex-start;
+    justify-items: end;
+    justify-content: flex-end;
   }
 
   .shopping-item-card--legacy .shopping-card__badges {
