@@ -4,7 +4,6 @@ from pathlib import Path
 
 import aiohttp
 
-
 module_path = (
     Path(__file__).resolve().parents[2]
     / "grocy_ai_assistant"

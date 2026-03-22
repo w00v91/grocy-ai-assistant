@@ -53,7 +53,9 @@ class GrocyAICatalogRebuildButton(_BaseAddonButton):
     async def async_press(self) -> None:
         payload = await self._build_client().rebuild_catalog()
         if payload.get("_http_status") != 200:
-            raise RuntimeError(payload.get("detail") or "Katalog-Neuaufbau fehlgeschlagen")
+            raise RuntimeError(
+                payload.get("detail") or "Katalog-Neuaufbau fehlgeschlagen"
+            )
         _LOGGER.info("Grocy AI Katalog-Neuaufbau erfolgreich ausgelöst")
 
 

@@ -75,7 +75,7 @@ def _load_panel_module(monkeypatch):
     )
     const_module.DEFAULT_DASHBOARD_POLLING_INTERVAL_SECONDS = 5
     const_module.DOMAIN = "grocy_ai_assistant"
-    const_module.INTEGRATION_VERSION = "8.0.3"
+    const_module.INTEGRATION_VERSION = "8.0.7"
     monkeypatch.setitem(sys.modules, f"{package_name}.const", const_module)
 
     addon_client_module = types.ModuleType(f"{package_name}.addon_client")
@@ -90,10 +90,16 @@ def _load_panel_module(monkeypatch):
 
         async def request_raw(self, *args, **kwargs):
             self.calls.append((args, kwargs))
-            return {"status": 200, "body": b"{}", "headers": {"Content-Type": "application/json"}}
+            return {
+                "status": 200,
+                "body": b"{}",
+                "headers": {"Content-Type": "application/json"},
+            }
 
     addon_client_module.AddonClient = _AddonClient
-    monkeypatch.setitem(sys.modules, f"{package_name}.addon_client", addon_client_module)
+    monkeypatch.setitem(
+        sys.modules, f"{package_name}.addon_client", addon_client_module
+    )
 
     module_path = (
         Path(__file__).resolve().parents[2]
@@ -165,9 +171,7 @@ def test_panel_registers_static_bundle_route_once(monkeypatch):
     panel_module, _, _, _ = _load_panel_module(monkeypatch)
 
     hass = _FakeHass()
-    asyncio.run(
-        panel_module.async_setup(hass)
-    )
+    asyncio.run(panel_module.async_setup(hass))
     asyncio.run(panel_module.async_setup(hass))
 
     assert len(hass.http.static_path_calls) == 1
@@ -216,7 +220,10 @@ def test_public_product_picture_proxy_forwards_get_without_ha_auth(monkeypatch):
 
     class _FakeRequest:
         method = "GET"
-        query = {"src": "http://homeassistant.local:9192/api/files/productpictures/test.png", "size": "thumb"}
+        query = {
+            "src": "http://homeassistant.local:9192/api/files/productpictures/test.png",
+            "size": "thumb",
+        }
         headers = {"Accept": "image/png"}
 
         async def read(self):
@@ -230,4 +237,6 @@ def test_public_product_picture_proxy_forwards_get_without_ha_auth(monkeypatch):
     assert args == ("GET", "/api/dashboard/product-picture")
     assert kwargs["query_params"] == _FakeRequest.query
     assert kwargs["headers"]["Accept"] == "image/png"
-    assert kwargs["headers"]["X-Ingress-Path"] == "/api/grocy_ai_assistant/dashboard-proxy"
+    assert (
+        kwargs["headers"]["X-Ingress-Path"] == "/api/grocy_ai_assistant/dashboard-proxy"
+    )

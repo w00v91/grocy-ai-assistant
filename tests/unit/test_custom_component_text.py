@@ -3,7 +3,6 @@ import sys
 import types
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[2]
 PACKAGE_NAME = "grocy_ai_assistant.custom_components.grocy_ai_assistant"
 PACKAGE_PATH = ROOT / "grocy_ai_assistant" / "custom_components" / "grocy_ai_assistant"

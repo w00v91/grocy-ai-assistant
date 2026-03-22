@@ -154,7 +154,9 @@ def _nest_option_layout(payload: dict[str, Any]) -> dict[str, Any]:
     return nested
 
 
-def _wrap_saved_options_if_needed(payload: dict[str, Any], nested_options: dict[str, Any]) -> dict[str, Any]:
+def _wrap_saved_options_if_needed(
+    payload: dict[str, Any], nested_options: dict[str, Any]
+) -> dict[str, Any]:
     options_payload = payload.get("options")
     if isinstance(options_payload, dict):
         wrapped_payload = dict(payload)

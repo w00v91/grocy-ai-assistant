@@ -9,7 +9,6 @@ from pydantic import BaseModel, Field
 from grocy_ai_assistant.config import options_store
 from grocy_ai_assistant.config.options_store import parse_simple_yaml
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 ADDON_CONFIG_PATH = PROJECT_ROOT / "grocy_ai_assistant" / "config.yaml"
 INTEGRATION_MANIFEST_PATH = (

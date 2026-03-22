@@ -2,8 +2,6 @@ from grocy_ai_assistant.config.settings import Settings
 from grocy_ai_assistant.services.product_image_cache import ProductImageCache
 
 
-
-
 def test_product_image_cache_start_skips_background_thread_without_grocy_key(tmp_path):
     cache = ProductImageCache(
         Settings(grocy_api_key=""),

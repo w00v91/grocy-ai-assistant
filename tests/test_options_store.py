@@ -13,16 +13,18 @@ def test_parse_and_dump_simple_yaml_roundtrip():
     dumped = options_store.dump_simple_yaml(payload)
 
     assert dumped == (
-        'api_key: DEIN_KI_KEY\n'
-        'grocy_base_url: http://homeassistant.local:9192/api\n'
-        'scanner_llava_timeout_seconds: 45\n'
-        'notification_global_enabled: true\n'
-        'image_generation_enabled: false\n'
+        "api_key: DEIN_KI_KEY\n"
+        "grocy_base_url: http://homeassistant.local:9192/api\n"
+        "scanner_llava_timeout_seconds: 45\n"
+        "notification_global_enabled: true\n"
+        "image_generation_enabled: false\n"
     )
     assert options_store.parse_simple_yaml(dumped) == payload
 
 
-def test_load_addon_options_prefers_yaml_then_repository_config_yaml(tmp_path, monkeypatch):
+def test_load_addon_options_prefers_yaml_then_repository_config_yaml(
+    tmp_path, monkeypatch
+):
     yaml_path = tmp_path / "options.yaml"
     repository_config_path = tmp_path / "config.yaml"
 
@@ -96,7 +98,6 @@ def test_save_addon_options_writes_grouped_yaml_layout(tmp_path, monkeypatch):
             "generate_missing_product_images_on_startup": False,
         },
     }
-
 
 
 def test_save_addon_options_preserves_wrapped_options_layout(tmp_path, monkeypatch):

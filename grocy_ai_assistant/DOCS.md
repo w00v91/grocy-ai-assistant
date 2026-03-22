@@ -39,21 +39,25 @@ Für einen sinnvollen Betrieb solltest du folgende Informationen bereithalten:
 
 ```yaml
 api_key: "DEIN_KI_KEY"
-grocy_api_key: "DEIN_GROCY_KEY"
-grocy_base_url: "http://homeassistant.local:9192/api"
-ollama_url: "http://76e18fb5_ollama:11434/api/generate"
-ollama_model: "llama3"
-ollama_llava_model: "llava"
-scanner_barcode_fallback_seconds: 5
-scanner_llava_min_confidence: 75
-scanner_llava_timeout_seconds: 45
-dashboard_polling_interval_seconds: 5
 notification_global_enabled: true
-image_generation_enabled: false
-openai_api_key: "DEIN_OPENAI_KEY"
-openai_image_model: "gpt-image-1"
-generate_missing_product_images_on_startup: false
-initial_info_sync: false
+dashboard_polling_interval_seconds: 5
+grocy:
+  grocy_api_key: "DEIN_GROCY_KEY"
+  grocy_base_url: "http://homeassistant.local:9192/api"
+ollama:
+  ollama_url: "http://76e18fb5_ollama:11434/api/generate"
+  ollama_model: "llama3"
+  ollama_llava_model: "llava"
+  initial_info_sync: false
+scanner:
+  scanner_barcode_fallback_seconds: 5
+  scanner_llava_min_confidence: 75
+  scanner_llava_timeout_seconds: 45
+cloud_ai:
+  image_generation_enabled: false
+  openai_api_key: "DEIN_OPENAI_KEY"
+  openai_image_model: "gpt-image-1"
+  generate_missing_product_images_on_startup: false
 debug_mode: false
 ```
 
@@ -62,21 +66,21 @@ debug_mode: false
 | Option | Beschreibung |
 | --- | --- |
 | `api_key` | API-Schlüssel für die primäre KI-Verarbeitung. |
-| `grocy_api_key` | API-Schlüssel deiner Grocy-Instanz. |
-| `grocy_base_url` | Basis-URL deiner Grocy-API. |
-| `ollama_url` | URL zum Ollama-Generate-Endpunkt. |
-| `ollama_model` | Standardmodell für textbasierte Analysen. |
-| `ollama_llava_model` | Vision-Modell für bildbasierte Analysen. |
-| `scanner_barcode_fallback_seconds` | Zeit bis zur Barcode-Fallback-Logik. |
-| `scanner_llava_min_confidence` | Mindest-Konfidenz für Scanner-Ergebnisse in Prozent. |
-| `scanner_llava_timeout_seconds` | Maximale Wartezeit für LLaVA-Anfragen. |
 | `dashboard_polling_interval_seconds` | Aktualisierungsintervall des Dashboards. |
 | `notification_global_enabled` | Aktiviert oder deaktiviert Benachrichtigungen global. |
-| `image_generation_enabled` | Aktiviert die KI-Bildgenerierung für fehlende Produktbilder. |
-| `openai_api_key` | OpenAI-API-Key für die Bildgenerierung. |
-| `openai_image_model` | OpenAI-Modell für die Bildgenerierung, z. B. `gpt-image-1`. |
-| `generate_missing_product_images_on_startup` | Erzeugt fehlende Produktbilder einmalig beim nächsten Start. |
-| `initial_info_sync` | Ergänzt beim nächsten Start fehlende Nährwerte und geschätzte MHD-Tage. |
+| `grocy.grocy_api_key` | API-Schlüssel deiner Grocy-Instanz. |
+| `grocy.grocy_base_url` | Basis-URL deiner Grocy-API. |
+| `ollama.ollama_url` | URL zum Ollama-Generate-Endpunkt. |
+| `ollama.ollama_model` | Standardmodell für textbasierte Analysen. |
+| `ollama.ollama_llava_model` | Vision-Modell für bildbasierte Analysen. |
+| `ollama.initial_info_sync` | Ergänzt beim nächsten Start fehlende Nährwerte und geschätzte MHD-Tage. |
+| `scanner.scanner_barcode_fallback_seconds` | Zeit bis zur Barcode-Fallback-Logik. |
+| `scanner.scanner_llava_min_confidence` | Mindest-Konfidenz für Scanner-Ergebnisse in Prozent. |
+| `scanner.scanner_llava_timeout_seconds` | Maximale Wartezeit für LLaVA-Anfragen. |
+| `cloud_ai.image_generation_enabled` | Aktiviert die KI-Bildgenerierung für fehlende Produktbilder. |
+| `cloud_ai.openai_api_key` | OpenAI-API-Key für die Bildgenerierung. |
+| `cloud_ai.openai_image_model` | OpenAI-Modell für die Bildgenerierung, z. B. `gpt-image-1`. |
+| `cloud_ai.generate_missing_product_images_on_startup` | Erzeugt fehlende Produktbilder einmalig beim nächsten Start. |
 | `debug_mode` | Aktiviert ausführliche Debug-Logs. |
 
 ## Nativer Dashboard-Pfad in Home Assistant
