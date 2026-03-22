@@ -143,7 +143,7 @@ export function renderShoppingVariantCard(variant, options = {}) {
     'product-source': variantSource,
     amount: amountValue,
   };
-  const ctaLabel = options.ctaLabel || 'Auswählen';
+  const ctaLabel = typeof options.ctaLabel === 'string' ? options.ctaLabel : '';
   const stockValue = formatStockCount(variant?.in_stock, '');
   const bestBeforeDate = formatBadgeValue(variant?.best_before_date, '');
   const noteValue = String(variant?.note || '').trim();
@@ -166,9 +166,11 @@ export function renderShoppingVariantCard(variant, options = {}) {
               ${renderContextRow('Bestand', stockValue, { variant: 'stock' })}
               ${renderContextRow('MHD', bestBeforeDate, { variant: 'mhd' })}
             </ul>
-            <div class="shopping-card__footer">
-              <span class="shopping-card__cta variant-card__cta">${escapeHtml(ctaLabel)}</span>
-            </div>
+            ${ctaLabel ? `
+              <div class="shopping-card__footer">
+                <span class="shopping-card__cta variant-card__cta">${escapeHtml(ctaLabel)}</span>
+              </div>
+            ` : ''}
           </div>
         </div>
       </button>

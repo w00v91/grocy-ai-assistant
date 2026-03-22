@@ -1,8 +1,25 @@
+
 # Changelog
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## 2026-03-22 (Version 8.0.15)
+- Fix (Home-Assistant-Integration/Panel): Die Swipe-Buttons im nativen Lager-Tab erben das zentrierte Variantenkarten-Layout nicht mehr, sodass Produktname und Zusatzinfos wieder linksbündig wie in der Einkaufsliste dargestellt werden.
+- Fix (Home-Assistant-Integration/Panel): Die Badge-Spalte der nativen Lager-Swipe-Karten richtet sich wieder wie in der Einkaufsliste aus, statt durch die Variantenkarten-Styles mittig zu verrutschen.
+- Added (Tests/Frontend): Eine CSS-Regression stellt sicher, dass die zentrierten Variantenkarten-Styles nur noch echte Variantenkarten betreffen.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.15` erhöht.
+
+## 2026-03-22 (Version 8.0.14)
+- Changed (Home-Assistant-Integration/Panel): Produktvarianten im nativen Shopping-Tab zeigen keine `Auswählen`-Beschriftung mehr, rendern den Produktnamen zentriert unter dem Bild und halten das Mengen-Badge wieder schwebend an der rechten oberen Bildecke; das Varianten-Grid zeigt dabei mindestens zwei Kacheln nebeneinander.
+- Changed (Home-Assistant-Integration/Panel): Im Rezepte-Tab blendet das Dropdown `Produkte in ausgewählten Standorten` die Badges `Menge` und `MHD` aus und zeigt optional nur noch den Lagerort als Zusatzinfo.
+- Changed (Home-Assistant-Integration/Panel): Die Status-Badges im nativen Lager-Tab sitzen jetzt direkt unter dem Textfilter in einer kompakten Zeile statt untereinander bzw. vollbreit.
+- Added (Tests/Frontend): Shared-UI- und Panel-Regressionstests decken die CTA-freie Variantenkarte sowie das reduzierte Rezepte-Produkt-Dropdown weiterhin ab.
+
+- Fix (Home-Assistant-Integration/Panel/Scanner): Das native Scanner-Popup nutzt beim Kamera-Start wieder kompatible `getUserMedia`-Fallbacks (`navigator.getUserMedia`/`webkitGetUserMedia`/`mozGetUserMedia`/`msGetUserMedia`) statt ausschließlich `navigator.mediaDevices.getUserMedia`, sodass der Scanner nach der Portierung auch in Home-Assistant-WebViews und älteren mobilen Browsern wieder startet.
+- Fix (Home-Assistant-Integration/Panel/Scanner): Vor dem Start des nativen Kamera-Streams werden `playsinline`, `autoplay` und `muted` zusätzlich explizit am Video-Element gesetzt, um mobiles WebKit-/App-Verhalten robuster zu machen.
+- Added (Tests/Frontend): Eine Panel-Regression sichert die wiederhergestellten Kamera-Fallbacks und die explizite Video-Initialisierung des nativen Scanner-Popups ab.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.14` erhöht.
+- Changed (Versioning): Integrationsversion auf `8.0.14` erhöht.
 
 - Fix (Home-Assistant-Integration/Panel/Scanner): Das native Scanner-Popup startet die Kamera beim Öffnen nicht mehr automatisch, sondern erst nach explizitem Klick auf `Scanner starten`. Das reduziert Abstürze in problematischen Browsern/WebViews beim reinen Öffnen des Popups.
 - Changed (Home-Assistant-Integration/Panel/Scanner): Beim Öffnen zeigt das Popup bzw. die Topbar jetzt den Hinweis `Scanner geöffnet. Kamera bitte manuell starten.`, damit der neue Ablauf klar erkennbar ist.

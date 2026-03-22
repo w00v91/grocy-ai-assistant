@@ -13,6 +13,10 @@ grocy_ai_assistant/
 ## Setup
 Before running tests or editing architecture-sensitive code, run:
 
+  ### HA-Stack explizit aus
+    INSTALL_HA_STACK=0 bash scripts/codex-workspace-setup.sh
+
+  ### HA-Stack erzwingen (nur sinnvoll mit Python >= 3.14.2)
     INSTALL_HA_STACK=1 bash scripts/codex-workspace-setup.sh
 
 ## Primary checks

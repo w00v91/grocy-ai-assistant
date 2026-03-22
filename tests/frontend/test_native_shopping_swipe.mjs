@@ -115,5 +115,7 @@ test('shared shopping card CSS keeps legacy swipe cards in their horizontal layo
   assert.match(source, /\.shopping-item-card--legacy \.shopping-card__surface \{\s+grid-template-columns: auto minmax\(0, 1fr\);/);
   assert.match(source, /\.shopping-card__body--swipe \{\s+grid-template-columns: minmax\(0, 1fr\) minmax\(148px, auto\);/);
   assert.match(source, /\.shopping-item-card--legacy \.shopping-card__body--swipe \{\s+align-items: center;/);
+  assert.match(source, /\.shopping-card--variant\.variant-card \.shopping-card__surface \{\s+grid-template-columns: minmax\(0, 1fr\);/);
+  assert.doesNotMatch(source, /\n\.variant-card \.shopping-card__body \{/);
   assert.match(source, /@media \(max-width: 640px\) \{[\s\S]*?\.shopping-card__body--swipe \{\s+grid-template-columns: minmax\(0, 1fr\);[\s\S]*?\.shopping-item-card--legacy \.shopping-card__surface \{\s+grid-template-columns: auto minmax\(0, 1fr\);[\s\S]*?\.shopping-item-card--legacy \.shopping-card__body--swipe \{\s+grid-template-columns: minmax\(0, 1fr\) auto;[\s\S]*?\.shopping-item-card--legacy \.shopping-card__aside,[\s\S]*?justify-items: end;/);
 });

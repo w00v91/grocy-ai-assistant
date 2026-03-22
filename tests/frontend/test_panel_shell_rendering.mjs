@@ -100,7 +100,7 @@ test('native panel binds shared shopping image fallbacks after list and variant 
   const source = await fs.readFile(dashboardPath, 'utf8');
 
   assert.match(source, /import \{ bindShoppingImageFallbacks, escapeHtml, formatAmount, formatBadgeValue, formatStockCount, renderShoppingListItemCard, renderShoppingVariantCard, resolveShoppingImageSource \} from '\.\/shopping-ui\.js';/);
-  assert.match(source, /const markup = renderShoppingVariantCard\(variant, \{\s+amount: parsedAmount \|\| variant\.amount \|\| variant\.default_amount \|\| '1',[\s\S]*?resolveImageUrl: this\._viewModel\?\.resolveImageUrl,/);
+  assert.match(source, /const markup = renderShoppingVariantCard\(variant, \{\s+amount: parsedAmount \|\| variant\.amount \|\| variant\.default_amount \|\| '1',[\s\S]*?ctaLabel: '',[\s\S]*?resolveImageUrl: this\._viewModel\?\.resolveImageUrl,/);
   assert.match(source, /variantGrid\.replaceChildren\(\.\.\.nodes\);\s+bindShoppingImageFallbacks\(this\);/);
   assert.match(source, /list\.replaceChildren\(\.\.\.items\.map\(\(item\) => this\._createShoppingListItem\(item, model\)\)\);\s+bindShoppingImageFallbacks\(this\);/);
 });
@@ -114,10 +114,18 @@ test('recipe filter cards render compact dropdown summaries and keep dropdown st
   assert.match(source, /const summaryLabel = summarizeSelectedItems\(items, selectedLocationIds, 'Keine Auswahl'\);/);
   assert.match(source, /location-dropdown__summary-title">Lagerort<\/span>/);
   assert.match(source, /location-dropdown__summary-title">Produkte in ausgewählten Standorten<\/span>/);
-  assert.match(source, /renderStorageBadge\('Menge', formatAmount\(item\.amount\) \|\| '-', 'amount'\)/);
-  assert.match(source, /renderStorageBadge\('MHD', item\.best_before_date \|\| '-', 'mhd'\)/);
+  assert.doesNotMatch(source, /renderStorageBadge\('Menge', formatAmount\(item\.amount\) \|\| '-', 'amount'\)/);
+  assert.doesNotMatch(source, /renderStorageBadge\('MHD', item\.best_before_date \|\| '-', 'mhd'\)/);
   assert.match(source, /item\.location_name \? renderStorageBadge\('Lagerort', item\.location_name, 'location'\) : ''/);
   assert.match(source, /const openDetails = captureDetailsOpenState\(this\);[\s\S]*?restoreDetailsOpenState\(this, openDetails\);/);
+});
+
+test('storage tab keeps summary badges directly under the text filter in a compact row', async () => {
+  const source = await fs.readFile(dashboardPath, 'utf8');
+  const cssSource = await fs.readFile(dashboardCssPath, 'utf8');
+
+  assert.match(source, /<label class="storage-filter-field"[\s\S]*?<div class="storage-summary">[\s\S]*?<\/div>[\s\S]*?<\/label>/);
+  assert.match(cssSource, /\.storage-summary \{[\s\S]*?display: flex;[\s\S]*?flex-wrap: wrap;[\s\S]*?justify-content: flex-start;/);
 });
 
 test('recipes, storage, and modal renders restore focused form controls after rerenders', async () => {
@@ -185,6 +193,9 @@ test('native scanner bridge keeps legacy getUserMedia fallbacks for Home Assista
   assert.doesNotMatch(applyViewModelSection, /void this\._startScanner\(\);/);
   assert.match(source, /status: open\s+\?\s+'Scanner geöffnet\. Kamera bitte manuell starten\.'\s+:\s+String\(scannerState\?\.status \|\| 'Bereit\.'\),/);
   assert.match(source, /this\._store\.patch\(\{ topbarStatus: 'Scanner geöffnet\. Kamera bitte manuell starten\.' \}\);/);
+  assert.match(source, /if \(!hasCompatibleGetUserMedia\(\)\) \{\s+this\._setStatus\('Kamera wird in diesem Browser\/WebView nicht unterstützt\.'\);/);
+  assert.match(source, /video\.setAttribute\('playsinline', 'true'\);[\s\S]*?video\.playsInline = true;[\s\S]*?video\.muted = true;/);
+  assert.match(source, /return await requestCompatibleUserMedia\(constraints\);/);
 });
 
 
