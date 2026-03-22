@@ -211,30 +211,30 @@
 }
 
 
-.variant-card .shopping-card__surface {
+.shopping-card--variant.variant-card .shopping-card__surface {
   grid-template-columns: minmax(0, 1fr);
   justify-items: center;
 }
 
-.variant-card .shopping-card__media-wrap {
+.shopping-card--variant.variant-card .shopping-card__media-wrap {
   width: fit-content;
   margin: 0 auto;
 }
 
-.variant-card .shopping-card__body {
+.shopping-card--variant.variant-card .shopping-card__body {
   width: 100%;
   justify-items: center;
   text-align: center;
 }
 
-.variant-card .shopping-card__header {
+.shopping-card--variant.variant-card .shopping-card__header {
   width: 100%;
   justify-content: center;
   flex-direction: column;
 }
 
-.variant-card .shopping-card__title,
-.variant-card .shopping-card__note {
+.shopping-card--variant.variant-card .shopping-card__title,
+.shopping-card--variant.variant-card .shopping-card__note {
   text-align: center;
 }
 

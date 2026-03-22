@@ -3,6 +3,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## 2026-03-22 (Version 8.0.15)
+- Fix (Home-Assistant-Integration/Panel): Die Swipe-Buttons im nativen Lager-Tab erben das zentrierte Variantenkarten-Layout nicht mehr, sodass Produktname und Zusatzinfos wieder linksbündig wie in der Einkaufsliste dargestellt werden.
+- Fix (Home-Assistant-Integration/Panel): Die Badge-Spalte der nativen Lager-Swipe-Karten richtet sich wieder wie in der Einkaufsliste aus, statt durch die Variantenkarten-Styles mittig zu verrutschen.
+- Added (Tests/Frontend): Eine CSS-Regression stellt sicher, dass die zentrierten Variantenkarten-Styles nur noch echte Variantenkarten betreffen.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.15` erhöht.
+
 ## 2026-03-22 (Version 8.0.14)
 - Changed (Home-Assistant-Integration/Panel): Produktvarianten im nativen Shopping-Tab zeigen keine `Auswählen`-Beschriftung mehr, rendern den Produktnamen zentriert unter dem Bild und halten das Mengen-Badge wieder schwebend an der rechten oberen Bildecke; das Varianten-Grid zeigt dabei mindestens zwei Kacheln nebeneinander.
 - Changed (Home-Assistant-Integration/Panel): Im Rezepte-Tab blendet das Dropdown `Produkte in ausgewählten Standorten` die Badges `Menge` und `MHD` aus und zeigt optional nur noch den Lagerort als Zusatzinfo.
