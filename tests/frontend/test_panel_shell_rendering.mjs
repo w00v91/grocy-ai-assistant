@@ -190,3 +190,13 @@ test('dashboard shell uses a centered half-width desktop layout like the legacy 
   assert.match(source, /\.page-shell \{[\s\S]*?width: min\(var\(--dashboard-shell-max-width\), 100%\);[\s\S]*?margin: 0 auto;/);
   assert.match(source, /@media \(min-width: 1200px\) \{[\s\S]*?:host \{[\s\S]*?--dashboard-shell-max-width: min\(960px, 50vw\);/);
 });
+
+
+test('bottom tab bar stays centered and becomes compact pill navigation on mobile', async () => {
+  const source = await fs.readFile(dashboardCssPath, 'utf8');
+
+  assert.match(source, /\.bottom-tabbar \{[\s\S]*?left: 50%;[\s\S]*?transform: translateX\(-50%\);[\s\S]*?justify-content: center;/);
+  assert.match(source, /@media \(max-width: 800px\) \{[\s\S]*?\.bottom-tabbar \{[\s\S]*?flex-wrap: nowrap;[\s\S]*?width: fit-content;[\s\S]*?border-radius: 999px;[\s\S]*?overflow-x: auto;/);
+  assert.match(source, /@media \(max-width: 800px\) \{[\s\S]*?\.tab-button \{[\s\S]*?flex: 0 0 auto;[\s\S]*?white-space: nowrap;/);
+  assert.match(source, /@media \(max-width: 800px\) \{[\s\S]*?\.tab-button__meta \{[\s\S]*?display: none;/);
+});
