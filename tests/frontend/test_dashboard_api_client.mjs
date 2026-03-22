@@ -131,3 +131,29 @@ test('dashboard api client routes native storage requests through dashboard stoc
 
   delete globalThis.fetch;
 });
+
+test('dashboard api client fetches product nutrition through the dashboard product endpoint', async () => {
+  const calls = [];
+  globalThis.fetch = async (url, options = {}) => {
+    calls.push({ url, options });
+    return {
+      ok: true,
+      async json() {
+        return { calories: '12' };
+      },
+    };
+  };
+
+  const client = createDashboardApiClient({
+    apiBasePath: '/api/grocy_ai_assistant/dashboard-proxy',
+    getAuthHeaders: () => ({ Authorization: 'Bearer ha-access-token' }),
+  });
+
+  await client.fetchProductNutrition(77);
+
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].url, '/api/grocy_ai_assistant/dashboard-proxy/api/dashboard/products/77/nutrition');
+  assert.equal(calls[0].options.headers.Authorization, 'Bearer ha-access-token');
+
+  delete globalThis.fetch;
+});

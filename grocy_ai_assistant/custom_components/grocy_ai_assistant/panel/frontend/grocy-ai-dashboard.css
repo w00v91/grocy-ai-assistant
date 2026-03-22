@@ -964,49 +964,57 @@ select:focus-visible {
   width: min(680px, calc(100vw - 32px));
 }
 
-.storage-modal-header {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 1rem;
-  align-items: center;
+.storage-edit-modal-content {
+  width: min(520px, calc(100vw - 32px));
 }
 
-.storage-modal-image {
-  width: 72px;
-  height: 72px;
+.storage-edit-modal-content h3 {
+  margin: 0 0 0.85rem;
 }
 
-.storage-modal-heading {
-  min-width: 0;
-  display: grid;
-  gap: 0.65rem;
+.storage-edit-media {
+  margin-bottom: 0.75rem;
 }
 
-.storage-modal-heading h3 {
-  margin: 0;
+.storage-edit-picture {
+  width: 100%;
+  max-height: 240px;
+  height: auto;
+  border-radius: 16px;
+  object-fit: cover;
+  border: 1px solid var(--panel-border-color);
+  display: block;
 }
 
 .storage-modal-badges {
   justify-content: flex-start;
+  margin-bottom: 1rem;
 }
 
 .storage-modal-actions-row {
   justify-content: flex-start;
 }
 
-.storage-edit-grid {
-  margin: 1rem 0;
+.storage-edit-attributes {
+  display: grid;
+  gap: 0.6rem;
+  margin: 0 0 1rem;
 }
 
-.storage-edit-grid label {
-  border: 1px solid var(--panel-border-color);
-  border-radius: 14px;
-  padding: 0.85rem;
-  background: color-mix(in srgb, var(--panel-card-background) 96%, var(--primary-background-color));
+.storage-edit-attribute-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 180px) minmax(0, 1fr);
+  align-items: center;
+  gap: 0.75rem;
 }
 
-.storage-edit-grid__full {
-  grid-column: 1 / -1;
+.storage-edit-attribute-row label {
+  margin: 0;
+}
+
+.storage-edit-attribute-row input,
+.storage-edit-attribute-row select {
+  width: 100%;
 }
 
 @media (max-width: 640px) {
@@ -1030,8 +1038,9 @@ select:focus-visible {
     text-align: left;
   }
 
-  .storage-modal-header {
+  .storage-edit-attribute-row {
     grid-template-columns: 1fr;
+    gap: 0.35rem;
   }
 }
 
