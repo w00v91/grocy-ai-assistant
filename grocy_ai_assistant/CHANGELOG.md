@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Fix (Home-Assistant-Integration/Panel): Im nativen `storage`-/`Lager`-Tab sitzt das Badge `Im Bestand` bzw. `Nicht im Bestand` jetzt rechts in derselben Badge-Spalte wie `Menge` und `MHD`; innerhalb der Badge-Liste wird der Status zuerst angezeigt.
+- Added (Tests/Frontend): Shared-Shopping-UI-Regressionstests decken jetzt auch eine konfigurierbare Badge-Reihenfolge für rechte Badge-Spalten ab.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.10` erhöht.
 - Changed (Home-Assistant-Integration/Panel): Die Bottom-Bar des nativen Dashboards nutzt im Desktop-View jetzt dieselbe maximale Breite wie die zentrierte Content-Shell, sodass Navigation und Inhalt bündig auf derselben Achse sitzen.
 - Fix (Home-Assistant-Integration/Panel): Die native Bottom-Bar ersetzt ihre Tab-Buttons nicht mehr bei jedem Status-/Polling-Update, sondern synchronisiert nur noch den aktiven Tab-Zustand; Hover- und Klick-Interaktionen bleiben dadurch im Dashboard stabiler.
 - Fix (Home-Assistant-Integration/Panel): Die Tab-Buttons der nativen Bottom-Bar heben sich bei Hover/Fokus nicht mehr per `translateY(...)` an, wodurch das springende Verhalten mit Mauszeiger entfällt.

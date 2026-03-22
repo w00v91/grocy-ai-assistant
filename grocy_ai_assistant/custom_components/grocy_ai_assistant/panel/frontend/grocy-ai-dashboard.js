@@ -28,7 +28,7 @@ const TAB_ICONS = Object.freeze({
 const VISIBLE_TAB_ORDER = TAB_ORDER.filter((tab) => tab !== 'notifications');
 const DEFAULT_POLLING_INTERVAL_SECONDS = 5;
 const DEFAULT_POLLING_INTERVAL_MS = DEFAULT_POLLING_INTERVAL_SECONDS * 1000;
-const DEFAULT_INTEGRATION_VERSION = '8.0.9';
+const DEFAULT_INTEGRATION_VERSION = '8.0.10';
 const GROCY_RECIPE_DISPLAY_LIMIT = 3;
 const AI_RECIPE_DISPLAY_LIMIT = 3;
 const TAB_VIEW_STATE = Object.freeze({
@@ -415,7 +415,8 @@ function renderStorageListItem(item, options = {}) {
     rootClassName: 'shopping-item-card shopping-item-card--legacy storage-item-card',
     contextFields: [],
     statusChip: false,
-    stockBadgePlacement: 'main',
+    stockBadgePlacement: 'aside',
+    badgeOrder: ['stock', 'amount', 'mhd'],
     stockBadge: {
       label: 'Status',
       value: stockLabel,
