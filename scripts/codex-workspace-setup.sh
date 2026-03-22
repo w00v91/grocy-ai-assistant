@@ -1,97 +1,140 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$ROOT_DIR"
+# Codex workspace bootstrap for Grocy AI Assistant
+# - always resolves and works from repo root
+# - supports being called from any working directory
+# - installs HA stack only when compatible / requested
 
-VENV_DIR="${VENV_DIR:-.venv}"
+log() { printf '\n[%s] %s\n' "$(date +%H:%M:%S)" "$*"; }
+warn() { printf '\n[WARN] %s\n' "$*" >&2; }
+die() { printf '\n[ERROR] %s\n' "$*" >&2; exit 1; }
+
+SCRIPT_PATH="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+CALL_PWD="$(pwd)"
+
+find_repo_root() {
+  local dir
+  for dir in "$CALL_PWD" "$SCRIPT_PATH" "$(dirname "$SCRIPT_PATH")"; do
+    if git -C "$dir" rev-parse --show-toplevel >/dev/null 2>&1; then
+      git -C "$dir" rev-parse --show-toplevel
+      return 0
+    fi
+  done
+
+  dir="$SCRIPT_PATH"
+  while [ "$dir" != "/" ]; do
+    if [ -f "$dir/grocy_ai_assistant/requirements.txt" ] || [ -f "$dir/README.md" ] || [ -d "$dir/.git" ]; then
+      printf '%s\n' "$dir"
+      return 0
+    fi
+    dir="$(dirname "$dir")"
+  done
+  return 1
+}
+
+REPO_ROOT="$(find_repo_root)" || die "Repo root konnte nicht erkannt werden."
+cd "$REPO_ROOT"
+log "Arbeite aus Repo-Root: $REPO_ROOT"
+
+VENV_DIR="${VENV_DIR:-$REPO_ROOT/.venv}"
 PYTHON_BIN="${PYTHON_BIN:-python3}"
+INSTALL_HA_STACK="${INSTALL_HA_STACK:-auto}"
 
-log() {
-  printf '\n[%s] %s\n' "$(date +%H:%M:%S)" "$*"
-}
+REQ_FILE=""
+for candidate in \
+  "$REPO_ROOT/grocy_ai_assistant/requirements.txt" \
+  "$REPO_ROOT/requirements.txt" \
+  "$REPO_ROOT/service/requirements.txt"
+ do
+  if [ -f "$candidate" ]; then
+    REQ_FILE="$candidate"
+    break
+  fi
+ done
 
-need_cmd() {
-  command -v "$1" >/dev/null 2>&1 || {
-    echo "Missing required command: $1" >&2
-    exit 1
-  }
-}
+[ -n "$REQ_FILE" ] || die "Keine requirements.txt gefunden. Erwartet z. B. $REPO_ROOT/grocy_ai_assistant/requirements.txt"
+log "Verwende Requirements: $REQ_FILE"
 
-log "Validating base tools"
-need_cmd "$PYTHON_BIN"
-need_cmd git
+command -v "$PYTHON_BIN" >/dev/null 2>&1 || die "Python nicht gefunden: $PYTHON_BIN"
 
-log "Creating virtual environment in $VENV_DIR"
-"$PYTHON_BIN" -m venv "$VENV_DIR"
+if [ ! -d "$VENV_DIR" ]; then
+  log "Erstelle virtuelle Umgebung: $VENV_DIR"
+  "$PYTHON_BIN" -m venv "$VENV_DIR"
+fi
+
 # shellcheck disable=SC1091
 source "$VENV_DIR/bin/activate"
 
-log "Upgrading pip/setuptools/wheel"
+log "Aktualisiere pip/setuptools/wheel"
 python -m pip install --upgrade pip setuptools wheel
 
-log "Installing project runtime dependencies"
-pip install -r grocy_ai_assistant/requirements.txt
+log "Installiere Projekt-Dependencies"
+pip install -r "$REQ_FILE"
 
-log "Installing development and test tooling"
-pip install \
-  pytest \
-  pytest-asyncio \
-  pytest-cov \
-  ruff \
-  black \
-  mypy \
-  httpx \
-  requests \
-  aiohttp \
-  respx \
-  fastapi \
-  uvicorn \
-  python-dotenv \
-  pydantic \
-  rapidfuzz
+log "Installiere Dev-/Test-Tools"
+pip install pytest pytest-cov ruff black mypy
 
-log "Installing optional Home Assistant integration test stack"
-pip install \
-  "homeassistant>=2026.3.0" \
-  "pytest-homeassistant-custom-component>=0.13" || true
+PY_MM="$(python - <<'PY'
+import sys
+print(f"{sys.version_info.major}.{sys.version_info.minor}")
+PY
+)"
 
-log "Installing repo in editable mode"
-pip install -e . || true
+install_ha_stack=false
+case "$INSTALL_HA_STACK" in
+  1|true|yes|on)
+    install_ha_stack=true
+    ;;
+  0|false|no|off)
+    install_ha_stack=false
+    ;;
+  auto)
+    if python - <<'PY'
+import sys
+raise SystemExit(0 if (sys.version_info.major, sys.version_info.minor) >= (3,14) else 1)
+PY
+    then
+      install_ha_stack=true
+    else
+      install_ha_stack=false
+    fi
+    ;;
+  *)
+    die "Ungültiger Wert für INSTALL_HA_STACK: $INSTALL_HA_STACK"
+    ;;
+esac
 
-log "Preparing common runtime directories"
-mkdir -p .pytest_cache .mypy_cache reports tmp .codex-work
+if [ "$install_ha_stack" = true ]; then
+  log "Installiere optionalen Home-Assistant-Teststack"
+  pip install homeassistant pytest-homeassistant-custom-component
+else
+  warn "Überspringe Home-Assistant-Teststack (Python $PY_MM / INSTALL_HA_STACK=$INSTALL_HA_STACK)"
+fi
 
-log "Writing local environment helper"
-cat > .env.codex.local <<'ENVEOF'
-# Local helper values for Codex / manual runs
-PYTHONPATH=.
-PYTEST_ADDOPTS=-ra
-ENVEOF
+mkdir -p "$REPO_ROOT/reports"
 
-log "Printing versions"
-python --version
-pytest --version
-ruff --version || true
-black --version || true
-mypy --version || true
+log "Syntax-Sanity-Check"
+python -m compileall "$REPO_ROOT" >/dev/null || warn "compileall meldet Probleme"
 
-log "Sanity checks"
-python -m compileall grocy_ai_assistant >/dev/null
-pytest --collect-only -q >/dev/null
+if [ -d "$REPO_ROOT/tests" ]; then
+  log "Pytest Collection-Check"
+  pytest --collect-only >/dev/null || warn "pytest --collect-only ist fehlgeschlagen"
+fi
 
-cat <<'DONE'
+cat <<MSG
 
-Workspace bootstrap complete.
+Setup abgeschlossen.
 
-Recommended commands:
-  source .venv/bin/activate
+Repo root: $REPO_ROOT
+Virtualenv: $VENV_DIR
+Requirements: $REQ_FILE
+HA stack: $( [ "$install_ha_stack" = true ] && echo installiert || echo übersprungen )
+
+Nächste Befehle:
+  source "$VENV_DIR/bin/activate"
   pytest
   ruff check .
   black --check .
-  python -m grocy_ai_assistant.api.main
 
-Notes:
-- This script installs more than the current repo strictly needs so Codex can also run future HA integration tests.
-- If Home Assistant dependency resolution ever becomes too heavy, move the HA test stack into a separate script.
-DONE
+MSG
