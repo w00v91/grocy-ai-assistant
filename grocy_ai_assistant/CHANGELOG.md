@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Changed (Home-Assistant-Integration/Panel): Die Produktvariantenauswahl im nativen Shopping-Dashboard rendert wieder die gemeinsame Kachelansicht mit Bild, Badges, Kontextinfos und CTA statt der reduzierten Listen-/Zeilenkarte.
+- Added (Tests/Frontend): Ein Panel-Shell-Regressionstest sichert ab, dass die native Variantensuche wieder `renderShoppingVariantCard(...)` inklusive Bildauflösung nutzt.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.12` erhöht.
 - Fix (Home-Assistant-Integration/Panel): Der native Rezepte-Tab stapelt seine Karten im Mobile-View jetzt einspaltig, sodass Grocy- und KI-Rezepte nicht mehr nebeneinander in zwei Spalten erscheinen.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.12` erhöht.
 

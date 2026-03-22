@@ -476,11 +476,12 @@ h1 {
 
 .variant-card__button {
   width: 100%;
-  padding: var(--panel-section-gap);
-  border-radius: 0;
+  padding: 0;
+  border-radius: inherit;
   background: transparent;
   color: inherit;
   text-align: left;
+  display: block;
 }
 
 .shopping-item-content img,
@@ -498,15 +499,6 @@ h1 {
   min-width: 0;
   display: grid;
   gap: var(--panel-compact-gap);
-}
-
-.variant-card__button {
-  display: grid;
-  gap: var(--panel-stack-gap);
-}
-
-.variant-card__image {
-  margin-bottom: var(--panel-compact-gap);
 }
 
 .variant-card__button:hover {
