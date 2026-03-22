@@ -133,6 +133,19 @@ test('recipes, storage, and modal setters skip full rerenders for volatile field
   assert.match(source, /class GrocyAIRecipesTab extends HTMLElement \{[\s\S]*?this\._renderSignature = null;[\s\S]*?const nextSignature = JSON\.stringify\(\{[\s\S]*?stockProducts: buildStockSignature\(/);
   assert.match(source, /class GrocyAIStorageTab extends HTMLElement \{[\s\S]*?this\._renderSignature = null;[\s\S]*?const nextSignature = JSON\.stringify\(\{[\s\S]*?deleteModal: \{[\s\S]*?itemId: value\?\.deleteModal\?\.itemId \?\? null[\s\S]*?\}\);[\s\S]*?if \(nextSignature === this\._renderSignature\) \{[\s\S]*?this\._syncVolatileState\(\);[\s\S]*?return;[\s\S]*?\}/);
 });
+test('native panel locks background scrolling while any modal is open', async () => {
+  const source = await fs.readFile(dashboardPath, 'utf8');
+  const cssSource = await fs.readFile(dashboardCssPath, 'utf8');
+
+  assert.match(source, /this\._scrollLockState = null;/);
+  assert.match(source, /this\._setModalScrollLock\(this\._isAnyModalOpen\(state\)\);/);
+  assert.match(source, /_isAnyModalOpen\(state\) \{[\s\S]*?state\.shopping\.detailModal\.open[\s\S]*?state\.shopping\.scanner\.open[\s\S]*?state\.recipes\.createModal\.open[\s\S]*?state\.storage\.deleteModal\.open[\s\S]*?\}/);
+  assert.match(source, /_setModalScrollLock\(locked\) \{[\s\S]*?body\.style\.overflow = 'hidden';[\s\S]*?body\.style\.position = 'fixed';[\s\S]*?document\.documentElement\.style\.overscrollBehavior = 'none';[\s\S]*?window\.scrollTo\(0, scrollTop\);/);
+  assert.match(cssSource, /:host\(\[data-modal-open="true"\]\),[\s\S]*?\.page-shell--modal-open \{[\s\S]*?overflow: hidden;/);
+  assert.match(cssSource, /\.shopping-modal \{[\s\S]*?overscroll-behavior: contain;/);
+  assert.match(cssSource, /\.shopping-modal-content \{[\s\S]*?overflow: auto;[\s\S]*?overscroll-behavior: contain;[\s\S]*?-webkit-overflow-scrolling: touch;/);
+});
+
 
 test('recipes and storage tabs are natively migrated in the panel shell', async () => {
   const source = await fs.readFile(dashboardPath, 'utf8');
