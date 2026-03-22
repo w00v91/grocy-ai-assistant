@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Changed (Home-Assistant-Integration/Panel): Die native Bottom-Bar ist jetzt auch im Dashboard selbst sauber zentriert, statt sich am Viewport asymmetrisch auszurichten.
+- Changed (Home-Assistant-Integration/Panel): Auf mobilen Viewports rendert die Bottom-Bar ihre Tab-Links jetzt als kompakte, horizontal scrollbare Pills statt als umbrechende Liste; Desktop bleibt unverändert.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.4` erhöht.
+- Test: `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `node --test tests/frontend/test_panel_shell_rendering.mjs`, `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `8.0.4` erhöht.
+
+## [8.0.3] - 2026-03-22
+
 - Changed (Home-Assistant-Integration/Panel): Das native Storage-Bearbeiten-Modal übernimmt wieder die Legacy-Reihenfolge für Menge, MHD, Lagerort und die fünf Nährwertfelder; beim Öffnen werden zunächst Lagerdaten gesetzt und anschließend detaillierte Produkt-Nährwerte per `fetchProductNutrition(...)` nachgeladen.
 - Added (Tests/Frontend): Zusätzliche Frontend-Regressionstests decken Rendering, Initialzustand, Volatile-State-Sync sowie den Save-Flow der neuen Storage-Nährwertfelder ab.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.3` erhöht.
