@@ -10,6 +10,16 @@ grocy_ai_assistant/
   services/            Grocy API integration
   custom_components/   Home Assistant integration
 
+## Setup
+Before running tests or editing architecture-sensitive code, run:
+
+    bash scripts/setup-codex-workspace.sh
+
+## Primary checks
+    source .venv/bin/activate && pytest
+    source .venv/bin/activate && ruff check .
+    source .venv/bin/activate && black --check .
+
 ## Commands
 
 install:
