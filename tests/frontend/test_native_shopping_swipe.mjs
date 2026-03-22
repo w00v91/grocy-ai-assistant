@@ -72,6 +72,7 @@ test('native storage tab renders legacy-style swipe list items and rebinds swipe
   assert.match(source, /class="storage-item swipe-item variant-card"/);
   assert.match(source, /rootClassName: 'shopping-item-card shopping-item-card--legacy storage-item-card'/);
   assert.match(source, /stockBadgePlacement: 'main'/);
+  assert.match(source, /mhdBadge: \{[\s\S]*?hideLabel: true,[\s\S]*?\}/);
   assert.match(source, /value: stockLabel/);
   assert.match(source, /variant: item\?\.in_stock \? 'stock' : 'neutral'/);
   assert.match(source, /hideLabel: true/);
