@@ -222,18 +222,22 @@ export function renderShoppingListItemCard(item, options = {}) {
       })
     : '';
   const stockBadgeOrder = options.stockBadgeOrder === 'first' ? 'first' : 'last';
-  const asideBadges = [
-    renderBadge('Menge', amountLabel, options.amountBadge || { variant: 'amount' }),
-    renderBadge('MHD', bestBeforeDate, { variant: 'mhd', ...(options.mhdBadge || {}) }),
-  ];
-  if (stockBadgePlacement === 'aside' && stockBadge) {
-    if (stockBadgeOrder === 'first') {
-      asideBadges.unshift(stockBadge);
-    } else {
-      asideBadges.push(stockBadge);
-    }
-  }
-  const badges = asideBadges.filter(Boolean).join('');
+  const asideBadgeFactories = {
+    amount: () => renderBadge('Menge', amountLabel, options.amountBadge || { variant: 'amount' }),
+    mhd: () => renderBadge('MHD', bestBeforeDate, { variant: 'mhd', ...(options.mhdBadge || {}) }),
+    stock: () => (stockBadgePlacement === 'aside' ? stockBadge : ''),
+  };
+  const configuredBadgeOrder = Array.isArray(options.badgeOrder)
+    ? options.badgeOrder.filter((badge) => ['amount', 'mhd', 'stock'].includes(badge))
+    : null;
+  const defaultAsideBadgeOrder = stockBadgePlacement === 'aside' && stockBadgeOrder === 'first'
+    ? ['stock', 'amount', 'mhd']
+    : ['amount', 'mhd', 'stock'];
+  const asideBadgeOrder = configuredBadgeOrder?.length ? configuredBadgeOrder : defaultAsideBadgeOrder;
+  const badges = asideBadgeOrder
+    .map((badge) => asideBadgeFactories[badge]?.() || '')
+    .filter(Boolean)
+    .join('');
   const statusChipMarkup = options.statusChip === false
     ? ''
     : `<span class="shopping-status-chip shopping-status-chip--shopping">${escapeHtml(options.statusLabel || 'Offen')}</span>`;

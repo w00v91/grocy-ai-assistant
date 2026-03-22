@@ -3,7 +3,7 @@ from __future__ import annotations
 import importlib.util
 import sys
 import types
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -45,7 +45,7 @@ def test_persistent_rule_creates_message_without_mobile_targets():
         event_type="shopping_due",
         title="Einkauf fällig",
         message="Milch fehlt",
-        created_at=datetime.utcnow(),
+        created_at=datetime.now(UTC),
     )
     settings = models.NotificationSettings(
         targets=[],
@@ -74,7 +74,7 @@ def test_mixed_rule_creates_mobile_and_persistent_messages():
         event_type="shopping_due",
         title="Einkauf fällig",
         message="Milch fehlt",
-        created_at=datetime.utcnow(),
+        created_at=datetime.now(UTC),
     )
     settings = models.NotificationSettings(
         targets=[

@@ -223,8 +223,8 @@ Zusätzlich nutzt die Integration eine Konstante in `const.py`, die synchron zur
 
 Aktueller Stand:
 
-- **Add-on:** `8.0.8`
-- **Integration:** `8.0.8`
+- **Add-on:** `8.0.12`
+- **Integration:** `8.0.12`
 
 ## Add-on-Dokumentation
 
