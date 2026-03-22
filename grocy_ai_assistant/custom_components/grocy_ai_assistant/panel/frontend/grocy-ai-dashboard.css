@@ -1330,6 +1330,10 @@ select:focus-visible {
     justify-content: stretch;
   }
 
+  .recipes-card-group {
+    grid-template-columns: 1fr;
+  }
+
   .recipe-create-methods {
     grid-template-columns: 1fr;
   }

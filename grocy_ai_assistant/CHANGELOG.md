@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Fix (Home-Assistant-Integration/Panel): Der native Rezepte-Tab stapelt seine Karten im Mobile-View jetzt einspaltig, sodass Grocy- und KI-Rezepte nicht mehr nebeneinander in zwei Spalten erscheinen.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.12` erhöht.
+
 - Fix (Home-Assistant-Integration/Panel): Im nativen Desktop-Panel wird die Bottom-Bar jetzt an der tatsächlich gerenderten Shell-Mitte ausgerichtet; beim Öffnen oder Schließen der Home-Assistant-Sidebar bleibt sie dadurch zentriert statt leicht nach links versetzt.
 - Fix (Home-Assistant-Integration/Panel): Die Status-Badges im nativen Lager-Tab berechnen `auf Lager` und `nicht auf Lager` jetzt auch bei deaktiviertem Toggle `Alle Produkte anzeigen` korrekt über einen separaten Summenabruf mit identischem Filter.
 - Fix (Dashboard/Web): Die Lager-Statusmeldung des Web-Dashboards nutzt für `nicht auf Lager`-Hinweise jetzt ebenfalls die vollständige Summenzählung, selbst wenn nur aktuelle Bestandsartikel angezeigt werden.
