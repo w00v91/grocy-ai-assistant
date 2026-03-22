@@ -554,13 +554,12 @@ function buildStorageTabMarkup(model = {}) {
             <input id="storage-include-all-products-native" class="ha-control" data-role="storage-include-all" type="checkbox"${model.includeAllProducts ? ' checked' : ''} />
             <span>Alle Produkte anzeigen</span>
           </label>
-          <div class="storage-summary">
-            <span class="migration-chip">${escapeHtml(`${model.summary.totalCount} Produkte`)}</span>
-            <span class="migration-chip">${escapeHtml(`${model.summary.inStockCount} auf Lager`)}</span>
-            <span class="migration-chip">${escapeHtml(`${model.summary.outOfStockCount} nicht auf Lager`)}</span>
-          </div>
         </div>
-        <p class="tab-status">${escapeHtml(model.status || 'Bereit.')}</p>
+        <div class="storage-summary">
+          <span class="migration-chip">${escapeHtml(`${model.summary.totalCount} Produkte`)}</span>
+          <span class="migration-chip">${escapeHtml(`${model.summary.inStockCount} Produkte auf Lager`)}</span>
+          <span class="migration-chip">${escapeHtml(`${model.summary.outOfStockCount} Produkte nicht auf Lager`)}</span>
+        </div>
       `,
     })}
     ${listMarkup}
@@ -819,7 +818,6 @@ class GrocyAITopbar extends HTMLElement {
           <div class="topbar-meta">
             <p class="topbar-status" aria-live="polite">${escapeHtml(model.status)}</p>
             <span class="activity-spinner${model.busy ? '' : ' hidden'}" aria-label="Lädt"></span>
-            <span class="migration-chip">${model.migratedCount}/${model.totalCount} Bereiche nativ</span>
           </div>
         </div>
       </header>
@@ -1594,16 +1592,10 @@ function buildRecipesTabMarkup(model = {}) {
       className: 'hero-card recipes-hero-card',
       eyebrow: 'Rezepte',
       title: 'Rezeptvorschläge',
-      description: 'Der erste vollständig native Nicht-Shopping-Tab übernimmt Vorschläge, Standortfilter, Produktauswahl und Dialoge direkt aus dem Legacy-Dashboard.',
-      actions: [
+      body: renderActionRow([
         { label: 'Rezept hinzufügen', className: 'primary-button', dataset: { action: 'recipes-open-create' } },
-      ],
-      body: [
-        renderMetaBadges(['Grocy-Rezepte', 'KI-Vorschläge', 'native Dialoge']),
-        renderActionRow([
-          { label: 'Rezeptvorschläge laden', className: 'primary-button', dataset: { action: 'recipes-load-suggestions' } },
-        ], { className: 'recipes-primary-actions' }),
-      ].join(''),
+        { label: 'Rezepte laden', className: 'primary-button', dataset: { action: 'recipes-load-suggestions' } },
+      ], { className: 'recipes-primary-actions' }),
     })}
     ${renderTwoColumnCardGroup(recipeCards, { className: 'recipes-card-group' })}
     ${renderTwoColumnCardGroup(stockCards, { className: 'recipes-card-group' })}
