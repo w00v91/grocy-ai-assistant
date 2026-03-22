@@ -3,21 +3,18 @@
 :host {
   display: block;
   color: var(--primary-text-color);
-  --space-2xs: 4px;
-  --space-xs: 8px;
-  --space-sm: 12px;
-  --space-md: 16px;
-  --space-lg: 20px;
-  --space-xl: 24px;
-  --panel-card-background: var(--card-background-color, var(--ha-card-background-color, #fff));
-  --panel-border-color: var(--divider-color, rgba(0, 0, 0, 0.12));
+  --panel-card-background: var(--ha-card-background-color, var(--card-background-color, #fff));
+  --panel-border-color: var(--ha-divider-color, var(--divider-color, rgba(0, 0, 0, 0.12)));
   --panel-shadow: var(--ha-card-box-shadow, 0 2px 8px rgba(0, 0, 0, 0.08));
-  --panel-radius: 20px;
-  --panel-gap: var(--space-lg);
-  --panel-card-padding: var(--space-xl);
-  --panel-section-gap: var(--space-md);
-  --panel-stack-gap: var(--space-sm);
-  --panel-compact-gap: var(--space-xs);
+  --panel-radius: var(--ha-card-border-radius, 16px);
+  --panel-spacing: var(--ha-card-padding, 16px);
+  --panel-spacing-compact: calc(var(--panel-spacing) * 0.75);
+  --panel-spacing-tight: calc(var(--panel-spacing) * 0.5);
+  --panel-gap: var(--panel-spacing);
+  --panel-card-padding: var(--panel-spacing);
+  --panel-section-gap: var(--panel-spacing);
+  --panel-stack-gap: var(--panel-spacing-compact);
+  --panel-compact-gap: var(--panel-spacing-tight);
   --image-bg: color-mix(in srgb, var(--secondary-background-color, #e9eff7) 80%, var(--panel-border-color));
   --dashboard-shell-max-width: 100%;
 }
@@ -231,7 +228,7 @@ h1 {
   display: grid;
   gap: var(--panel-section-gap);
   padding: var(--panel-gap);
-  border-radius: 20px;
+  border-radius: var(--panel-radius);
   border: 1px solid var(--panel-border-color);
   background: color-mix(in srgb, var(--panel-card-background) 94%, var(--primary-background-color));
 }
@@ -337,7 +334,7 @@ h1 {
 .variant-grid .shopping-card__aside,
 .variant-grid .shopping-card__meta,
 .variant-grid .shopping-card__context-list {
-  gap: var(--space-2xs);
+  gap: var(--panel-compact-gap);
 }
 
 .shopping-list-native .shopping-card__header,
@@ -489,7 +486,7 @@ h1 {
   flex: 1;
   min-width: 0;
   display: grid;
-  gap: var(--space-2xs);
+  gap: var(--panel-compact-gap);
 }
 
 .variant-card__button {
@@ -498,7 +495,7 @@ h1 {
 }
 
 .variant-card__image {
-  margin-bottom: var(--space-2xs);
+  margin-bottom: var(--panel-compact-gap);
 }
 
 .variant-card__button:hover {
@@ -626,7 +623,7 @@ select:focus-visible {
   width: min(960px, calc(100vw - 48px));
   margin: 0 auto;
   padding: var(--panel-stack-gap);
-  border-radius: 24px;
+  border-radius: calc(var(--panel-radius) + var(--panel-compact-gap));
   background: color-mix(in srgb, var(--panel-card-background) 92%, transparent);
   border: 1px solid var(--panel-border-color);
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.24);
@@ -696,7 +693,7 @@ select:focus-visible {
 
 .shopping-details-grid div {
   display: grid;
-  gap: var(--space-2xs);
+  gap: var(--panel-compact-gap);
   border: 1px solid var(--panel-border-color);
   border-radius: 12px;
   padding: var(--panel-stack-gap);
