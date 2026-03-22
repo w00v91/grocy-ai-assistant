@@ -1,3 +1,9 @@
+## 2026-03-22 (Version 8.0.14)
+- Changed (Home-Assistant-Integration/Panel): Produktvarianten im nativen Shopping-Tab zeigen keine `Auswählen`-Beschriftung mehr, rendern den Produktnamen zentriert unter dem Bild und halten das Mengen-Badge wieder schwebend an der rechten oberen Bildecke; das Varianten-Grid zeigt dabei mindestens zwei Kacheln nebeneinander.
+- Changed (Home-Assistant-Integration/Panel): Im Rezepte-Tab blendet das Dropdown `Produkte in ausgewählten Standorten` die Badges `Menge` und `MHD` aus und zeigt optional nur noch den Lagerort als Zusatzinfo.
+- Changed (Home-Assistant-Integration/Panel): Die Status-Badges im nativen Lager-Tab sitzen jetzt direkt unter dem Textfilter in einer kompakten Zeile statt untereinander bzw. vollbreit.
+- Added (Tests/Frontend): Shared-UI- und Panel-Regressionstests decken die CTA-freie Variantenkarte sowie das reduzierte Rezepte-Produkt-Dropdown weiterhin ab.
+
 # Changelog
 
 All notable changes to this project will be documented in this file.
