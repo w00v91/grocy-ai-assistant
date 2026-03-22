@@ -2,7 +2,7 @@ import logging
 from datetime import datetime, timezone
 
 from homeassistant.components.sensor import SensorEntity, SensorStateClass
-from homeassistant.helpers.entity import EntityCategory
+from homeassistant.const import EntityCategory
 
 from .addon_client import AddonClient
 from .const import (
@@ -96,7 +96,9 @@ class _PollingAddonSensor(_BaseAddonSensor):
         http_status: int | None = None,
         fallback_native_value=None,
     ) -> None:
-        merged_attributes = dict(getattr(self, "_attr_extra_state_attributes", {}) or {})
+        merged_attributes = dict(
+            getattr(self, "_attr_extra_state_attributes", {}) or {}
+        )
         merged_attributes.update(
             {
                 "last_update_success": False,
@@ -109,7 +111,9 @@ class _PollingAddonSensor(_BaseAddonSensor):
         self._attr_extra_state_attributes = merged_attributes
         if not self._has_successful_update and fallback_native_value is not None:
             self._attr_native_value = fallback_native_value
-        self._attr_available = self._has_successful_update or fallback_native_value is not None
+        self._attr_available = (
+            self._has_successful_update or fallback_native_value is not None
+        )
 
     async def async_update(self):
         try:

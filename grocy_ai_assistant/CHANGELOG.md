@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Fix (Home-Assistant-Integration/Sensoren): `EntityCategory` wird jetzt aus `homeassistant.const` importiert, damit Sensor-Tests und aktuelle Home-Assistant-Versionen denselben Importpfad nutzen.
+- Fix (Home-Assistant-Integration/Panel): Das native Shopping-Panel übergibt wieder `stockBadgePlacement: 'main'`, sodass der bestehende Swipe-Regressionstest wieder mit der Implementierung übereinstimmt.
+- Changed (Dependencies): Entfernt ungenutzte Flask-Dependency aus den Python-Requirements; das Backend bleibt FastAPI-basiert.
+- Changed (Dokumentation): README und `DOCS.md` dokumentieren jetzt das verschachtelte Add-on-Schema, das aktuelle Sidebar-Icon sowie den vollständigen lokalen Prüfablauf.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.7` erhöht.
+
 - Changed (Home-Assistant-Integration/Panel): Das native Dashboard leitet seine Abstände und Card-Surfaces jetzt aus den Home-Assistant-Theme-Variablen für `ha-card` ab, damit Shell, Karten, Suchflächen, Listen, Detail-Boxen und Bottom-Bar denselben spacing-/theme-nahen Rhythmus wie andere HA-Oberflächen übernehmen.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.6` erhöht.
 - Test: `node --test tests/frontend/test_panel_shell_rendering.mjs`, `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `8.0.6` erhöht.

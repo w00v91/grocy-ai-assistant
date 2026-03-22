@@ -5,7 +5,6 @@ from grocy_ai_assistant.api.routes import (
 from grocy_ai_assistant.config.settings import Settings
 from grocy_ai_assistant.core.picture_urls import build_product_picture_url
 
-
 SETTINGS = Settings(
     api_key="x",
     addon_version="a",

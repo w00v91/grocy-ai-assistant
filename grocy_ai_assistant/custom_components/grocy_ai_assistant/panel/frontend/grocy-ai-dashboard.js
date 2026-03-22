@@ -28,7 +28,7 @@ const TAB_ICONS = Object.freeze({
 const VISIBLE_TAB_ORDER = TAB_ORDER.filter((tab) => tab !== 'notifications');
 const DEFAULT_POLLING_INTERVAL_SECONDS = 5;
 const DEFAULT_POLLING_INTERVAL_MS = DEFAULT_POLLING_INTERVAL_SECONDS * 1000;
-const DEFAULT_INTEGRATION_VERSION = '8.0.6';
+const DEFAULT_INTEGRATION_VERSION = '8.0.7';
 const GROCY_RECIPE_DISPLAY_LIMIT = 3;
 const AI_RECIPE_DISPLAY_LIMIT = 3;
 const TAB_VIEW_STATE = Object.freeze({
@@ -1277,6 +1277,7 @@ class GrocyAIShoppingTab extends HTMLElement {
         ${renderShoppingListItemCard(item, {
           rootClassName: 'shopping-item-card shopping-item-card--legacy',
           contextFields: ['location'],
+          stockBadgePlacement: 'main',
           statusChip: false,
           resolveImageUrl: model.resolveImageUrl,
           amountBadge: {
@@ -1377,10 +1378,25 @@ class GrocyAIShoppingTab extends HTMLElement {
 
     if (shellSignature !== this._lastShellSignature) {
       this._lastShellSignature = shellSignature;
-      this._elements.root.className = `tab-view${model.active ? '' : ' hidden'}`;
-      this._elements.root.toggleAttribute('hidden', !model.active);
-      this._elements.root.setAttribute('aria-hidden', model.active ? 'false' : 'true');
-      this._elements.root.tabIndex = model.active ? 0 : -1;
+      const root = this._elements.root;
+      root.className = `tab-view${model.active ? '' : ' hidden'}`;
+      if (typeof root.toggleAttribute === 'function') {
+        root.toggleAttribute('hidden', !model.active);
+      } else if (model.active) {
+        if (typeof root.removeAttribute === 'function') {
+          root.removeAttribute('hidden');
+        } else {
+          root.hidden = false;
+        }
+      } else {
+        if (typeof root.setAttribute === 'function') {
+          root.setAttribute('hidden', '');
+        } else {
+          root.hidden = true;
+        }
+      }
+      root.setAttribute('aria-hidden', model.active ? 'false' : 'true');
+      root.tabIndex = model.active ? 0 : -1;
       this._elements.status.textContent = model.status || 'Bereit.';
     }
 
