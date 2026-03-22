@@ -75,7 +75,7 @@ def _load_panel_module(monkeypatch):
     )
     const_module.DEFAULT_DASHBOARD_POLLING_INTERVAL_SECONDS = 5
     const_module.DOMAIN = "grocy_ai_assistant"
-    const_module.INTEGRATION_VERSION = "8.0.8"
+    const_module.INTEGRATION_VERSION = "8.0.10"
     monkeypatch.setitem(sys.modules, f"{package_name}.const", const_module)
 
     addon_client_module = types.ModuleType(f"{package_name}.addon_client")

@@ -2124,6 +2124,32 @@ function normalizeStorageFilterValue() {
   return String(input?.value || '').trim().toLowerCase();
 }
 
+async function fetchStorageSummaryCounts({ query = '', visibleItems = [] } = {}) {
+  const normalizedVisibleItems = Array.isArray(visibleItems) ? visibleItems : [];
+  const fallbackSummary = {
+    totalCount: normalizedVisibleItems.length,
+    inStockCount: normalizedVisibleItems.filter((item) => item?.in_stock).length,
+    outOfStockCount: normalizedVisibleItems.filter((item) => !item?.in_stock).length,
+  };
+
+  try {
+    const { response, payload } = await dashboardApi.fetchStockProducts({
+      includeAllProducts: true,
+      query,
+    });
+    if (!response.ok) return fallbackSummary;
+    const allItems = (Array.isArray(payload) ? payload : []).map(normalizeStockProduct);
+    const inStockCount = allItems.filter((item) => item?.in_stock).length;
+    return {
+      totalCount: allItems.length,
+      inStockCount,
+      outOfStockCount: allItems.length - inStockCount,
+    };
+  } catch (error) {
+    return fallbackSummary;
+  }
+}
+
 function renderStorageProducts() {
   const list = document.getElementById('storage-products');
   if (!list) return;
@@ -2214,15 +2240,24 @@ async function loadStorageProducts() {
       renderStorageProducts();
       const fallbackProductIds = dashboardState.storageProductsCache.filter((item) => Number(item.stock_id || 0) <= 0 && Number(item.id || 0) > 0).length;
       const missingAllIds = dashboardState.storageProductsCache.filter((item) => Number(item.stock_id || 0) <= 0 && Number(item.id || 0) <= 0).length;
-      const outOfStockProducts = dashboardState.storageProductsCache.filter((item) => !item.in_stock).length;
+      const storageSummary = includeAllProducts
+        ? {
+          totalCount: dashboardState.storageProductsCache.length,
+          inStockCount: dashboardState.storageProductsCache.filter((item) => item.in_stock).length,
+          outOfStockCount: dashboardState.storageProductsCache.filter((item) => !item.in_stock).length,
+        }
+        : await fetchStorageSummaryCounts({
+          query: filterValue,
+          visibleItems: dashboardState.storageProductsCache,
+        });
       if (!background) {
         status.textContent = missingAllIds > 0
-        ? `Lagerbestand geladen (${fallbackProductIds} Einträge über Produkt-ID, ${missingAllIds} ohne nutzbare ID${outOfStockProducts > 0 ? `, ${outOfStockProducts} nicht auf Lager` : ''}).`
+        ? `Lagerbestand geladen (${fallbackProductIds} Einträge über Produkt-ID, ${missingAllIds} ohne nutzbare ID${storageSummary.outOfStockCount > 0 ? `, ${storageSummary.outOfStockCount} nicht auf Lager` : ''}).`
         : fallbackProductIds > 0
-          ? `Lagerbestand geladen (${fallbackProductIds} Einträge über Produkt-ID${outOfStockProducts > 0 ? `, ${outOfStockProducts} nicht auf Lager` : ''}).`
-          : outOfStockProducts > 0
-            ? `Lagerbestand geladen (${outOfStockProducts} nicht auf Lager).`
-            : 'Lagerbestand geladen.';
+          ? `Lagerbestand geladen (${fallbackProductIds} Einträge über Produkt-ID${storageSummary.outOfStockCount > 0 ? `, ${storageSummary.outOfStockCount} nicht auf Lager` : ''}).`
+          : storageSummary.outOfStockCount > 0
+            ? `Lagerbestand geladen (${storageSummary.totalCount} Produkte, ${storageSummary.outOfStockCount} nicht auf Lager).`
+            : `Lagerbestand geladen (${storageSummary.totalCount} Produkte).`;
       }
     } catch (error) {
       if (!background) {

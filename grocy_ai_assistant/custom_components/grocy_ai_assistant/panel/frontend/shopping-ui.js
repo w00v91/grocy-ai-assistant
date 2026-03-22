@@ -221,18 +221,19 @@ export function renderShoppingListItemCard(item, options = {}) {
         hideLabel: stockBadgeConfig.hideLabel,
       })
     : '';
-  const badgeMarkupByKey = {
-    amount: renderBadge('Menge', amountLabel, options.amountBadge || { variant: 'amount' }),
-    mhd: renderBadge('MHD', bestBeforeDate, { variant: 'mhd', ...(options.mhdBadge || {}) }),
-    stock: stockBadgePlacement === 'aside' ? stockBadge : '',
-  };
-  const badgeOrder = Array.isArray(options.badgeOrder) && options.badgeOrder.length
-    ? options.badgeOrder
-    : ['amount', 'mhd', 'stock'];
-  const badges = badgeOrder
-    .map((key) => badgeMarkupByKey[key] || '')
-    .filter(Boolean)
-    .join('');
+  const stockBadgeOrder = options.stockBadgeOrder === 'first' ? 'first' : 'last';
+  const asideBadges = [
+    renderBadge('Menge', amountLabel, options.amountBadge || { variant: 'amount' }),
+    renderBadge('MHD', bestBeforeDate, { variant: 'mhd', ...(options.mhdBadge || {}) }),
+  ];
+  if (stockBadgePlacement === 'aside' && stockBadge) {
+    if (stockBadgeOrder === 'first') {
+      asideBadges.unshift(stockBadge);
+    } else {
+      asideBadges.push(stockBadge);
+    }
+  }
+  const badges = asideBadges.filter(Boolean).join('');
   const statusChipMarkup = options.statusChip === false
     ? ''
     : `<span class="shopping-status-chip shopping-status-chip--shopping">${escapeHtml(options.statusLabel || 'Offen')}</span>`;

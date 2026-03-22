@@ -56,7 +56,8 @@ test('native shopping tab renders swipe shopping items and rebinds swipe interac
   assert.match(source, /className: 'mhd-picker-button'/);
   assert.match(source, /rootClassName: 'shopping-item-card shopping-item-card--legacy'/);
   assert.match(source, /contextFields: \['location'\]/);
-  assert.match(source, /stockBadgePlacement: 'main'/);
+  assert.match(source, /stockBadgePlacement: 'aside'/);
+  assert.match(source, /stockBadgeOrder: 'first'/);
   assert.match(source, /selector: '\.shopping-item\.swipe-item'/);
   assert.match(source, /interactiveElementSelector: '\.amount-increment-button, \.mhd-picker-button'/);
   assert.match(source, /new CustomEvent\('shopping-open-detail'/);
@@ -84,6 +85,16 @@ test('native storage tab renders legacy-style swipe list items and rebinds swipe
   assert.match(source, /new CustomEvent\('storage-open-edit'/);
   assert.match(source, /const actionName = payload\.inStock \? 'storage-open-consume' : 'storage-open-edit';/);
   assert.match(source, /bindShoppingImageFallbacks\(this\);\s+this\._rebindSwipeInteractions\(\);/);
+});
+
+test('native storage summary keeps in-stock and out-of-stock badge counts in sync even without include-all toggle', async () => {
+  const source = await fs.readFile(nativeDashboardPath, 'utf8');
+
+  assert.match(source, /<span class="migration-chip">\$\{escapeHtml\(`\$\{model\.summary\.inStockCount\} auf Lager`\)\}<\/span>/);
+  assert.match(source, /<span class="migration-chip">\$\{escapeHtml\(`\$\{model\.summary\.outOfStockCount\} nicht auf Lager`\)\}<\/span>/);
+  assert.match(source, /async _fetchStorageSummary\(api, \{ query = '', visibleItems = \[\] \} = \{\}\) \{/);
+  assert.match(source, /includeAllProducts: true,\s+query,/);
+  assert.match(source, /const summary = latestState\.includeAllProducts[\s\S]*?: await this\._fetchStorageSummary\(api, \{/);
 });
 
 test('legacy dashboard reuses the shared swipe utility import', async () => {
