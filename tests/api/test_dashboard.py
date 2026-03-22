@@ -1479,7 +1479,11 @@ def test_dashboard_renders_location_dropdown_filters(client):
 
     assert static_response.status_code == 200
     assert '<details class="location-dropdown">' in static_response.text
-    assert "Lagerstandorte auswählen" in static_response.text
+    assert 'location-dropdown__summary-title">Lagerort' in static_response.text
+    assert (
+        'location-dropdown__summary-title">Produkte in ausgewählten Standorten'
+        in static_response.text
+    )
 
 
 def test_dashboard_contains_scanner_modal_trigger(client):
