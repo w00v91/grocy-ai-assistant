@@ -192,6 +192,22 @@ test('dashboard shell uses a centered half-width desktop layout like the legacy 
 });
 
 
+test('dashboard shell derives spacing and surface styling from Home Assistant card theme tokens', async () => {
+  const source = await fs.readFile(dashboardCssPath, 'utf8');
+
+  assert.match(source, /--panel-card-background: var\(--ha-card-background-color, var\(--card-background-color, #fff\)\);/);
+  assert.match(source, /--panel-border-color: var\(--ha-divider-color, var\(--divider-color, rgba\(0, 0, 0, 0\.12\)\)\);/);
+  assert.match(source, /--panel-radius: var\(--ha-card-border-radius, 16px\);/);
+  assert.match(source, /--panel-spacing: var\(--ha-card-padding, 16px\);/);
+  assert.match(source, /--panel-card-padding: var\(--panel-spacing\);/);
+  assert.match(source, /\.page-shell \{[\s\S]*?padding: var\(--panel-card-padding\) var\(--panel-card-padding\)/);
+  assert.match(source, /\.card \{[\s\S]*?padding: var\(--panel-card-padding\);/);
+  assert.match(source, /\.shopping-search-shell \{[\s\S]*?gap: var\(--panel-section-gap\);[\s\S]*?padding: var\(--panel-gap\);[\s\S]*?border-radius: var\(--panel-radius\);/);
+  assert.match(source, /\.shopping-list-native \.shopping-card__surface,[\s\S]*?\.variant-grid \.shopping-card__surface \{[\s\S]*?gap: var\(--panel-stack-gap\);[\s\S]*?padding: var\(--panel-stack-gap\);/);
+  assert.match(source, /\.bottom-tabbar \{[\s\S]*?gap: var\(--panel-compact-gap\);[\s\S]*?padding: var\(--panel-stack-gap\);/);
+});
+
+
 test('bottom tab bar stays centered and becomes compact pill navigation on mobile', async () => {
   const source = await fs.readFile(dashboardCssPath, 'utf8');
 

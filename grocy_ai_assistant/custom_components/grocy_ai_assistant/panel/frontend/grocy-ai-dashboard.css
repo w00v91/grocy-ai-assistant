@@ -3,11 +3,18 @@
 :host {
   display: block;
   color: var(--primary-text-color);
-  --panel-card-background: var(--card-background-color, var(--ha-card-background-color, #fff));
-  --panel-border-color: var(--divider-color, rgba(0, 0, 0, 0.12));
+  --panel-card-background: var(--ha-card-background-color, var(--card-background-color, #fff));
+  --panel-border-color: var(--ha-divider-color, var(--divider-color, rgba(0, 0, 0, 0.12)));
   --panel-shadow: var(--ha-card-box-shadow, 0 2px 8px rgba(0, 0, 0, 0.08));
-  --panel-radius: 20px;
-  --panel-gap: 20px;
+  --panel-radius: var(--ha-card-border-radius, 16px);
+  --panel-spacing: var(--ha-card-padding, 16px);
+  --panel-spacing-compact: calc(var(--panel-spacing) * 0.75);
+  --panel-spacing-tight: calc(var(--panel-spacing) * 0.5);
+  --panel-gap: var(--panel-spacing);
+  --panel-card-padding: var(--panel-spacing);
+  --panel-section-gap: var(--panel-spacing);
+  --panel-stack-gap: var(--panel-spacing-compact);
+  --panel-compact-gap: var(--panel-spacing-tight);
   --image-bg: color-mix(in srgb, var(--secondary-background-color, #e9eff7) 80%, var(--panel-border-color));
   --dashboard-shell-max-width: 100%;
 }
@@ -21,7 +28,7 @@
   min-height: 100%;
   width: min(var(--dashboard-shell-max-width), 100%);
   margin: 0 auto;
-  padding: 24px 24px calc(132px + env(safe-area-inset-bottom, 0px));
+  padding: var(--panel-card-padding) var(--panel-card-padding) calc(132px + env(safe-area-inset-bottom, 0px));
   background: var(--primary-background-color);
 }
 
@@ -34,7 +41,7 @@
 }
 
 .topbar {
-  padding: 24px;
+  padding: var(--panel-card-padding);
   margin-bottom: var(--panel-gap);
 }
 
@@ -45,7 +52,7 @@
 .shopping-modal-save-row,
 .migration-checklist {
   display: flex;
-  gap: 12px;
+  gap: var(--panel-stack-gap);
 }
 
 .topbar-content,
@@ -57,7 +64,7 @@
 .topbar-brand,
 .topbar-title-row {
   display: grid;
-  gap: 8px;
+  gap: var(--panel-compact-gap);
 }
 
 .topbar-title-row {
@@ -77,7 +84,7 @@
 .panel-meta-badges,
 .panel-action-row {
   display: grid;
-  gap: 12px;
+  gap: var(--panel-stack-gap);
 }
 
 .section-header__copy {
@@ -94,7 +101,7 @@
 }
 
 .eyebrow {
-  margin: 0 0 8px;
+  margin: 0 0 var(--panel-compact-gap);
   color: var(--secondary-text-color);
   font-size: 0.85rem;
   font-weight: 600;
@@ -126,7 +133,7 @@ h1 {
 }
 
 .card {
-  padding: 24px;
+  padding: var(--panel-card-padding);
 }
 
 .section-header-stacked {
@@ -172,7 +179,7 @@ h1 {
 .legacy-frame-shell,
 .variant-grid {
   display: grid;
-  gap: 12px;
+  gap: var(--panel-stack-gap);
 }
 
 .panel-card-group--two-column {
@@ -187,7 +194,7 @@ h1 {
 
 .panel-preview-card {
   display: grid;
-  gap: 16px;
+  gap: var(--panel-section-gap);
 }
 
 .panel-state-card .shopping-card__surface {
@@ -214,13 +221,14 @@ h1 {
 .search-input-wrapper {
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
+  gap: var(--panel-stack-gap);
 }
 
 .shopping-search-shell {
   display: grid;
-  gap: 16px;
-  padding: 18px;
-  border-radius: 20px;
+  gap: var(--panel-section-gap);
+  padding: var(--panel-gap);
+  border-radius: var(--panel-radius);
   border: 1px solid var(--panel-border-color);
   background: color-mix(in srgb, var(--panel-card-background) 94%, var(--primary-background-color));
 }
@@ -229,7 +237,7 @@ h1 {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--panel-stack-gap);
 }
 
 .shopping-search-shell__title {
@@ -237,8 +245,10 @@ h1 {
 }
 
 .shopping-search-form {
+  display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
+  gap: var(--panel-stack-gap);
 }
 
 .search-submit-button {
@@ -304,6 +314,38 @@ h1 {
 .shopping-list-native__item {
   list-style: none;
   min-height: 78px;
+}
+
+.shopping-list-native .shopping-card__surface,
+.variant-grid .shopping-card__surface {
+  gap: var(--panel-stack-gap);
+  padding: var(--panel-stack-gap);
+}
+
+.shopping-list-native .shopping-card__body,
+.variant-grid .shopping-card__body {
+  gap: var(--panel-compact-gap);
+}
+
+.shopping-list-native .shopping-card__main,
+.shopping-list-native .shopping-card__aside,
+.shopping-list-native .shopping-card__meta,
+.variant-grid .shopping-card__main,
+.variant-grid .shopping-card__aside,
+.variant-grid .shopping-card__meta,
+.variant-grid .shopping-card__context-list {
+  gap: var(--panel-compact-gap);
+}
+
+.shopping-list-native .shopping-card__header,
+.shopping-list-native .shopping-card__footer,
+.shopping-list-native .shopping-card__actions,
+.shopping-list-native .shopping-card__context-item,
+.variant-grid .shopping-card__header,
+.variant-grid .shopping-card__footer,
+.variant-grid .shopping-card__actions,
+.variant-grid .shopping-card__context-item {
+  gap: var(--panel-compact-gap);
 }
 
 .swipe-chip {
@@ -413,7 +455,7 @@ h1 {
 }
 
 .variant-grid--search {
-  gap: 10px;
+  gap: var(--panel-compact-gap);
 }
 
 .variant-card--action {
@@ -423,7 +465,7 @@ h1 {
 
 .variant-card__button {
   width: 100%;
-  padding: 16px;
+  padding: var(--panel-section-gap);
   border-radius: 0;
   background: transparent;
   color: inherit;
@@ -444,16 +486,16 @@ h1 {
   flex: 1;
   min-width: 0;
   display: grid;
-  gap: 4px;
+  gap: var(--panel-compact-gap);
 }
 
 .variant-card__button {
   display: grid;
-  gap: 12px;
+  gap: var(--panel-stack-gap);
 }
 
 .variant-card__image {
-  margin-bottom: 4px;
+  margin-bottom: var(--panel-compact-gap);
 }
 
 .variant-card__button:hover {
@@ -576,12 +618,12 @@ select:focus-visible {
   z-index: 40;
   display: flex;
   justify-content: center;
-  gap: 10px;
+  gap: var(--panel-compact-gap);
   flex-wrap: wrap;
   width: min(960px, calc(100vw - 48px));
   margin: 0 auto;
-  padding: 14px;
-  border-radius: 24px;
+  padding: var(--panel-stack-gap);
+  border-radius: calc(var(--panel-radius) + var(--panel-compact-gap));
   background: color-mix(in srgb, var(--panel-card-background) 92%, transparent);
   border: 1px solid var(--panel-border-color);
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.24);
@@ -594,7 +636,7 @@ select:focus-visible {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: var(--panel-compact-gap);
   min-width: 0;
   text-align: center;
 }
@@ -646,15 +688,15 @@ select:focus-visible {
 
 .shopping-details-grid {
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  margin-top: 16px;
+  margin-top: var(--panel-section-gap);
 }
 
 .shopping-details-grid div {
   display: grid;
-  gap: 4px;
+  gap: var(--panel-compact-gap);
   border: 1px solid var(--panel-border-color);
   border-radius: 12px;
-  padding: 12px;
+  padding: var(--panel-stack-gap);
 }
 
 .clear-input-button {
@@ -686,23 +728,23 @@ select:focus-visible {
 .scanner-result-card,
 .scanner-result-card__header {
   display: grid;
-  gap: 12px;
+  gap: var(--panel-stack-gap);
 }
 
 .scanner-modal-header {
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: start;
-  margin-bottom: 8px;
+  margin-bottom: var(--panel-compact-gap);
 }
 
 .scanner-controls-grid {
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  margin: 16px 0 8px;
+  margin: var(--panel-section-gap) 0 var(--panel-compact-gap);
 }
 
 .scanner-controls-grid label {
   display: grid;
-  gap: 8px;
+  gap: var(--panel-compact-gap);
 }
 
 .scanner-video-shell {
@@ -767,11 +809,11 @@ select:focus-visible {
 }
 
 .scanner-result {
-  margin-top: 8px;
+  margin-top: var(--panel-compact-gap);
 }
 
 .scanner-result-card {
-  padding: 18px;
+  padding: var(--panel-gap);
   border-radius: 18px;
   border: 1px solid var(--panel-border-color);
   background: color-mix(in srgb, var(--panel-card-background) 92%, var(--primary-background-color));
@@ -835,7 +877,7 @@ select:focus-visible {
 }
 
 .storage-products-list {
-  margin-top: 0.8rem;
+  margin-top: var(--panel-stack-gap);
 }
 
 .storage-products-list--native.variant-grid {
@@ -972,11 +1014,11 @@ select:focus-visible {
 }
 
 .storage-edit-modal-content h3 {
-  margin: 0 0 0.85rem;
+  margin: 0 0 var(--panel-stack-gap);
 }
 
 .storage-edit-media {
-  margin-bottom: 0.75rem;
+  margin-bottom: var(--panel-stack-gap);
 }
 
 .storage-edit-picture {
@@ -991,7 +1033,7 @@ select:focus-visible {
 
 .storage-modal-badges {
   justify-content: flex-start;
-  margin-bottom: 1rem;
+  margin-bottom: var(--panel-section-gap);
 }
 
 .storage-modal-actions-row {
@@ -1000,8 +1042,8 @@ select:focus-visible {
 
 .storage-edit-attributes {
   display: grid;
-  gap: 0.6rem;
-  margin: 0 0 1rem;
+  gap: var(--panel-compact-gap);
+  margin: 0 0 var(--panel-section-gap);
 }
 
 .storage-edit-attribute-row {
@@ -1048,7 +1090,7 @@ select:focus-visible {
 }
 
 .recipes-primary-actions {
-  margin-top: 8px;
+  margin-top: var(--panel-compact-gap);
 }
 
 .expiring-search-controls {
@@ -1088,8 +1130,8 @@ select:focus-visible {
 .location-options,
 .stock-options {
   display: grid;
-  gap: 10px;
-  padding: 14px;
+  gap: var(--panel-compact-gap);
+  padding: var(--panel-stack-gap);
 }
 
 .stock-item {
@@ -1117,7 +1159,7 @@ select:focus-visible {
 
 .recipe-list-native {
   display: grid;
-  gap: 12px;
+  gap: var(--panel-stack-gap);
   list-style: none;
   padding: 0;
 }
@@ -1181,8 +1223,8 @@ select:focus-visible {
 .recipe-create-methods {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.5rem;
-  margin: 0.9rem 0;
+  gap: var(--panel-compact-gap);
+  margin: var(--panel-stack-gap) 0;
 }
 
 .recipe-create-methods .ghost-button.active {
@@ -1191,11 +1233,11 @@ select:focus-visible {
 
 .recipe-create-panel {
   display: grid;
-  gap: 0.65rem;
+  gap: var(--panel-compact-gap);
   border: 1px solid var(--panel-border-color);
   background: color-mix(in srgb, var(--panel-card-background) 96%, var(--primary-background-color));
   border-radius: 16px;
-  padding: 0.9rem;
+  padding: var(--panel-stack-gap);
 }
 
 .recipe-create-panel textarea {
@@ -1254,7 +1296,7 @@ select:focus-visible {
   .page-shell,
   .card,
   .topbar {
-    padding: 16px;
+    padding: var(--panel-section-gap);
   }
 
   .page-shell {
@@ -1321,7 +1363,7 @@ select:focus-visible {
     flex-wrap: nowrap;
     width: fit-content;
     max-width: calc(100vw - 32px);
-    padding: 10px;
+    padding: var(--panel-compact-gap);
     border-radius: 999px;
     overflow-x: auto;
     overscroll-behavior-x: contain;
@@ -1334,8 +1376,8 @@ select:focus-visible {
 
   .tab-button {
     flex: 0 0 auto;
-    gap: 8px;
-    padding: 10px 14px;
+    gap: var(--panel-compact-gap);
+    padding: var(--panel-compact-gap) 14px;
     white-space: nowrap;
   }
 
