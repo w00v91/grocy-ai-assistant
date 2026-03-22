@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import threading
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from uuid import uuid4
 
@@ -204,7 +204,7 @@ def create_history_entry(
 ) -> NotificationHistoryModel:
     return NotificationHistoryModel(
         id=str(uuid4()),
-        created_at=datetime.utcnow().isoformat(),
+        created_at=datetime.now(UTC).isoformat(),
         event_type=event_type,
         title=title,
         message=message,

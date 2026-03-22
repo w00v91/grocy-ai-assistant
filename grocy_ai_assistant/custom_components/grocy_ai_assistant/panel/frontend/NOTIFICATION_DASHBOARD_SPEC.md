@@ -8,20 +8,18 @@
 4. **Testcenter**
 5. **Historie**
 
-## API contract (v1 suggestion)
+## API contract (current dashboard API)
 
-- `GET /api/grocy_ai_assistant/notifications/devices`
-- `PATCH /api/grocy_ai_assistant/notifications/devices/{id}`
-- `GET /api/grocy_ai_assistant/notifications/settings`
-- `PUT /api/grocy_ai_assistant/notifications/settings`
-- `GET /api/grocy_ai_assistant/notifications/rules`
-- `POST /api/grocy_ai_assistant/notifications/rules`
-- `PATCH /api/grocy_ai_assistant/notifications/rules/{id}`
-- `DELETE /api/grocy_ai_assistant/notifications/rules/{id}`
-- `POST /api/grocy_ai_assistant/notifications/tests/device`
-- `POST /api/grocy_ai_assistant/notifications/tests/all`
-- `POST /api/grocy_ai_assistant/notifications/tests/persistent`
-- `GET /api/grocy_ai_assistant/notifications/history?limit=100`
+- `GET /api/dashboard/notifications/overview`
+- `PATCH /api/dashboard/notifications/devices/{id}`
+- `PUT /api/dashboard/notifications/settings`
+- `POST /api/dashboard/notifications/rules`
+- `PATCH /api/dashboard/notifications/rules/{id}`
+- `DELETE /api/dashboard/notifications/rules/{id}`
+- `POST /api/dashboard/notifications/tests/device`
+- `POST /api/dashboard/notifications/tests/all`
+- `POST /api/dashboard/notifications/tests/persistent`
+- `POST /api/v1/notifications/test` (Alias für persistenten Test-Trigger)
 
 ## UX notes
 
