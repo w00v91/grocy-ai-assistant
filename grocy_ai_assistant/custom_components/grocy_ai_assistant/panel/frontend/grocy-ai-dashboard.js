@@ -1039,27 +1039,21 @@ class GrocyAIShoppingSearchBar extends HTMLElement {
   }
 
   _createVariantCard(variant, parsedAmount) {
-    const article = document.createElement('article');
-    article.className = 'variant-card variant-card--action';
-    article.setAttribute('role', 'listitem');
+    const markup = renderShoppingVariantCard(variant, {
+      amount: parsedAmount || variant.amount || variant.default_amount || '1',
+      actionName: 'shopping-select-variant',
+      ctaLabel: 'Auswählen',
+      resolveImageUrl: this._viewModel?.resolveImageUrl,
+    }).trim();
+    const template = document.createElement('template');
+    template.innerHTML = markup;
+    const article = template.content.firstElementChild;
+    const button = article?.querySelector('.variant-card__button');
 
-    const button = document.createElement('button');
-    button.className = 'variant-card__button';
-    button.type = 'button';
-    button.dataset.action = 'shopping-select-variant';
+    if (!article || !button) {
+      return document.createElement('article');
+    }
 
-    const variantName = variant.product_name || variant.name || 'Unbekanntes Produkt';
-    const variantAmountValue = parsedAmount || variant.amount || variant.default_amount || '1';
-    const variantAmountLabel = formatAmount(variantAmountValue);
-    const variantSource = variant.source || 'grocy';
-    const sourceLabel = variantSource === 'ai'
-      ? 'KI-Vorschlag'
-      : (variantSource === 'input' ? 'Neu anlegen' : 'Grocy');
-
-    button.dataset.productId = String(variant.product_id || variant.id || '');
-    button.dataset.productName = String(variantName);
-    button.dataset.productSource = String(variantSource);
-    button.dataset.amount = String(variantAmountValue);
     button.addEventListener('click', () => {
       this.dispatchEvent(new CustomEvent('shopping-select-variant', {
         bubbles: true,
@@ -1067,28 +1061,6 @@ class GrocyAIShoppingSearchBar extends HTMLElement {
         detail: { ...button.dataset },
       }));
     });
-
-    const header = document.createElement('div');
-    header.className = 'variant-card__header';
-    const strong = document.createElement('strong');
-    strong.textContent = variantName;
-    const badge = document.createElement('span');
-    badge.className = 'variant-amount-badge';
-    badge.textContent = variantAmountLabel;
-    header.append(strong, badge);
-
-    const meta = document.createElement('div');
-    meta.className = 'variant-card__meta';
-    const source = document.createElement('span');
-    source.className = 'muted';
-    source.textContent = sourceLabel;
-    const cta = document.createElement('span');
-    cta.className = 'variant-card__cta';
-    cta.textContent = 'Auswählen';
-    meta.append(source, cta);
-
-    button.append(header, meta);
-    article.append(button);
     return article;
   }
 
