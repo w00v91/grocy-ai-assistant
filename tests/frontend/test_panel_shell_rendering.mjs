@@ -99,6 +99,7 @@ test('native panel binds shared shopping image fallbacks after list and variant 
   const source = await fs.readFile(dashboardPath, 'utf8');
 
   assert.match(source, /import \{ bindShoppingImageFallbacks, escapeHtml, formatAmount, formatBadgeValue, formatStockCount, renderShoppingListItemCard, renderShoppingVariantCard, resolveShoppingImageSource \} from '\.\/shopping-ui\.js';/);
+  assert.match(source, /const markup = renderShoppingVariantCard\(variant, \{\s+amount: parsedAmount \|\| variant\.amount \|\| variant\.default_amount \|\| '1',[\s\S]*?resolveImageUrl: this\._viewModel\?\.resolveImageUrl,/);
   assert.match(source, /variantGrid\.replaceChildren\(\.\.\.nodes\);\s+bindShoppingImageFallbacks\(this\);/);
   assert.match(source, /list\.replaceChildren\(\.\.\.items\.map\(\(item\) => this\._createShoppingListItem\(item, model\)\)\);\s+bindShoppingImageFallbacks\(this\);/);
 });
