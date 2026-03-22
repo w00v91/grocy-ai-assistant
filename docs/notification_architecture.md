@@ -24,18 +24,22 @@ grocy_ai_assistant/custom_components/grocy_ai_assistant/
 
 ## 3) Dashboard-Konzept (Web)
 
-Empfohlene Routen/Views für das bestehende Webdashboard:
+Aktuelle Routen/Views für das bestehende Webdashboard:
 
-- `/notifications/devices`
+- `/api/dashboard/notifications/overview`
+  - Lädt Geräte, Einstellungen, Regeln und Historie in einem kombinierten Payload.
+- `/api/dashboard/notifications/devices/{device_id}`
   - Liste erkannter `notify.mobile_app_*`-Ziele.
   - Spalten: Name, Plattform, Aktiv, zugewiesener User.
-- `/notifications/settings`
+- `/api/dashboard/notifications/settings`
   - Globales Enable/Disable, Standardkanal, Default-Severity, aktivierte Eventtypen.
-- `/notifications/rules`
+- `/api/dashboard/notifications/rules`
   - CRUD für Regeln: Events, Targets, Channels, Cooldown, Quiet Hours, Template, Conditions.
-- `/notifications/test-center`
+- `/api/dashboard/notifications/tests/device`
+- `/api/dashboard/notifications/tests/all`
+- `/api/dashboard/notifications/tests/persistent`
   - Test an einzelnes Gerät, an alle Geräte oder als persistent notification.
-- `/notifications/history`
+- Historie ist aktuell Teil von `/api/dashboard/notifications/overview`.
   - Timestamp, Eventtyp, Regel-ID, Ziel, Kanal, Erfolg/Fehler.
 
 ## 4) Home-Assistant-Services

@@ -5,7 +5,7 @@ Coordinates store, discovery, rule engine and dispatcher.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 from uuid import uuid4
 
 from homeassistant.core import HomeAssistant, ServiceCall
@@ -142,7 +142,7 @@ class NotificationManager:
         if not targets:
             raise ValueError("No active target found for test notification")
 
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         for target in targets:
             message = NotificationMessage(
                 id=str(uuid4()),

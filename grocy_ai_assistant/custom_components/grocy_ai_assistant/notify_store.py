@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, time
+from datetime import UTC, datetime, time
 from typing import Any
 
 from homeassistant.core import HomeAssistant
@@ -226,8 +226,8 @@ def _deserialize_history_entry(payload: dict[str, Any]) -> NotificationHistoryEn
 
 def _parse_datetime(value: str | None) -> datetime:
     if not value:
-        return datetime.utcnow()
-    return datetime.fromisoformat(value)
+        return datetime.now(UTC)
+    return datetime.fromisoformat(value.replace("Z", "+00:00"))
 
 
 def _parse_time(value: str) -> time:

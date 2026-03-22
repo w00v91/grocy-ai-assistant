@@ -4,7 +4,7 @@ import importlib.util
 import sys
 import types
 import asyncio
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -68,7 +68,7 @@ def _build_message(models):
             event_type="shopping_due",
             title="Titel",
             message="Nachricht",
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(UTC),
         ),
         rule_id="rule-1",
         target=models.NotificationTarget(

@@ -7,7 +7,7 @@ rule engine and dispatcher can evolve independently.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, time
+from datetime import UTC, datetime, time
 from enum import Enum
 from typing import Any
 from uuid import uuid4
@@ -97,7 +97,7 @@ class NotificationEvent:
     payload: dict[str, Any] = field(default_factory=dict)
     severity: NotificationSeverity = NotificationSeverity.INFO
     source: str = "shopping"
-    created_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
     correlation_id: str = field(default_factory=lambda: str(uuid4()))
 
 
@@ -131,7 +131,7 @@ class NotificationHistoryEntry:
     delivered: bool
     delivered_channels: tuple[NotificationChannel, ...] = ()
     error: str | None = None
-    created_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 
 
 @dataclass(slots=True)
