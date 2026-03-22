@@ -28,7 +28,7 @@ const TAB_ICONS = Object.freeze({
 const VISIBLE_TAB_ORDER = TAB_ORDER.filter((tab) => tab !== 'notifications');
 const DEFAULT_POLLING_INTERVAL_SECONDS = 5;
 const DEFAULT_POLLING_INTERVAL_MS = DEFAULT_POLLING_INTERVAL_SECONDS * 1000;
-const DEFAULT_INTEGRATION_VERSION = '8.0.8';
+const DEFAULT_INTEGRATION_VERSION = '8.0.9';
 const GROCY_RECIPE_DISPLAY_LIMIT = 3;
 const AI_RECIPE_DISPLAY_LIMIT = 3;
 const TAB_VIEW_STATE = Object.freeze({
@@ -781,6 +781,12 @@ class GrocyAITopbar extends HTMLElement {
 }
 
 class GrocyAITabNav extends HTMLElement {
+  constructor() {
+    super();
+    this._viewModel = { activeTab: 'shopping' };
+    this._elements = null;
+  }
+
   connectedCallback() {
     this.addEventListener('click', (event) => {
       const button = event.target.closest('[data-tab]');
@@ -791,35 +797,62 @@ class GrocyAITabNav extends HTMLElement {
         detail: { tab: button.dataset.tab },
       }));
     });
+
+    this._ensureStructure();
+    this._syncViewModel();
   }
 
   set viewModel(value) {
-    this._viewModel = value;
-    this._render();
+    this._viewModel = {
+      ...this._viewModel,
+      ...(value || {}),
+    };
+    this._ensureStructure();
+    this._syncViewModel();
   }
 
-  _render() {
-    const model = this._viewModel || { activeTab: 'shopping' };
-    this.innerHTML = `
-      <nav class="bottom-tabbar" aria-label="Navigation" role="tablist">
-        ${VISIBLE_TAB_ORDER.map((tab) => `
-          <button
-            type="button"
-            class="tab-button${model.activeTab === tab ? ' active' : ''}"
-            data-tab="${tab}"
-            id="${getTabButtonId(tab)}"
-            role="tab"
-            aria-selected="${model.activeTab === tab ? 'true' : 'false'}"
-            aria-controls="${getTabPanelId(tab)}"
-            tabindex="${model.activeTab === tab ? '0' : '-1'}"
-          >
-            ${renderHaIcon(TAB_ICONS[tab], 'tab-button__icon')}
-            <span class="tab-button__label">${TAB_LABELS[tab]}</span>
-            ${MIGRATED_TABS.has(tab) ? '' : '<span class="tab-button__meta">Fallback</span>'}
-          </button>
-        `).join('')}
-      </nav>
-    `;
+  _ensureStructure() {
+    if (this._elements) return;
+
+    const nav = document.createElement('nav');
+    nav.className = 'bottom-tabbar';
+    nav.setAttribute('aria-label', 'Navigation');
+    nav.setAttribute('role', 'tablist');
+
+    const buttons = new Map();
+    VISIBLE_TAB_ORDER.forEach((tab) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'tab-button';
+      button.dataset.tab = tab;
+      button.id = getTabButtonId(tab);
+      button.setAttribute('role', 'tab');
+      button.setAttribute('aria-controls', getTabPanelId(tab));
+
+      button.innerHTML = `
+        ${renderHaIcon(TAB_ICONS[tab], 'tab-button__icon')}
+        <span class="tab-button__label">${TAB_LABELS[tab]}</span>
+        ${MIGRATED_TABS.has(tab) ? '' : '<span class="tab-button__meta">Fallback</span>'}
+      `;
+
+      nav.append(button);
+      buttons.set(tab, button);
+    });
+
+    this.replaceChildren(nav);
+    this._elements = { nav, buttons };
+  }
+
+  _syncViewModel() {
+    if (!this._elements) return;
+
+    const activeTab = this._viewModel?.activeTab || 'shopping';
+    this._elements.buttons.forEach((button, tab) => {
+      const isActive = tab === activeTab;
+      button.classList.toggle('active', isActive);
+      button.setAttribute('aria-selected', isActive ? 'true' : 'false');
+      button.setAttribute('tabindex', isActive ? '0' : '-1');
+    });
   }
 }
 

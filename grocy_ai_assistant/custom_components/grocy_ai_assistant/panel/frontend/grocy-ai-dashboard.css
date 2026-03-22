@@ -592,6 +592,11 @@ a:hover {
   transform: translateY(-1px);
 }
 
+.tab-button:hover,
+.tab-button:focus-visible {
+  transform: none;
+}
+
 button:disabled {
   cursor: wait;
   opacity: 0.7;
