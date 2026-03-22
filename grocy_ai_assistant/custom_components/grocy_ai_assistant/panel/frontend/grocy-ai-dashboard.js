@@ -28,7 +28,7 @@ const TAB_ICONS = Object.freeze({
 const VISIBLE_TAB_ORDER = TAB_ORDER.filter((tab) => tab !== 'notifications');
 const DEFAULT_POLLING_INTERVAL_SECONDS = 5;
 const DEFAULT_POLLING_INTERVAL_MS = DEFAULT_POLLING_INTERVAL_SECONDS * 1000;
-const DEFAULT_INTEGRATION_VERSION = '8.0.10';
+const DEFAULT_INTEGRATION_VERSION = '8.0.11';
 const GROCY_RECIPE_DISPLAY_LIMIT = 3;
 const AI_RECIPE_DISPLAY_LIMIT = 3;
 const TAB_VIEW_STATE = Object.freeze({
@@ -2985,6 +2985,8 @@ class GrocyAIDashboardPanel extends HTMLElement {
     this._apiBasePathPromise = null;
     this._startupBannerLogged = false;
     this._scrollLockState = null;
+    this._shellLayoutObserver = null;
+    this._handleWindowResize = () => this._syncShellLayoutMetrics();
     this._store = createDashboardStore(createInitialState());
     this._api = createDashboardApiClient({ getAuthHeaders: () => this._getHomeAssistantAuthHeaders() });
     this._handlePopState = () => this._syncActiveTabFromLocation({ updateUrl: false });
@@ -3003,7 +3005,9 @@ class GrocyAIDashboardPanel extends HTMLElement {
 
     this._bindEvents();
     window.addEventListener('popstate', this._handlePopState);
+    window.addEventListener('resize', this._handleWindowResize);
     document.addEventListener('visibilitychange', this._handleVisibilityChange);
+    this._observeShellLayout();
     this._unsubscribe = this._store.subscribe((state) => this._renderState(state));
     this._applyRouteState({ syncHistory: false, announce: false });
     this._syncActiveTabFromLocation({ replaceUrl: true });
@@ -3015,7 +3019,10 @@ class GrocyAIDashboardPanel extends HTMLElement {
   disconnectedCallback() {
     this._unsubscribe?.();
     window.removeEventListener('popstate', this._handlePopState);
+    window.removeEventListener('resize', this._handleWindowResize);
     document.removeEventListener('visibilitychange', this._handleVisibilityChange);
+    this._shellLayoutObserver?.disconnect();
+    this._shellLayoutObserver = null;
     this._searchUnsubscribe?.();
     this._shoppingSearch.dispose();
     window.clearTimeout(this._storageFilterDebounce);
@@ -3122,6 +3129,30 @@ class GrocyAIDashboardPanel extends HTMLElement {
     `;
   }
 
+  _observeShellLayout() {
+    const shell = this.shadowRoot?.querySelector('.page-shell');
+    if (!shell) return;
+
+    if (!this._shellLayoutObserver && typeof ResizeObserver !== 'undefined') {
+      this._shellLayoutObserver = new ResizeObserver(() => this._syncShellLayoutMetrics());
+    }
+
+    this._shellLayoutObserver?.disconnect();
+    this._shellLayoutObserver?.observe(shell);
+    this._syncShellLayoutMetrics();
+  }
+
+  _syncShellLayoutMetrics() {
+    const shell = this.shadowRoot?.querySelector('.page-shell');
+    if (!shell) return;
+
+    const shellRect = shell.getBoundingClientRect();
+    if (!shellRect.width) return;
+
+    this.style.setProperty('--dashboard-shell-center-x', `${shellRect.left + (shellRect.width / 2)}px`);
+    this.style.setProperty('--dashboard-shell-fixed-width', `${shellRect.width}px`);
+  }
+
   _bindEvents() {
     const root = this.shadowRoot;
     if (!root) return;
@@ -3185,6 +3216,7 @@ class GrocyAIDashboardPanel extends HTMLElement {
   _renderState(state) {
     this._ensureShell();
     if (!this.shadowRoot) return;
+    this._syncShellLayoutMetrics();
 
     const topbar = this.shadowRoot.querySelector('grocy-ai-topbar');
     const tabNav = this.shadowRoot.querySelector('grocy-ai-tab-nav');
