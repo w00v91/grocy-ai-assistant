@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Fix (Home-Assistant-Integration/Panel): Wenn im nativen Dashboard ein Modal geöffnet ist, wird der Hintergrund-Scroll jetzt auf Shell- und Dokument-Ebene gesperrt; Scroll-Gesten bleiben dadurch im Modal statt wieder auf der Hauptseite zu landen.
 - Fix (Home-Assistant-Integration/Panel): Im nativen `storage`-/`Lager`-Tab sitzt das Badge `Im Bestand` bzw. `Nicht im Bestand` jetzt rechts in derselben Badge-Spalte wie `Menge` und `MHD`; innerhalb der Badge-Liste wird der Status zuerst angezeigt.
 - Added (Tests/Frontend): Shared-Shopping-UI-Regressionstests decken jetzt auch eine konfigurierbare Badge-Reihenfolge für rechte Badge-Spalten ab.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.10` erhöht.
