@@ -28,7 +28,7 @@ options:
     grocy_api_key: DEIN_GROCY_KEY
     grocy_base_url: http://homeassistant.local:9192/api
   ollama:
-    ollama_url: http://76e18fb5_ollama:11434/api/generate
+    ollama_url: http://homeassistant.local:11434/api/generate
     ollama_model: llama3
     ollama_llava_model: llava
     initial_info_sync: false
