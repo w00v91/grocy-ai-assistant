@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Changed (Home-Assistant-Integration/Panel): In der nativen Einkaufsliste bleibt das `Bestand`-Badge in der rechten Badge-Liste, wird dort aber vor `Menge` und `MHD` als oberstes Badge gerendert.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.11` erhöht.
 - Fix (Home-Assistant-Integration/Panel): Im nativen Lager-Tab blendet das MHD-Badge in den Swipe-Karten sein sichtbares `MHD`-Präfix jetzt ebenfalls aus und zeigt nur noch den Datumswert an.
 - Added (Tests/Frontend): Ein nativer Storage-Swipe-Regressionstest sichert jetzt die versteckte MHD-Badge-Beschriftung für Lager-Karten ab.
 - Changed (Home-Assistant-Integration/Panel): In der nativen Einkaufsliste rendert das `Bestand`-Badge jetzt als Haupt-Badge direkt unter dem Produkttitel statt in der rechten Badge-Spalte, damit der Status ganz oben im Listen-Eintrag sichtbar ist.
