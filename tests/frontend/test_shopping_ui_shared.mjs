@@ -36,6 +36,7 @@ test('shopping variant card renders shared dataset and context markup', () => {
   assert.match(markup, /data-fallback-src="https:\/\/placehold\.co\/80x80\?text=Kein\+Bild"/);
   assert.match(markup, /Bestand/);
   assert.match(markup, /2026-03-28/);
+  assert.doesNotMatch(markup, /Auswählen/);
 });
 
 test('shopping list card renders shared badge and action structure', () => {
