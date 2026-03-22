@@ -221,11 +221,19 @@ export function renderShoppingListItemCard(item, options = {}) {
         hideLabel: stockBadgeConfig.hideLabel,
       })
     : '';
-  const badges = [
+  const stockBadgeOrder = options.stockBadgeOrder === 'first' ? 'first' : 'last';
+  const asideBadges = [
     renderBadge('Menge', amountLabel, options.amountBadge || { variant: 'amount' }),
     renderBadge('MHD', bestBeforeDate, { variant: 'mhd', ...(options.mhdBadge || {}) }),
-    stockBadgePlacement === 'aside' ? stockBadge : '',
-  ].filter(Boolean).join('');
+  ];
+  if (stockBadgePlacement === 'aside' && stockBadge) {
+    if (stockBadgeOrder === 'first') {
+      asideBadges.unshift(stockBadge);
+    } else {
+      asideBadges.push(stockBadge);
+    }
+  }
+  const badges = asideBadges.filter(Boolean).join('');
   const statusChipMarkup = options.statusChip === false
     ? ''
     : `<span class="shopping-status-chip shopping-status-chip--shopping">${escapeHtml(options.statusLabel || 'Offen')}</span>`;
