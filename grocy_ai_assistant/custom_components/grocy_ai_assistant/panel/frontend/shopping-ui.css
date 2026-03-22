@@ -210,6 +210,43 @@
   width: 100%;
 }
 
+
+.variant-card .shopping-card__surface {
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+}
+
+.variant-card .shopping-card__media-wrap {
+  width: fit-content;
+  margin: 0 auto;
+}
+
+.variant-card .shopping-card__body {
+  width: 100%;
+  justify-items: center;
+  text-align: center;
+}
+
+.variant-card .shopping-card__header {
+  width: 100%;
+  justify-content: center;
+  flex-direction: column;
+}
+
+.variant-card .shopping-card__title,
+.variant-card .shopping-card__note {
+  text-align: center;
+}
+
+.variant-card .shopping-card__context-list {
+  width: 100%;
+}
+
+.variant-card .shopping-card__context-item {
+  justify-content: center;
+  text-align: center;
+}
+
 .shopping-card__context-item {
   padding: 0.4rem 0.55rem;
   border-radius: 12px;

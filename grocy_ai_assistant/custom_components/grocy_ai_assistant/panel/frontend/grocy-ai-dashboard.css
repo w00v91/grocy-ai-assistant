@@ -467,6 +467,13 @@ h1 {
 
 .variant-grid--search {
   gap: var(--panel-compact-gap);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (min-width: 960px) {
+  .variant-grid--search {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 .variant-card--action {
@@ -878,8 +885,10 @@ select:focus-visible {
 }
 
 .storage-summary {
-  grid-template-columns: repeat(2, auto);
-  justify-content: end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-start;
   align-items: center;
 }
 
