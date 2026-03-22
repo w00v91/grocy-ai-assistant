@@ -1,18 +1,18 @@
+
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
 ## 2026-03-22 (Version 8.0.14)
 - Changed (Home-Assistant-Integration/Panel): Produktvarianten im nativen Shopping-Tab zeigen keine `Auswählen`-Beschriftung mehr, rendern den Produktnamen zentriert unter dem Bild und halten das Mengen-Badge wieder schwebend an der rechten oberen Bildecke; das Varianten-Grid zeigt dabei mindestens zwei Kacheln nebeneinander.
 - Changed (Home-Assistant-Integration/Panel): Im Rezepte-Tab blendet das Dropdown `Produkte in ausgewählten Standorten` die Badges `Menge` und `MHD` aus und zeigt optional nur noch den Lagerort als Zusatzinfo.
 - Changed (Home-Assistant-Integration/Panel): Die Status-Badges im nativen Lager-Tab sitzen jetzt direkt unter dem Textfilter in einer kompakten Zeile statt untereinander bzw. vollbreit.
 - Added (Tests/Frontend): Shared-UI- und Panel-Regressionstests decken die CTA-freie Variantenkarte sowie das reduzierte Rezepte-Produkt-Dropdown weiterhin ab.
 
-# Changelog
-
-All notable changes to this project will be documented in this file.
-
-## [Unreleased]
-
 - Fix (Home-Assistant-Integration/Panel/Scanner): Das native Scanner-Popup nutzt beim Kamera-Start wieder kompatible `getUserMedia`-Fallbacks (`navigator.getUserMedia`/`webkitGetUserMedia`/`mozGetUserMedia`/`msGetUserMedia`) statt ausschließlich `navigator.mediaDevices.getUserMedia`, sodass der Scanner nach der Portierung auch in Home-Assistant-WebViews und älteren mobilen Browsern wieder startet.
 - Fix (Home-Assistant-Integration/Panel/Scanner): Vor dem Start des nativen Kamera-Streams werden `playsinline`, `autoplay` und `muted` zusätzlich explizit am Video-Element gesetzt, um mobiles WebKit-/App-Verhalten robuster zu machen.
 - Added (Tests/Frontend): Eine Panel-Regression sichert die wiederhergestellten Kamera-Fallbacks und die explizite Video-Initialisierung des nativen Scanner-Popups ab.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.14` erhöht.
 - Changed (Versioning): Integrationsversion auf `8.0.14` erhöht.
 
 - Changed (Home-Assistant-Integration/Panel): Die Kopfzeile des nativen Dashboards zeigt das Badge `3/4 Bereiche nativ` nicht mehr an.
