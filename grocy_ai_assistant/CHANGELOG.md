@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Fix (Home-Assistant-Integration/Panel): Die Status-Badges im nativen Lager-Tab berechnen `auf Lager` und `nicht auf Lager` jetzt auch bei deaktiviertem Toggle `Alle Produkte anzeigen` korrekt über einen separaten Summenabruf mit identischem Filter.
+- Fix (Dashboard/Web): Die Lager-Statusmeldung des Web-Dashboards nutzt für `nicht auf Lager`-Hinweise jetzt ebenfalls die vollständige Summenzählung, selbst wenn nur aktuelle Bestandsartikel angezeigt werden.
 - Changed (Home-Assistant-Integration/Panel): In der nativen Einkaufsliste bleibt das `Bestand`-Badge in der rechten Badge-Liste, wird dort aber vor `Menge` und `MHD` als oberstes Badge gerendert.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.11` erhöht.
 - Fix (Home-Assistant-Integration/Panel): Im nativen Lager-Tab blendet das MHD-Badge in den Swipe-Karten sein sichtbares `MHD`-Präfix jetzt ebenfalls aus und zeigt nur noch den Datumswert an.

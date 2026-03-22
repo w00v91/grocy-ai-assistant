@@ -520,8 +520,9 @@ function buildStorageTabMarkup(model = {}) {
             <span>Alle Produkte anzeigen</span>
           </label>
           <div class="storage-summary">
-            <span class="migration-chip">${escapeHtml(`${items.length} Produkte`)}</span>
-            <span class="migration-chip">${escapeHtml(`${items.filter((item) => item?.in_stock).length} auf Lager`)}</span>
+            <span class="migration-chip">${escapeHtml(`${model.summary.totalCount} Produkte`)}</span>
+            <span class="migration-chip">${escapeHtml(`${model.summary.inStockCount} auf Lager`)}</span>
+            <span class="migration-chip">${escapeHtml(`${model.summary.outOfStockCount} nicht auf Lager`)}</span>
           </div>
         </div>
         <p class="tab-status">${escapeHtml(model.status || 'Bereit.')}</p>
@@ -695,6 +696,11 @@ function createInitialState() {
       initialized: false,
       loading: false,
       items: [],
+      summary: {
+        totalCount: 0,
+        inStockCount: 0,
+        outOfStockCount: 0,
+      },
       locations: [],
       filter: '',
       includeAllProducts: false,
@@ -3795,6 +3801,31 @@ class GrocyAIDashboardPanel extends HTMLElement {
     return this._store.getState().storage.items.find((item) => String(getActionableStorageId(item)) === String(itemId)) || null;
   }
 
+  async _fetchStorageSummary(api, { query = '', visibleItems = [] } = {}) {
+    const normalizedVisibleItems = Array.isArray(visibleItems) ? visibleItems : [];
+    const fallbackSummary = {
+      totalCount: normalizedVisibleItems.length,
+      inStockCount: normalizedVisibleItems.filter((item) => item?.in_stock).length,
+      outOfStockCount: normalizedVisibleItems.filter((item) => !item?.in_stock).length,
+    };
+
+    const { response, payload } = await api.fetchStockProducts({
+      includeAllProducts: true,
+      query,
+    });
+    if (!response.ok) {
+      return fallbackSummary;
+    }
+
+    const allItems = (Array.isArray(payload) ? payload : []).map(normalizeStockProduct);
+    const inStockCount = allItems.filter((item) => item?.in_stock).length;
+    return {
+      totalCount: allItems.length,
+      inStockCount,
+      outOfStockCount: allItems.length - inStockCount,
+    };
+  }
+
   async _loadStorageProducts(options = {}) {
     const storageState = this._store.getState().storage;
     this._updateStorageState({
@@ -3818,13 +3849,24 @@ class GrocyAIDashboardPanel extends HTMLElement {
       const items = (Array.isArray(payload) ? payload : []).map(normalizeStockProduct);
       const outOfStockCount = items.filter((item) => !item.in_stock).length;
       const fallbackProductIds = items.filter((item) => Number(item.stock_id || 0) <= 0 && Number(item.id || 0) > 0).length;
+      const summary = latestState.includeAllProducts
+        ? {
+          totalCount: items.length,
+          inStockCount: items.filter((item) => item?.in_stock).length,
+          outOfStockCount,
+        }
+        : await this._fetchStorageSummary(api, {
+          query: latestState.filter,
+          visibleItems: items,
+        });
 
       this._updateStorageState({
         items,
+        summary,
         loading: false,
-        status: outOfStockCount > 0 || fallbackProductIds > 0
-          ? `Lagerbestand geladen (${items.length} Produkte, ${outOfStockCount} nicht auf Lager${fallbackProductIds > 0 ? `, ${fallbackProductIds} via Produkt-ID` : ''}).`
-          : `Lagerbestand geladen (${items.length} Produkte).`,
+        status: summary.outOfStockCount > 0 || fallbackProductIds > 0
+          ? `Lagerbestand geladen (${summary.totalCount} Produkte, ${summary.outOfStockCount} nicht auf Lager${fallbackProductIds > 0 ? `, ${fallbackProductIds} via Produkt-ID` : ''}).`
+          : `Lagerbestand geladen (${summary.totalCount} Produkte).`,
       });
       this._updateTabViewState('storage', {
         loaded: true,

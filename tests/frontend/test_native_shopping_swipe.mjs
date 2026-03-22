@@ -87,6 +87,16 @@ test('native storage tab renders legacy-style swipe list items and rebinds swipe
   assert.match(source, /bindShoppingImageFallbacks\(this\);\s+this\._rebindSwipeInteractions\(\);/);
 });
 
+test('native storage summary keeps in-stock and out-of-stock badge counts in sync even without include-all toggle', async () => {
+  const source = await fs.readFile(nativeDashboardPath, 'utf8');
+
+  assert.match(source, /<span class="migration-chip">\$\{escapeHtml\(`\$\{model\.summary\.inStockCount\} auf Lager`\)\}<\/span>/);
+  assert.match(source, /<span class="migration-chip">\$\{escapeHtml\(`\$\{model\.summary\.outOfStockCount\} nicht auf Lager`\)\}<\/span>/);
+  assert.match(source, /async _fetchStorageSummary\(api, \{ query = '', visibleItems = \[\] \} = \{\}\) \{/);
+  assert.match(source, /includeAllProducts: true,\s+query,/);
+  assert.match(source, /const summary = latestState\.includeAllProducts[\s\S]*?: await this\._fetchStorageSummary\(api, \{/);
+});
+
 test('legacy dashboard reuses the shared swipe utility import', async () => {
   const source = await fs.readFile(legacyDashboardPath, 'utf8');
 
