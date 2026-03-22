@@ -76,6 +76,27 @@ test('shopping list card renders shared badge and action structure', () => {
   assert.doesNotMatch(markup, /shopping-card__context-label">Lagerort/);
 });
 
+test('shopping list card supports custom aside badge ordering', () => {
+  const markup = renderShoppingListItemCard({
+    name: 'Joghurt',
+    amount: '2',
+    in_stock: '1',
+    best_before_date: '2026-04-01',
+  }, {
+    stockBadgePlacement: 'aside',
+    statusChip: false,
+    badgeOrder: ['stock', 'amount', 'mhd'],
+    stockBadge: {
+      label: 'Status',
+      value: 'Im Bestand',
+      variant: 'stock',
+      hideLabel: true,
+    },
+  });
+
+  assert.match(markup, /shopping-card__badges shopping-card__badges--stacked">\s*[\s\S]*?shopping-badge__value">Im Bestand<\/span>[\s\S]*?shopping-badge__label">Menge<\/span>[\s\S]*?shopping-badge__label">MHD<\/span>/);
+});
+
 test('shopping list card supports custom main stock badge content', () => {
   const markup = renderShoppingListItemCard({
     name: 'Tomaten',
