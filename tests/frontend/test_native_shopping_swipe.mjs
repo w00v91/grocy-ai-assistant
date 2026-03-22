@@ -56,7 +56,7 @@ test('native shopping tab renders swipe shopping items and rebinds swipe interac
   assert.match(source, /className: 'mhd-picker-button'/);
   assert.match(source, /rootClassName: 'shopping-item-card shopping-item-card--legacy'/);
   assert.match(source, /contextFields: \['location'\]/);
-  assert.match(source, /stockBadgePlacement: 'main'/);
+  assert.match(source, /stockBadgePlacement: 'aside'/);
   assert.match(source, /selector: '\.shopping-item\.swipe-item'/);
   assert.match(source, /interactiveElementSelector: '\.amount-increment-button, \.mhd-picker-button'/);
   assert.match(source, /new CustomEvent\('shopping-open-detail'/);
@@ -97,5 +97,5 @@ test('shared shopping card CSS keeps legacy swipe cards in their horizontal layo
   assert.match(source, /\.shopping-item-card--legacy \.shopping-card__surface \{\s+grid-template-columns: auto minmax\(0, 1fr\);/);
   assert.match(source, /\.shopping-card__body--swipe \{\s+grid-template-columns: minmax\(0, 1fr\) minmax\(148px, auto\);/);
   assert.match(source, /\.shopping-item-card--legacy \.shopping-card__body--swipe \{\s+align-items: center;/);
-  assert.match(source, /@media \(max-width: 640px\) \{[\s\S]*?\.shopping-card__body--swipe \{\s+grid-template-columns: minmax\(0, 1fr\);[\s\S]*?\.shopping-item-card--legacy \.shopping-card__surface \{\s+grid-template-columns: auto minmax\(0, 1fr\);/);
+  assert.match(source, /@media \(max-width: 640px\) \{[\s\S]*?\.shopping-card__body--swipe \{\s+grid-template-columns: minmax\(0, 1fr\);[\s\S]*?\.shopping-item-card--legacy \.shopping-card__surface \{\s+grid-template-columns: auto minmax\(0, 1fr\);[\s\S]*?\.shopping-item-card--legacy \.shopping-card__body--swipe \{\s+grid-template-columns: minmax\(0, 1fr\) auto;[\s\S]*?\.shopping-item-card--legacy \.shopping-card__aside,[\s\S]*?justify-items: end;/);
 });

@@ -8,6 +8,9 @@ All notable changes to this project will be documented in this file.
 - Changed (Home-Assistant-Integration/Panel): Im Lager-Swipe-Eintrag entfällt der separate `Löschen`-Button; Löschen bleibt im Modal verfügbar, während `Im Bestand` bzw. `Nicht im Bestand` als oberstes Status-Badge direkt unter dem Produkttitel erscheint.
 - Added (Tests/Frontend): Shared-UI- und Storage-Swipe-Regressionstests decken jetzt das konfigurierbare Haupt-Badge sowie das vereinheitlichte Lager-Listenmarkup ohne Inline-Löschbutton ab.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.8` erhöht.
+- Fix (Home-Assistant-Integration/Panel): In der nativen Einkaufsliste sitzt das `Bestand`-Badge wieder oben rechts bei den übrigen Badges; auf mobilen Viewports bleibt die rechte Badge-Spalte jetzt zweispaltig und Badges umbrechen nicht mehr unter den Hauptinhalt.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.8` erhöht.
+
 - Fix (Backend/Startup): `jinja2` ist wieder als explizite Python-Dependency eingetragen, damit `starlette.templating.Jinja2Templates` beim App-Start ohne Flask-Transitivabhängigkeit verfügbar ist.
 - Fix (Home-Assistant-Integration/Sensoren): `EntityCategory` wird jetzt aus `homeassistant.const` importiert, damit Sensor-Tests und aktuelle Home-Assistant-Versionen denselben Importpfad nutzen.
 - Fix (Home-Assistant-Integration/Panel): Das native Shopping-Panel übergibt wieder `stockBadgePlacement: 'main'`, sodass der bestehende Swipe-Regressionstest wieder mit der Implementierung übereinstimmt.
