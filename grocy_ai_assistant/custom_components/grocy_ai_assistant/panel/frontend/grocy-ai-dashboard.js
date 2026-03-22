@@ -28,7 +28,7 @@ const TAB_ICONS = Object.freeze({
 const VISIBLE_TAB_ORDER = TAB_ORDER.filter((tab) => tab !== 'notifications');
 const DEFAULT_POLLING_INTERVAL_SECONDS = 5;
 const DEFAULT_POLLING_INTERVAL_MS = DEFAULT_POLLING_INTERVAL_SECONDS * 1000;
-const DEFAULT_INTEGRATION_VERSION = '8.0.7';
+const DEFAULT_INTEGRATION_VERSION = '8.0.8';
 const GROCY_RECIPE_DISPLAY_LIMIT = 3;
 const AI_RECIPE_DISPLAY_LIMIT = 3;
 const TAB_VIEW_STATE = Object.freeze({
@@ -402,18 +402,27 @@ function renderStorageProductCard(item, options = {}) {
 
 function renderStorageListItem(item, options = {}) {
   const actionableId = getActionableStorageId(item);
-  const title = item?.name || 'Unbekanntes Produkt';
-  const amountLabel = formatBadgeValue(item?.amount, '0');
-  const bestBeforeLabel = formatBadgeValue(item?.best_before_date, '-');
-  const locationLabel = formatBadgeValue(item?.location_name, 'Nicht gesetzt');
   const stockLabel = item?.in_stock ? 'Im Bestand' : 'Nicht im Bestand';
   const consumeActionLabel = item?.in_stock ? '✅ Verbrauchen' : 'ℹ️ Öffnen';
-  const resolvedImageSource = resolveShoppingImageSource(item?.picture_url, { resolveUrl: options.resolveImageUrl });
-  const detailBadges = [
-    renderStorageBadge('Menge', amountLabel, 'amount'),
-    renderStorageBadge('MHD', bestBeforeLabel, 'mhd'),
-    renderStorageBadge('Lagerort', locationLabel, 'location'),
-  ].join('');
+  const cardMarkup = renderShoppingListItemCard({
+    name: item?.name,
+    amount: item?.amount,
+    best_before_date: item?.best_before_date,
+    location_name: item?.location_name,
+    picture_url: item?.picture_url,
+  }, {
+    resolveImageUrl: options.resolveImageUrl,
+    rootClassName: 'shopping-item-card shopping-item-card--legacy storage-item-card',
+    contextFields: [],
+    statusChip: false,
+    stockBadgePlacement: 'main',
+    stockBadge: {
+      label: 'Status',
+      value: stockLabel,
+      variant: item?.in_stock ? 'stock' : 'neutral',
+      hideLabel: true,
+    },
+  });
 
   return `
     <li
@@ -428,38 +437,7 @@ function renderStorageListItem(item, options = {}) {
         <span class="swipe-chip swipe-chip-buy">${escapeHtml(consumeActionLabel)}</span>
       </div>
       <div class="storage-item-content shopping-item-content swipe-item-content">
-        <img
-          class="storage-item-image shopping-card__media"
-          src="${escapeHtml(resolvedImageSource)}"
-          alt="${escapeHtml(title)}"
-          loading="lazy"
-          data-shopping-image="true"
-          data-fallback-src="${escapeHtml(resolveShoppingImageSource(''))}"
-        />
-        <div class="storage-item-main">
-          <div><strong class="storage-item-name">${escapeHtml(title)}</strong></div>
-          <div class="shopping-card__detail-line shopping-card__detail-line--location">
-            <span class="shopping-card__detail-label">Lagerort</span>
-            <span class="shopping-card__detail-value">${escapeHtml(locationLabel)}</span>
-          </div>
-        </div>
-        <div class="storage-item-side">
-          <div class="storage-item-actions">
-            <button
-              type="button"
-              class="ghost-button storage-item-delete-button"
-              data-action="storage-open-delete"
-              data-item-id="${escapeHtml(actionableId)}"
-            >
-              Löschen
-            </button>
-          </div>
-          <div class="storage-item-badges">
-            <span class="badge">Menge: ${escapeHtml(amountLabel)}</span>
-            <span class="badge">MHD: ${escapeHtml(bestBeforeLabel)}</span>
-          </div>
-          <div class="storage-item-info muted">${escapeHtml(stockLabel)}</div>
-        </div>
+        ${cardMarkup}
       </div>
     </li>
   `;

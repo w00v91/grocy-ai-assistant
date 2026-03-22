@@ -74,3 +74,25 @@ assert.match(markup, /shopping-card__badges shopping-card__badges--stacked">[\s\
   assert.doesNotMatch(markup, /shopping-card__context-label">MHD/);
   assert.doesNotMatch(markup, /shopping-card__context-label">Lagerort/);
 });
+
+test('shopping list card supports custom main stock badge content', () => {
+  const markup = renderShoppingListItemCard({
+    name: 'Tomaten',
+    amount: '2',
+    best_before_date: '2026-04-02',
+    location_name: 'Speisekammer',
+  }, {
+    stockBadgePlacement: 'main',
+    statusChip: false,
+    stockBadge: {
+      label: 'Status',
+      value: 'Im Bestand',
+      variant: 'stock',
+      hideLabel: true,
+    },
+  });
+
+  assert.match(markup, /shopping-card__badges shopping-card__badges--main">[\s\S]*?shopping-badge--stock/);
+  assert.match(markup, /shopping-badge__label--hidden">Status<\/span>/);
+  assert.match(markup, /shopping-badge__value">Im Bestand<\/span>/);
+});

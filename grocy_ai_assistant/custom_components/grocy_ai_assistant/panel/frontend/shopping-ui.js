@@ -204,7 +204,23 @@ export function renderShoppingListItemCard(item, options = {}) {
     .filter(Boolean)
     .join('');
   const stockBadgePlacement = options.stockBadgePlacement === 'main' ? 'main' : 'aside';
-  const stockBadge = renderBadge('Bestand', stockLabel, { variant: 'stock' });
+  const stockBadgeConfig = options.stockBadge === false
+    ? null
+    : {
+        label: 'Bestand',
+        value: stockLabel,
+        variant: 'stock',
+        ...((typeof options.stockBadge === 'object' && options.stockBadge) || {}),
+      };
+  const stockBadge = stockBadgeConfig
+    ? renderBadge(stockBadgeConfig.label, stockBadgeConfig.value, {
+        variant: stockBadgeConfig.variant,
+        className: stockBadgeConfig.className,
+        element: stockBadgeConfig.element,
+        dataset: stockBadgeConfig.dataset,
+        hideLabel: stockBadgeConfig.hideLabel,
+      })
+    : '';
   const badges = [
     renderBadge('Menge', amountLabel, options.amountBadge || { variant: 'amount' }),
     renderBadge('MHD', bestBeforeDate, { variant: 'mhd', ...(options.mhdBadge || {}) }),

@@ -160,6 +160,11 @@
   color: color-mix(in srgb, var(--info-bg, var(--accent-primary, var(--primary-color, #1d4ed8))) 74%, var(--text-primary, var(--primary-text-color, #0f172a)));
 }
 
+.shopping-badge--neutral {
+  background: color-mix(in srgb, var(--item-border, var(--panel-border-color, rgba(0, 0, 0, 0.12))) 28%, var(--surface-card, var(--panel-card-background, #fff)));
+  color: color-mix(in srgb, var(--muted, var(--secondary-text-color, #64748b)) 88%, var(--text-primary, var(--primary-text-color, #0f172a)));
+}
+
 .shopping-status-chip--shopping {
   background: color-mix(in srgb, var(--accent-primary, var(--primary-color, #1d4ed8)) 11%, var(--surface-card, var(--panel-card-background, #fff)));
   color: var(--text-primary, var(--primary-text-color, #0f172a));

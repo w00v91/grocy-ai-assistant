@@ -70,9 +70,13 @@ test('native storage tab renders legacy-style swipe list items and rebinds swipe
   assert.match(source, /class GrocyAIStorageTab extends HTMLElement/);
   assert.match(source, /this\._cleanupSwipe = null;/);
   assert.match(source, /class="storage-item swipe-item variant-card"/);
-  assert.match(source, /class="storage-item-side"/);
-  assert.match(source, /storage-item-delete-button/);
-  assert.match(source, /shopping-card__detail-label">Lagerort/);
+  assert.match(source, /rootClassName: 'shopping-item-card shopping-item-card--legacy storage-item-card'/);
+  assert.match(source, /stockBadgePlacement: 'main'/);
+  assert.match(source, /value: stockLabel/);
+  assert.match(source, /variant: item\?\.in_stock \? 'stock' : 'neutral'/);
+  assert.match(source, /hideLabel: true/);
+  assert.match(source, /location_name: item\?\.location_name/);
+  assert.doesNotMatch(source, /storage-item-delete-button/);
   assert.match(source, /selector: '\.storage-item\.swipe-item'/);
   assert.doesNotMatch(source, /interactiveElementSelector: '\.storage-item-delete-button'/);
   assert.match(source, /new CustomEvent\('storage-open-edit'/);

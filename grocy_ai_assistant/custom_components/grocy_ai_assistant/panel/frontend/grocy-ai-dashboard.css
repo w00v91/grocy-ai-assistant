@@ -430,13 +430,15 @@ h1 {
   opacity: calc(0.4 + (var(--swipe-progress-left) * 0.7));
 }
 
-.shopping-item.swipe-item .shopping-card {
+.shopping-item.swipe-item .shopping-card,
+.storage-item.swipe-item .shopping-card {
   border: none;
   border-radius: inherit;
   background: transparent;
 }
 
-.shopping-item.swipe-item .shopping-card__surface {
+.shopping-item.swipe-item .shopping-card__surface,
+.storage-item.swipe-item .shopping-card__surface {
   border-radius: inherit;
 }
 
@@ -893,13 +895,22 @@ select:focus-visible {
   padding: 0;
 }
 
+.storage-item-card {
+  height: 100%;
+}
+
+.storage-item-card .shopping-card__surface {
+  min-height: 78px;
+  padding: 0.75rem 0.85rem;
+}
+
+.storage-item-card .shopping-card__badges--main {
+  margin-top: -0.1rem;
+}
+
 .storage-item-content {
   width: 100%;
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: start;
-  gap: 0.8rem;
-  padding: 0.75rem 0.85rem;
+  min-height: 78px;
 }
 
 .storage-item-image,
@@ -973,38 +984,6 @@ select:focus-visible {
   justify-content: flex-start;
 }
 
-.storage-item-main,
-.storage-item-side,
-.storage-item-badges,
-.storage-item-actions {
-  display: grid;
-  gap: 0.45rem;
-}
-
-.storage-item-main {
-  align-content: center;
-}
-
-.storage-item-side,
-.storage-item-badges,
-.storage-item-actions {
-  justify-items: end;
-}
-
-.storage-item-badges {
-  align-items: flex-end;
-}
-
-.storage-item-info {
-  text-align: right;
-  font-size: 0.82rem;
-}
-
-.storage-item-delete-button {
-  min-height: auto;
-  padding: 0.45rem 0.75rem;
-}
-
 .storage-modal-content {
   width: min(680px, calc(100vw - 32px));
 }
@@ -1063,24 +1042,8 @@ select:focus-visible {
 }
 
 @media (max-width: 640px) {
-  .storage-item-content {
-    grid-template-columns: 56px minmax(0, 1fr);
-  }
-
-  .storage-item-image,
-  .storage-item-content img {
-    width: 56px;
-    height: 56px;
-  }
-
-  .storage-item-side,
-  .storage-item-badges,
-  .storage-item-actions {
-    justify-items: flex-start;
-  }
-
-  .storage-item-info {
-    text-align: left;
+  .storage-item-card .shopping-card__surface {
+    padding: 0.65rem 0.7rem;
   }
 
   .storage-edit-attribute-row {
