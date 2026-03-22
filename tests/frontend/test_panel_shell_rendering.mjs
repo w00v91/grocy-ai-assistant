@@ -212,10 +212,10 @@ test('dashboard shell derives spacing and surface styling from Home Assistant ca
 });
 
 
-test('bottom tab bar stays centered and becomes compact pill navigation on mobile', async () => {
+test('bottom tab bar stays centered and matches the desktop shell width before becoming compact pill navigation on mobile', async () => {
   const source = await fs.readFile(dashboardCssPath, 'utf8');
 
-  assert.match(source, /\.bottom-tabbar \{[\s\S]*?left: 50%;[\s\S]*?transform: translateX\(-50%\);[\s\S]*?justify-content: center;/);
+  assert.match(source, /\.bottom-tabbar \{[\s\S]*?left: 50%;[\s\S]*?transform: translateX\(-50%\);[\s\S]*?justify-content: center;[\s\S]*?width: min\(var\(--dashboard-shell-max-width\), calc\(100vw - 48px\)\);/);
   assert.match(source, /\.tab-button:hover,\s*\.tab-button:focus-visible \{[\s\S]*?transform: none;/);
   assert.match(source, /@media \(max-width: 800px\) \{[\s\S]*?\.bottom-tabbar \{[\s\S]*?flex-wrap: nowrap;[\s\S]*?width: fit-content;[\s\S]*?border-radius: 999px;[\s\S]*?overflow-x: auto;/);
   assert.match(source, /@media \(max-width: 800px\) \{[\s\S]*?\.tab-button \{[\s\S]*?flex: 0 0 auto;[\s\S]*?white-space: nowrap;/);

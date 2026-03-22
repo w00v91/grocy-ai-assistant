@@ -627,7 +627,7 @@ select:focus-visible {
   justify-content: center;
   gap: var(--panel-compact-gap);
   flex-wrap: wrap;
-  width: min(960px, calc(100vw - 48px));
+  width: min(var(--dashboard-shell-max-width), calc(100vw - 48px));
   margin: 0 auto;
   padding: var(--panel-stack-gap);
   border-radius: calc(var(--panel-radius) + var(--panel-compact-gap));
