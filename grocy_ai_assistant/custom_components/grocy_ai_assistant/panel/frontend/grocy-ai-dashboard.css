@@ -18,6 +18,8 @@
   --panel-compact-gap: var(--panel-spacing-tight);
   --image-bg: color-mix(in srgb, var(--secondary-background-color, #e9eff7) 80%, var(--panel-border-color));
   --dashboard-shell-max-width: 100%;
+  --dashboard-shell-center-x: 50vw;
+  --dashboard-shell-fixed-width: min(var(--dashboard-shell-max-width), calc(100vw - 48px));
 }
 
 
@@ -625,7 +627,7 @@ select:focus-visible {
 
 .bottom-tabbar {
   position: fixed;
-  left: 50%;
+  left: var(--dashboard-shell-center-x);
   right: auto;
   bottom: calc(16px + env(safe-area-inset-bottom, 0px));
   transform: translateX(-50%);
@@ -634,7 +636,7 @@ select:focus-visible {
   justify-content: center;
   gap: var(--panel-compact-gap);
   flex-wrap: wrap;
-  width: min(var(--dashboard-shell-max-width), calc(100vw - 48px));
+  width: min(var(--dashboard-shell-fixed-width), calc(100vw - 48px));
   margin: 0 auto;
   padding: var(--panel-stack-gap);
   border-radius: calc(var(--panel-radius) + var(--panel-compact-gap));
@@ -1333,14 +1335,14 @@ select:focus-visible {
   }
 
   .bottom-tabbar {
-    left: 50%;
+    left: var(--dashboard-shell-center-x);
     right: auto;
     bottom: calc(12px + env(safe-area-inset-bottom, 0px));
     transform: translateX(-50%);
     justify-content: center;
     flex-wrap: nowrap;
     width: fit-content;
-    max-width: calc(100vw - 32px);
+    max-width: min(var(--dashboard-shell-fixed-width), calc(100vw - 32px));
     padding: var(--panel-compact-gap);
     border-radius: 999px;
     overflow-x: auto;
