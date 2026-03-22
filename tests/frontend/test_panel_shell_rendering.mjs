@@ -163,6 +163,19 @@ test('native panel locks background scrolling while any modal is open', async ()
 });
 
 
+test('native scanner bridge keeps legacy getUserMedia fallbacks for Home Assistant webviews', async () => {
+  const source = await fs.readFile(dashboardPath, 'utf8');
+
+  assert.match(source, /function hasCompatibleGetUserMedia\(\) \{/);
+  assert.match(source, /navigator\?\.\s*mediaDevices\?\.getUserMedia[\s\S]*?navigator\?\.\s*webkitGetUserMedia[\s\S]*?navigator\?\.\s*msGetUserMedia/);
+  assert.match(source, /async function requestCompatibleUserMedia\(constraints\) \{/);
+  assert.match(source, /legacyGetUserMedia\.call\(navigator, constraints, resolve, reject\);/);
+  assert.match(source, /if \(!hasCompatibleGetUserMedia\(\)\) \{\s+this\._setStatus\('Kamera wird in diesem Browser\/WebView nicht unterstützt\.'\);/);
+  assert.match(source, /video\.setAttribute\('playsinline', 'true'\);[\s\S]*?video\.playsInline = true;[\s\S]*?video\.muted = true;/);
+  assert.match(source, /return await requestCompatibleUserMedia\(constraints\);/);
+});
+
+
 test('recipes and storage tabs are natively migrated in the panel shell', async () => {
   const source = await fs.readFile(dashboardPath, 'utf8');
 

@@ -113,6 +113,35 @@ function restoreDetailsOpenState(root, openKeys) {
   });
 }
 
+function hasCompatibleGetUserMedia() {
+  return Boolean(
+    navigator?.mediaDevices?.getUserMedia
+    || navigator?.getUserMedia
+    || navigator?.webkitGetUserMedia
+    || navigator?.mozGetUserMedia
+    || navigator?.msGetUserMedia,
+  );
+}
+
+async function requestCompatibleUserMedia(constraints) {
+  if (navigator?.mediaDevices?.getUserMedia) {
+    return navigator.mediaDevices.getUserMedia(constraints);
+  }
+
+  const legacyGetUserMedia = navigator?.getUserMedia
+    || navigator?.webkitGetUserMedia
+    || navigator?.mozGetUserMedia
+    || navigator?.msGetUserMedia;
+
+  if (!legacyGetUserMedia) {
+    throw new Error('getUserMedia wird nicht unterstützt');
+  }
+
+  return new Promise((resolve, reject) => {
+    legacyGetUserMedia.call(navigator, constraints, resolve, reject);
+  });
+}
+
 function summarizeSelectedItems(items, selectedIds, fallbackLabel) {
   const normalizedItems = Array.isArray(items) ? items : [];
   const selected = new Set(Array.isArray(selectedIds) ? selectedIds.map((value) => Number(value)) : []);
@@ -2279,7 +2308,7 @@ class GrocyAIScannerBridge extends HTMLElement {
     const video = this._getElement('scanner-video');
     if (!video) return;
 
-    if (!navigator.mediaDevices?.getUserMedia) {
+    if (!hasCompatibleGetUserMedia()) {
       this._setStatus('Kamera wird in diesem Browser/WebView nicht unterstützt.');
       return;
     }
@@ -2292,6 +2321,12 @@ class GrocyAIScannerBridge extends HTMLElement {
       await this._refreshDevices();
       await this._optimizeScannerTrack(this._stream);
       this._scheduleScannerFocusRefresh(this._stream);
+      video.setAttribute('playsinline', 'true');
+      video.setAttribute('autoplay', 'true');
+      video.setAttribute('muted', 'true');
+      video.playsInline = true;
+      video.autoplay = true;
+      video.muted = true;
       video.srcObject = this._stream;
       await video.play();
       video.classList.remove('hidden');
@@ -2569,7 +2604,7 @@ class GrocyAIScannerBridge extends HTMLElement {
     let lastError = null;
     for (const constraints of streamProfiles) {
       try {
-        return await navigator.mediaDevices.getUserMedia(constraints);
+        return await requestCompatibleUserMedia(constraints);
       } catch (error) {
         lastError = error;
       }
