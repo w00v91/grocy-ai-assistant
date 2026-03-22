@@ -43,7 +43,7 @@ test('tab navigation only renders native shopping, recipes, and storage links', 
   assert.match(source, /button\.setAttribute\('aria-selected', isActive \? 'true' : 'false'\);/);
 });
 
-test('topbar markup no longer renders panel URL hints or quicklink pills', async () => {
+test('topbar markup no longer renders panel URL hints, quicklink pills, or native-progress badge', async () => {
   const source = await fs.readFile(dashboardPath, 'utf8');
   const topbarSection = source.slice(
     source.indexOf('class GrocyAITopbar extends HTMLElement'),
@@ -56,6 +56,7 @@ test('topbar markup no longer renders panel URL hints or quicklink pills', async
   assert.doesNotMatch(topbarSection, /topbar-quicklinks/);
   assert.doesNotMatch(topbarSection, /quicklink-button/);
   assert.doesNotMatch(topbarSection, /shopping-open-scanner/);
+  assert.doesNotMatch(topbarSection, /Bereiche nativ/);
 });
 
 test('dashboard panel keeps product-picture requests on the HA proxy before the API client is ready', async () => {
@@ -155,9 +156,11 @@ test('recipes and storage tabs are natively migrated in the panel shell', async 
   assert.match(source, /const MIGRATED_TABS = new Set\(\['shopping', 'recipes', 'storage'\]\);/);
   assert.match(source, /function buildRecipesTabMarkup\(model = \{\}\) \{/);
   assert.match(source, /renderTwoColumnCardGroup\(recipeCards, \{ className: 'recipes-card-group' \}\)/);
-  assert.match(source, /dataset: \{ action: 'recipes-load-suggestions' \}/);
+  assert.match(source, /label: 'Rezept hinzufügen'[\s\S]*?dataset: \{ action: 'recipes-open-create' \}/);
+  assert.match(source, /label: 'Rezepte laden'[\s\S]*?dataset: \{ action: 'recipes-load-suggestions' \}/);
+  assert.doesNotMatch(source, /Der erste vollständig native Nicht-Shopping-Tab übernimmt/);
+  assert.doesNotMatch(source, /Grocy-Rezepte', 'KI-Vorschläge', 'native Dialoge/);
   assert.match(source, /data-action="recipes-load-expiring"|dataset: \{ action: 'recipes-load-expiring' \}/);
-  assert.match(source, /dataset: \{ action: 'recipes-open-create' \}/);
   assert.match(source, /class GrocyAIRecipesTab extends HTMLElement \{[\s\S]*?buildRecipesTabMarkup\(model\)/);
   assert.match(source, /function buildStorageTabMarkup\(model = \{\}\) \{/);
   assert.match(source, /data-role="storage-filter"/);

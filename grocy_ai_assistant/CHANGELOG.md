@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Changed (Home-Assistant-Integration/Panel): Die Kopfzeile des nativen Dashboards zeigt das Badge `3/4 Bereiche nativ` nicht mehr an.
+- Changed (Home-Assistant-Integration/Panel): Im nativen Rezepte-Tab entfallen Migrationshinweis und Meta-Badges; `Rezept hinzufügen` und `Rezepte laden` stehen jetzt als gemeinsame Aktionszeile direkt unter `Rezeptvorschläge`.
+- Changed (Home-Assistant-Integration/Panel): Im nativen Lager-Tab ersetzt eine Badge-Zeile unter dem Textfilter die bisherige Statusmeldung und zeigt Summen für `Produkte`, `Produkte auf Lager` und `Produkte nicht auf Lager`.
+- Added (Tests/Frontend): Panel-Regressionstests sichern die entfernte Kopfzeilen-Badge, die Rezepte-Aktionszeile und die neuen Lager-Badges ab.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.13` erhöht.
+
 - Changed (Home-Assistant-Integration/Panel): Die Produktvariantenauswahl im nativen Shopping-Dashboard rendert wieder die gemeinsame Kachelansicht mit Bild, Badges, Kontextinfos und CTA statt der reduzierten Listen-/Zeilenkarte.
 - Added (Tests/Frontend): Ein Panel-Shell-Regressionstest sichert ab, dass die native Variantensuche wieder `renderShoppingVariantCard(...)` inklusive Bildauflösung nutzt.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.12` erhöht.

@@ -87,11 +87,16 @@ test('native storage tab renders legacy-style swipe list items and rebinds swipe
   assert.match(source, /bindShoppingImageFallbacks\(this\);\s+this\._rebindSwipeInteractions\(\);/);
 });
 
-test('native storage summary keeps in-stock and out-of-stock badge counts in sync even without include-all toggle', async () => {
+test('native storage summary keeps filter badges for total, in-stock, and out-of-stock counts in sync even without include-all toggle', async () => {
   const source = await fs.readFile(nativeDashboardPath, 'utf8');
+  const storageTabSection = source.slice(
+    source.indexOf('function buildStorageTabMarkup(model = {}) {'),
+    source.indexOf('class GrocyAIStorageTab extends HTMLElement'),
+  );
 
-  assert.match(source, /<span class="migration-chip">\$\{escapeHtml\(`\$\{model\.summary\.inStockCount\} auf Lager`\)\}<\/span>/);
-  assert.match(source, /<span class="migration-chip">\$\{escapeHtml\(`\$\{model\.summary\.outOfStockCount\} nicht auf Lager`\)\}<\/span>/);
+  assert.match(storageTabSection, /<span class="migration-chip">\$\{escapeHtml\(`\$\{model\.summary\.totalCount\} Produkte`\)\}<\/span>/);
+  assert.match(storageTabSection, /<span class="migration-chip">\$\{escapeHtml\(`\$\{model\.summary\.inStockCount\} Produkte auf Lager`\)\}<\/span>/);
+  assert.match(storageTabSection, /<span class="migration-chip">\$\{escapeHtml\(`\$\{model\.summary\.outOfStockCount\} Produkte nicht auf Lager`\)\}<\/span>/);
   assert.match(source, /async _fetchStorageSummary\(api, \{ query = '', visibleItems = \[\] \} = \{\}\) \{/);
   assert.match(source, /includeAllProducts: true,\s+query,/);
   assert.match(source, /const summary = latestState\.includeAllProducts[\s\S]*?: await this\._fetchStorageSummary\(api, \{/);
