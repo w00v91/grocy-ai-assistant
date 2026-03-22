@@ -28,7 +28,7 @@ const TAB_ICONS = Object.freeze({
 const VISIBLE_TAB_ORDER = TAB_ORDER.filter((tab) => tab !== 'notifications');
 const DEFAULT_POLLING_INTERVAL_SECONDS = 5;
 const DEFAULT_POLLING_INTERVAL_MS = DEFAULT_POLLING_INTERVAL_SECONDS * 1000;
-const DEFAULT_INTEGRATION_VERSION = '8.0.1';
+const DEFAULT_INTEGRATION_VERSION = '8.0.3';
 const GROCY_RECIPE_DISPLAY_LIMIT = 3;
 const AI_RECIPE_DISPLAY_LIMIT = 3;
 const TAB_VIEW_STATE = Object.freeze({
@@ -319,6 +319,14 @@ function getActionableStorageId(item) {
   return 0;
 }
 
+function normalizeNutritionInputValue(value) {
+  const normalized = String(value ?? '').trim().replace(',', '.');
+  if (!normalized) return null;
+  const parsed = Number(normalized);
+  if (!Number.isFinite(parsed) || parsed < 0) return Number.NaN;
+  return parsed;
+}
+
 function formatStorageDateLabel(value, fallback = 'Kein Datum') {
   const normalized = String(value ?? '').trim();
   if (!normalized) return fallback;
@@ -474,6 +482,10 @@ function buildStorageTabMarkup(model = {}) {
       return `<option value="${locationId}"${isSelected ? ' selected' : ''}>${escapeHtml(location?.name || `Lagerort ${locationId}`)}</option>`;
     }),
   ].join('');
+  const resolvedEditImageSource = resolveShoppingImageSource(activeEditItem?.picture_url, { resolveUrl: model.resolveImageUrl });
+  const editLocationLabel = editModal.locationId
+    ? (locations.find((location) => String(location?.id ?? '') === String(editModal.locationId))?.name || 'Nicht gesetzt')
+    : formatBadgeValue(activeEditItem?.location_name, 'Nicht gesetzt');
 
   let listMarkup = '';
   if (model.loading && !items.length) {
@@ -535,41 +547,57 @@ function buildStorageTabMarkup(model = {}) {
 
     <div class="shopping-modal${editModal.open ? '' : ' hidden'}">
       <div class="shopping-modal-backdrop" data-action="storage-close-edit"></div>
-      <section class="shopping-modal-content card storage-modal-content">
+      <section class="shopping-modal-content card storage-modal-content storage-edit-modal-content">
         <button class="shopping-modal-close" type="button" data-action="storage-close-edit" aria-label="Produkt bearbeiten schließen">×</button>
-        <div class="storage-modal-header">
+        <h3>${escapeHtml(activeEditItem?.name || 'Produkt bearbeiten')}</h3>
+        <div class="storage-edit-media">
           <img
-            class="storage-modal-image shopping-card__media"
-            src="${escapeHtml(resolveShoppingImageSource(activeEditItem?.picture_url, { resolveUrl: model.resolveImageUrl }))}"
+            class="storage-edit-picture shopping-card__media${activeEditItem?.picture_url ? '' : ' hidden'}"
+            src="${escapeHtml(resolvedEditImageSource)}"
             alt="${escapeHtml(activeEditItem?.name || 'Produktbild')}"
             loading="lazy"
             data-shopping-image="true"
             data-fallback-src="${escapeHtml(resolveShoppingImageSource(''))}"
           />
-          <div class="storage-modal-heading">
-            <h3>${escapeHtml(activeEditItem?.name || 'Produkt bearbeiten')}</h3>
-            <div class="shopping-card__badges storage-modal-badges">
-              ${renderStorageBadge('Menge', formatBadgeValue(editModal.amount || activeEditItem?.amount, '0'), 'amount')}
-              ${renderStorageBadge('MHD', formatBadgeValue(editModal.bestBeforeDate || activeEditItem?.best_before_date, '-'), 'mhd')}
-              ${renderStorageBadge('Lagerort', editModal.locationId
-                ? (locations.find((location) => String(location?.id ?? '') === String(editModal.locationId))?.name || 'Nicht gesetzt')
-                : formatBadgeValue(activeEditItem?.location_name, 'Nicht gesetzt'), 'location')}
-            </div>
-          </div>
         </div>
-        <div class="shopping-details-grid storage-edit-grid">
-          <label>
-            <span>Menge</span>
-            <input data-field="amount" data-role="storage-edit-field" type="number" min="0" step="0.01" value="${escapeHtml(editModal.amount || '')}" />
-          </label>
-          <label>
-            <span>MHD</span>
-            <input data-field="bestBeforeDate" data-role="storage-edit-field" type="date" value="${escapeHtml(editModal.bestBeforeDate || '')}" />
-          </label>
-          <label class="storage-edit-grid__full">
-            <span>Lagerort ändern</span>
-            <select data-field="locationId" data-role="storage-edit-field">${locationOptions}</select>
-          </label>
+        <div class="shopping-card__badges storage-modal-badges">
+          ${renderStorageBadge('Menge', formatBadgeValue(editModal.amount || activeEditItem?.amount, '0'), 'amount')}
+          ${renderStorageBadge('MHD', formatBadgeValue(editModal.bestBeforeDate || activeEditItem?.best_before_date, '-'), 'mhd')}
+          ${renderStorageBadge('Lagerort', editLocationLabel, 'location')}
+        </div>
+        <div class="storage-edit-attributes">
+          <div class="storage-edit-attribute-row">
+            <label for="storage-edit-amount-native">Menge</label>
+            <input id="storage-edit-amount-native" class="ha-control" data-field="amount" data-role="storage-edit-field" type="number" min="0" step="0.01" value="${escapeHtml(editModal.amount || '')}" />
+          </div>
+          <div class="storage-edit-attribute-row">
+            <label for="storage-edit-best-before-native">MHD</label>
+            <input id="storage-edit-best-before-native" class="ha-control" data-field="bestBeforeDate" data-role="storage-edit-field" type="date" value="${escapeHtml(editModal.bestBeforeDate || '')}" />
+          </div>
+          <div class="storage-edit-attribute-row">
+            <label for="storage-edit-location-select-native">Lagerort</label>
+            <select id="storage-edit-location-select-native" class="ha-control" data-field="locationId" data-role="storage-edit-field">${locationOptions}</select>
+          </div>
+          <div class="storage-edit-attribute-row">
+            <label for="storage-edit-calories-native">Kalorien (kcal)</label>
+            <input id="storage-edit-calories-native" class="ha-control" data-field="calories" data-role="storage-edit-field" type="number" min="0" step="0.01" value="${escapeHtml(editModal.calories || '')}" />
+          </div>
+          <div class="storage-edit-attribute-row">
+            <label for="storage-edit-carbs-native">Kohlenhydrate (g)</label>
+            <input id="storage-edit-carbs-native" class="ha-control" data-field="carbs" data-role="storage-edit-field" type="number" min="0" step="0.01" value="${escapeHtml(editModal.carbs || '')}" />
+          </div>
+          <div class="storage-edit-attribute-row">
+            <label for="storage-edit-fat-native">Fett (g)</label>
+            <input id="storage-edit-fat-native" class="ha-control" data-field="fat" data-role="storage-edit-field" type="number" min="0" step="0.01" value="${escapeHtml(editModal.fat || '')}" />
+          </div>
+          <div class="storage-edit-attribute-row">
+            <label for="storage-edit-protein-native">Eiweiß (g)</label>
+            <input id="storage-edit-protein-native" class="ha-control" data-field="protein" data-role="storage-edit-field" type="number" min="0" step="0.01" value="${escapeHtml(editModal.protein || '')}" />
+          </div>
+          <div class="storage-edit-attribute-row">
+            <label for="storage-edit-sugar-native">Zucker (g)</label>
+            <input id="storage-edit-sugar-native" class="ha-control" data-field="sugar" data-role="storage-edit-field" type="number" min="0" step="0.01" value="${escapeHtml(editModal.sugar || '')}" />
+          </div>
         </div>
         <div class="shopping-modal-save-row storage-modal-actions-row">
           <button class="secondary-button" type="button" data-action="storage-delete-product-picture" data-item-id="${escapeHtml(getActionableStorageId(activeEditItem))}" ${activeEditItem?.picture_url ? '' : 'disabled'}>Produktbild löschen</button>
@@ -692,6 +720,11 @@ function createInitialState() {
         amount: '',
         bestBeforeDate: '',
         locationId: '',
+        calories: '',
+        carbs: '',
+        fat: '',
+        protein: '',
+        sugar: '',
       },
       consumeModal: {
         open: false,
@@ -2831,6 +2864,34 @@ class GrocyAIStorageTab extends HTMLElement {
     this._rebindSwipeInteractions();
   }
 
+  _syncVolatileState() {
+    if (!this.isConnected) return;
+
+    const model = this._viewModel || {};
+    const editFieldValues = {
+      amount: model?.editModal?.amount || '',
+      bestBeforeDate: model?.editModal?.bestBeforeDate || '',
+      locationId: model?.editModal?.locationId || '',
+      calories: model?.editModal?.calories || '',
+      carbs: model?.editModal?.carbs || '',
+      fat: model?.editModal?.fat || '',
+      protein: model?.editModal?.protein || '',
+      sugar: model?.editModal?.sugar || '',
+    };
+
+    Object.entries(editFieldValues).forEach(([field, value]) => {
+      const input = this.querySelector(`[data-role="storage-edit-field"][data-field="${field}"]`);
+      if (input && input.value !== String(value)) {
+        input.value = String(value);
+      }
+    });
+
+    const consumeInput = this.querySelector('[data-role="storage-consume-field"][data-field="amount"]');
+    if (consumeInput && consumeInput.value !== String(model?.consumeModal?.amount || '1')) {
+      consumeInput.value = String(model?.consumeModal?.amount || '1');
+    }
+  }
+
   set viewModel(value) {
     this._viewModel = value;
     const nextSignature = JSON.stringify({
@@ -2864,7 +2925,10 @@ class GrocyAIStorageTab extends HTMLElement {
         itemId: value?.deleteModal?.itemId ?? null,
       },
     });
-    if (nextSignature === this._renderSignature) return;
+    if (nextSignature === this._renderSignature) {
+      this._syncVolatileState();
+      return;
+    }
     this._renderSignature = nextSignature;
     this._render();
   }
@@ -3688,13 +3752,46 @@ class GrocyAIDashboardPanel extends HTMLElement {
   _openStorageEdit(itemId) {
     const item = this._findStorageItem(itemId);
     if (!item) return;
+    const actionableItemId = getActionableStorageId(item);
     this._setTabModalState('storage', 'editModal', {
       open: true,
-      itemId: getActionableStorageId(item),
+      itemId: actionableItemId,
       amount: formatAmount(item.amount, '0'),
       bestBeforeDate: formatStorageDateLabel(item.best_before_date, ''),
       locationId: item.location_id ? String(item.location_id) : '',
+      calories: String(item.calories || '').replace(',', '.'),
+      carbs: String(item.carbs || '').replace(',', '.'),
+      fat: String(item.fat || '').replace(',', '.'),
+      protein: String(item.protein || '').replace(',', '.'),
+      sugar: String(item.sugar || '').replace(',', '.'),
     }, { editing: true });
+
+    const productId = Number(item?.id || 0);
+    if (!Number.isFinite(productId) || productId <= 0) return;
+
+    void (async () => {
+      try {
+        const api = await this._getDashboardApiOrThrow();
+        const { response, payload } = await api.fetchProductNutrition(productId);
+        if (!response.ok || !payload || typeof payload !== 'object') return;
+
+        const currentEditModal = this._store.getState().storage.editModal;
+        if (!currentEditModal.open || Number(currentEditModal.itemId) !== actionableItemId) return;
+
+        this._updateStorageState({
+          editModal: {
+            ...currentEditModal,
+            calories: String(payload.calories || '').replace(',', '.'),
+            carbs: String(payload.carbs || '').replace(',', '.'),
+            fat: String(payload.fat || '').replace(',', '.'),
+            protein: String(payload.protein || '').replace(',', '.'),
+            sugar: String(payload.sugar || '').replace(',', '.'),
+          },
+        });
+      } catch (error) {
+        console.debug('Nutrition userfields could not be loaded for storage edit modal:', error);
+      }
+    })();
   }
 
   _closeStorageEdit() {
@@ -3704,6 +3801,11 @@ class GrocyAIDashboardPanel extends HTMLElement {
       amount: '',
       bestBeforeDate: '',
       locationId: '',
+      calories: '',
+      carbs: '',
+      fat: '',
+      protein: '',
+      sugar: '',
     }, { editing: false });
   }
 
@@ -3723,8 +3825,17 @@ class GrocyAIDashboardPanel extends HTMLElement {
     if (!editModal.itemId) return;
 
     const amount = Number(String(editModal.amount || '').replace(',', '.'));
+    const calories = normalizeNutritionInputValue(editModal.calories);
+    const carbs = normalizeNutritionInputValue(editModal.carbs);
+    const fat = normalizeNutritionInputValue(editModal.fat);
+    const protein = normalizeNutritionInputValue(editModal.protein);
+    const sugar = normalizeNutritionInputValue(editModal.sugar);
     if (!Number.isFinite(amount) || amount < 0) {
       this._updateStorageState({ status: 'Bitte eine gültige Menge eingeben.' });
+      return;
+    }
+    if ([calories, carbs, fat, protein, sugar].some((value) => Number.isNaN(value))) {
+      this._updateStorageState({ status: 'Bitte gültige Nährwerte (>= 0) eingeben.' });
       return;
     }
 
@@ -3739,6 +3850,11 @@ class GrocyAIDashboardPanel extends HTMLElement {
         amount,
         best_before_date: editModal.bestBeforeDate || '',
         location_id: Number.isFinite(locationId) && locationId > 0 ? locationId : null,
+        calories,
+        carbs,
+        fat,
+        protein,
+        sugar,
       }, {
         productId: item.id,
       });

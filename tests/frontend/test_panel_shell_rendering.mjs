@@ -123,7 +123,7 @@ test('recipes, storage, and modal setters skip full rerenders for volatile field
 
   assert.match(source, /class GrocyAIDashboardModals extends HTMLElement \{[\s\S]*?this\._renderSignature = null;[\s\S]*?const nextSignature = JSON\.stringify\(\{[\s\S]*?createMethod: value\?\.recipes\?\.createModal\?\.method \|\| 'webscrape'[\s\S]*?\}\);[\s\S]*?if \(nextSignature === this\._renderSignature\) return;/);
   assert.match(source, /class GrocyAIRecipesTab extends HTMLElement \{[\s\S]*?this\._renderSignature = null;[\s\S]*?const nextSignature = JSON\.stringify\(\{[\s\S]*?stockProducts: buildStockSignature\(/);
-  assert.match(source, /class GrocyAIStorageTab extends HTMLElement \{[\s\S]*?this\._renderSignature = null;[\s\S]*?const nextSignature = JSON\.stringify\(\{[\s\S]*?deleteModal: \{[\s\S]*?itemId: value\?\.deleteModal\?\.itemId \?\? null[\s\S]*?\}\);[\s\S]*?if \(nextSignature === this\._renderSignature\) return;/);
+  assert.match(source, /class GrocyAIStorageTab extends HTMLElement \{[\s\S]*?this\._renderSignature = null;[\s\S]*?const nextSignature = JSON\.stringify\(\{[\s\S]*?deleteModal: \{[\s\S]*?itemId: value\?\.deleteModal\?\.itemId \?\? null[\s\S]*?\}\);[\s\S]*?if \(nextSignature === this\._renderSignature\) \{[\s\S]*?this\._syncVolatileState\(\);[\s\S]*?return;[\s\S]*?\}/);
 });
 
 test('recipes and storage tabs are natively migrated in the panel shell', async () => {

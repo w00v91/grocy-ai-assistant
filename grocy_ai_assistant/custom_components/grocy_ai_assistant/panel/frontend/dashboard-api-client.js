@@ -137,6 +137,9 @@ export function createDashboardApiClient({ apiBasePath = '', ingressPrefix = '',
         body: JSON.stringify({ amount }),
       });
     },
+    fetchProductNutrition(productId) {
+      return request(`/api/dashboard/products/${encodeURIComponent(productId)}/nutrition`);
+    },
     updateStockProduct(stockId, payload, { productId = null } = {}) {
       const suffix = Number.isFinite(Number(productId)) && Number(productId) > 0
         ? `?product_id=${encodeURIComponent(productId)}`
