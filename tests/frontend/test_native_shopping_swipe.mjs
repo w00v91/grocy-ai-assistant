@@ -94,9 +94,11 @@ test('native storage summary keeps filter badges for total, in-stock, and out-of
     source.indexOf('class GrocyAIStorageTab extends HTMLElement'),
   );
 
+  assert.match(storageTabSection, /<section class="storage-controls-shell shopping-search-shell" aria-live="polite">[\s\S]*?Filter & Anzeige/);
   assert.match(storageTabSection, /<span class="migration-chip">\$\{escapeHtml\(`\$\{model\.summary\.totalCount\} Produkte`\)\}<\/span>/);
   assert.match(storageTabSection, /<span class="migration-chip">\$\{escapeHtml\(`\$\{model\.summary\.inStockCount\} Produkte auf Lager`\)\}<\/span>/);
   assert.match(storageTabSection, /<span class="migration-chip">\$\{escapeHtml\(`\$\{model\.summary\.outOfStockCount\} Produkte nicht auf Lager`\)\}<\/span>/);
+  assert.match(storageTabSection, /className: 'card storage-list-section'[\s\S]*?title: 'Lagerliste'/);
   assert.match(source, /async _fetchStorageSummary\(api, \{ query = '', visibleItems = \[\] \} = \{\}\) \{/);
   assert.match(source, /includeAllProducts: true,\s+query,/);
   assert.match(source, /const summary = latestState\.includeAllProducts[\s\S]*?: await this\._fetchStorageSummary\(api, \{/);

@@ -3,6 +3,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## 2026-03-22 (Version 8.0.16)
+- Changed (Home-Assistant-Integration/Panel): Im nativen Lager-Tab entfällt die beschreibende Hero-Subline; Textfilter, Summen-Badges und `Alle Produkte anzeigen` sitzen jetzt gemeinsam in einer `shopping-search-shell`-ähnlichen Filter-Shell.
+- Changed (Home-Assistant-Integration/Panel): Die native Lagerliste rendert jetzt in einer eigenen Abschnittskarte `Lagerliste`, analog zur Struktur des Einkaufslisten-Tabs.
+- Added (Tests/Frontend): Panel-Regressionstests sichern die neue Lager-Filter-Shell sowie die separate Lagerlisten-Sektion ab.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.16` erhöht.
+
 ## 2026-03-22 (Version 8.0.15)
 - Fix (Home-Assistant-Integration/Panel): Die Swipe-Buttons im nativen Lager-Tab erben das zentrierte Variantenkarten-Layout nicht mehr, sodass Produktname und Zusatzinfos wieder linksbündig wie in der Einkaufsliste dargestellt werden.
 - Fix (Home-Assistant-Integration/Panel): Die Badge-Spalte der nativen Lager-Swipe-Karten richtet sich wieder wie in der Einkaufsliste aus, statt durch die Variantenkarten-Styles mittig zu verrutschen.
