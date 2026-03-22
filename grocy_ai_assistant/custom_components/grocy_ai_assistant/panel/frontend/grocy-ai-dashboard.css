@@ -9,7 +9,9 @@
   --panel-radius: 20px;
   --panel-gap: 20px;
   --image-bg: color-mix(in srgb, var(--secondary-background-color, #e9eff7) 80%, var(--panel-border-color));
+  --dashboard-shell-max-width: 100%;
 }
+
 
 * {
   box-sizing: border-box;
@@ -17,6 +19,8 @@
 
 .page-shell {
   min-height: 100%;
+  width: min(var(--dashboard-shell-max-width), 100%);
+  margin: 0 auto;
   padding: 24px 24px calc(132px + env(safe-area-inset-bottom, 0px));
   background: var(--primary-background-color);
 }
@@ -1235,6 +1239,12 @@ select:focus-visible {
   border: 1px solid var(--panel-border-color);
   border-radius: 16px;
   background: #fff;
+}
+
+@media (min-width: 1200px) {
+  :host {
+    --dashboard-shell-max-width: min(960px, 50vw);
+  }
 }
 
 @media (max-width: 800px) {

@@ -8,6 +8,10 @@ All notable changes to this project will be documented in this file.
 - Added (Tests/Frontend): Zusätzliche Frontend-Regressionstests decken Rendering, Initialzustand, Volatile-State-Sync sowie den Save-Flow der neuen Storage-Nährwertfelder ab.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.3` erhöht.
 - Test: `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/dashboard-api-client.js`, `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `node --test tests/frontend/test_dashboard_api_client.mjs tests/frontend/test_panel_shell_rendering.mjs tests/frontend/test_storage_edit_nutrition_fields.mjs`, `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py tests/unit/test_panel.py`; Versionsstände auf `8.0.3` erhöht.
+- Changed (Home-Assistant-Integration/Panel): Das native Dashboard nutzt im Desktop-View jetzt eine zentrierte Shell mit maximal halber Viewport-Breite bzw. Legacy-ähnlichen 960px, sodass der Inhalt wieder näher am bisherigen Legacy-Dashboard sitzt.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.3` erhöht.
+- Test: `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `node --test tests/frontend/test_panel_shell_rendering.mjs`, `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `8.0.3` erhöht.
+
 
 - Fix (Home-Assistant-Integration/Panel): In der nativen Einkaufsliste entfällt das sichtbare `MHD`-Präfix im MHD-Badge; gleichzeitig verschwindet das `Offen`-Badge und `Bestand` sitzt wieder in der rechten Badge-Spalte an dessen Stelle.
 - Changed (Home-Assistant-Integration/Panel): Mobile Shopping-Karten im nativen Dashboard wurden kompakter abgestimmt (kleinere Abstände, Thumbnails, Badge- und Textgrößen), damit die Einkaufsliste auf Handybildschirmen weniger überladen wirkt.
