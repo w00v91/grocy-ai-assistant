@@ -173,11 +173,26 @@ test('native panel locks background scrolling while any modal is open', async ()
 
 test('native scanner bridge keeps legacy getUserMedia fallbacks for Home Assistant webviews', async () => {
   const source = await fs.readFile(dashboardPath, 'utf8');
+  const scannerBridgeSection = source.slice(
+    source.indexOf('class GrocyAIScannerBridge extends HTMLElement'),
+    source.indexOf('class GrocyAIRecipesTab extends HTMLElement'),
+  );
+  const applyViewModelSection = scannerBridgeSection.slice(
+    scannerBridgeSection.indexOf('_applyViewModel() {'),
+    scannerBridgeSection.indexOf('_getElement(role) {'),
+  );
 
   assert.match(source, /function hasCompatibleGetUserMedia\(\) \{/);
   assert.match(source, /navigator\?\.\s*mediaDevices\?\.getUserMedia[\s\S]*?navigator\?\.\s*webkitGetUserMedia[\s\S]*?navigator\?\.\s*msGetUserMedia/);
   assert.match(source, /async function requestCompatibleUserMedia\(constraints\) \{/);
   assert.match(source, /legacyGetUserMedia\.call\(navigator, constraints, resolve, reject\);/);
+  assert.match(scannerBridgeSection, /if \(!hasCompatibleGetUserMedia\(\)\) \{\s+this\._setStatus\('Kamera wird in diesem Browser\/WebView nicht unterstützt\.'\);/);
+  assert.match(scannerBridgeSection, /video\.setAttribute\('playsinline', 'true'\);[\s\S]*?video\.playsInline = true;[\s\S]*?video\.muted = true;/);
+  assert.match(scannerBridgeSection, /return await requestCompatibleUserMedia\(constraints\);/);
+  assert.match(applyViewModelSection, /if \(shouldOpen\) \{\s+void this\._refreshDevices\(\);\s+return;\s+\}/);
+  assert.doesNotMatch(applyViewModelSection, /void this\._startScanner\(\);/);
+  assert.match(source, /status: open\s+\?\s+'Scanner geöffnet\. Kamera bitte manuell starten\.'\s+:\s+String\(scannerState\?\.status \|\| 'Bereit\.'\),/);
+  assert.match(source, /this\._store\.patch\(\{ topbarStatus: 'Scanner geöffnet\. Kamera bitte manuell starten\.' \}\);/);
   assert.match(source, /if \(!hasCompatibleGetUserMedia\(\)\) \{\s+this\._setStatus\('Kamera wird in diesem Browser\/WebView nicht unterstützt\.'\);/);
   assert.match(source, /video\.setAttribute\('playsinline', 'true'\);[\s\S]*?video\.playsInline = true;[\s\S]*?video\.muted = true;/);
   assert.match(source, /return await requestCompatibleUserMedia\(constraints\);/);

@@ -2126,9 +2126,6 @@ class GrocyAIScannerBridge extends HTMLElement {
 
     if (shouldOpen) {
       void this._refreshDevices();
-      if (!this._stream) {
-        void this._startScanner();
-      }
       return;
     }
 
@@ -4493,6 +4490,9 @@ class GrocyAIDashboardPanel extends HTMLElement {
     this._store.updateIn(['shopping', 'scanner'], (scannerState = {}) => ({
       ...scannerState,
       open: Boolean(open),
+      status: open
+        ? 'Scanner geöffnet. Kamera bitte manuell starten.'
+        : String(scannerState?.status || 'Bereit.'),
     }));
     const shoppingState = this._store.getState().shopping;
     this._updateTabViewState('shopping', {
@@ -4505,7 +4505,7 @@ class GrocyAIDashboardPanel extends HTMLElement {
     this._switchTab('shopping', { syncHistory: true, announce: false });
     this._setScannerOpen(true);
     this._updateTabViewState('shopping', { editing: true });
-    this._store.patch({ topbarStatus: 'Scanner geöffnet.' });
+    this._store.patch({ topbarStatus: 'Scanner geöffnet. Kamera bitte manuell starten.' });
   }
 
   _updateScannerStatus(message) {
