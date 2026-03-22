@@ -97,6 +97,41 @@ function renderStorageBadge(label, value, variant, extraClassName = '') {
   `;
 }
 
+
+function captureDetailsOpenState(root) {
+  if (!(root instanceof HTMLElement)) return [];
+  return Array.from(root.querySelectorAll('details[data-dropdown-key][open]'))
+    .map((detail) => String(detail.dataset.dropdownKey || '').trim())
+    .filter(Boolean);
+}
+
+function restoreDetailsOpenState(root, openKeys) {
+  if (!(root instanceof HTMLElement)) return;
+  const keys = new Set(Array.isArray(openKeys) ? openKeys : []);
+  root.querySelectorAll('details[data-dropdown-key]').forEach((detail) => {
+    detail.open = keys.has(String(detail.dataset.dropdownKey || '').trim());
+  });
+}
+
+function summarizeSelectedItems(items, selectedIds, fallbackLabel) {
+  const normalizedItems = Array.isArray(items) ? items : [];
+  const selected = new Set(Array.isArray(selectedIds) ? selectedIds.map((value) => Number(value)) : []);
+  const effectiveItems = selected.size
+    ? normalizedItems.filter((item) => selected.has(Number(item?.id)))
+    : normalizedItems;
+
+  if (!effectiveItems.length) return fallbackLabel;
+  if (effectiveItems.length === normalizedItems.length) return `Alle (${normalizedItems.length})`;
+  if (effectiveItems.length === 1) return String(effectiveItems[0]?.name || fallbackLabel).trim() || fallbackLabel;
+  if (effectiveItems.length <= 2) {
+    return effectiveItems
+      .map((item) => String(item?.name || '').trim())
+      .filter(Boolean)
+      .join(', ');
+  }
+  return `${effectiveItems.length} ausgewählt`;
+}
+
 function buildPanelTabHref(panelPath, tab) {
   const path = String(panelPath || `/${PANEL_SLUG}`) || `/${PANEL_SLUG}`;
   if (!normalizeTabName(tab)) return path;
@@ -1450,9 +1485,17 @@ function renderRecipeLocationFiltersMarkup(locations, selectedLocationIds) {
     return '<div class="muted">Keine Lagerstandorte gefunden.</div>';
   }
 
+  const summaryLabel = summarizeSelectedItems(items, selectedLocationIds, 'Keine Auswahl');
+
   return `
-    <details class="location-dropdown" open>
-      <summary>Lagerstandorte auswählen (${items.length})</summary>
+    <details class="location-dropdown" data-dropdown-key="recipes-locations">
+      <summary>
+        <span class="location-dropdown__summary-copy">
+          <span class="location-dropdown__summary-title">Lagerort</span>
+          <span class="location-dropdown__summary-value">${escapeHtml(summaryLabel)}</span>
+        </span>
+        ${renderStorageBadge('Standorte', String(selectedIds.size || items.length), 'location', 'location-dropdown__summary-badge')}
+      </summary>
       <div class="location-options">
         ${items.map((item) => `
           <label class="stock-item">
@@ -1462,7 +1505,7 @@ function renderRecipeLocationFiltersMarkup(locations, selectedLocationIds) {
               value="${escapeHtml(item.id)}"
               ${selectedIds.size === 0 || selectedIds.has(Number(item.id)) ? 'checked' : ''}
             />
-            <span><strong>${escapeHtml(item.name || `Lagerort ${item.id}`)}</strong></span>
+            <span class="stock-item-name"><strong>${escapeHtml(item.name || `Lagerort ${item.id}`)}</strong></span>
           </label>
         `).join('')}
       </div>
@@ -1473,9 +1516,16 @@ function renderRecipeLocationFiltersMarkup(locations, selectedLocationIds) {
 function renderRecipeStockProductsMarkup(products, selectedProductIds) {
   const items = (Array.isArray(products) ? products : []).map(normalizeStockProduct);
   const selectedIds = new Set(selectedProductIds);
+  const summaryLabel = summarizeSelectedItems(items, selectedProductIds, 'Keine Auswahl');
   return `
-    <details class="location-dropdown" open>
-      <summary>Produkte auswählen (${items.length})</summary>
+    <details class="location-dropdown" data-dropdown-key="recipes-products">
+      <summary>
+        <span class="location-dropdown__summary-copy">
+          <span class="location-dropdown__summary-title">Produkte in ausgewählten Standorten</span>
+          <span class="location-dropdown__summary-value">${escapeHtml(summaryLabel)}</span>
+        </span>
+        ${renderStorageBadge('Produkte', String(selectedIds.size || items.length), 'amount', 'location-dropdown__summary-badge')}
+      </summary>
       <div class="stock-options">
         ${items.length ? items.map((item) => `
           <label class="stock-item">
@@ -1487,8 +1537,9 @@ function renderRecipeStockProductsMarkup(products, selectedProductIds) {
             />
             <span class="stock-item-name"><strong>${escapeHtml(item.name || 'Unbekanntes Produkt')}</strong></span>
             <span class="stock-item-attributes">
-              <span class="badge">Menge: ${escapeHtml(formatAmount(item.amount) || '-')}</span>
-              <span class="badge">MHD: ${escapeHtml(item.best_before_date || '-')}</span>
+              ${renderStorageBadge('Menge', formatAmount(item.amount) || '-', 'amount')}
+              ${renderStorageBadge('MHD', item.best_before_date || '-', 'mhd')}
+              ${item.location_name ? renderStorageBadge('Lagerort', item.location_name, 'location') : ''}
             </span>
           </label>
         `).join('') : '<div class="muted">Keine Produkte für die ausgewählten Lagerstandorte gefunden.</div>'}
@@ -2688,6 +2739,7 @@ class GrocyAIRecipesTab extends HTMLElement {
 
   _render() {
     const snapshot = captureFocusedFormControl(this);
+    const openDetails = captureDetailsOpenState(this);
     const model = this._viewModel || {};
     this.innerHTML = `
       <section
@@ -2701,6 +2753,7 @@ class GrocyAIRecipesTab extends HTMLElement {
         ${buildRecipesTabMarkup(model)}
       </section>
     `;
+    restoreDetailsOpenState(this, openDetails);
     restoreFocusedFormControl(this, snapshot);
   }
 
