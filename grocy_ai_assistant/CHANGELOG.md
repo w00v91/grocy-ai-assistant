@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Fix (Home-Assistant-Integration/Panel): Wenn im nativen Dashboard ein Modal geöffnet ist, wird der Hintergrund-Scroll jetzt auf Shell- und Dokument-Ebene gesperrt; Scroll-Gesten bleiben dadurch im Modal statt wieder auf der Hauptseite zu landen.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.10` erhöht.
 - Changed (Home-Assistant-Integration/Panel): Die Bottom-Bar des nativen Dashboards nutzt im Desktop-View jetzt dieselbe maximale Breite wie die zentrierte Content-Shell, sodass Navigation und Inhalt bündig auf derselben Achse sitzen.
 - Fix (Home-Assistant-Integration/Panel): Die native Bottom-Bar ersetzt ihre Tab-Buttons nicht mehr bei jedem Status-/Polling-Update, sondern synchronisiert nur noch den aktiven Tab-Zustand; Hover- und Klick-Interaktionen bleiben dadurch im Dashboard stabiler.
 - Fix (Home-Assistant-Integration/Panel): Die Tab-Buttons der nativen Bottom-Bar heben sich bei Hover/Fokus nicht mehr per `translateY(...)` an, wodurch das springende Verhalten mit Mauszeiger entfällt.
