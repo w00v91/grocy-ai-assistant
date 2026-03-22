@@ -3,6 +3,7 @@
 :host {
   display: block;
   color: var(--primary-text-color);
+  min-height: 100%;
   --panel-card-background: var(--ha-card-background-color, var(--card-background-color, #fff));
   --panel-border-color: var(--ha-divider-color, var(--divider-color, rgba(0, 0, 0, 0.12)));
   --panel-shadow: var(--ha-card-box-shadow, 0 2px 8px rgba(0, 0, 0, 0.08));
@@ -30,6 +31,12 @@
   margin: 0 auto;
   padding: var(--panel-card-padding) var(--panel-card-padding) calc(132px + env(safe-area-inset-bottom, 0px));
   background: var(--primary-background-color);
+}
+
+:host([data-modal-open="true"]),
+.page-shell--modal-open {
+  height: 100%;
+  overflow: hidden;
 }
 
 .topbar,
@@ -667,6 +674,7 @@ select:focus-visible {
   display: grid;
   place-items: center;
   z-index: 30;
+  overscroll-behavior: contain;
 }
 
 .shopping-modal-backdrop {
@@ -681,6 +689,8 @@ select:focus-visible {
   width: min(640px, calc(100vw - 32px));
   max-height: calc(100vh - 32px);
   overflow: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 .shopping-modal-close {

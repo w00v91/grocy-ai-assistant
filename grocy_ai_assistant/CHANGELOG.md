@@ -6,6 +6,13 @@ All notable changes to this project will be documented in this file.
 
 - Changed (Home-Assistant-Integration/Panel): In der nativen Einkaufsliste bleibt das `Bestand`-Badge in der rechten Badge-Liste, wird dort aber vor `Menge` und `MHD` als oberstes Badge gerendert.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.11` erhöht.
+- Fix (Home-Assistant-Integration/Panel): Im nativen Lager-Tab blendet das MHD-Badge in den Swipe-Karten sein sichtbares `MHD`-Präfix jetzt ebenfalls aus und zeigt nur noch den Datumswert an.
+- Added (Tests/Frontend): Ein nativer Storage-Swipe-Regressionstest sichert jetzt die versteckte MHD-Badge-Beschriftung für Lager-Karten ab.
+- Changed (Home-Assistant-Integration/Panel): In der nativen Einkaufsliste rendert das `Bestand`-Badge jetzt als Haupt-Badge direkt unter dem Produkttitel statt in der rechten Badge-Spalte, damit der Status ganz oben im Listen-Eintrag sichtbar ist.
+- Fix (Home-Assistant-Integration/Panel): Wenn im nativen Dashboard ein Modal geöffnet ist, wird der Hintergrund-Scroll jetzt auf Shell- und Dokument-Ebene gesperrt; Scroll-Gesten bleiben dadurch im Modal statt wieder auf der Hauptseite zu landen.
+- Fix (Home-Assistant-Integration/Panel): Im nativen `storage`-/`Lager`-Tab sitzt das Badge `Im Bestand` bzw. `Nicht im Bestand` jetzt rechts in derselben Badge-Spalte wie `Menge` und `MHD`; innerhalb der Badge-Liste wird der Status zuerst angezeigt.
+- Added (Tests/Frontend): Shared-Shopping-UI-Regressionstests decken jetzt auch eine konfigurierbare Badge-Reihenfolge für rechte Badge-Spalten ab.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.10` erhöht.
 - Changed (Home-Assistant-Integration/Panel): Die Bottom-Bar des nativen Dashboards nutzt im Desktop-View jetzt dieselbe maximale Breite wie die zentrierte Content-Shell, sodass Navigation und Inhalt bündig auf derselben Achse sitzen.
 - Fix (Home-Assistant-Integration/Panel): Die native Bottom-Bar ersetzt ihre Tab-Buttons nicht mehr bei jedem Status-/Polling-Update, sondern synchronisiert nur noch den aktiven Tab-Zustand; Hover- und Klick-Interaktionen bleiben dadurch im Dashboard stabiler.
 - Fix (Home-Assistant-Integration/Panel): Die Tab-Buttons der nativen Bottom-Bar heben sich bei Hover/Fokus nicht mehr per `translateY(...)` an, wodurch das springende Verhalten mit Mauszeiger entfällt.
