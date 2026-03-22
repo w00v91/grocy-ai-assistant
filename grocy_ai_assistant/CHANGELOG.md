@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Changed (Home-Assistant-Integration/Panel): Das native Dashboard nutzt jetzt gemeinsame Spacing-Tokens für Shell, Karten, Suchflächen, Listen, Detail-Boxen und Bottom-Bar, damit die Abstände zwischen den Elementen tabübergreifend gleichmäßiger wirken.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.5` erhöht.
+- Test: `node --test tests/frontend/test_panel_shell_rendering.mjs`, `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `8.0.5` erhöht.
 - Changed (Home-Assistant-Integration/Panel): Die native Bottom-Bar ist jetzt auch im Dashboard selbst sauber zentriert, statt sich am Viewport asymmetrisch auszurichten.
 - Changed (Home-Assistant-Integration/Panel): Auf mobilen Viewports rendert die Bottom-Bar ihre Tab-Links jetzt als kompakte, horizontal scrollbare Pills statt als umbrechende Liste; Desktop bleibt unverändert.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.4` erhöht.

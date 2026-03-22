@@ -192,6 +192,19 @@ test('dashboard shell uses a centered half-width desktop layout like the legacy 
 });
 
 
+test('dashboard shell reuses shared spacing tokens across shell, cards, search, and list surfaces', async () => {
+  const source = await fs.readFile(dashboardCssPath, 'utf8');
+
+  assert.match(source, /--space-xs: 8px;/);
+  assert.match(source, /--panel-card-padding: var\(--space-xl\);/);
+  assert.match(source, /\.page-shell \{[\s\S]*?padding: var\(--panel-card-padding\) var\(--panel-card-padding\)/);
+  assert.match(source, /\.card \{[\s\S]*?padding: var\(--panel-card-padding\);/);
+  assert.match(source, /\.shopping-search-shell \{[\s\S]*?gap: var\(--panel-section-gap\);[\s\S]*?padding: var\(--panel-gap\);/);
+  assert.match(source, /\.shopping-list-native \.shopping-card__surface,[\s\S]*?\.variant-grid \.shopping-card__surface \{[\s\S]*?gap: var\(--panel-stack-gap\);[\s\S]*?padding: var\(--panel-stack-gap\);/);
+  assert.match(source, /\.bottom-tabbar \{[\s\S]*?gap: var\(--panel-compact-gap\);[\s\S]*?padding: var\(--panel-stack-gap\);/);
+});
+
+
 test('bottom tab bar stays centered and becomes compact pill navigation on mobile', async () => {
   const source = await fs.readFile(dashboardCssPath, 'utf8');
 
