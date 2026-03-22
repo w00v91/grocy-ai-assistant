@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Changed (Home-Assistant-Integration/Panel, Dashboard/Web): Die Rezepte-Filter für `Lagerort` sowie `Produkte in ausgewählten Standorten` erscheinen wieder als kompakte Dropdown-Zusammenfassungen mit Auswahl-Status statt dauerhaft geöffneter Listen.
+- Fix (Home-Assistant-Integration/Panel, Dashboard/Web): Produktattribute im Rezepte-Bestand werden wieder als Badges für `Menge`, `MHD` und optional `Lagerort` dargestellt.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.13` erhöht.
+
 - Fix (Frontend/Shopping): `renderShoppingListItemCard(...)` respektiert jetzt sowohl `badgeOrder` als auch `stockBadgeOrder`, sodass konfigurierbare Badge-Reihenfolgen in der rechten Badge-Spalte wieder konsistent gerendert werden.
 - Fix (Notifications/UTC): Notification-Zeitstempel und zugehörige Tests verwenden jetzt timezone-aware UTC-Werte statt `datetime.utcnow()`, wodurch Deprecation-Warnungen entfallen.
 - Docs: README-Versionen sowie Panel-/Notification-Dokumentation an den aktuellen Stand (`8.0.12`, native Rezepte/Lager-Tabs, aktuelle Notification-API-Routen) angepasst.

@@ -105,6 +105,20 @@ test('native panel binds shared shopping image fallbacks after list and variant 
 });
 
 
+test('recipe filter cards render compact dropdown summaries and keep dropdown state across rerenders', async () => {
+  const source = await fs.readFile(dashboardPath, 'utf8');
+
+  assert.match(source, /function captureDetailsOpenState\(root\) \{/);
+  assert.match(source, /function restoreDetailsOpenState\(root, openKeys\) \{/);
+  assert.match(source, /const summaryLabel = summarizeSelectedItems\(items, selectedLocationIds, 'Keine Auswahl'\);/);
+  assert.match(source, /location-dropdown__summary-title">Lagerort<\/span>/);
+  assert.match(source, /location-dropdown__summary-title">Produkte in ausgewählten Standorten<\/span>/);
+  assert.match(source, /renderStorageBadge\('Menge', formatAmount\(item\.amount\) \|\| '-', 'amount'\)/);
+  assert.match(source, /renderStorageBadge\('MHD', item\.best_before_date \|\| '-', 'mhd'\)/);
+  assert.match(source, /item\.location_name \? renderStorageBadge\('Lagerort', item\.location_name, 'location'\) : ''/);
+  assert.match(source, /const openDetails = captureDetailsOpenState\(this\);[\s\S]*?restoreDetailsOpenState\(this, openDetails\);/);
+});
+
 test('recipes, storage, and modal renders restore focused form controls after rerenders', async () => {
   const source = await fs.readFile(dashboardPath, 'utf8');
 
