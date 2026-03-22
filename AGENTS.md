@@ -13,7 +13,7 @@ grocy_ai_assistant/
 ## Setup
 Before running tests or editing architecture-sensitive code, run:
 
-    bash scripts/setup-codex-workspace.sh
+    bash scripts/codex-workspace-setup.sh
 
 ## Primary checks
     source .venv/bin/activate && pytest
