@@ -1277,7 +1277,7 @@ class GrocyAIShoppingTab extends HTMLElement {
         ${renderShoppingListItemCard(item, {
           rootClassName: 'shopping-item-card shopping-item-card--legacy',
           contextFields: ['location'],
-          stockBadgePlacement: 'main',
+          stockBadgePlacement: 'aside',
           statusChip: false,
           resolveImageUrl: model.resolveImageUrl,
           amountBadge: {
