@@ -861,9 +861,17 @@ select:focus-visible {
 }
 
 .storage-controls {
-  grid-template-columns: minmax(0, 1.6fr) auto auto;
+  grid-template-columns: minmax(0, 1.6fr) auto;
   align-items: end;
-  margin-top: 0.5rem;
+}
+
+.storage-controls-shell {
+  width: 100%;
+}
+
+.storage-list-section {
+  display: grid;
+  gap: var(--panel-stack-gap);
 }
 
 .storage-filter-field .eyebrow {
@@ -897,7 +905,7 @@ select:focus-visible {
 }
 
 .storage-products-list {
-  margin-top: var(--panel-stack-gap);
+  margin: 0;
 }
 
 .storage-products-list--native.variant-grid {
