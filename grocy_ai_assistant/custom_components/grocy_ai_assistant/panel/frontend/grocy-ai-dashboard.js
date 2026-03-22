@@ -415,7 +415,8 @@ function renderStorageListItem(item, options = {}) {
     rootClassName: 'shopping-item-card shopping-item-card--legacy storage-item-card',
     contextFields: [],
     statusChip: false,
-    stockBadgePlacement: 'main',
+    stockBadgePlacement: 'aside',
+    badgeOrder: ['stock', 'amount', 'mhd'],
     stockBadge: {
       label: 'Status',
       value: stockLabel,
@@ -2978,6 +2979,7 @@ class GrocyAIDashboardPanel extends HTMLElement {
     this._initialDataLoadStarted = false;
     this._apiBasePathPromise = null;
     this._startupBannerLogged = false;
+    this._scrollLockState = null;
     this._store = createDashboardStore(createInitialState());
     this._api = createDashboardApiClient({ getAuthHeaders: () => this._getHomeAssistantAuthHeaders() });
     this._handlePopState = () => this._syncActiveTabFromLocation({ updateUrl: false });
@@ -3013,6 +3015,7 @@ class GrocyAIDashboardPanel extends HTMLElement {
     this._shoppingSearch.dispose();
     window.clearTimeout(this._storageFilterDebounce);
     this._stopShoppingPolling();
+    this._setModalScrollLock(false);
   }
 
   set hass(value) {
@@ -3254,6 +3257,75 @@ class GrocyAIDashboardPanel extends HTMLElement {
       ...state.shopping.scanner,
     };
     scannerBridge.api = this._api;
+    this._setModalScrollLock(this._isAnyModalOpen(state));
+  }
+
+  _isAnyModalOpen(state) {
+    return Boolean(
+      state.shopping.detailModal.open
+      || state.shopping.mhdModal.open
+      || state.shopping.scanner.open
+      || state.recipes.detailModal.open
+      || state.recipes.createModal.open
+      || state.storage.editModal.open
+      || state.storage.consumeModal.open
+      || state.storage.deleteModal.open
+    );
+  }
+
+  _setModalScrollLock(locked) {
+    const shouldLock = Boolean(locked);
+    const shell = this.shadowRoot?.querySelector('.page-shell');
+    this.toggleAttribute('data-modal-open', shouldLock);
+    shell?.classList.toggle('page-shell--modal-open', shouldLock);
+
+    if (shouldLock) {
+      if (this._scrollLockState) return;
+
+      const scrollingElement = document.scrollingElement;
+      const body = document.body;
+      const scrollTop = window.scrollY || scrollingElement?.scrollTop || 0;
+      this._scrollLockState = {
+        scrollTop,
+        bodyOverflow: body?.style.overflow || '',
+        bodyPosition: body?.style.position || '',
+        bodyTop: body?.style.top || '',
+        bodyWidth: body?.style.width || '',
+        scrollingOverflow: scrollingElement?.style.overflow || '',
+        htmlOverscrollBehavior: document.documentElement.style.overscrollBehavior || '',
+      };
+
+      if (body) {
+        body.style.overflow = 'hidden';
+        body.style.position = 'fixed';
+        body.style.top = `-${scrollTop}px`;
+        body.style.width = '100%';
+      }
+      if (scrollingElement && scrollingElement !== body) {
+        scrollingElement.style.overflow = 'hidden';
+      }
+      document.documentElement.style.overscrollBehavior = 'none';
+      return;
+    }
+
+    if (!this._scrollLockState) return;
+
+    const { scrollTop, bodyOverflow, bodyPosition, bodyTop, bodyWidth, scrollingOverflow, htmlOverscrollBehavior } = this._scrollLockState;
+    const scrollingElement = document.scrollingElement;
+    const body = document.body;
+
+    if (body) {
+      body.style.overflow = bodyOverflow;
+      body.style.position = bodyPosition;
+      body.style.top = bodyTop;
+      body.style.width = bodyWidth;
+    }
+    if (scrollingElement && scrollingElement !== body) {
+      scrollingElement.style.overflow = scrollingOverflow;
+    }
+    document.documentElement.style.overscrollBehavior = htmlOverscrollBehavior;
+    this._scrollLockState = null;
+    window.scrollTo(0, scrollTop);
   }
 
   _switchTab(tab, options = {}) {
