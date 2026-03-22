@@ -32,11 +32,15 @@ test('tab navigation only renders native shopping, recipes, and storage links', 
   const source = await fs.readFile(dashboardPath, 'utf8');
 
   assert.match(source, /const VISIBLE_TAB_ORDER = TAB_ORDER\.filter\(\(tab\) => tab !== 'notifications'\);/);
-  assert.match(source, /VISIBLE_TAB_ORDER\.map\(\(tab\) => `\n/);
-  assert.match(source, /role="tablist"/);
-  assert.match(source, /role="tab"/);
-  assert.match(source, /aria-controls="\$\{getTabPanelId\(tab\)\}"/);
+  assert.match(source, /class GrocyAITabNav extends HTMLElement \{\s+constructor\(\) \{/);
+  assert.match(source, /_ensureStructure\(\) \{\s+if \(this\._elements\) return;/);
+  assert.match(source, /VISIBLE_TAB_ORDER\.forEach\(\(tab\) => \{/);
+  assert.match(source, /nav\.setAttribute\('role', 'tablist'\);/);
+  assert.match(source, /button\.setAttribute\('role', 'tab'\);/);
+  assert.match(source, /button\.setAttribute\('aria-controls', getTabPanelId\(tab\)\);/);
   assert.match(source, /renderHaIcon\(TAB_ICONS\[tab\], 'tab-button__icon'\)/);
+  assert.match(source, /button\.classList\.toggle\('active', isActive\);/);
+  assert.match(source, /button\.setAttribute\('aria-selected', isActive \? 'true' : 'false'\);/);
 });
 
 test('topbar markup no longer renders panel URL hints or quicklink pills', async () => {
@@ -212,6 +216,7 @@ test('bottom tab bar stays centered and matches the desktop shell width before b
   const source = await fs.readFile(dashboardCssPath, 'utf8');
 
   assert.match(source, /\.bottom-tabbar \{[\s\S]*?left: 50%;[\s\S]*?transform: translateX\(-50%\);[\s\S]*?justify-content: center;[\s\S]*?width: min\(var\(--dashboard-shell-max-width\), calc\(100vw - 48px\)\);/);
+  assert.match(source, /\.tab-button:hover,\s*\.tab-button:focus-visible \{[\s\S]*?transform: none;/);
   assert.match(source, /@media \(max-width: 800px\) \{[\s\S]*?\.bottom-tabbar \{[\s\S]*?flex-wrap: nowrap;[\s\S]*?width: fit-content;[\s\S]*?border-radius: 999px;[\s\S]*?overflow-x: auto;/);
   assert.match(source, /@media \(max-width: 800px\) \{[\s\S]*?\.tab-button \{[\s\S]*?flex: 0 0 auto;[\s\S]*?white-space: nowrap;/);
   assert.match(source, /@media \(max-width: 800px\) \{[\s\S]*?\.tab-button__meta \{[\s\S]*?display: none;/);

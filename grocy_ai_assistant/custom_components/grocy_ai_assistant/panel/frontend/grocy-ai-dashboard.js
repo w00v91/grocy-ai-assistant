@@ -28,7 +28,7 @@ const TAB_ICONS = Object.freeze({
 const VISIBLE_TAB_ORDER = TAB_ORDER.filter((tab) => tab !== 'notifications');
 const DEFAULT_POLLING_INTERVAL_SECONDS = 5;
 const DEFAULT_POLLING_INTERVAL_MS = DEFAULT_POLLING_INTERVAL_SECONDS * 1000;
-const DEFAULT_INTEGRATION_VERSION = '8.0.8';
+const DEFAULT_INTEGRATION_VERSION = '8.0.9';
 const GROCY_RECIPE_DISPLAY_LIMIT = 3;
 const AI_RECIPE_DISPLAY_LIMIT = 3;
 const TAB_VIEW_STATE = Object.freeze({
@@ -402,18 +402,27 @@ function renderStorageProductCard(item, options = {}) {
 
 function renderStorageListItem(item, options = {}) {
   const actionableId = getActionableStorageId(item);
-  const title = item?.name || 'Unbekanntes Produkt';
-  const amountLabel = formatBadgeValue(item?.amount, '0');
-  const bestBeforeLabel = formatBadgeValue(item?.best_before_date, '-');
-  const locationLabel = formatBadgeValue(item?.location_name, 'Nicht gesetzt');
   const stockLabel = item?.in_stock ? 'Im Bestand' : 'Nicht im Bestand';
   const consumeActionLabel = item?.in_stock ? '✅ Verbrauchen' : 'ℹ️ Öffnen';
-  const resolvedImageSource = resolveShoppingImageSource(item?.picture_url, { resolveUrl: options.resolveImageUrl });
-  const detailBadges = [
-    renderStorageBadge('Menge', amountLabel, 'amount'),
-    renderStorageBadge('MHD', bestBeforeLabel, 'mhd'),
-    renderStorageBadge('Lagerort', locationLabel, 'location'),
-  ].join('');
+  const cardMarkup = renderShoppingListItemCard({
+    name: item?.name,
+    amount: item?.amount,
+    best_before_date: item?.best_before_date,
+    location_name: item?.location_name,
+    picture_url: item?.picture_url,
+  }, {
+    resolveImageUrl: options.resolveImageUrl,
+    rootClassName: 'shopping-item-card shopping-item-card--legacy storage-item-card',
+    contextFields: [],
+    statusChip: false,
+    stockBadgePlacement: 'main',
+    stockBadge: {
+      label: 'Status',
+      value: stockLabel,
+      variant: item?.in_stock ? 'stock' : 'neutral',
+      hideLabel: true,
+    },
+  });
 
   return `
     <li
@@ -428,38 +437,7 @@ function renderStorageListItem(item, options = {}) {
         <span class="swipe-chip swipe-chip-buy">${escapeHtml(consumeActionLabel)}</span>
       </div>
       <div class="storage-item-content shopping-item-content swipe-item-content">
-        <img
-          class="storage-item-image shopping-card__media"
-          src="${escapeHtml(resolvedImageSource)}"
-          alt="${escapeHtml(title)}"
-          loading="lazy"
-          data-shopping-image="true"
-          data-fallback-src="${escapeHtml(resolveShoppingImageSource(''))}"
-        />
-        <div class="storage-item-main">
-          <div><strong class="storage-item-name">${escapeHtml(title)}</strong></div>
-          <div class="shopping-card__detail-line shopping-card__detail-line--location">
-            <span class="shopping-card__detail-label">Lagerort</span>
-            <span class="shopping-card__detail-value">${escapeHtml(locationLabel)}</span>
-          </div>
-        </div>
-        <div class="storage-item-side">
-          <div class="storage-item-actions">
-            <button
-              type="button"
-              class="ghost-button storage-item-delete-button"
-              data-action="storage-open-delete"
-              data-item-id="${escapeHtml(actionableId)}"
-            >
-              Löschen
-            </button>
-          </div>
-          <div class="storage-item-badges">
-            <span class="badge">Menge: ${escapeHtml(amountLabel)}</span>
-            <span class="badge">MHD: ${escapeHtml(bestBeforeLabel)}</span>
-          </div>
-          <div class="storage-item-info muted">${escapeHtml(stockLabel)}</div>
-        </div>
+        ${cardMarkup}
       </div>
     </li>
   `;
@@ -803,6 +781,12 @@ class GrocyAITopbar extends HTMLElement {
 }
 
 class GrocyAITabNav extends HTMLElement {
+  constructor() {
+    super();
+    this._viewModel = { activeTab: 'shopping' };
+    this._elements = null;
+  }
+
   connectedCallback() {
     this.addEventListener('click', (event) => {
       const button = event.target.closest('[data-tab]');
@@ -813,35 +797,62 @@ class GrocyAITabNav extends HTMLElement {
         detail: { tab: button.dataset.tab },
       }));
     });
+
+    this._ensureStructure();
+    this._syncViewModel();
   }
 
   set viewModel(value) {
-    this._viewModel = value;
-    this._render();
+    this._viewModel = {
+      ...this._viewModel,
+      ...(value || {}),
+    };
+    this._ensureStructure();
+    this._syncViewModel();
   }
 
-  _render() {
-    const model = this._viewModel || { activeTab: 'shopping' };
-    this.innerHTML = `
-      <nav class="bottom-tabbar" aria-label="Navigation" role="tablist">
-        ${VISIBLE_TAB_ORDER.map((tab) => `
-          <button
-            type="button"
-            class="tab-button${model.activeTab === tab ? ' active' : ''}"
-            data-tab="${tab}"
-            id="${getTabButtonId(tab)}"
-            role="tab"
-            aria-selected="${model.activeTab === tab ? 'true' : 'false'}"
-            aria-controls="${getTabPanelId(tab)}"
-            tabindex="${model.activeTab === tab ? '0' : '-1'}"
-          >
-            ${renderHaIcon(TAB_ICONS[tab], 'tab-button__icon')}
-            <span class="tab-button__label">${TAB_LABELS[tab]}</span>
-            ${MIGRATED_TABS.has(tab) ? '' : '<span class="tab-button__meta">Fallback</span>'}
-          </button>
-        `).join('')}
-      </nav>
-    `;
+  _ensureStructure() {
+    if (this._elements) return;
+
+    const nav = document.createElement('nav');
+    nav.className = 'bottom-tabbar';
+    nav.setAttribute('aria-label', 'Navigation');
+    nav.setAttribute('role', 'tablist');
+
+    const buttons = new Map();
+    VISIBLE_TAB_ORDER.forEach((tab) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'tab-button';
+      button.dataset.tab = tab;
+      button.id = getTabButtonId(tab);
+      button.setAttribute('role', 'tab');
+      button.setAttribute('aria-controls', getTabPanelId(tab));
+
+      button.innerHTML = `
+        ${renderHaIcon(TAB_ICONS[tab], 'tab-button__icon')}
+        <span class="tab-button__label">${TAB_LABELS[tab]}</span>
+        ${MIGRATED_TABS.has(tab) ? '' : '<span class="tab-button__meta">Fallback</span>'}
+      `;
+
+      nav.append(button);
+      buttons.set(tab, button);
+    });
+
+    this.replaceChildren(nav);
+    this._elements = { nav, buttons };
+  }
+
+  _syncViewModel() {
+    if (!this._elements) return;
+
+    const activeTab = this._viewModel?.activeTab || 'shopping';
+    this._elements.buttons.forEach((button, tab) => {
+      const isActive = tab === activeTab;
+      button.classList.toggle('active', isActive);
+      button.setAttribute('aria-selected', isActive ? 'true' : 'false');
+      button.setAttribute('tabindex', isActive ? '0' : '-1');
+    });
   }
 }
 

@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 - Changed (Home-Assistant-Integration/Panel): Die Bottom-Bar des nativen Dashboards nutzt im Desktop-View jetzt dieselbe maximale Breite wie die zentrierte Content-Shell, sodass Navigation und Inhalt bündig auf derselben Achse sitzen.
+- Fix (Home-Assistant-Integration/Panel): Die native Bottom-Bar ersetzt ihre Tab-Buttons nicht mehr bei jedem Status-/Polling-Update, sondern synchronisiert nur noch den aktiven Tab-Zustand; Hover- und Klick-Interaktionen bleiben dadurch im Dashboard stabiler.
+- Fix (Home-Assistant-Integration/Panel): Die Tab-Buttons der nativen Bottom-Bar heben sich bei Hover/Fokus nicht mehr per `translateY(...)` an, wodurch das springende Verhalten mit Mauszeiger entfällt.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.9` erhöht.
+- Changed (Home-Assistant-Integration/Panel): Der native `storage`-/`Lager`-Tab rendert seine Swipe-Einträge jetzt mit derselben Shared-Shopping-Kartenstruktur wie die native Einkaufsliste; dadurch übernehmen Lager-Items die kompaktere Badge-/Detail-Anordnung und das Styling der nativen Einkaufsliste.
+- Changed (Home-Assistant-Integration/Panel): Im Lager-Swipe-Eintrag entfällt der separate `Löschen`-Button; Löschen bleibt im Modal verfügbar, während `Im Bestand` bzw. `Nicht im Bestand` als oberstes Status-Badge direkt unter dem Produkttitel erscheint.
+- Added (Tests/Frontend): Shared-UI- und Storage-Swipe-Regressionstests decken jetzt das konfigurierbare Haupt-Badge sowie das vereinheitlichte Lager-Listenmarkup ohne Inline-Löschbutton ab.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.8` erhöht.
 - Fix (Home-Assistant-Integration/Panel): In der nativen Einkaufsliste sitzt das `Bestand`-Badge wieder oben rechts bei den übrigen Badges; auf mobilen Viewports bleibt die rechte Badge-Spalte jetzt zweispaltig und Badges umbrechen nicht mehr unter den Hauptinhalt.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.8` erhöht.
 
