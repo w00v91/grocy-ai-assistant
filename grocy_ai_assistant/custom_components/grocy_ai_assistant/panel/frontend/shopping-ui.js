@@ -203,7 +203,7 @@ export function renderShoppingListItemCard(item, options = {}) {
     .map((field) => contextRowFactories[field]?.() || '')
     .filter(Boolean)
     .join('');
-  const stockBadgePlacement = options.stockBadgePlacement === 'main' ? 'main' : 'aside';
+  const stockBadgePlacement = options.stockBadgePlacement === 'aside' ? 'aside' : 'main';
   const stockBadgeConfig = options.stockBadge === false
     ? null
     : {
