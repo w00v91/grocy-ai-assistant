@@ -2,7 +2,6 @@ from pathlib import Path
 
 from grocy_ai_assistant.config import options_store
 
-
 CONFIG_PATH = Path(__file__).resolve().parents[2] / "grocy_ai_assistant" / "config.yaml"
 
 
@@ -63,7 +62,7 @@ def test_addon_config_yaml_contains_grouped_initial_info_sync_option():
 def test_repository_config_yaml_contains_expected_grouped_defaults():
     config = _load_config()
 
-    assert config["version"] == "8.0.6"
+    assert config["version"] == "8.0.7"
     assert config["options"]["grocy"]["grocy_api_key"] == "DEIN_GROCY_KEY"
     assert config["schema"]["grocy"]["grocy_api_key"] == "str"
     assert config["options"]["debug_mode"] is False

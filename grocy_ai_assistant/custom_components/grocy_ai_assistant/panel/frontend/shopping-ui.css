@@ -366,7 +366,7 @@ button.shopping-badge {
   }
 
   .shopping-item-card--legacy .shopping-card__surface {
-    grid-template-columns: 60px minmax(0, 1fr);
+    grid-template-columns: auto minmax(0, 1fr);
     gap: 0.65rem;
     padding: 0.65rem 0.7rem;
   }

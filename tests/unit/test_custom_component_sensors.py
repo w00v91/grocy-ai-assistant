@@ -4,7 +4,6 @@ import sys
 import types
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[2]
 PACKAGE_NAME = "grocy_ai_assistant.custom_components.grocy_ai_assistant"
 PACKAGE_PATH = ROOT / "grocy_ai_assistant" / "custom_components" / "grocy_ai_assistant"
@@ -51,17 +50,20 @@ def _ensure_stubbed_homeassistant_modules():
     ha_module = types.ModuleType("homeassistant")
     ha_components = types.ModuleType("homeassistant.components")
     ha_sensor = types.ModuleType("homeassistant.components.sensor")
+    ha_const = types.ModuleType("homeassistant.const")
     ha_helpers = types.ModuleType("homeassistant.helpers")
     ha_entity = types.ModuleType("homeassistant.helpers.entity")
 
     ha_sensor.SensorEntity = _FakeSensorEntity
     ha_sensor.SensorStateClass = _FakeSensorStateClass
+    ha_const.EntityCategory = _FakeEntityCategory
     ha_entity.EntityCategory = _FakeEntityCategory
     ha_entity.DeviceInfo = _FakeDeviceInfo
 
     sys.modules.setdefault("homeassistant", ha_module)
     sys.modules.setdefault("homeassistant.components", ha_components)
     sys.modules.setdefault("homeassistant.components.sensor", ha_sensor)
+    sys.modules.setdefault("homeassistant.const", ha_const)
     sys.modules.setdefault("homeassistant.helpers", ha_helpers)
     sys.modules.setdefault("homeassistant.helpers.entity", ha_entity)
 
@@ -123,7 +125,10 @@ def test_shopping_list_sensor_uses_fallback_value_on_http_error():
     assert sensor.available is True
     assert sensor.native_value == 0
     assert sensor.extra_state_attributes["last_update_success"] is False
-    assert sensor.extra_state_attributes["last_error"] == "Dashboard endpoint fehlgeschlagen"
+    assert (
+        sensor.extra_state_attributes["last_error"]
+        == "Dashboard endpoint fehlgeschlagen"
+    )
     assert sensor.extra_state_attributes["http_status"] == 500
 
 
@@ -139,7 +144,9 @@ def test_shopping_list_sensor_preserves_last_successful_value_after_exception():
     assert sensor.native_value == 2
     assert sensor.extra_state_attributes["last_update_success"] is True
 
-    sensor._build_client = lambda: _StaticClient(exc=RuntimeError("Timeout beim Add-on"))
+    sensor._build_client = lambda: _StaticClient(
+        exc=RuntimeError("Timeout beim Add-on")
+    )
     asyncio.run(sensor.async_update())
 
     assert sensor.available is True
@@ -202,7 +209,10 @@ def test_status_sensor_uses_offline_fallback_on_initial_exception():
     assert sensor.available is True
     assert sensor.native_value == "Offline"
     assert sensor.extra_state_attributes["last_update_success"] is False
-    assert sensor.extra_state_attributes["last_error"] == "Status-Endpunkt nicht erreichbar"
+    assert (
+        sensor.extra_state_attributes["last_error"]
+        == "Status-Endpunkt nicht erreichbar"
+    )
 
 
 def test_update_required_sensor_uses_unknown_fallback_on_initial_exception():
@@ -216,7 +226,10 @@ def test_update_required_sensor_uses_unknown_fallback_on_initial_exception():
     assert sensor.available is True
     assert sensor.native_value == "Unbekannt"
     assert sensor.extra_state_attributes["last_update_success"] is False
-    assert sensor.extra_state_attributes["last_error"] == "Status-Endpunkt nicht erreichbar"
+    assert (
+        sensor.extra_state_attributes["last_error"]
+        == "Status-Endpunkt nicht erreichbar"
+    )
 
 
 def test_expiring_stock_sensor_uses_zero_fallback_on_initial_exception():
@@ -230,7 +243,9 @@ def test_expiring_stock_sensor_uses_zero_fallback_on_initial_exception():
     assert sensor.available is True
     assert sensor.native_value == 0
     assert sensor.extra_state_attributes["last_update_success"] is False
-    assert sensor.extra_state_attributes["last_error"] == "Lager-Endpunkt nicht erreichbar"
+    assert (
+        sensor.extra_state_attributes["last_error"] == "Lager-Endpunkt nicht erreichbar"
+    )
 
 
 def test_all_sensor_types_share_the_entry_device_info():

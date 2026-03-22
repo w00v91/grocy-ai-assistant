@@ -165,8 +165,14 @@ def test_notification_rule_modal_uses_dropdowns_for_events_and_devices(client):
     response = client.get("/")
 
     assert response.status_code == 200
-    assert "<select id='notify-rule-events' multiple></select>" in response.text
-    assert "<select id='notify-rule-devices' multiple></select>" in response.text
+    assert (
+        "<select class='ha-control' id='notify-rule-events' multiple></select>"
+        in response.text
+    )
+    assert (
+        "<select class='ha-control' id='notify-rule-devices' multiple></select>"
+        in response.text
+    )
     assert "id='notify-rule-submit-button'" in response.text
     assert "onclick='saveNotificationRule()'" in response.text
 

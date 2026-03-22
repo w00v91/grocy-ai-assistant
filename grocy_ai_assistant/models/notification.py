@@ -4,7 +4,6 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-
 NotificationChannelType = Literal["mobile_push", "persistent_notification"]
 NotificationSeverityType = Literal["info", "warning", "critical"]
 

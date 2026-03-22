@@ -176,10 +176,12 @@ def test_options_flow_allows_zero_dashboard_polling_interval(monkeypatch):
     result = asyncio.run(flow.async_step_init())
 
     assert result["step_id"] == "init"
-    validated = captured["schema"]({
-        module.CONF_API_KEY: "token",
-        module.CONF_DASHBOARD_POLLING_INTERVAL_SECONDS: 0,
-    })
+    validated = captured["schema"](
+        {
+            module.CONF_API_KEY: "token",
+            module.CONF_DASHBOARD_POLLING_INTERVAL_SECONDS: 0,
+        }
+    )
     assert validated[module.CONF_DASHBOARD_POLLING_INTERVAL_SECONDS] == 0
 
 
@@ -192,7 +194,9 @@ def test_options_flow_rejects_negative_dashboard_polling_interval(monkeypatch):
     asyncio.run(flow.async_step_init())
 
     with pytest.raises(voluptuous.Invalid):
-        captured["schema"]({
-            module.CONF_API_KEY: "token",
-            module.CONF_DASHBOARD_POLLING_INTERVAL_SECONDS: -1,
-        })
+        captured["schema"](
+            {
+                module.CONF_API_KEY: "token",
+                module.CONF_DASHBOARD_POLLING_INTERVAL_SECONDS: -1,
+            }
+        )

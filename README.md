@@ -84,16 +84,39 @@ Standardmäßig läuft der Service dann auf `http://localhost:8000`.
 
 Primär via Add-on-Optionen (`/data/options.yaml`) und Umgebungsvariablen.
 
-Wesentliche Schlüssel:
+Aktuelles Minimalbeispiel im Add-on-Schema:
 
-- `api_key`
-- `grocy_api_key`
-- `grocy_base_url`
-- `ollama_url`
-- `ollama_model`
-- `ollama_llava_model`
-- `scanner_barcode_fallback_seconds`
-- `scanner_llava_min_confidence`
+```yaml
+api_key: "DEIN_KI_KEY"
+notification_global_enabled: true
+dashboard_polling_interval_seconds: 5
+grocy:
+  grocy_api_key: "DEIN_GROCY_KEY"
+  grocy_base_url: "http://homeassistant.local:9192/api"
+ollama:
+  ollama_url: "http://76e18fb5_ollama:11434/api/generate"
+  ollama_model: "llama3"
+  ollama_llava_model: "llava"
+  initial_info_sync: false
+scanner:
+  scanner_barcode_fallback_seconds: 5
+  scanner_llava_min_confidence: 75
+  scanner_llava_timeout_seconds: 45
+cloud_ai:
+  image_generation_enabled: false
+  openai_api_key: "DEIN_OPENAI_KEY"
+  openai_image_model: "gpt-image-1"
+  generate_missing_product_images_on_startup: false
+debug_mode: false
+```
+
+Wesentliche Schlüsselgruppen:
+
+- global: `api_key`, `notification_global_enabled`, `dashboard_polling_interval_seconds`, `debug_mode`
+- `grocy.*`: Grocy-API-Key und Basis-URL
+- `ollama.*`: Text-/Vision-Modelle und Initial-Sync
+- `scanner.*`: Barcode-/LLaVA-Timeouts und Schwellenwerte
+- `cloud_ai.*`: optionale OpenAI-Bildgenerierung
 
 ## Native Panel-URL in Home Assistant
 
@@ -101,7 +124,7 @@ Die Integration registriert das Dashboard als **nativen Home-Assistant-Panel-Ein
 
 - **Titel:** `Grocy AI`
 - **Slug / URL-Pfad:** `/grocy-ai`
-- **Sidebar-Icon:** `mdi:brain`
+- **Sidebar-Icon:** `mdi:fridge-outline`
 
 Damit kann der Bereich nicht nur über die Sidebar, sondern auch direkt aus **Lovelace-Dashboards, Chips, Buttons, Skripten und Automationen** geöffnet werden.
 
@@ -110,7 +133,7 @@ Damit kann der Bereich nicht nur über die Sidebar, sondern auch direkt aus **Lo
 ```yaml
 type: button
 name: Grocy AI öffnen
-icon: mdi:brain
+icon: mdi:fridge-outline
 tap_action:
   action: navigate
   navigation_path: /grocy-ai
@@ -159,23 +182,35 @@ Zur laufenden Qualitätssicherung gelten folgende Leitlinien im Projekt:
 
 ## Entwicklung
 
-### Tests
+Vor Checks mit Home-Assistant-Bezug sollte zuerst das Workspace-Setup laufen:
+
+```bash
+INSTALL_HA_STACK=1 bash scripts/codex-workspace-setup.sh
+```
+
+### Vollständige lokale Prüfung
+
+```bash
+source .venv/bin/activate && pytest
+source .venv/bin/activate && ruff check .
+source .venv/bin/activate && black --check .
+source .venv/bin/activate && python -m compileall grocy_ai_assistant tests
+node --test tests/frontend/*.mjs
+```
+
+### Einzelkommandos
 
 ```bash
 pytest
-```
-
-### Linting
-
-```bash
 ruff check .
-```
-
-### Formatierung
-
-```bash
 black .
 ```
+
+## Kompatibilität
+
+- Python: `3.11+`
+- Home Assistant: Die Testumgebung in diesem Repository nutzt aktuell `Home Assistant 2026.2.x`.
+- Add-on und Integration sollten versionsgleich betrieben werden.
 
 ## Versionierung
 
@@ -188,8 +223,8 @@ Zusätzlich nutzt die Integration eine Konstante in `const.py`, die synchron zur
 
 Aktueller Stand:
 
-- **Add-on:** `7.4.10`
-- **Integration:** `7.4.10`
+- **Add-on:** `8.0.7`
+- **Integration:** `8.0.7`
 
 ## Add-on-Dokumentation
 

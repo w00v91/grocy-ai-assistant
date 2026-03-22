@@ -76,7 +76,9 @@ def test_dashboard_has_mobile_friendly_layout_rules(client):
 def test_dashboard_exposes_nested_panel_frontend_assets(client):
     css_response = client.get("/dashboard-static/panel-frontend/shopping-ui.css")
     js_response = client.get("/dashboard-static/panel-frontend/shopping-ui.js")
-    swipe_response = client.get("/dashboard-static/panel-frontend/swipe-interactions.js")
+    swipe_response = client.get(
+        "/dashboard-static/panel-frontend/swipe-interactions.js"
+    )
 
     assert css_response.status_code == 200
     assert ".shopping-card" in css_response.text
@@ -285,7 +287,7 @@ def test_dashboard_contains_clear_button(client):
 
     assert response.status_code == 200
     assert "Einkaufsliste leeren" in response.text
-    assert "class='danger-button'" in response.text
+    assert "class='danger-button ha-button ha-button--destructive'" in response.text
 
 
 def test_dashboard_fallback_serves_ingress_path(client):
@@ -517,10 +519,13 @@ def test_dashboard_handles_network_errors_in_ui(client):
 
     assert response.status_code == 200
     static_response = client.get("/dashboard-static/dashboard.js")
+    api_client_response = client.get("/dashboard-static/dashboard-api-client.js")
 
     assert static_response.status_code == 200
+    assert api_client_response.status_code == 200
     assert "Netzwerk-/Ingress-Fehler" in static_response.text
-    assert "parseJsonSafe" in static_response.text
+    assert "getErrorMessage" in static_response.text
+    assert "parseJsonSafe" in api_client_response.text
 
 
 def test_dashboard_uses_relative_api_fallback_when_base_path_missing(client):
@@ -528,11 +533,14 @@ def test_dashboard_uses_relative_api_fallback_when_base_path_missing(client):
 
     assert response.status_code == 200
     static_response = client.get("/dashboard-static/dashboard.js")
+    api_client_response = client.get("/dashboard-static/dashboard-api-client.js")
 
     assert static_response.status_code == 200
-    assert "function buildApiUrl(path)" in static_response.text
-    assert "return normalizedPath.replace(/^\\//, '');" in static_response.text
-    assert "fetch(buildApiUrl('/api/dashboard/search')" in static_response.text
+    assert api_client_response.status_code == 200
+    assert "createDashboardApiClient" in static_response.text
+    assert "function buildUrl(path)" in api_client_response.text
+    assert "return normalizedPath.replace(/^\\//, '');" in api_client_response.text
+    assert "fetch(buildUrl(path), options)" in api_client_response.text
 
 
 def test_dashboard_detects_ingress_prefix_from_location(client):
@@ -540,14 +548,16 @@ def test_dashboard_detects_ingress_prefix_from_location(client):
 
     assert response.status_code == 200
     static_response = client.get("/dashboard-static/dashboard.js")
+    api_client_response = client.get("/dashboard-static/dashboard-api-client.js")
 
     assert static_response.status_code == 200
+    assert api_client_response.status_code == 200
     assert (
         r"const ingressPrefixMatch = window.location.pathname.match(/^\/api\/hassio_ingress\/[^\/]+/);"
         in static_response.text
     )
-    assert "if (ingressPrefix) {" in static_response.text
-    assert "return `${ingressPrefix}${normalizedPath}`;" in static_response.text
+    assert "if (ingressPrefix) {" in api_client_response.text
+    assert "return `${ingressPrefix}${normalizedPath}`;" in api_client_response.text
 
 
 def test_dashboard_syncs_home_assistant_theme_instead_of_manual_darkmode_toggle(
@@ -556,8 +566,8 @@ def test_dashboard_syncs_home_assistant_theme_instead_of_manual_darkmode_toggle(
     response = client.get("/")
 
     assert response.status_code == 200
-    assert "id='theme-badge'" in response.text
-    assert "HA Theme" in response.text
+    assert 'data-theme-source="home-assistant-parent"' in response.text
+    assert 'data-theme-bridge-mode="same-origin-css-vars"' in response.text
     assert "toggleTheme()" not in response.text
 
     static_response = client.get("/dashboard-static/dashboard.css")
@@ -1067,14 +1077,13 @@ def test_dashboard_contains_recipe_section(client):
     assert "recipe-modal-ingredients" in response.text
 
     js_response = client.get("/dashboard-static/dashboard.js")
+    api_client_response = client.get("/dashboard-static/dashboard-api-client.js")
     assert js_response.status_code == 200
+    assert api_client_response.status_code == 200
     assert "loadRecipeSuggestions" in js_response.text
-    assert "/api/dashboard/recipe-suggestions" in js_response.text
+    assert "/api/dashboard/recipe-suggestions" in api_client_response.text
     assert "recipe-add-missing-button" in response.text
-    assert (
-        "/api/dashboard/recipe/${activeRecipeItem.recipe_id}/add-missing"
-        in js_response.text
-    )
+    assert "/api/dashboard/recipe/${recipeId}/add-missing" in api_client_response.text
 
 
 def test_dashboard_contains_complete_button(client):
@@ -1082,11 +1091,11 @@ def test_dashboard_contains_complete_button(client):
 
     assert response.status_code == 200
     assert "Einkauf abschließen" in response.text
-    assert "class='success-button'" in response.text
+    assert "class='success-button ha-button ha-button--positive'" in response.text
 
 
 def test_dashboard_uses_matching_complete_item_endpoint(client):
-    static_response = client.get("/dashboard-static/dashboard.js")
+    static_response = client.get("/dashboard-static/dashboard-api-client.js")
 
     assert static_response.status_code == 200
     assert (
@@ -1112,12 +1121,18 @@ def test_dashboard_notification_event_labels_declared_once(client):
 
 def test_dashboard_swipe_actions_match_labels(client):
     static_response = client.get("/dashboard-static/dashboard.js")
+    swipe_response = client.get(
+        "/dashboard-static/panel-frontend/swipe-interactions.js"
+    )
 
     assert static_response.status_code == 200
-    assert "if (deltaX <= -commitDistance)" in static_response.text
+    assert swipe_response.status_code == 200
+    assert "deltaX <= -commitDistance" in swipe_response.text
+    assert "deltaX >= commitDistance" in swipe_response.text
     assert "await purchaseShoppingItem(shoppingListId);" in static_response.text
-    assert "if (deltaX >= commitDistance)" in static_response.text
     assert "await removeShoppingItem(shoppingListId);" in static_response.text
+    assert "Kaufen" in static_response.text
+    assert "Löschen" in static_response.text
 
 
 def test_dashboard_amount_save_closes_shopping_modal(client):
