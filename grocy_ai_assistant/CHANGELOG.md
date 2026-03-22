@@ -10,6 +10,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Fix (Home-Assistant-Integration/Panel/Scanner): Das native Scanner-Popup nutzt beim Kamera-Start wieder kompatible `getUserMedia`-Fallbacks (`navigator.getUserMedia`/`webkitGetUserMedia`/`mozGetUserMedia`/`msGetUserMedia`) statt ausschließlich `navigator.mediaDevices.getUserMedia`, sodass der Scanner nach der Portierung auch in Home-Assistant-WebViews und älteren mobilen Browsern wieder startet.
+- Fix (Home-Assistant-Integration/Panel/Scanner): Vor dem Start des nativen Kamera-Streams werden `playsinline`, `autoplay` und `muted` zusätzlich explizit am Video-Element gesetzt, um mobiles WebKit-/App-Verhalten robuster zu machen.
+- Added (Tests/Frontend): Eine Panel-Regression sichert die wiederhergestellten Kamera-Fallbacks und die explizite Video-Initialisierung des nativen Scanner-Popups ab.
+- Changed (Versioning): Integrationsversion auf `8.0.14` erhöht.
+
 - Changed (Home-Assistant-Integration/Panel): Die Kopfzeile des nativen Dashboards zeigt das Badge `3/4 Bereiche nativ` nicht mehr an.
 - Changed (Home-Assistant-Integration/Panel): Im nativen Rezepte-Tab entfallen Migrationshinweis und Meta-Badges; `Rezept hinzufügen` und `Rezepte laden` stehen jetzt als gemeinsame Aktionszeile direkt unter `Rezeptvorschläge`.
 - Changed (Home-Assistant-Integration/Panel): Im nativen Lager-Tab ersetzt eine Badge-Zeile unter dem Textfilter die bisherige Statusmeldung und zeigt Summen für `Produkte`, `Produkte auf Lager` und `Produkte nicht auf Lager`.
