@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Fix (Home-Assistant-Integration/Panel): Im nativen Lager-Tab blendet das MHD-Badge in den Swipe-Karten sein sichtbares `MHD`-Präfix jetzt ebenfalls aus und zeigt nur noch den Datumswert an.
+- Added (Tests/Frontend): Ein nativer Storage-Swipe-Regressionstest sichert jetzt die versteckte MHD-Badge-Beschriftung für Lager-Karten ab.
 - Changed (Home-Assistant-Integration/Panel): In der nativen Einkaufsliste rendert das `Bestand`-Badge jetzt als Haupt-Badge direkt unter dem Produkttitel statt in der rechten Badge-Spalte, damit der Status ganz oben im Listen-Eintrag sichtbar ist.
 - Fix (Home-Assistant-Integration/Panel): Wenn im nativen Dashboard ein Modal geöffnet ist, wird der Hintergrund-Scroll jetzt auf Shell- und Dokument-Ebene gesperrt; Scroll-Gesten bleiben dadurch im Modal statt wieder auf der Hauptseite zu landen.
 - Fix (Home-Assistant-Integration/Panel): Im nativen `storage`-/`Lager`-Tab sitzt das Badge `Im Bestand` bzw. `Nicht im Bestand` jetzt rechts in derselben Badge-Spalte wie `Menge` und `MHD`; innerhalb der Badge-Liste wird der Status zuerst angezeigt.

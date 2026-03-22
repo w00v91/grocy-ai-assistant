@@ -415,6 +415,11 @@ function renderStorageListItem(item, options = {}) {
     rootClassName: 'shopping-item-card shopping-item-card--legacy storage-item-card',
     contextFields: [],
     statusChip: false,
+    stockBadgePlacement: 'main',
+    mhdBadge: {
+      variant: 'mhd',
+      hideLabel: true,
+    },
     stockBadgePlacement: 'aside',
     badgeOrder: ['stock', 'amount', 'mhd'],
     stockBadge: {
