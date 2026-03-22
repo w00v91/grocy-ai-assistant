@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Changed (Home-Assistant-Integration/Panel, Dashboard/Web): Die Rezepte-Filter für `Lagerort` sowie `Produkte in ausgewählten Standorten` erscheinen wieder als kompakte Dropdown-Zusammenfassungen mit Auswahl-Status statt dauerhaft geöffneter Listen.
+- Fix (Home-Assistant-Integration/Panel, Dashboard/Web): Produktattribute im Rezepte-Bestand werden wieder als Badges für `Menge`, `MHD` und optional `Lagerort` dargestellt.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.13` erhöht.
+
 - Changed (Home-Assistant-Integration/Panel): Die Produktvariantenauswahl im nativen Shopping-Dashboard rendert wieder die gemeinsame Kachelansicht mit Bild, Badges, Kontextinfos und CTA statt der reduzierten Listen-/Zeilenkarte.
 - Added (Tests/Frontend): Ein Panel-Shell-Regressionstest sichert ab, dass die native Variantensuche wieder `renderShoppingVariantCard(...)` inklusive Bildauflösung nutzt.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.12` erhöht.

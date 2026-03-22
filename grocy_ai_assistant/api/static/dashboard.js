@@ -1924,6 +1924,25 @@ function getSelectedProductIds() {
     .map((checkbox) => Number(checkbox.value));
 }
 
+function summarizeSelectedItems(items, selectedIds, fallbackLabel) {
+  const normalizedItems = Array.isArray(items) ? items : [];
+  const selected = new Set(Array.isArray(selectedIds) ? selectedIds.map((value) => Number(value)) : []);
+  const effectiveItems = selected.size
+    ? normalizedItems.filter((item) => selected.has(Number(item?.id)))
+    : normalizedItems;
+
+  if (!effectiveItems.length) return fallbackLabel;
+  if (effectiveItems.length === normalizedItems.length) return `Alle (${normalizedItems.length})`;
+  if (effectiveItems.length === 1) return String(effectiveItems[0]?.name || fallbackLabel).trim() || fallbackLabel;
+  if (effectiveItems.length <= 2) {
+    return effectiveItems
+      .map((item) => String(item?.name || '').trim())
+      .filter(Boolean)
+      .join(', ');
+  }
+  return `${effectiveItems.length} ausgewählt`;
+}
+
 function renderLocations(items) {
   const container = document.getElementById('location-filters');
   if (!container) return;
@@ -1935,14 +1954,22 @@ function renderLocations(items) {
     return;
   }
 
+  const summaryLabel = summarizeSelectedItems(items, recipeState.selectedLocationIds, 'Keine Auswahl');
+
   container.innerHTML = `
     <details class="location-dropdown">
-      <summary>Lagerstandorte auswählen (${items.length})</summary>
+      <summary>
+        <span class="location-dropdown__summary-copy">
+          <span class="location-dropdown__summary-title">Lagerort</span>
+          <span class="location-dropdown__summary-value">${escapeHtml(summaryLabel)}</span>
+        </span>
+        <span class="badge location-dropdown__summary-badge">Standorte: ${selectedLocationIds.size || items.length}</span>
+      </summary>
       <div class="location-options">
         ${items.map((item) => `
           <label class="stock-item">
             <input type="checkbox" value="${item.id}" ${selectedLocationIds.size === 0 || selectedLocationIds.has(item.id) ? 'checked' : ''} />
-            <span><strong>${item.name}</strong></span>
+            <span class="stock-item-name"><strong>${escapeHtml(item.name)}</strong></span>
           </label>
         `).join('')}
       </div>
@@ -1955,17 +1982,26 @@ function renderStockProducts(items) {
   const normalizedItems = (Array.isArray(items) ? items : []).map(normalizeStockProduct);
   const selectedProductIds = new Set(recipeState.selectedProductIds);
 
+  const summaryLabel = summarizeSelectedItems(normalizedItems, recipeState.selectedProductIds, 'Keine Auswahl');
+
   container.innerHTML = `
     <details class="location-dropdown">
-      <summary>Produkte auswählen (${normalizedItems.length})</summary>
+      <summary>
+        <span class="location-dropdown__summary-copy">
+          <span class="location-dropdown__summary-title">Produkte in ausgewählten Standorten</span>
+          <span class="location-dropdown__summary-value">${escapeHtml(summaryLabel)}</span>
+        </span>
+        <span class="badge location-dropdown__summary-badge">Produkte: ${selectedProductIds.size || normalizedItems.length}</span>
+      </summary>
       <div class="stock-options">
         ${normalizedItems.length ? normalizedItems.map((item) => `
           <label class="stock-item">
             <input type="checkbox" value="${item.id}" ${selectedProductIds.size === 0 || selectedProductIds.has(item.id) ? 'checked' : ''} />
-            <span class="stock-item-name"><strong>${item.name}</strong></span>
+            <span class="stock-item-name"><strong>${escapeHtml(item.name)}</strong></span>
             <span class="stock-item-attributes">
               <button type="button" class="badge amount-increment-button" data-shopping-list-id="${item.id}">Menge: ${formatBadgeValue(item.amount, '-')}</button>
               <span class="badge">MHD: ${formatBadgeValue(item.best_before_date, '-')}</span>
+              ${item.location_name ? `<span class="badge">Lagerort: ${escapeHtml(item.location_name)}</span>` : ''}
             </span>
           </label>
         `).join('') : '<div class="muted">Keine Produkte für die ausgewählten Lagerstandorte gefunden.</div>'}

@@ -663,6 +663,34 @@ h1, h2 { margin: 0 0 0.75rem; }
   padding: 0.7rem 0.85rem;
   font-weight: 700;
   list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.location-dropdown__summary-copy {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.location-dropdown__summary-title {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--secondary-text-color);
+}
+
+.location-dropdown__summary-value {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.location-dropdown__summary-badge {
+  flex-shrink: 0;
 }
 
 .location-dropdown summary::-webkit-details-marker {
@@ -1087,6 +1115,13 @@ img {
   border: 1px solid var(--item-border);
   border-radius: var(--radius-sm);
   padding: 0.5rem 0.6rem;
+}
+
+.stock-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 0.55rem;
+  align-items: center;
 }
 
 .stock-item-name {
