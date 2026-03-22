@@ -23,19 +23,24 @@ Before running tests or editing architecture-sensitive code, run:
 ## Commands
 
 install:
-  pip install -r requirements.txt
+    
+    pip install -r requirements.txt
 
 start:
-  python -m grocy_ai_assistant.api.main
+    
+    python -m grocy_ai_assistant.api.main
 
 test:
-  pytest
+    
+    pytest
 
 lint:
-  ruff check .
+    
+    ruff check .
 
 format:
-  black .
+    
+    black .
 
 ## Rules
 
