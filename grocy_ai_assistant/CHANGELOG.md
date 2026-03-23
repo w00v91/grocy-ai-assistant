@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## 2026-03-23 (Version 8.0.29)
+
+- Fix (Home-Assistant-Integration/Panel/Einkauf): Die Produktsuche im nativen Shopping-Panel feuert Submit-, Clear- und Varianten-Klick-Events nicht mehr doppelt ab; dadurch wird `analyze_product_name` beim direkten Neuanlegen eines Produkts nur noch einmal ausgelöst.
+- Added (Tests/Frontend): Rendering-Regressionen stellen sicher, dass die Search-Bar nur noch delegierte Event-Handler verwendet und keine doppelten Formular-/Button-Listener mehr registriert.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.29` erhöht.
+
 ## 2026-03-23 (Version 8.0.28)
 
 - Fix (Home-Assistant-Integration/Panel/Einkauf): Die Produktsuche im nativen Shopping-Panel startet Live-Vorschläge jetzt erst ab zwei Buchstaben des eigentlichen Produktnamens; Mengenpräfixe wie `2 A` zählen dabei nicht als zusätzliche Suchzeichen.
