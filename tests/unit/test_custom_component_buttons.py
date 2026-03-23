@@ -11,8 +11,8 @@ PACKAGE_PATH = ROOT / "grocy_ai_assistant" / "custom_components" / "grocy_ai_ass
 
 class _FakeButtonEntity:
     @property
-    def name(self):
-        return getattr(self, "_attr_name", None)
+    def translation_key(self):
+        return getattr(self, "_attr_translation_key", None)
 
 
 class _FakeDeviceInfo(dict):
@@ -89,7 +89,8 @@ def test_catalog_rebuild_button_calls_v1_endpoint_client():
 
     asyncio.run(button.async_press())
 
-    assert button.name == "Grocy AI Katalog neu aufbauen"
+    assert button.translation_key == "catalog_rebuild"
+    assert button._attr_has_entity_name is True
 
 
 def test_notification_test_button_raises_on_backend_error():

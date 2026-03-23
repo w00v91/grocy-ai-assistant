@@ -195,7 +195,7 @@ def test_recipe_sensor_uses_default_state_if_coordinator_has_no_payload():
         _FakeCoordinator(data={}),
     )
 
-    assert sensor.native_value == "Keine Vorschläge"
+    assert sensor.native_value == "none"
 
 
 def test_top_grocy_recipe_sensor_only_exposes_best_matching_grocy_recipe():
@@ -239,7 +239,7 @@ def test_status_sensor_uses_offline_fallback_when_status_coordinator_has_failed(
     )
 
     assert sensor.available is False
-    assert sensor.native_value == "Offline"
+    assert sensor.native_value == "offline"
     assert sensor.extra_state_attributes["last_update_success"] is False
     assert (
         sensor.extra_state_attributes["last_error"]
@@ -258,7 +258,7 @@ def test_update_required_sensor_uses_unknown_fallback_when_status_coordinator_fa
     )
 
     assert sensor.available is False
-    assert sensor.native_value == "Unbekannt"
+    assert sensor.native_value == "unknown"
     assert sensor.extra_state_attributes["last_update_success"] is False
     assert (
         sensor.extra_state_attributes["last_error"]
@@ -320,6 +320,19 @@ def test_async_setup_entry_wires_entry_scoped_coordinators_into_entities():
         added_entities[5].coordinator
         is _RUNTIME_COORDINATORS[_FakeEntry.entry_id]["inventory"]
     )
+
+
+def test_entities_expose_translation_keys_and_entity_names():
+    response_sensor = sensor_module.GrocyAIResponseSensor(_FakeEntry())
+    update_sensor = sensor_module.GrocyAIUpdateRequiredSensor(
+        _FakeEntry(),
+        _FakeCoordinator(),
+    )
+
+    assert response_sensor._attr_translation_key == "response_text"
+    assert response_sensor._attr_has_entity_name is True
+    assert update_sensor._attr_translation_key == "home_assistant_update_required"
+    assert update_sensor._attr_has_entity_name is True
 
 
 def test_all_sensor_types_share_the_entry_device_info():

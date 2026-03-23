@@ -81,3 +81,10 @@ def test_text_entity_registers_on_entry_device():
         "name": "Grocy AI Assistant",
         "manufacturer": "Eigene Integration",
     }
+
+
+def test_text_entity_uses_translated_entity_name():
+    entity = text_module.GrocyProductInput(_FakeEntry())
+
+    assert entity._attr_translation_key == "product_input"
+    assert entity._attr_has_entity_name is True
