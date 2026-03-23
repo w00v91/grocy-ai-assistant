@@ -37,6 +37,7 @@
               <button id='clear-name' class='clear-input-button' type='button' aria-label='Sucheingabe löschen' onclick='clearSearchInput()'>×</button>
             </div>
           </form>
+          <p id='status-shopping' class='tab-status search-status-badge'>Bereit.</p>
           <section id='variant-section' class='variant-section hidden'>
             <h3>Gefundene Produktvarianten</h3>
             <grocy-variant-results id='variant-results' hidden></grocy-variant-results>
@@ -44,12 +45,11 @@
         </section>
 
         <section class='card shopping-list-section ha-surface-card'>
-          <div class="section-header section-header-stacked">
+          <div class="section-header shopping-list-section__header">
             <h2>Einkaufsliste</h2>
             <button class="primary-button ha-button ha-button--primary" onclick='loadShoppingList()'>Aktualisieren</button>
           </div>
           <ul id='shopping-list'></ul>
-          <p id='status-shopping' class='tab-status'>Bereit.</p>
           <div class="button-row shopping-bulk-actions">
             <button class='success-button ha-button ha-button--positive' onclick='completeShoppingList()'>Einkauf abschließen</button>
             <button class='danger-button ha-button ha-button--destructive' onclick='clearShoppingList()'>Einkaufsliste leeren</button>
@@ -101,11 +101,13 @@
             <button class='primary-button ha-button ha-button--primary' type='button' onclick='loadStorageProducts()'>Aktualisieren</button>
           </div>
           <div class='storage-controls'>
-            <input class='ha-control' id='storage-filter-input' type='text' placeholder='Produkte filtern...' />
-            <label class='storage-toggle' for='storage-include-all-products'>
-              <input class='ha-control' id='storage-include-all-products' type='checkbox' onchange='loadStorageProducts()' />
-              Alle anzeigen
-            </label>
+            <div class='storage-controls-row'>
+              <input class='ha-control' id='storage-filter-input' type='text' placeholder='Produkte filtern...' />
+              <label class='storage-toggle' for='storage-include-all-products'>
+                <input class='ha-control' id='storage-include-all-products' type='checkbox' onchange='loadStorageProducts()' />
+                Alle anzeigen
+              </label>
+            </div>
           </div>
           <p id='status-storage' class='tab-status'>Bereit.</p>
           <ul id='storage-products' class='storage-products-list variant-grid'></ul>

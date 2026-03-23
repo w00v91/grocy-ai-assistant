@@ -1213,7 +1213,7 @@ class GrocyAIShoppingSearchBar extends HTMLElement {
       clearButton.className = `clear-input-button${model.clearButtonVisible ? ' visible' : ''}`;
       submitButton.disabled = Boolean(model.isSubmitting);
       submitButton.textContent = model.isSubmitting ? 'Prüfe…' : 'Produkt prüfen';
-      helper.className = `search-helper-text${model.errorMessage ? ' search-helper-text--error' : ''}`;
+      helper.className = `search-helper-text shopping-status-chip shopping-status-chip--${model.errorMessage ? 'error' : searchUiState}`;
       helper.textContent = helperText;
       variantSection.className = `variant-section${hasVisibleVariants || model.isLoadingVariants ? '' : ' hidden'}`;
       variantHint.textContent = model.parsedAmount
@@ -1307,9 +1307,6 @@ class GrocyAIShoppingTab extends HTMLElement {
 
     const list = document.createElement('ul');
     list.className = 'shopping-list-native';
-    const status = document.createElement('p');
-    status.className = 'tab-status';
-
     const buttonRow = document.createElement('div');
     buttonRow.className = 'button-row shopping-bulk-actions';
     const completeAllButton = document.createElement('button');
@@ -1324,7 +1321,7 @@ class GrocyAIShoppingTab extends HTMLElement {
     clearAllButton.textContent = 'Einkaufsliste leeren';
     buttonRow.append(completeAllButton, clearAllButton);
 
-    listSection.append(listHeader, list, status, buttonRow);
+    listSection.append(listHeader, list, buttonRow);
     root.append(heroCard, listSection);
     this.replaceChildren(root);
 
@@ -1332,7 +1329,6 @@ class GrocyAIShoppingTab extends HTMLElement {
       root,
       searchBar,
       list,
-      status,
     };
   }
 
@@ -1472,7 +1468,6 @@ class GrocyAIShoppingTab extends HTMLElement {
       }
       root.setAttribute('aria-hidden', model.active ? 'false' : 'true');
       root.tabIndex = model.active ? 0 : -1;
-      this._elements.status.textContent = model.status || 'Bereit.';
     }
 
     this._elements.searchBar.viewModel = {

@@ -104,6 +104,7 @@ test('native storage summary keeps filter badges for total, in-stock, and out-of
   assert.match(storageTabSection, /<span class="migration-chip">\$\{escapeHtml\(`\$\{model\.summary\.inStockCount\} Produkte auf Lager`\)\}<\/span>/);
   assert.match(storageTabSection, /<span class="migration-chip">\$\{escapeHtml\(`\$\{model\.summary\.outOfStockCount\} Produkte nicht auf Lager`\)\}<\/span>/);
   assert.match(storageTabSection, /className: 'card storage-list-section'[\s\S]*?title: 'Lagerliste'[\s\S]*?actions: \[[\s\S]*?label: 'Aktualisieren'/);
+  assert.doesNotMatch(source, /const status = document\.createElement\('p'\);[\s\S]*?status\.className = 'tab-status';/);
   const storageHeroSection = storageTabSection.slice(
     storageTabSection.indexOf("className: 'hero-card storage-hero-card'"),
     storageTabSection.indexOf("className: 'card storage-list-section'"),

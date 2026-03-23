@@ -386,11 +386,17 @@ grocy-ai-tab-nav {
 
 .search-helper-text {
   margin: 0;
-  color: var(--secondary-text-color);
+  width: fit-content;
+  max-width: 100%;
 }
 
-.search-helper-text--error {
-  color: var(--error-color, #db4437);
+.search-helper-text.shopping-status-chip {
+  justify-self: start;
+}
+
+.search-helper-text.shopping-status-chip--error {
+  color: color-mix(in srgb, var(--error-color, #db4437) 82%, var(--primary-text-color));
+  background: color-mix(in srgb, var(--error-color, #db4437) 14%, var(--panel-card-background));
 }
 
 .shopping-list-native,
@@ -965,6 +971,7 @@ select:focus-visible {
 }
 
 .storage-list-section .section-header {
+  flex-direction: row;
   align-items: center;
   flex-wrap: nowrap;
 }
@@ -984,6 +991,8 @@ select:focus-visible {
 .storage-toggle {
   display: inline-flex;
   align-items: center;
+  align-self: end;
+  min-height: 3rem;
   gap: 0.65rem;
   padding: 0.85rem 1rem;
   border: 1px solid var(--panel-border-color);
