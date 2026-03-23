@@ -48,22 +48,8 @@ class _FakeHass:
         }
 
 
-_DISPATCHER_LISTENERS = {}
-
-
-def _dispatcher_connect(_hass, signal, callback):
-    listeners = _DISPATCHER_LISTENERS.setdefault(signal, [])
-    listeners.append(callback)
-
-    def _unsubscribe():
-        listeners.remove(callback)
-
-    return _unsubscribe
-
-
-def _dispatcher_send(_hass, signal):
-    for callback in list(_DISPATCHER_LISTENERS.get(signal, [])):
-        callback()
+def _dispatcher_send(_hass, _signal):
+    return None
 
 
 def _ensure_stubbed_homeassistant_modules():
@@ -79,7 +65,6 @@ def _ensure_stubbed_homeassistant_modules():
     ha_text.TextEntity = _FakeTextEntity
     ha_config_entries.ConfigEntry = object
     ha_core.HomeAssistant = object
-    ha_dispatcher.async_dispatcher_connect = _dispatcher_connect
     ha_dispatcher.async_dispatcher_send = _dispatcher_send
     ha_entity.DeviceInfo = _FakeDeviceInfo
 
@@ -132,21 +117,15 @@ def test_text_entity_registers_on_entry_device():
     }
 
 
-def test_text_entity_reads_initial_runtime_value_and_updates_on_dispatcher_signal():
+def test_text_entity_reads_initial_runtime_value_and_registers_itself():
     hass = _FakeHass()
     entity = text_module.GrocyProductInput(_FakeEntry())
     entity.hass = hass
 
     asyncio.run(entity.async_added_to_hass())
+
     assert entity.native_value == "Milch"
-
-    hass.data["grocy_ai_assistant"]["entry-1"]["entity_runtime"]["product_input"] = {
-        "value": "Hafermilch"
-    }
-    _dispatcher_send(hass, "grocy_ai_assistant_runtime_entry-1_product_input")
-
-    assert entity.native_value == "Hafermilch"
-    assert entity._write_count == 1
+    assert text_module.get_product_input_entity(hass, "entry-1") is entity
 
 
 def test_text_entity_async_set_value_updates_runtime_store():
@@ -164,3 +143,37 @@ def test_text_entity_async_set_value_updates_runtime_store():
         == "Tomaten"
     )
     assert entity.native_value == "Tomaten"
+    assert entity._write_count == 1
+
+
+def test_async_set_product_input_value_uses_registered_entity_method():
+    hass = _FakeHass()
+    entity = text_module.GrocyProductInput(_FakeEntry())
+    entity.hass = hass
+    asyncio.run(entity.async_added_to_hass())
+
+    asyncio.run(
+        text_module.async_set_product_input_value(hass, "entry-1", "Hafermilch")
+    )
+
+    assert entity.native_value == "Hafermilch"
+    assert (
+        hass.data["grocy_ai_assistant"]["entry-1"]["entity_runtime"]["product_input"][
+            "value"
+        ]
+        == "Hafermilch"
+    )
+    assert entity._write_count == 1
+
+
+def test_async_set_product_input_value_falls_back_to_runtime_without_entity():
+    hass = _FakeHass()
+
+    asyncio.run(text_module.async_set_product_input_value(hass, "entry-1", "Reis"))
+
+    assert (
+        hass.data["grocy_ai_assistant"]["entry-1"]["entity_runtime"]["product_input"][
+            "value"
+        ]
+        == "Reis"
+    )

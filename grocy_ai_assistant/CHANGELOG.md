@@ -4,6 +4,12 @@
 All notable changes to this project will be documented in this file.
 
 
+## 2026-03-23 (Version 8.0.25)
+- Refactor (Home-Assistant-Integration/TextEntity): Das Produkt-Eingabefeld wird bei Service-Aufrufen jetzt bevorzugt über die registrierte `TextEntity` selbst aktualisiert (`async_set_value(...)`) statt über einen Dispatcher-Umweg.
+- Refactor (Home-Assistant-Integration/Runtime-State): Die zentrale Entry-Runtime bleibt für Response-, Timing- und Statussensoren zuständig; der Textwert wird dort nur noch als persistierbarer Laufzeitwert gehalten.
+- Added (Tests/Home-Assistant-Integration): Text-Unit-Tests prüfen jetzt explizit, dass Helferfunktionen den registrierten Produkt-Text über dessen Entity-Methode aktualisieren.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.25` erhöht.
+
 ## 2026-03-23 (Version 8.0.24)
 - Refactor (Home-Assistant-Integration/Runtime-State): Direkte `hass.states.async_set(...)`-Schreibzugriffe im Integrationspaket entfallen; Service-Handler aktualisieren jetzt eine zentrale Entry-Runtime-Struktur in `hass.data`, aus der Response-, Timing- und Status-Entities ihren Zustand selbst veröffentlichen.
 - Refactor (Home-Assistant-Integration/Entities): Response-, Analyse-, Barcode-, LLaVA- und Antwortzeit-Sensoren reagieren jetzt dispatcher-getrieben auf Runtime-Änderungen und schreiben ihren State selbst via `async_write_ha_state()`.

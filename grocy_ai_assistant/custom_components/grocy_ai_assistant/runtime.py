@@ -103,16 +103,15 @@ def get_runtime_sensor_payload(
     return dict(payload) if isinstance(payload, dict) else {}
 
 
-def async_set_product_input_value(
+def set_product_input_value(
     hass: HomeAssistant,
     entry_id: str,
     value: str,
 ) -> None:
-    """Persist the product input value in runtime state and notify the text entity."""
+    """Persist the product input value in runtime state."""
     get_entry_entity_runtime(hass, entry_id)[RUNTIME_PRODUCT_INPUT] = {
         "value": str(value),
     }
-    async_dispatcher_send(hass, async_runtime_signal(entry_id, RUNTIME_PRODUCT_INPUT))
 
 
 def get_product_input_value(hass: HomeAssistant, entry_id: str) -> str:

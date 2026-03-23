@@ -3,17 +3,17 @@ import logging
 from homeassistant.components.text import TextEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.dispatcher import async_dispatcher_connect
 
 from .entity import build_device_info
 from .runtime import (
-    RUNTIME_PRODUCT_INPUT,
-    async_runtime_signal,
-    async_set_product_input_value,
+    get_entry_runtime_data,
     get_product_input_value,
+    set_product_input_value,
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+DATA_PRODUCT_INPUT_ENTITY = "product_input_entity"
 
 
 async def async_setup_entry(
@@ -22,6 +22,26 @@ async def async_setup_entry(
     """Set up the text entity."""
     _LOGGER.debug("Setting up text entity for entry %s", entry.entry_id)
     async_add_entities([GrocyProductInput(entry)], True)
+
+
+def get_product_input_entity(
+    hass: HomeAssistant, entry_id: str
+) -> "GrocyProductInput | None":
+    """Return the registered product input entity for the entry, if available."""
+    entity = get_entry_runtime_data(hass, entry_id).get(DATA_PRODUCT_INPUT_ENTITY)
+    return entity if isinstance(entity, GrocyProductInput) else None
+
+
+async def async_set_product_input_value(
+    hass: HomeAssistant, entry_id: str, value: str
+) -> None:
+    """Update the product input through the TextEntity when it is loaded."""
+    entity = get_product_input_entity(hass, entry_id)
+    if entity is not None:
+        await entity.async_set_value(value)
+        return
+
+    set_product_input_value(hass, entry_id, value)
 
 
 class GrocyProductInput(TextEntity):
@@ -38,31 +58,20 @@ class GrocyProductInput(TextEntity):
         self._attr_native_value = get_product_input_value(
             self.hass, self._entry.entry_id
         )
-        self.async_on_remove(
-            async_dispatcher_connect(
-                self.hass,
-                async_runtime_signal(self._entry.entry_id, RUNTIME_PRODUCT_INPUT),
-                self._handle_runtime_update,
-            )
-        )
+        entry_data = get_entry_runtime_data(self.hass, self._entry.entry_id)
+        entry_data[DATA_PRODUCT_INPUT_ENTITY] = self
+        self.async_on_remove(self._async_unregister_entity)
 
-    def _handle_runtime_update(self) -> None:
-        self._attr_native_value = get_product_input_value(
-            self.hass, self._entry.entry_id
-        )
-        _LOGGER.debug(
-            "Updated product input text from runtime (length=%s)",
-            len(self._attr_native_value),
-        )
-        self.async_write_ha_state()
+    def _async_unregister_entity(self) -> None:
+        entry_data = get_entry_runtime_data(self.hass, self._entry.entry_id)
+        if entry_data.get(DATA_PRODUCT_INPUT_ENTITY) is self:
+            entry_data.pop(DATA_PRODUCT_INPUT_ENTITY, None)
 
     async def async_set_value(self, value: str) -> None:
-        if hasattr(self, "hass"):
-            async_set_product_input_value(self.hass, self._entry.entry_id, value)
-            return
-
-        self._attr_native_value = value
-        _LOGGER.debug("Updated product input text (length=%s)", len(value))
+        normalized_value = str(value)
+        self._attr_native_value = normalized_value
+        set_product_input_value(self.hass, self._entry.entry_id, normalized_value)
+        _LOGGER.debug("Updated product input text (length=%s)", len(normalized_value))
         self.async_write_ha_state()
 
     @property

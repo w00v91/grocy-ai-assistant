@@ -28,12 +28,12 @@ from .runtime import (
     RUNTIME_RESPONSE,
     RUNTIME_RESPONSE_TIME_AVG,
     RUNTIME_RESPONSE_TIME_LAST,
-    async_set_product_input_value,
     async_set_runtime_sensor_payload,
     build_default_entry_runtime,
     get_entry_entity_runtime,
     get_product_input_value,
 )
+from .text import async_set_product_input_value
 from .services import (
     DATA_NOTIFICATION_MANAGER,
     NotificationManager,
