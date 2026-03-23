@@ -250,6 +250,21 @@ def test_panel_resolves_nested_entry_config_for_dashboard_metadata_and_client(
     assert addon_client_instances
     assert addon_client_instances[-1].args[0] == "http://addon.local:8123"
     assert addon_client_instances[-1].args[1] == "secret-token"
+def test_native_shopping_hero_renders_einkauf_eyebrow_above_search_title():
+    source = (
+        Path(__file__).resolve().parents[2]
+        / "grocy_ai_assistant"
+        / "custom_components"
+        / "grocy_ai_assistant"
+        / "panel"
+        / "frontend"
+        / "grocy-ai-dashboard.js"
+    ).read_text()
+
+    assert "heroEyebrow.textContent = 'Einkauf';" in source
+    assert "heroCopy.append(heroEyebrow, heroTitle);" in source
+    assert "listEyebrow.textContent = 'Einkauf';" not in source
+    assert "listCopy.append(listTitle);" in source
 
 
 def test_public_product_picture_proxy_forwards_get_without_ha_auth(monkeypatch):

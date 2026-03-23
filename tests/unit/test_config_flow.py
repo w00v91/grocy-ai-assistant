@@ -200,3 +200,46 @@ def test_options_flow_rejects_negative_dashboard_polling_interval(monkeypatch):
                 module.CONF_DASHBOARD_POLLING_INTERVAL_SECONDS: -1,
             }
         )
+
+
+class _AbortFlow(Exception):
+    pass
+
+
+def test_user_step_sets_single_instance_unique_id_before_showing_form(monkeypatch):
+    module, _ = _load_config_flow_module(monkeypatch)
+    flow = module.GrocyAIConfigFlow()
+    captured = _capture_form_schema(flow)
+    seen = {}
+
+    async def fake_set_unique_id(unique_id):
+        seen["unique_id"] = unique_id
+
+    def fake_abort_if_unique_id_configured():
+        seen["abort_checked"] = True
+
+    flow.async_set_unique_id = fake_set_unique_id
+    flow._abort_if_unique_id_configured = fake_abort_if_unique_id_configured
+
+    result = asyncio.run(flow.async_step_user())
+
+    assert result["step_id"] == "user"
+    assert captured["step_id"] == "user"
+    assert seen == {"unique_id": module.DOMAIN, "abort_checked": True}
+
+
+def test_user_step_aborts_when_single_instance_already_configured(monkeypatch):
+    module, _ = _load_config_flow_module(monkeypatch)
+    flow = module.GrocyAIConfigFlow()
+
+    async def fake_set_unique_id(_unique_id):
+        return None
+
+    def fake_abort_if_unique_id_configured():
+        raise _AbortFlow
+
+    flow.async_set_unique_id = fake_set_unique_id
+    flow._abort_if_unique_id_configured = fake_abort_if_unique_id_configured
+
+    with pytest.raises(_AbortFlow):
+        asyncio.run(flow.async_step_user())
