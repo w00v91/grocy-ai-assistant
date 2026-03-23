@@ -6,6 +6,9 @@ All notable changes to this project will be documented in this file.
 ## 2026-03-23 (Version 8.0.17)
 - Changed (Dashboard/Scanner): Das Debug-Kästchen mit den Kamera-Fähigkeiten wurde aus dem Scanner-Popup im klassischen Dashboard entfernt.
 - Changed (Home-Assistant-Integration/Panel): Der native Scanner-Dialog zeigt keinen separaten Debug-Block mit Kamera-Fähigkeiten mehr.
+- Fix (Home-Assistant-Integration/Panel/Mobile): Das native Dashboard nutzt auf mobilen Viewports jetzt eine bessere Textskalierung und größere Mikrotypografie für Status-, Hilfs- und Karteninhalte, damit Beschriftungen auf dem Handy lesbarer bleiben.
+- Fix (Home-Assistant-Integration/Panel/Mobile): Überschriften, Karten-Gruppen, Rezept-/Lager-Listen und Standort-Dropdowns wurden für schmale Viewports robuster gestapelt, damit es weniger unerwünschte Umbrüche und abgeschnittene Inhalte gibt.
+- Added (Tests/Frontend): Eine Panel-CSS-Regression sichert die neuen Mobile-Regeln für Typografie, Tab-Labels und einspaltige Karten-/Bestandslayouts ab.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.17` erhöht.
 
 ## 2026-03-22 (Version 8.0.16)
