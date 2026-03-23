@@ -4,6 +4,12 @@
 All notable changes to this project will be documented in this file.
 
 
+## 2026-03-23 (Version 8.0.24)
+
+- Fix (Home-Assistant-Integration/Panel/Lager): Im Lager-Tab heißt der Checkbox-Text jetzt `Alle anzeigen`.
+- Fix (Home-Assistant-Integration/Panel/Lager/Mobile): Checkbox und Textfilter bleiben auf schmalen Viewports sauber auf gleicher Höhe; der Button `Aktualisieren` bricht im Lager-Tab mobil nicht mehr um.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.24` erhöht.
+
 ## 2026-03-23 (Version 8.0.23)
 - Changed (Home-Assistant-Integration/Config Flow): Die Integration behandelt Config Entries jetzt explizit als Single-Instance und setzt in `async_step_user` eine stabile `unique_id`, wodurch weitere Einrichtungsversuche sauber abbrechen.
 - Changed (Home-Assistant-Integration/Konfiguration): Ein separater Reauth-/Reconfigure-Pfad wurde bewusst nicht ergänzt, weil die bestehende Options-Flow-Konfiguration bereits die relevanten Einstellungen der einzigen Instanz abdeckt.

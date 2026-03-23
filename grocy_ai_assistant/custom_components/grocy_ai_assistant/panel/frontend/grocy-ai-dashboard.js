@@ -25,7 +25,7 @@ const TAB_ICONS = Object.freeze({
 });
 const DEFAULT_POLLING_INTERVAL_SECONDS = 5;
 const DEFAULT_POLLING_INTERVAL_MS = DEFAULT_POLLING_INTERVAL_SECONDS * 1000;
-const DEFAULT_INTEGRATION_VERSION = '8.0.23';
+const DEFAULT_INTEGRATION_VERSION = '8.0.24';
 const GROCY_RECIPE_DISPLAY_LIMIT = 3;
 const AI_RECIPE_DISPLAY_LIMIT = 3;
 const TAB_VIEW_STATE = Object.freeze({
@@ -582,7 +582,7 @@ function buildStorageTabMarkup(model = {}) {
               </label>
               <label class="storage-toggle" for="storage-include-all-products-native">
                 <input id="storage-include-all-products-native" class="ha-control" data-role="storage-include-all" type="checkbox"${model.includeAllProducts ? ' checked' : ''} />
-                <span>Alle Produkte anzeigen</span>
+                <span>Alle anzeigen</span>
               </label>
             </div>
             <div class="storage-summary">

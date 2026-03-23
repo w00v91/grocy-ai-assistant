@@ -248,8 +248,10 @@ body.modal-open {
 .storage-toggle {
   display: flex;
   align-items: center;
+  align-self: flex-end;
   gap: 0.5rem;
   margin-bottom: 0.65rem;
+  white-space: nowrap;
 }
 
 .storage-toggle input[type="checkbox"] {
@@ -548,6 +550,11 @@ h1, h2 { margin: 0 0 0.75rem; }
   justify-content: space-between;
   gap: 0.8rem;
   margin-bottom: 0.8rem;
+}
+
+.section-header .primary-button {
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 
 .section-header-stacked {
@@ -979,7 +986,7 @@ img {
   }
 
   .storage-controls {
-    align-items: center;
+    align-items: flex-end;
     gap: 0.5rem;
   }
 
