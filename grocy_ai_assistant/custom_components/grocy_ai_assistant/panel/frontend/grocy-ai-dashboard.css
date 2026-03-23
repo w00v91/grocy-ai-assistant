@@ -827,18 +827,6 @@ select:focus-visible {
   color: var(--primary-text-color);
 }
 
-.scanner-capabilities-log {
-  max-height: 140px;
-  overflow: auto;
-  padding: 12px;
-  border-radius: 14px;
-  border: 1px solid var(--panel-border-color);
-  background: color-mix(in srgb, var(--panel-card-background) 96%, var(--primary-background-color));
-  color: var(--secondary-text-color);
-  font-size: 0.78rem;
-  white-space: pre-wrap;
-}
-
 .scanner-result {
   margin-top: var(--panel-compact-gap);
 }
