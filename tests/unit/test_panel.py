@@ -210,6 +210,23 @@ def test_panel_reregisters_without_unknown_panel_remove_on_first_setup(monkeypat
     assert [call[0] for call in remove_calls] == [(hass, "grocy-ai")]
 
 
+def test_native_shopping_hero_renders_einkauf_eyebrow_above_search_title():
+    source = (
+        Path(__file__).resolve().parents[2]
+        / "grocy_ai_assistant"
+        / "custom_components"
+        / "grocy_ai_assistant"
+        / "panel"
+        / "frontend"
+        / "grocy-ai-dashboard.js"
+    ).read_text()
+
+    assert "heroEyebrow.textContent = 'Einkauf';" in source
+    assert "heroCopy.append(heroEyebrow, heroTitle);" in source
+    assert "listEyebrow.textContent = 'Einkauf';" not in source
+    assert "listCopy.append(listTitle);" in source
+
+
 def test_public_product_picture_proxy_forwards_get_without_ha_auth(monkeypatch):
     panel_module, _, _, addon_client_instances = _load_panel_module(monkeypatch)
 
