@@ -389,8 +389,10 @@ export function createShoppingSearchController({
 
   async function searchSuggestedProduct(productName, options = {}) {
     const normalizedAmount = Number(options.amount);
-    const hasAmount = Number.isFinite(normalizedAmount) && normalizedAmount > 0;
-    const prefixedProductName = hasAmount ? `${normalizedAmount} ${productName}` : productName;
+    const explicitAmount = Number.isFinite(normalizedAmount) && normalizedAmount > 0
+      ? normalizedAmount
+      : null;
+    const prefixedProductName = explicitAmount ? `${explicitAmount} ${productName}` : productName;
 
     applyQueryState(prefixedProductName, {
       flowState: prefixedProductName.trim() ? SEARCH_FLOW_STATES.TYPING : SEARCH_FLOW_STATES.IDLE,
@@ -405,15 +407,17 @@ export function createShoppingSearchController({
     return searchProduct(nextOptions);
   }
 
-  async function selectVariant({ productId, productName, amount, source }) {
-    const normalizedSource = String(source || 'grocy');
+  async function selectVariant({ productId, productName, amount, source, productSource }) {
+    const normalizedSource = String(source || productSource || 'grocy').trim().toLowerCase() || 'grocy';
+    const { amountFromName } = parseAmountPrefixedSearch(getState().query);
+    const explicitAmount = amountFromName ?? null;
     if (normalizedSource === 'input') {
-      return searchSuggestedProduct(productName, { forceCreate: true, amount });
+      return searchSuggestedProduct(productName, { forceCreate: true, amount: explicitAmount });
     }
 
     const numericProductId = Number(productId);
     if (!Number.isFinite(numericProductId) || !productId || normalizedSource === 'ai') {
-      return searchSuggestedProduct(productName, { amount });
+      return searchSuggestedProduct(productName, { amount: explicitAmount });
     }
 
     return confirmVariant(numericProductId, productName, amount);
