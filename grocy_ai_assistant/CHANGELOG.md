@@ -4,6 +4,11 @@
 All notable changes to this project will be documented in this file.
 
 
+## 2026-03-23 (Version 8.0.24)
+- Fix (Home-Assistant-Integration/Manifest): `manifest.json` markiert die Integration jetzt zusätzlich mit `single_config_entry`, damit Home Assistant die Integration bereits im UI als Einzelinstanz behandelt und kein weiterer Einrichtungsdialog angeboten wird.
+- Added (Tests/Home-Assistant-Integration): Ein Manifest-Regressionstest stellt sicher, dass die Single-Instance-Markierung künftig nicht versehentlich entfernt wird.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.24` erhöht.
+
 ## 2026-03-23 (Version 8.0.23)
 - Changed (Home-Assistant-Integration/Config Flow): Die Integration behandelt Config Entries jetzt explizit als Single-Instance und setzt in `async_step_user` eine stabile `unique_id`, wodurch weitere Einrichtungsversuche sauber abbrechen.
 - Changed (Home-Assistant-Integration/Konfiguration): Ein separater Reauth-/Reconfigure-Pfad wurde bewusst nicht ergänzt, weil die bestehende Options-Flow-Konfiguration bereits die relevanten Einstellungen der einzigen Instanz abdeckt.
