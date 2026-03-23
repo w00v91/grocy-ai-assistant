@@ -5,6 +5,16 @@ import { parseAmountPrefixedSearch, shouldShowClearButton } from './dashboard-sh
 import { formatAmount, formatBadgeValue, formatStockCount, renderShoppingListItemCard, renderShoppingVariantCard } from './panel-frontend/shopping-ui.js';
 import { bindSwipeInteractions, resetSwipeVisualState } from './panel-frontend/swipe-interactions.js';
 
+const MIN_PRODUCT_SEARCH_LENGTH = 2;
+
+function getMinimumSearchLengthMessage(length) {
+  const remainingCharacters = MIN_PRODUCT_SEARCH_LENGTH - length;
+  if (remainingCharacters <= 0) return 'Bereit.';
+  return remainingCharacters === 1
+    ? 'Noch 1 Buchstabe bis zur Produktsuche.'
+    : `Noch ${remainingCharacters} Buchstaben bis zur Produktsuche.`;
+}
+
 const rootElement = document.documentElement;
 const configuredApiKey = rootElement.dataset.configuredApiKey || '';
 const apiBasePath = rootElement.dataset.apiBasePath || '';
@@ -1310,6 +1320,12 @@ async function loadVariants() {
     return;
   }
 
+  if (query.length < MIN_PRODUCT_SEARCH_LENGTH) {
+    clearVariantResults();
+    status.textContent = getMinimumSearchLengthMessage(query.length);
+    return;
+  }
+
   try {
     setVariantResultsState({ active: true, loading: true, items: [], amount: amountFromName });
     const { response, payload } = await dashboardApi.searchVariants(query);
@@ -1760,6 +1776,10 @@ async function searchProduct(options = {}) {
   }
   if (!productName) {
     status.textContent = 'Bitte Produktname eingeben.';
+    return;
+  }
+  if (productName.trim().length < MIN_PRODUCT_SEARCH_LENGTH) {
+    status.textContent = 'Bitte mindestens 2 Buchstaben für die Produktsuche eingeben.';
     return;
   }
 
