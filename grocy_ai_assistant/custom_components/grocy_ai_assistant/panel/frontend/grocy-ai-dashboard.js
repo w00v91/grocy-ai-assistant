@@ -581,19 +581,21 @@ function buildStorageTabMarkup(model = {}) {
             </div>
           </div>
           <div class="storage-controls">
-            <label class="storage-filter-field" for="storage-filter-input-native">
-              <span class="eyebrow">Textfilter</span>
-              <input id="storage-filter-input-native" class="ha-control" data-role="storage-filter" type="text" placeholder="Produkte filtern..." value="${escapeHtml(model.filter || '')}" />
-              <div class="storage-summary">
-                <span class="migration-chip">${escapeHtml(`${model.summary.totalCount} Produkte`)}</span>
-                <span class="migration-chip">${escapeHtml(`${model.summary.inStockCount} Produkte auf Lager`)}</span>
-                <span class="migration-chip">${escapeHtml(`${model.summary.outOfStockCount} Produkte nicht auf Lager`)}</span>
-              </div>
-            </label>
-            <label class="storage-toggle" for="storage-include-all-products-native">
-              <input id="storage-include-all-products-native" class="ha-control" data-role="storage-include-all" type="checkbox"${model.includeAllProducts ? ' checked' : ''} />
-              <span>Alle Produkte anzeigen</span>
-            </label>
+            <div class="storage-controls-row">
+              <label class="storage-filter-field" for="storage-filter-input-native">
+                <span class="eyebrow">Textfilter</span>
+                <input id="storage-filter-input-native" class="ha-control" data-role="storage-filter" type="text" placeholder="Produkte filtern..." value="${escapeHtml(model.filter || '')}" />
+              </label>
+              <label class="storage-toggle" for="storage-include-all-products-native">
+                <input id="storage-include-all-products-native" class="ha-control" data-role="storage-include-all" type="checkbox"${model.includeAllProducts ? ' checked' : ''} />
+                <span>Alle Produkte anzeigen</span>
+              </label>
+            </div>
+            <div class="storage-summary">
+              <span class="migration-chip">${escapeHtml(`${model.summary.totalCount} Produkte`)}</span>
+              <span class="migration-chip">${escapeHtml(`${model.summary.inStockCount} Produkte auf Lager`)}</span>
+              <span class="migration-chip">${escapeHtml(`${model.summary.outOfStockCount} Produkte nicht auf Lager`)}</span>
+            </div>
           </div>
         </section>
       `,

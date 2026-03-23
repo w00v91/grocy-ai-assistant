@@ -130,13 +130,15 @@ test('shopping list header keeps title and refresh action on one row in mobile l
   assert.match(cssSource, /@media \(max-width: 800px\) \{[\s\S]*?\.shopping-list-section__header \{[\s\S]*?flex-direction: row;[\s\S]*?align-items: center;/);
 });
 
-test('storage tab wraps filter controls in a shopping-style shell and keeps summary badges under the text filter', async () => {
+test('storage tab keeps product filter and include-all toggle in one control row and summary badges underneath', async () => {
   const source = await fs.readFile(dashboardPath, 'utf8');
   const cssSource = await fs.readFile(dashboardCssPath, 'utf8');
 
-  assert.match(source, /<section class="storage-controls-shell shopping-search-shell" aria-live="polite">[\s\S]*?<div class="shopping-search-shell__header">[\s\S]*?Filter & Anzeige[\s\S]*?<div class="storage-controls">/);
-  assert.match(source, /<label class="storage-filter-field"[\s\S]*?<div class="storage-summary">[\s\S]*?<\/div>[\s\S]*?<\/label>/);
+  assert.match(source, /<section class="storage-controls-shell shopping-search-shell" aria-live="polite">[\s\S]*?<div class="shopping-search-shell__header">[\s\S]*?Filter & Anzeige[\s\S]*?<div class="storage-controls">[\s\S]*?<div class="storage-controls-row">/);
+  assert.match(source, /<div class="storage-controls-row">[\s\S]*?<label class="storage-filter-field"[\s\S]*?<\/label>[\s\S]*?<label class="storage-toggle"[\s\S]*?Alle Produkte anzeigen[\s\S]*?<\/label>[\s\S]*?<\/div>/);
+  assert.match(source, /<div class="storage-summary">[\s\S]*?<span class="migration-chip">\$\{escapeHtml\(`\$\{model\.summary\.totalCount\} Produkte`\)\}<\/span>[\s\S]*?<\/div>/);
   assert.match(cssSource, /\.storage-controls-shell \{[\s\S]*?width: 100%;/);
+  assert.match(cssSource, /\.storage-controls-row \{[\s\S]*?grid-template-columns: minmax\(0, 1\.6fr\) auto;[\s\S]*?align-items: end;/);
   assert.match(cssSource, /\.storage-summary \{[\s\S]*?display: flex;[\s\S]*?flex-wrap: wrap;[\s\S]*?justify-content: flex-start;/);
 });
 
