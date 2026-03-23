@@ -8,6 +8,14 @@ All notable changes to this project will be documented in this file.
 - Fix (Home-Assistant-Integration/Panel): Unter der Überschrift `Grocy AI Suche` sitzt wieder ein sichtbarer Abstand zur Suchleiste, damit die Section-Header-Vertikale konsistent wirkt.
 - Added (Tests/Frontend): Eine Panel-Regression prüft die neue `Einkauf`-Eyebrow der Einkaufsliste sowie den wiederhergestellten Header-Abstand der Shopping-Suche.
 - Changed (Versioning): Integrationsversion auf `8.0.20` erhöht.
+- Fix (Dashboard/Shopping): Die Aktionsbuttons `Einkauf abschließen` und `Einkaufsliste leeren` teilen sich jetzt im klassischen Dashboard dieselbe volle Zeile gleichmäßig statt untereinander zu erscheinen.
+- Fix (Home-Assistant-Integration/Panel): Die nativen Shopping-Aktionen `Einkauf abschließen` und `Einkaufsliste leeren` nutzen jetzt ebenfalls eine gemeinsame 50/50-Aktionszeile über die volle Kartenbreite.
+- Added (Tests/Frontend): Eine Panel-Regression prüft jetzt explizit die gemeinsame Vollbreiten-Aktionszeile der nativen Einkaufslisten-Buttons.
+- Fix (Home-Assistant-Integration/Panel): Der native Dashboard-Content rendert die Tab-Hosts nicht mehr als eigene gestapelte Layout-Zeilen, sodass Inhalte in späteren Tabs nicht mehr pro Tab weiter nach unten rutschen.
+- Fix (Home-Assistant-Integration/Panel): `tab-view`- und `card`-Container nutzen jetzt wieder den Home-Assistant-üblichen Standardabstand zwischen Abschnitten; damit erhalten Shopping-, Rezept-, Lager- und Fallback-Bereiche wieder konsistente Section-Abstände.
+- Fix (Home-Assistant-Integration/Panel): In der nativen Einkaufsliste sitzt unter der Kopfzeile mit `Aktualisieren` wieder derselbe Standardabstand wie zwischen den übrigen Card-Sektionen.
+- Added (Tests/Frontend): Die Panel-CSS-Regression sichert jetzt Block-Layout für den Dashboard-Content sowie Standardabstände für Tab- und Card-Container ab.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.20` erhöht.
 
 ## 2026-03-23 (Version 8.0.19)
 - Changed (Home-Assistant-Integration/Panel): Der Scanner-Button im nativen Einkaufs-Dashboard rendert jetzt ein Home-Assistant-konformes `ha-icon` mit `mdi:barcode-scan` statt des bisherigen pseudo-gemalten Barcode-Icons.

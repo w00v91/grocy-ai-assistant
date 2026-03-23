@@ -159,8 +159,24 @@ h1 {
 }
 
 .dashboard-content {
+  display: block;
+}
+
+grocy-ai-topbar,
+grocy-ai-shopping-tab,
+grocy-ai-recipes-tab,
+grocy-ai-storage-tab,
+grocy-ai-notifications-tab,
+grocy-ai-dashboard-modals,
+grocy-ai-scanner-bridge,
+grocy-ai-tab-nav {
+  display: block;
+}
+
+.tab-view {
   display: grid;
   gap: var(--panel-gap);
+  align-content: start;
 }
 
 .tab-view.hidden,
@@ -169,6 +185,9 @@ h1 {
 }
 
 .card {
+  display: grid;
+  gap: var(--panel-section-gap);
+  align-content: start;
   padding: var(--panel-card-padding);
 }
 
@@ -194,6 +213,19 @@ h1 {
   margin-left: auto;
   flex: 0 0 auto;
   white-space: nowrap;
+}
+
+.shopping-bulk-actions {
+  width: 100%;
+}
+
+.shopping-bulk-actions > button {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.shopping-bulk-actions > .danger-button {
+  margin-top: 0;
 }
 
 .description,
