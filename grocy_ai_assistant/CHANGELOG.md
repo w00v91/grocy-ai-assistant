@@ -3,6 +3,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## 2026-03-23 (Version 8.0.20)
+- Fix (Home-Assistant-Integration/Panel): Der native Dashboard-Content rendert die Tab-Hosts nicht mehr als eigene gestapelte Layout-Zeilen, sodass Inhalte in späteren Tabs nicht mehr pro Tab weiter nach unten rutschen.
+- Fix (Home-Assistant-Integration/Panel): `tab-view`- und `card`-Container nutzen jetzt wieder den Home-Assistant-üblichen Standardabstand zwischen Abschnitten; damit erhalten Shopping-, Rezept-, Lager- und Fallback-Bereiche wieder konsistente Section-Abstände.
+- Fix (Home-Assistant-Integration/Panel): In der nativen Einkaufsliste sitzt unter der Kopfzeile mit `Aktualisieren` wieder derselbe Standardabstand wie zwischen den übrigen Card-Sektionen.
+- Added (Tests/Frontend): Die Panel-CSS-Regression sichert jetzt Block-Layout für den Dashboard-Content sowie Standardabstände für Tab- und Card-Container ab.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.20` erhöht.
+
 ## 2026-03-23 (Version 8.0.19)
 - Changed (Home-Assistant-Integration/Panel): Der Scanner-Button im nativen Einkaufs-Dashboard rendert jetzt ein Home-Assistant-konformes `ha-icon` mit `mdi:barcode-scan` statt des bisherigen pseudo-gemalten Barcode-Icons.
 - Added (Tests/Frontend): Eine Panel-Regression prüft jetzt explizit, dass der native Scanner-Trigger das HA-Icon `mdi:barcode-scan` verwendet.
