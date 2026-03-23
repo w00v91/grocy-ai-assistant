@@ -101,3 +101,80 @@ test('selectVariant reuses the amount prefix when AI/input suggestions trigger a
   controller.dispose();
   windowStub.cleanup();
 });
+
+
+test('selectVariant uses productSource from dataset and forces creation for input variants', async () => {
+  const windowStub = installWindowStub();
+  const searchProductCalls = [];
+  const controller = createShoppingSearchController({
+    api: {
+      async searchProduct(payload) {
+        searchProductCalls.push(payload);
+        return {
+          response: { ok: true },
+          payload: { message: 'Produkt hinzugefügt.' },
+        };
+      },
+    },
+  });
+
+  controller.actions.setQuery('Wachteleier');
+  await controller.actions.selectVariant({
+    productId: '',
+    productName: 'Wachteleier',
+    amount: 1,
+    productSource: 'input',
+  });
+
+  const state = controller.getState();
+  assert.equal(state.query, 'Wachteleier');
+  assert.equal(searchProductCalls.length, 1);
+  assert.deepEqual(searchProductCalls[0], {
+    name: 'Wachteleier',
+    amount: 1,
+    best_before_date: '',
+    force_create: true,
+  });
+  assert.equal(state.flowState, SEARCH_FLOW_STATES.SUCCESS);
+
+  controller.dispose();
+  windowStub.cleanup();
+});
+
+test('selectVariant keeps suggestion text without adding an implicit 1-prefix', async () => {
+  const windowStub = installWindowStub();
+  const searchProductCalls = [];
+  const controller = createShoppingSearchController({
+    api: {
+      async searchProduct(payload) {
+        searchProductCalls.push(payload);
+        return {
+          response: { ok: true },
+          payload: { message: 'Produkt hinzugefügt.' },
+        };
+      },
+    },
+  });
+
+  controller.actions.setQuery('Hafermilch');
+  await controller.actions.selectVariant({
+    productId: '',
+    productName: 'Haferdrink',
+    amount: 1,
+    productSource: 'ai',
+  });
+
+  const state = controller.getState();
+  assert.equal(state.query, 'Haferdrink');
+  assert.equal(searchProductCalls.length, 1);
+  assert.deepEqual(searchProductCalls[0], {
+    name: 'Haferdrink',
+    amount: 1,
+    best_before_date: '',
+    force_create: false,
+  });
+  assert.equal(state.flowState, SEARCH_FLOW_STATES.SUCCESS);
+
+  controller.dispose();
+  windowStub.cleanup();
+});
