@@ -28,7 +28,7 @@ const TAB_ICONS = Object.freeze({
 const VISIBLE_TAB_ORDER = TAB_ORDER.filter((tab) => tab !== 'notifications');
 const DEFAULT_POLLING_INTERVAL_SECONDS = 5;
 const DEFAULT_POLLING_INTERVAL_MS = DEFAULT_POLLING_INTERVAL_SECONDS * 1000;
-const DEFAULT_INTEGRATION_VERSION = '8.0.16';
+const DEFAULT_INTEGRATION_VERSION = '8.0.17';
 const GROCY_RECIPE_DISPLAY_LIMIT = 3;
 const AI_RECIPE_DISPLAY_LIMIT = 3;
 const TAB_VIEW_STATE = Object.freeze({
@@ -2104,7 +2104,6 @@ class GrocyAIScannerBridge extends HTMLElement {
             <p class="scanner-light-warning hidden" data-role="scanner-light-warning">Wenig Licht erkannt – bitte Kamera näher ans Produkt halten oder Beleuchtung erhöhen.</p>
           </div>
           <canvas class="hidden" data-role="scanner-canvas"></canvas>
-          <pre class="scanner-capabilities-log" data-role="scanner-capabilities-log"></pre>
           <p class="tab-status" data-role="scanner-status" aria-live="polite">Bereit.</p>
           <div class="button-row">
             <button class="primary-button" type="button" data-action="shopping-start-scanner">Scanner starten</button>
@@ -2265,16 +2264,6 @@ class GrocyAIScannerBridge extends HTMLElement {
 
   _setLightWarningVisible(visible) {
     this._getElement('scanner-light-warning')?.classList.toggle('hidden', !visible);
-  }
-
-  _setCapabilitiesLog(capabilities, settings) {
-    const element = this._getElement('scanner-capabilities-log');
-    if (!element) return;
-    element.textContent = JSON.stringify({
-      selected_device_id: this._selectedDeviceId || null,
-      capabilities: capabilities || null,
-      settings: settings || null,
-    }, null, 2);
   }
 
   _normalizeBarcodeForLookup(barcode) {
@@ -2623,8 +2612,6 @@ class GrocyAIScannerBridge extends HTMLElement {
     const videoTrack = stream?.getVideoTracks?.()[0];
     if (!videoTrack) return;
     const capabilities = videoTrack.getCapabilities ? videoTrack.getCapabilities() : null;
-    const settings = videoTrack.getSettings ? videoTrack.getSettings() : null;
-    this._setCapabilitiesLog(capabilities, settings);
 
     const constraints = {};
     if (capabilities?.focusMode?.includes('continuous')) {

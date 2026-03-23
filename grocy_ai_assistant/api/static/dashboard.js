@@ -2767,10 +2767,6 @@ function getScannerStatusElement() {
   return document.getElementById('status-scanner');
 }
 
-function getScannerCapabilitiesLogElement() {
-  return document.getElementById('scanner-capabilities-log');
-}
-
 function getScannerLightWarningElement() {
   return document.getElementById('scanner-light-warning');
 }
@@ -2804,25 +2800,6 @@ function onScannerRotationChange() {
   applyScannerVideoRotation(video);
 }
 
-function setScannerCapabilitiesLog(capabilities, settings) {
-  const log = getScannerCapabilitiesLogElement();
-  if (!log) return;
-
-  const payload = {
-    selected_device_id: dashboardState.scannerSelectedDeviceId || null,
-    capabilities: capabilities || null,
-    settings: settings || null,
-    support: {
-      focusMode: Boolean(capabilities?.focusMode),
-      focusDistance: Boolean(capabilities?.focusDistance),
-      zoom: Boolean(capabilities?.zoom),
-      torch: Boolean(capabilities?.torch),
-    },
-  };
-
-  log.textContent = JSON.stringify(payload, null, 2);
-  console.info('Scanner camera capabilities', payload);
-}
 
 function setScannerLightWarningVisible(visible) {
   const warning = getScannerLightWarningElement();
@@ -3414,8 +3391,6 @@ async function optimizeScannerTrack(stream, status) {
   if (!videoTrack) return;
 
   const capabilities = videoTrack.getCapabilities ? videoTrack.getCapabilities() : null;
-  const settings = videoTrack.getSettings ? videoTrack.getSettings() : null;
-  setScannerCapabilitiesLog(capabilities, settings);
   const constraints = {};
 
   if (capabilities?.focusMode?.includes('continuous')) {

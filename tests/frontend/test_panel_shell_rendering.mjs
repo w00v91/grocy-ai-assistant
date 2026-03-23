@@ -283,6 +283,26 @@ test('dashboard shell derives spacing and surface styling from Home Assistant ca
 });
 
 
+test('mobile panel CSS keeps native dashboard copy readable and avoids cramped two-column layouts', async () => {
+  const source = await fs.readFile(dashboardCssPath, 'utf8');
+  const shoppingSource = await fs.readFile(
+    path.resolve(__dirname, '../../grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/shopping-ui.css'),
+    'utf8',
+  );
+
+  assert.match(source, /:host \{[\s\S]*?-webkit-text-size-adjust: 100%;[\s\S]*?text-size-adjust: 100%;/);
+  assert.match(source, /h1 \{[\s\S]*?font-size: clamp\(1\.9rem, 3vw, 2\.25rem\);[\s\S]*?line-height: 1\.1;/);
+  assert.match(source, /\.tab-button__label \{[\s\S]*?white-space: nowrap;/);
+  assert.match(source, /@media \(max-width: 800px\) \{[\s\S]*?\.panel-card-group--two-column,[\s\S]*?\.shopping-details-grid \{[\s\S]*?grid-template-columns: 1fr;/);
+  assert.match(source, /@media \(max-width: 800px\) \{[\s\S]*?\.stock-item \{[\s\S]*?grid-template-columns: minmax\(0, 1fr\);/);
+  assert.match(source, /@media \(max-width: 800px\) \{[\s\S]*?\.location-dropdown__summary-value \{[\s\S]*?white-space: normal;/);
+  assert.match(shoppingSource, /@media \(max-width: 640px\) \{[\s\S]*?\.shopping-card__title \{[\s\S]*?font-size: 1\.02rem;/);
+  assert.match(shoppingSource, /@media \(max-width: 640px\) \{[\s\S]*?\.shopping-card__note,[\s\S]*?\.shopping-card__detail-line,[\s\S]*?\.shopping-card__context-item \{[\s\S]*?font-size: 0\.88rem;[\s\S]*?line-height: 1\.45;/);
+  assert.match(shoppingSource, /@media \(max-width: 640px\) \{[\s\S]*?\.shopping-badge,[\s\S]*?\.shopping-status-chip \{[\s\S]*?font-size: 0\.78rem;/);
+  assert.match(shoppingSource, /@media \(max-width: 640px\) \{[\s\S]*?\.shopping-card__header,[\s\S]*?\.shopping-card__footer,[\s\S]*?\.shopping-card__context-item \{[\s\S]*?flex-wrap: wrap;/);
+});
+
+
 test('bottom tab bar stays centered and matches the desktop shell width before becoming compact pill navigation on mobile', async () => {
   const source = await fs.readFile(dashboardCssPath, 'utf8');
 
