@@ -6,6 +6,8 @@ All notable changes to this project will be documented in this file.
 
 - Fix (Home-Assistant-Integration/Panel/Einkauf): Die Produktsuche im nativen Shopping-Panel feuert Submit-, Clear- und Varianten-Klick-Events nicht mehr doppelt ab; dadurch wird `analyze_product_name` beim direkten Neuanlegen eines Produkts nur noch einmal ausgelöst.
 - Added (Tests/Frontend): Rendering-Regressionen stellen sicher, dass die Search-Bar nur noch delegierte Event-Handler verwendet und keine doppelten Formular-/Button-Listener mehr registriert.
+- Fix (Grocy/Produktanlage): Produkt-Create-Retries laufen jetzt nur noch bei echten Schemafehlern vom Typ `has no column named ...`; generische `400 Bad Request`-Antworten wie doppelte Produktnamen lösen keinen fehlerhaften zweiten Create-Call mehr aus.
+- Added (Tests/Grocy): Unit-Regressionen decken jetzt sowohl den weiterhin erlaubten Unknown-Column-Retry als auch den neuen No-Retry-Pfad bei `UNIQUE constraint failed: products.name` ab.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.29` erhöht.
 
 ## 2026-03-23 (Version 8.0.28)
