@@ -28,7 +28,7 @@ const TAB_ICONS = Object.freeze({
 const VISIBLE_TAB_ORDER = TAB_ORDER.filter((tab) => tab !== 'notifications');
 const DEFAULT_POLLING_INTERVAL_SECONDS = 5;
 const DEFAULT_POLLING_INTERVAL_MS = DEFAULT_POLLING_INTERVAL_SECONDS * 1000;
-const DEFAULT_INTEGRATION_VERSION = '8.0.17';
+const DEFAULT_INTEGRATION_VERSION = '8.0.18';
 const GROCY_RECIPE_DISPLAY_LIMIT = 3;
 const AI_RECIPE_DISPLAY_LIMIT = 3;
 const TAB_VIEW_STATE = Object.freeze({
@@ -1290,7 +1290,7 @@ class GrocyAIShoppingTab extends HTMLElement {
     const listSection = document.createElement('section');
     listSection.className = 'card shopping-list-section';
     const listHeader = document.createElement('div');
-    listHeader.className = 'section-header section-header-stacked';
+    listHeader.className = 'section-header shopping-list-section__header';
     const listTitle = document.createElement('h2');
     listTitle.textContent = 'Einkaufsliste';
     const refreshButton = document.createElement('button');
