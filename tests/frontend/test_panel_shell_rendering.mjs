@@ -200,7 +200,11 @@ test('shopping tab keeps the scanner trigger in the same mobile header row as th
 test('recipes, storage, and modal renders restore focused form controls after rerenders', async () => {
   const source = await fs.readFile(dashboardPath, 'utf8');
 
+  assert.match(source, /function getActiveElementWithinRoot\(root\) \{/);
+  assert.match(source, /const rootNode = typeof root\.getRootNode === 'function' \? root\.getRootNode\(\) : null;/);
+  assert.match(source, /while \(activeElement\?\.shadowRoot\?\.activeElement instanceof HTMLElement\) \{/);
   assert.match(source, /function captureFocusedFormControl\(root\) \{/);
+  assert.match(source, /const activeElement = getActiveElementWithinRoot\(root\);/);
   assert.match(source, /function restoreFocusedFormControl\(root, snapshot\) \{/);
   assert.match(source, /class GrocyAIDashboardModals extends HTMLElement \{[\s\S]*?_render\(\) \{\s+const snapshot = captureFocusedFormControl\(this\);[\s\S]*?restoreFocusedFormControl\(this, snapshot\);/);
   assert.match(source, /class GrocyAIRecipesTab extends HTMLElement \{[\s\S]*?_render\(\) \{\s+const snapshot = captureFocusedFormControl\(this\);[\s\S]*?restoreFocusedFormControl\(this, snapshot\);/);

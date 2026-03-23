@@ -1,3 +1,9 @@
+## [8.0.32]
+
+### Fixed
+
+- Fix: Fokus-Restore im nativen Lager-Tab nutzt jetzt den aktiven Fokus innerhalb des Panel-Shadow-DOMs, sodass das Filterfeld auch nach Storage-Reloads stabil fokussiert bleibt.
+
 ## 2026-03-23 (Version 8.0.31)
 - Fix (Grocy-Bildupload): Produktbild-Upload verwendet jetzt direkt die funktionierende `PUT /files/productpictures/...`-Variante mit `GROCY-API-KEY`, statt nacheinander nicht funktionierende `POST`-/`/api/files/...`-/Header-Modus-Fallbacks zu durchlaufen.
 - Test: Unit-Tests für den vereinfachten Uploadpfad und den Base64-Dateinamen-Fallback auf die direkte `/files/...`-Variante angepasst.
