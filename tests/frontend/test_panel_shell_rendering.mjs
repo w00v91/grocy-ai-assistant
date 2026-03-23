@@ -120,6 +120,16 @@ test('recipe filter cards render compact dropdown summaries and keep dropdown st
   assert.match(source, /const openDetails = captureDetailsOpenState\(this\);[\s\S]*?restoreDetailsOpenState\(this, openDetails\);/);
 });
 
+test('shopping list bulk actions share one full row evenly in the native panel', async () => {
+  const source = await fs.readFile(dashboardPath, 'utf8');
+  const cssSource = await fs.readFile(dashboardCssPath, 'utf8');
+
+  assert.match(source, /buttonRow\.className = 'button-row shopping-bulk-actions';/);
+  assert.match(cssSource, /\.shopping-bulk-actions \{[\s\S]*?width: 100%;/);
+  assert.match(cssSource, /\.shopping-bulk-actions > button \{[\s\S]*?flex: 1 1 0;[\s\S]*?min-width: 0;/);
+  assert.match(cssSource, /\.shopping-bulk-actions > \.danger-button \{[\s\S]*?margin-top: 0;/);
+});
+
 test('shopping list header keeps title and refresh action on one row in mobile layouts', async () => {
   const source = await fs.readFile(dashboardPath, 'utf8');
   const cssSource = await fs.readFile(dashboardCssPath, 'utf8');

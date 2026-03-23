@@ -191,6 +191,19 @@ h1 {
   white-space: nowrap;
 }
 
+.shopping-bulk-actions {
+  width: 100%;
+}
+
+.shopping-bulk-actions > button {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.shopping-bulk-actions > .danger-button {
+  margin-top: 0;
+}
+
 .description,
 .muted,
 .tab-status,

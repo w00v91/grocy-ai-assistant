@@ -3,6 +3,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## 2026-03-23 (Version 8.0.20)
+- Fix (Dashboard/Shopping): Die Aktionsbuttons `Einkauf abschließen` und `Einkaufsliste leeren` teilen sich jetzt im klassischen Dashboard dieselbe volle Zeile gleichmäßig statt untereinander zu erscheinen.
+- Fix (Home-Assistant-Integration/Panel): Die nativen Shopping-Aktionen `Einkauf abschließen` und `Einkaufsliste leeren` nutzen jetzt ebenfalls eine gemeinsame 50/50-Aktionszeile über die volle Kartenbreite.
+- Added (Tests/Frontend): Eine Panel-Regression prüft jetzt explizit die gemeinsame Vollbreiten-Aktionszeile der nativen Einkaufslisten-Buttons.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.20` erhöht.
+
 ## 2026-03-23 (Version 8.0.19)
 - Changed (Home-Assistant-Integration/Panel): Der Scanner-Button im nativen Einkaufs-Dashboard rendert jetzt ein Home-Assistant-konformes `ha-icon` mit `mdi:barcode-scan` statt des bisherigen pseudo-gemalten Barcode-Icons.
 - Added (Tests/Frontend): Eine Panel-Regression prüft jetzt explizit, dass der native Scanner-Trigger das HA-Icon `mdi:barcode-scan` verwendet.

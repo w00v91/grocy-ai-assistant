@@ -28,7 +28,7 @@ const TAB_ICONS = Object.freeze({
 const VISIBLE_TAB_ORDER = TAB_ORDER.filter((tab) => tab !== 'notifications');
 const DEFAULT_POLLING_INTERVAL_SECONDS = 5;
 const DEFAULT_POLLING_INTERVAL_MS = DEFAULT_POLLING_INTERVAL_SECONDS * 1000;
-const DEFAULT_INTEGRATION_VERSION = '8.0.19';
+const DEFAULT_INTEGRATION_VERSION = '8.0.20';
 const GROCY_RECIPE_DISPLAY_LIMIT = 3;
 const AI_RECIPE_DISPLAY_LIMIT = 3;
 const TAB_VIEW_STATE = Object.freeze({
@@ -1305,7 +1305,7 @@ class GrocyAIShoppingTab extends HTMLElement {
     status.className = 'tab-status';
 
     const buttonRow = document.createElement('div');
-    buttonRow.className = 'button-row';
+    buttonRow.className = 'button-row shopping-bulk-actions';
     const completeAllButton = document.createElement('button');
     completeAllButton.className = 'success-button';
     completeAllButton.type = 'button';
