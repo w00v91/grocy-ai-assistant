@@ -9,6 +9,13 @@ All notable changes to this project will be documented in this file.
 - Added (Tests/Frontend): Controller-Regressionen sichern ab, dass unter zwei Buchstaben weder Variantensuche noch Produktsubmit ausgelöst werden.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.28` erhöht.
 
+## 2026-03-23 (Version 8.0.27)
+
+- Fix (Home-Assistant-Integration/Panel/Sicherheit): Produktbilder im nativen HA-Panel werden jetzt nicht mehr als direktes `<img src>` gegen den geschützten Proxy geladen, sondern per auth-gebundenem Fetch mit HA-Bearer-Token in kurzlebige `blob:`-URLs umgesetzt, damit kein 401 mehr auftritt und der Endpoint trotzdem geschlossen bleibt.
+- Changed (Home-Assistant-Integration/Panel/Kommentar): `GrocyAIDashboardPictureProxyView` dokumentiert jetzt explizit, warum der Endpoint authentifiziert bleibt und weshalb das Frontend den Bildabruf aktiv übernimmt.
+- Added (Tests/Frontend): Regressionen decken jetzt den placeholder-first/auth-fetch-Bildpfad des nativen Panels ab.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.27` erhöht.
+
 ## 2026-03-23 (Version 8.0.26)
 
 - Fix (Home-Assistant-Integration/Panel/Sicherheit): Die Produktbild-Proxy-View des nativen Panels verlangt jetzt Home-Assistant-Authentifizierung statt Bildabrufe anonym offenzulegen.

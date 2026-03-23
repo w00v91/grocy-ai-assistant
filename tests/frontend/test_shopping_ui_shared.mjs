@@ -2,31 +2,47 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
+  DEFAULT_IMAGE_PLACEHOLDER,
+  bindAuthenticatedPanelImages,
   bindShoppingImageFallbacks,
   formatAmount,
   formatBadgeValue,
   formatStockCount,
+  resolveRenderableImageSource,
   renderShoppingListItemCard,
   renderShoppingVariantCard,
 } from '../../grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/shopping-ui.js';
 
 test('shopping UI helpers format amounts, badges and stock values consistently', () => {
   assert.equal(typeof bindShoppingImageFallbacks, 'function');
+  assert.equal(typeof bindAuthenticatedPanelImages, 'function');
   assert.equal(formatAmount(''), '1');
   assert.equal(formatBadgeValue('', 'MHD wählen'), 'MHD wählen');
   assert.equal(formatStockCount('2,5'), '2,5');
+});
+
+test('shopping UI resolves authenticated panel image sources to placeholder-first markup', () => {
+  const resolved = resolveRenderableImageSource('/api/grocy_ai_assistant/dashboard-proxy/api/dashboard/product-picture?src=test');
+
+  assert.equal(resolved.src, DEFAULT_IMAGE_PLACEHOLDER);
+  assert.equal(
+    resolved.authSrc,
+    '/api/grocy_ai_assistant/dashboard-proxy/api/dashboard/product-picture?src=test',
+  );
 });
 
 test('shopping variant card renders shared dataset and context markup', () => {
   const markup = renderShoppingVariantCard({
     id: 7,
     name: 'Hafermilch Barista',
+    picture_url: '/api/dashboard/product-picture?src=test',
     source: 'ai',
     in_stock: '3',
     best_before_date: '2026-03-28',
   }, {
     amount: '2',
     actionName: 'shopping-select-variant',
+    resolveImageUrl: (url) => `/api/grocy_ai_assistant/dashboard-proxy${url}`,
   });
 
   assert.match(markup, /data-product-id="7"/);
@@ -34,6 +50,7 @@ test('shopping variant card renders shared dataset and context markup', () => {
   assert.match(markup, /KI-Vorschlag/);
   assert.match(markup, /data-shopping-image="true"/);
   assert.match(markup, /data-fallback-src="https:\/\/placehold\.co\/80x80\?text=Kein\+Bild"/);
+  assert.match(markup, /data-auth-image-src="\/api\/grocy_ai_assistant\/dashboard-proxy\/api\/dashboard\/product-picture\?src=test"/);
   assert.match(markup, /Bestand/);
   assert.match(markup, /2026-03-28/);
   assert.doesNotMatch(markup, /Auswählen/);

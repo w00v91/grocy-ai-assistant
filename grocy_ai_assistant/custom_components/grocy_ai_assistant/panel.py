@@ -132,12 +132,13 @@ class GrocyAIDashboardProxyView(HomeAssistantView):
 class GrocyAIDashboardPictureProxyView(HomeAssistantView):
     """Proxy dashboard product pictures through the authenticated HA session."""
 
-    # Product images are rendered by the native Home Assistant panel frontend via
-    # same-origin <img src> requests. `panel/frontend/grocy-ai-dashboard.js`
-    # rewrites `/api/dashboard/product-picture?...` to the authenticated panel
-    # proxy base, so the browser automatically attaches the logged-in HA session
-    # cookies. Keep this endpoint closed (`requires_auth = True`) to avoid
-    # exposing an otherwise public image proxy route.
+    # Product images stay behind Home Assistant auth. The native panel frontend
+    # rewrites `/api/dashboard/product-picture?...` to this proxy route and then
+    # loads the image bytes via an auth-bound `fetch(...)`, finally assigning a
+    # short-lived `blob:` URL to `<img>` tags. Direct `<img src>` requests
+    # against the authenticated HA proxy can return 401 in the panel runtime, so
+    # we keep the endpoint closed and let the frontend perform the authenticated
+    # fetch explicitly instead of exposing a public image proxy route.
     requires_auth = True
     url = PANEL_PICTURE_PROXY_URL
     name = "api:grocy_ai_assistant:dashboard-proxy:product-picture"

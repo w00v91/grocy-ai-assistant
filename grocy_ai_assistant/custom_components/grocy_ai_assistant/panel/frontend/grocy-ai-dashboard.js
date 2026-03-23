@@ -3,7 +3,7 @@ import { buildLegacyDashboardUrl, resolveDashboardApiBasePath } from './panel-ap
 import { createDashboardStore } from './dashboard-store.js';
 import { buildPanelUrlWithTab, DEFAULT_TAB, resolveTabFromLocation, TAB_ORDER } from './tab-routing.js';
 import { createShoppingSearchController, SEARCH_FLOW_STATES } from './shopping-search-controller.js';
-import { bindShoppingImageFallbacks, escapeHtml, formatAmount, formatBadgeValue, formatStockCount, renderShoppingListItemCard, renderShoppingVariantCard, resolveShoppingImageSource } from './shopping-ui.js';
+import { bindAuthenticatedPanelImages, bindShoppingImageFallbacks, cleanupAuthenticatedPanelImages, DEFAULT_IMAGE_PLACEHOLDER, escapeHtml, formatAmount, formatBadgeValue, formatStockCount, renderShoppingListItemCard, renderShoppingVariantCard, resolveRenderableImageSource, resolveShoppingImageSource } from './shopping-ui.js';
 import { renderActionRow, renderCardContainer, renderMetaBadges, renderStateCard, renderTileGrid, renderTwoColumnCardGroup } from './shared-panel-ui.js';
 import { bindSwipeInteractions } from './swipe-interactions.js';
 
@@ -25,7 +25,7 @@ const TAB_ICONS = Object.freeze({
 });
 const DEFAULT_POLLING_INTERVAL_SECONDS = 5;
 const DEFAULT_POLLING_INTERVAL_MS = DEFAULT_POLLING_INTERVAL_SECONDS * 1000;
-const DEFAULT_INTEGRATION_VERSION = '8.0.26';
+const DEFAULT_INTEGRATION_VERSION = '8.0.27';
 const GROCY_RECIPE_DISPLAY_LIMIT = 3;
 const AI_RECIPE_DISPLAY_LIMIT = 3;
 const TAB_VIEW_STATE = Object.freeze({
@@ -249,6 +249,10 @@ function toImageSource(url, options = {}) {
   return normalizedPath;
 }
 
+function buildImageMarkupAttributes(imageSource) {
+  return `src="${escapeHtml(imageSource.src)}"${imageSource.authSrc ? ` data-auth-image-src="${escapeHtml(imageSource.authSrc)}"` : ''}`;
+}
+
 
 function isRestorableTextField(element) {
   const tagName = String(element?.tagName || '').toLowerCase();
@@ -407,7 +411,7 @@ function renderStorageProductCard(item, options = {}) {
   const amountLabel = formatAmount(item?.amount, '0');
   const stockLabel = item?.in_stock ? 'Auf Lager' : 'Nicht auf Lager';
   const bestBeforeDate = formatStorageDateLabel(item?.best_before_date, 'Kein MHD');
-  const resolvedImageSource = resolveShoppingImageSource(item?.picture_url, { resolveUrl: options.resolveImageUrl });
+  const imageSource = resolveRenderableImageSource(item?.picture_url, { resolveUrl: options.resolveImageUrl });
   const metaBadges = [
     `Menge ${amountLabel}`,
     item?.location_name ? `Lagerort ${item.location_name}` : '',
@@ -418,7 +422,7 @@ function renderStorageProductCard(item, options = {}) {
     <article class="shopping-card storage-card" role="listitem">
       <div class="shopping-card__surface storage-card__surface">
         <div class="storage-card__media-wrap">
-          <img class="shopping-card__media storage-card__media" src="${escapeHtml(resolvedImageSource)}" alt="${escapeHtml(title)}" loading="lazy" data-shopping-image="true" data-fallback-src="${escapeHtml(resolveShoppingImageSource(''))}" />
+          <img class="shopping-card__media storage-card__media" ${buildImageMarkupAttributes(imageSource)} alt="${escapeHtml(title)}" loading="lazy" data-shopping-image="true" data-fallback-src="${escapeHtml(imageSource.fallbackSrc || resolveShoppingImageSource(''))}" />
           <span class="shopping-status-chip shopping-status-chip--${escapeHtml(resolveStorageStatusVariant(item))} storage-card__stock-chip">${escapeHtml(stockLabel)}</span>
         </div>
         <div class="shopping-card__body storage-card__body">
@@ -527,7 +531,7 @@ function buildStorageTabMarkup(model = {}) {
       return `<option value="${locationId}"${isSelected ? ' selected' : ''}>${escapeHtml(location?.name || `Lagerort ${locationId}`)}</option>`;
     }),
   ].join('');
-  const resolvedEditImageSource = resolveShoppingImageSource(activeEditItem?.picture_url, { resolveUrl: model.resolveImageUrl });
+  const editImageSource = resolveRenderableImageSource(activeEditItem?.picture_url, { resolveUrl: model.resolveImageUrl });
   const editLocationLabel = editModal.locationId
     ? (locations.find((location) => String(location?.id ?? '') === String(editModal.locationId))?.name || 'Nicht gesetzt')
     : formatBadgeValue(activeEditItem?.location_name, 'Nicht gesetzt');
@@ -612,11 +616,11 @@ function buildStorageTabMarkup(model = {}) {
         <div class="storage-edit-media">
           <img
             class="storage-edit-picture shopping-card__media${activeEditItem?.picture_url ? '' : ' hidden'}"
-            src="${escapeHtml(resolvedEditImageSource)}"
+            ${buildImageMarkupAttributes(editImageSource)}
             alt="${escapeHtml(activeEditItem?.name || 'Produktbild')}"
             loading="lazy"
             data-shopping-image="true"
-            data-fallback-src="${escapeHtml(resolveShoppingImageSource(''))}"
+            data-fallback-src="${escapeHtml(editImageSource.fallbackSrc || resolveShoppingImageSource(''))}"
           />
         </div>
         <div class="shopping-card__badges storage-modal-badges">
@@ -1166,6 +1170,7 @@ class GrocyAIShoppingSearchBar extends HTMLElement {
     const nodes = variants.map((variant) => this._createVariantCard(variant, model.parsedAmount));
     variantGrid.replaceChildren(...nodes);
     bindShoppingImageFallbacks(this);
+    bindAuthenticatedPanelImages(this, { loadImage: model.loadProtectedImage });
     this._restoreQueryInputState(snapshot);
   }
 
@@ -1252,6 +1257,7 @@ class GrocyAIShoppingTab extends HTMLElement {
     this.removeEventListener('click', this._boundClick);
     this._cleanupSwipe?.();
     this._cleanupSwipe = null;
+    cleanupAuthenticatedPanelImages(this);
   }
 
   set viewModel(value) {
@@ -1435,6 +1441,7 @@ class GrocyAIShoppingTab extends HTMLElement {
 
     list.replaceChildren(...items.map((item) => this._createShoppingListItem(item, model)));
     bindShoppingImageFallbacks(this);
+    bindAuthenticatedPanelImages(this, { loadImage: model.loadProtectedImage });
     this._rebindSwipeInteractions();
   }
 
@@ -1498,14 +1505,17 @@ function renderRecipeListMarkup(items, emptyText, options = {}) {
       ${normalizedItems.map((item) => {
         const payload = encodeURIComponent(JSON.stringify(item));
         const description = getRecipeSuggestionDescription(item);
-        const imageSrc = item.picture_url
-          ? toImageSource(item.picture_url, { apiBasePath: options.apiBasePath || '' })
-          : '';
+        const imageSource = item.picture_url
+          ? resolveRenderableImageSource(
+            toImageSource(item.picture_url, { apiBasePath: options.apiBasePath || '' }),
+            { fallbackSrc: DEFAULT_IMAGE_PLACEHOLDER },
+          )
+          : null;
         return `
           <li class="recipe-item-native">
             <button type="button" class="recipe-item-native__button" data-action="recipes-open-detail" data-recipe-item="${payload}">
-              ${imageSrc
-                ? `<img class="recipe-thumb" src="${escapeHtml(imageSrc)}" alt="${escapeHtml(item.title || 'Rezeptbild')}" loading="lazy" />`
+              ${imageSource
+                ? `<img class="recipe-thumb" ${buildImageMarkupAttributes(imageSource)} alt="${escapeHtml(item.title || 'Rezeptbild')}" loading="lazy" data-fallback-src="${escapeHtml(imageSource.fallbackSrc || DEFAULT_IMAGE_PLACEHOLDER)}" />`
                 : '<div class="recipe-thumb recipe-thumb-fallback">🍽️</div>'}
               <span class="recipe-item-copy">
                 <span class="recipe-item-title">${escapeHtml(item.title || 'Unbenanntes Rezept')}</span>
@@ -1859,6 +1869,10 @@ class GrocyAIDashboardModals extends HTMLElement {
     });
   }
 
+  disconnectedCallback() {
+    cleanupAuthenticatedPanelImages(this);
+  }
+
   set viewModel(value) {
     this._viewModel = value;
     const nextSignature = JSON.stringify({
@@ -1893,7 +1907,12 @@ class GrocyAIDashboardModals extends HTMLElement {
     const recipeDetail = model.recipes?.detailModal || { open: false, item: null };
     const recipeCreate = model.recipes?.createModal || { open: false, method: 'webscrape' };
     const recipeItem = recipeDetail.item || null;
-    const recipeImageSource = recipeItem?.picture_url ? toImageSource(recipeItem.picture_url, { size: 'full', apiBasePath: model.recipes?.apiBasePath || '' }) : '';
+    const recipeImageSource = recipeItem?.picture_url
+      ? resolveRenderableImageSource(
+        toImageSource(recipeItem.picture_url, { size: 'full', apiBasePath: model.recipes?.apiBasePath || '' }),
+        { fallbackSrc: DEFAULT_IMAGE_PLACEHOLDER },
+      )
+      : null;
     const missingProducts = Array.isArray(recipeItem?.missing_products) ? recipeItem.missing_products : [];
     const ingredients = Array.isArray(recipeItem?.ingredients) ? recipeItem.ingredients : [];
 
@@ -1941,7 +1960,7 @@ class GrocyAIDashboardModals extends HTMLElement {
           <button class="shopping-modal-close recipe-modal-close" type="button" data-action="recipes-close-detail" aria-label="Rezeptdetails schließen">×</button>
           ${recipeImageSource ? `
             <div class="recipe-modal-image-wrapper" aria-hidden="false">
-              <img class="recipe-modal-image" src="${escapeHtml(recipeImageSource)}" alt="${escapeHtml(recipeItem?.title || 'Rezeptbild')}" loading="lazy" />
+              <img class="recipe-modal-image" ${buildImageMarkupAttributes(recipeImageSource)} alt="${escapeHtml(recipeItem?.title || 'Rezeptbild')}" loading="lazy" data-fallback-src="${escapeHtml(recipeImageSource.fallbackSrc || DEFAULT_IMAGE_PLACEHOLDER)}" />
             </div>
           ` : ''}
           <h3>${escapeHtml(recipeItem?.title || 'Rezeptdetails')}</h3>
@@ -2008,6 +2027,7 @@ class GrocyAIDashboardModals extends HTMLElement {
         </section>
       </div>
     `;
+    bindAuthenticatedPanelImages(this, { loadImage: model.loadProtectedImage });
     restoreFocusedFormControl(this, snapshot);
   }
 }
@@ -2782,6 +2802,7 @@ class GrocyAIRecipesTab extends HTMLElement {
         ${buildRecipesTabMarkup(model)}
       </section>
     `;
+    bindAuthenticatedPanelImages(this, { loadImage: model.loadProtectedImage });
     restoreDetailsOpenState(this, openDetails);
     restoreFocusedFormControl(this, snapshot);
   }
@@ -2890,6 +2911,7 @@ class GrocyAIStorageTab extends HTMLElement {
   disconnectedCallback() {
     this._cleanupSwipe?.();
     this._cleanupSwipe = null;
+    cleanupAuthenticatedPanelImages(this);
   }
 
   _rebindSwipeInteractions() {
@@ -2946,6 +2968,7 @@ class GrocyAIStorageTab extends HTMLElement {
     `;
 
     bindShoppingImageFallbacks(this);
+    bindAuthenticatedPanelImages(this, { loadImage: model.loadProtectedImage });
     restoreFocusedFormControl(this, snapshot);
     this._rebindSwipeInteractions();
   }
@@ -3304,12 +3327,14 @@ class GrocyAIDashboardPanel extends HTMLElement {
       ...state.shopping,
       ...searchState,
       active: state.activeTab === 'shopping',
+      loadProtectedImage: (url, options) => this._loadAuthenticatedPanelImage(url, options),
       resolveImageUrl: (url) => resolvePanelImageUrl(url, this._dashboardApi, { apiBasePath: panelImageApiBasePath }),
     };
     recipesTab.viewModel = {
       ...state.recipes,
       active: state.activeTab === 'recipes',
       apiBasePath: panelImageApiBasePath,
+      loadProtectedImage: (url, options) => this._loadAuthenticatedPanelImage(url, options),
     };
     storageTab.viewModel = {
       ...state.storage,
@@ -3317,6 +3342,7 @@ class GrocyAIDashboardPanel extends HTMLElement {
       activeEditItem: state.storage.items.find((item) => String(getActionableStorageId(item)) === String(state.storage.editModal.itemId)) || null,
       activeConsumeItem: state.storage.items.find((item) => String(getActionableStorageId(item)) === String(state.storage.consumeModal.itemId)) || null,
       activeDeleteItem: state.storage.items.find((item) => String(getActionableStorageId(item)) === String(state.storage.deleteModal.itemId)) || null,
+      loadProtectedImage: (url, options) => this._loadAuthenticatedPanelImage(url, options),
       resolveImageUrl: (url) => resolvePanelImageUrl(url, this._dashboardApi, { apiBasePath: panelImageApiBasePath }),
     };
 
@@ -3332,6 +3358,7 @@ class GrocyAIDashboardPanel extends HTMLElement {
       recipes: {
         ...state.recipes,
         apiBasePath: panelImageApiBasePath,
+        loadProtectedImage: (url, options) => this._loadAuthenticatedPanelImage(url, options),
       },
     };
     scannerBridge.viewModel = {
@@ -4589,6 +4616,26 @@ class GrocyAIDashboardPanel extends HTMLElement {
   _getHomeAssistantAuthHeaders() {
     const accessToken = this._getHomeAssistantAccessToken();
     return accessToken ? { Authorization: `Bearer ${accessToken}` } : {};
+  }
+
+  async _loadAuthenticatedPanelImage(url, { signal } = {}) {
+    const response = await fetch(String(url || ''), {
+      credentials: 'same-origin',
+      headers: {
+        Accept: 'image/*',
+        ...this._getHomeAssistantAuthHeaders(),
+      },
+      signal,
+    });
+    if (!response.ok) {
+      throw new Error(`Bildabruf fehlgeschlagen (${response.status})`);
+    }
+
+    const imageBlob = await response.blob();
+    if (typeof URL?.createObjectURL !== 'function') {
+      throw new Error('Blob-URLs werden in diesem Browser nicht unterstützt');
+    }
+    return URL.createObjectURL(imageBlob);
   }
 
   _getPanelConfig() {

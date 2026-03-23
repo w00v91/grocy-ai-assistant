@@ -4,7 +4,9 @@ export const VARIANT_SOURCE_LABELS = {
   input: 'Neu anlegen',
 };
 
-const DEFAULT_IMAGE_PLACEHOLDER = 'https://placehold.co/80x80?text=Kein+Bild';
+export const DEFAULT_IMAGE_PLACEHOLDER = 'https://placehold.co/80x80?text=Kein+Bild';
+const AUTHENTICATED_PANEL_IMAGE_SELECTOR = 'img[data-auth-image-src]';
+const authenticatedPanelImageStates = new WeakMap();
 
 export function bindShoppingImageFallbacks(root = document) {
   if (!root?.querySelectorAll) return;
@@ -24,6 +26,128 @@ export function bindShoppingImageFallbacks(root = document) {
       applyFallback();
     }
   });
+}
+
+function getAuthenticatedImageStates(root) {
+  if (!authenticatedPanelImageStates.has(root)) {
+    authenticatedPanelImageStates.set(root, new Map());
+  }
+  return authenticatedPanelImageStates.get(root);
+}
+
+function revokeObjectUrl(objectUrl) {
+  if (!objectUrl || typeof URL?.revokeObjectURL !== 'function') return;
+  URL.revokeObjectURL(objectUrl);
+}
+
+function cleanupAuthenticatedImageState(state, { abort = true } = {}) {
+  if (!state) return;
+  if (abort) {
+    state.controller?.abort?.();
+  }
+  revokeObjectUrl(state.objectUrl);
+}
+
+export function isAuthenticatedPanelImageSource(url) {
+  const normalized = String(url || '').trim();
+  if (!normalized || normalized.startsWith('data:')) return false;
+
+  try {
+    const parsed = new URL(
+      normalized,
+      typeof window !== 'undefined' ? window.location.origin : 'http://localhost',
+    );
+    return parsed.pathname.endsWith('/api/dashboard/product-picture');
+  } catch (_) {
+    return normalized.includes('/api/dashboard/product-picture');
+  }
+}
+
+export function resolveRenderableImageSource(url, { resolveUrl, fallbackSrc = DEFAULT_IMAGE_PLACEHOLDER } = {}) {
+  const resolved = resolveShoppingImageSource(url, { resolveUrl });
+  if (!isAuthenticatedPanelImageSource(resolved)) {
+    return {
+      authSrc: '',
+      fallbackSrc,
+      src: resolved,
+    };
+  }
+
+  return {
+    authSrc: resolved,
+    fallbackSrc,
+    src: fallbackSrc,
+  };
+}
+
+export function bindAuthenticatedPanelImages(root = document, { loadImage } = {}) {
+  if (!root?.querySelectorAll || typeof loadImage !== 'function') return;
+
+  const states = getAuthenticatedImageStates(root);
+  const images = Array.from(root.querySelectorAll(AUTHENTICATED_PANEL_IMAGE_SELECTOR));
+  const activeImages = new Set(images);
+
+  for (const [image, state] of states.entries()) {
+    if (activeImages.has(image)) continue;
+    cleanupAuthenticatedImageState(state);
+    states.delete(image);
+  }
+
+  images.forEach((image) => {
+    const authSrc = String(image.dataset.authImageSrc || '').trim();
+    if (!authSrc) return;
+
+    const existingState = states.get(image);
+    if (existingState?.src === authSrc && existingState.status === 'loaded') return;
+    if (existingState?.src === authSrc && existingState.status === 'loading') return;
+
+    cleanupAuthenticatedImageState(existingState);
+
+    const controller = typeof AbortController === 'function'
+      ? new AbortController()
+      : { signal: undefined, abort() {} };
+    const state = {
+      controller,
+      objectUrl: '',
+      src: authSrc,
+      status: 'loading',
+    };
+    states.set(image, state);
+
+    Promise.resolve(loadImage(authSrc, { signal: controller.signal }))
+      .then((objectUrl) => {
+        if (controller.signal?.aborted) {
+          revokeObjectUrl(objectUrl);
+          return;
+        }
+        if (states.get(image) !== state) {
+          revokeObjectUrl(objectUrl);
+          return;
+        }
+
+        revokeObjectUrl(state.objectUrl);
+        state.objectUrl = objectUrl;
+        state.status = 'loaded';
+        image.src = objectUrl;
+      })
+      .catch(() => {
+        if (controller.signal?.aborted) return;
+        if (states.get(image) !== state) return;
+
+        state.status = 'error';
+        image.src = image.dataset.fallbackSrc || DEFAULT_IMAGE_PLACEHOLDER;
+      });
+  });
+}
+
+export function cleanupAuthenticatedPanelImages(root = document) {
+  const states = authenticatedPanelImageStates.get(root);
+  if (!states) return;
+
+  for (const state of states.values()) {
+    cleanupAuthenticatedImageState(state);
+  }
+  authenticatedPanelImageStates.delete(root);
 }
 
 export function escapeHtml(value) {
@@ -135,7 +259,7 @@ export function renderShoppingVariantCard(variant, options = {}) {
   const sourceLabel = VARIANT_SOURCE_LABELS[variantSource] || VARIANT_SOURCE_LABELS.grocy;
   const amountValue = options.amount ?? variant?.amount ?? variant?.default_amount ?? '1';
   const amountLabel = formatAmount(amountValue);
-  const resolvedImageSource = resolveShoppingImageSource(variant?.picture_url, { resolveUrl: options.resolveImageUrl });
+  const imageSource = resolveRenderableImageSource(variant?.picture_url, { resolveUrl: options.resolveImageUrl });
   const dataset = {
     action: options.actionName || 'shopping-select-variant',
     'product-id': variant?.product_id ?? variant?.id ?? '',
@@ -153,7 +277,7 @@ export function renderShoppingVariantCard(variant, options = {}) {
       <button class="shopping-card__button variant-card__button" type="button" ${buildDataAttributes(dataset)}>
         <div class="shopping-card__surface">
           <div class="shopping-card__media-wrap">
-            <img class="shopping-card__media" src="${escapeHtml(resolvedImageSource)}" alt="${escapeHtml(variantName)}" loading="lazy" data-shopping-image="true" data-fallback-src="${escapeHtml(DEFAULT_IMAGE_PLACEHOLDER)}" />
+            <img class="shopping-card__media" src="${escapeHtml(imageSource.src)}" alt="${escapeHtml(variantName)}" loading="lazy" data-shopping-image="true" data-fallback-src="${escapeHtml(imageSource.fallbackSrc)}"${imageSource.authSrc ? ` data-auth-image-src="${escapeHtml(imageSource.authSrc)}"` : ''} />
             <span class="shopping-badge shopping-badge--amount variant-amount-badge">${escapeHtml(amountLabel)}</span>
           </div>
           <div class="shopping-card__body">
@@ -185,7 +309,7 @@ export function renderShoppingListItemCard(item, options = {}) {
   const stockLabel = formatStockCount(item?.in_stock, '0');
   const bestBeforeDate = formatBadgeValue(item?.best_before_date, options.mhdFallback || 'MHD wählen');
   const locationLabel = String(item?.location_name || '').trim();
-  const resolvedImageSource = resolveShoppingImageSource(item?.picture_url, { resolveUrl: options.resolveImageUrl });
+  const imageSource = resolveRenderableImageSource(item?.picture_url, { resolveUrl: options.resolveImageUrl });
   const actionButtons = Array.isArray(options.actionButtons) ? options.actionButtons : [];
   const rootClassName = [
     'shopping-card',
@@ -261,7 +385,7 @@ export function renderShoppingListItemCard(item, options = {}) {
   return `
     <div class="${rootClassName}">
       <div class="shopping-card__surface">
-        <img class="shopping-card__media" src="${escapeHtml(resolvedImageSource)}" alt="${escapeHtml(title)}" loading="lazy" data-shopping-image="true" data-fallback-src="${escapeHtml(DEFAULT_IMAGE_PLACEHOLDER)}" />
+        <img class="shopping-card__media" src="${escapeHtml(imageSource.src)}" alt="${escapeHtml(title)}" loading="lazy" data-shopping-image="true" data-fallback-src="${escapeHtml(imageSource.fallbackSrc)}"${imageSource.authSrc ? ` data-auth-image-src="${escapeHtml(imageSource.authSrc)}"` : ''} />
         <div class="shopping-card__body shopping-card__body--swipe">
           <div class="shopping-card__main">
             <div class="shopping-card__header">
