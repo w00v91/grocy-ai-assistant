@@ -7,13 +7,10 @@
 - Docs (API): README dokumentiert die tatsächlich in `grocy_ai_assistant/api/routes.py` bereitgestellten Integrations- und Dashboard-Routen jetzt gruppiert nach Zweck und ergänzt insbesondere die bisher fehlenden `/api/v1/`-Endpunkte für Einkaufsliste, Lager, Rezepte, Barcode und Last-Scan.
 - Docs (Add-on): `grocy_ai_assistant/DOCS.md` unterscheidet nun explizit zwischen Integrations-API (`/api/v1/...`) und Dashboard-/UI-API (`/api/dashboard/...`) und verweist für Notification-spezifische Endpunkte auf die dedizierten Architektur-/Dashboard-Spezifikationen.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.30` erhöht.
-
-# Changelog
-
-All notable changes to this project will be documented in this file.
+- Fix (Grocy/Create-Product): Produktanlagen normalisieren jetzt ungültige KI-Lagerort- und Mengeneinheits-IDs vor dem ersten POST auf valide Grocy-IDs, sodass `/api/dashboard/search` nicht mehr mit 400 auf `/objects/products` scheitert.
+- Test: Unit-Regressionen für die Vorab-Normalisierung ungültiger `location_id`-/`qu_id_*`-Werte ergänzt; Versionsstände auf `8.0.30` erhöht.
 
 ## 2026-03-23 (Dokumentation)
-
 - Docs: `README.md` an die tatsächliche Repository-Struktur angepasst; der Projektbaum zeigt jetzt `grocy_ai_assistant/CHANGELOG.md` statt eines Root-Changelogs.
 - Docs: Versionsangaben im README auf den aktuellen Stand aus `grocy_ai_assistant/config.yaml` (`8.0.27`) und `grocy_ai_assistant/custom_components/grocy_ai_assistant/manifest.json` (`8.0.29`) aktualisiert und den Changelog-Link auf den realen Pfad korrigiert.
 - Docs: Relative Markdown-Links im README gegen die vorhandenen Dateipfade geprüft.

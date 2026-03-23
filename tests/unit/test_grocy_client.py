@@ -2198,6 +2198,70 @@ def test_create_product_retries_with_sanitized_payload_on_400(monkeypatch):
     }
 
 
+def test_create_product_normalizes_invalid_ids_before_first_request(monkeypatch):
+    posted_payloads = []
+
+    class CreatedResponse:
+        status_code = 200
+        text = ""
+
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return {"created_object_id": 9}
+
+    def fake_post(url, *args, **kwargs):
+        posted_payloads.append(kwargs.get("json"))
+        return CreatedResponse()
+
+    def fake_get(url, *args, **kwargs):
+        if url.endswith("/objects/locations"):
+            return FakeResponse([{"id": 1, "name": "Kuehlschrank"}])
+        if url.endswith("/objects/quantity_units"):
+            return FakeResponse(
+                [{"id": 1, "name": "Stueck"}, {"id": 2, "name": "Packung"}]
+            )
+        raise AssertionError(f"Unexpected url: {url}")
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.services.grocy_client.requests.post", fake_post
+    )
+    monkeypatch.setattr(
+        "grocy_ai_assistant.services.grocy_client.requests.get", fake_get
+    )
+
+    client = GrocyClient(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+        )
+    )
+
+    created_id = client.create_product(
+        {
+            "name": "Oliven",
+            "description": "text",
+            "location_id": 999,
+            "qu_id_purchase": 999,
+            "qu_id_stock": 999,
+        }
+    )
+
+    assert created_id == 9
+    assert posted_payloads == [
+        {
+            "name": "Oliven",
+            "description": "text",
+            "location_id": 1,
+            "qu_id_purchase": 1,
+            "qu_id_stock": 1,
+        }
+    ]
+
+
 def test_create_product_keeps_valid_ids_in_retry_payload(monkeypatch):
     posted_payloads = []
 
@@ -2287,8 +2351,18 @@ def test_create_product_does_not_retry_without_unknown_column_error(monkeypatch)
         posted_payloads.append(kwargs.get("json"))
         return BadRequestResponse()
 
+    def fake_get(url, *args, **kwargs):
+        if url.endswith("/objects/locations"):
+            return FakeResponse([{"id": 1, "name": "Kuehlschrank"}])
+        if url.endswith("/objects/quantity_units"):
+            return FakeResponse([{"id": 1, "name": "Stueck"}])
+        raise AssertionError(f"Unexpected url: {url}")
+
     monkeypatch.setattr(
         "grocy_ai_assistant.services.grocy_client.requests.post", fake_post
+    )
+    monkeypatch.setattr(
+        "grocy_ai_assistant.services.grocy_client.requests.get", fake_get
     )
 
     client = GrocyClient(
