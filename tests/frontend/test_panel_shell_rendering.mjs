@@ -135,7 +135,11 @@ test('shopping list header keeps title and refresh action on one row in mobile l
   const cssSource = await fs.readFile(dashboardCssPath, 'utf8');
 
   assert.match(source, /listHeader\.className = 'section-header shopping-list-section__header';/);
+  assert.match(source, /listEyebrow\.className = 'eyebrow';/);
+  assert.match(source, /listEyebrow\.textContent = 'Einkauf';/);
+  assert.match(source, /listCopy\.append\(listEyebrow, listTitle\);/);
   assert.match(cssSource, /\.shopping-list-section__header \{[\s\S]*?align-items: center;[\s\S]*?flex-wrap: nowrap;/);
+  assert.match(cssSource, /\.shopping-list-section__header \.section-header__copy \{[\s\S]*?gap: var\(--panel-compact-gap\);/);
   assert.match(cssSource, /\.shopping-list-section__header \.primary-button \{[\s\S]*?margin-left: auto;[\s\S]*?white-space: nowrap;/);
   assert.match(cssSource, /@media \(max-width: 800px\) \{[\s\S]*?\.shopping-list-section__header \{[\s\S]*?flex-direction: row;[\s\S]*?align-items: center;/);
 });
@@ -157,8 +161,10 @@ test('shopping tab keeps the scanner trigger in the same mobile header row as th
   const cssSource = await fs.readFile(dashboardCssPath, 'utf8');
 
   assert.match(source, /heroHeader\.className = 'section-header shopping-hero-card__header';/);
+  assert.match(source, /heroCopy\.className = 'section-header__copy';/);
+  assert.match(source, /heroCopy\.append\(heroTitle\);/);
   assert.match(source, /scannerButton\.innerHTML = renderHaIcon\('mdi:barcode-scan', 'scanner-popup-button__icon'\);/);
-  assert.match(cssSource, /\.shopping-hero-card__header \{[\s\S]*?align-items: center;/);
+  assert.match(cssSource, /\.shopping-hero-card__header \{[\s\S]*?align-items: center;[\s\S]*?margin-bottom: var\(--panel-stack-gap\);/);
   assert.match(cssSource, /\.shopping-hero-card__header \.scanner-popup-button \{[\s\S]*?margin-left: auto;/);
   assert.match(cssSource, /\.scanner-popup-button__icon \{[\s\S]*?--mdc-icon-size: 24px;/);
   assert.match(cssSource, /@media \(max-width: 800px\) \{[\s\S]*?\.shopping-hero-card__header \{[\s\S]*?flex-direction: row;[\s\S]*?align-items: center;/);
