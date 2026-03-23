@@ -109,6 +109,7 @@
 
 .shopping-hero-card__header {
   align-items: center;
+  margin-bottom: var(--panel-stack-gap);
 }
 
 .shopping-hero-card__header h2 {
@@ -158,8 +159,24 @@ h1 {
 }
 
 .dashboard-content {
+  display: block;
+}
+
+grocy-ai-topbar,
+grocy-ai-shopping-tab,
+grocy-ai-recipes-tab,
+grocy-ai-storage-tab,
+grocy-ai-notifications-tab,
+grocy-ai-dashboard-modals,
+grocy-ai-scanner-bridge,
+grocy-ai-tab-nav {
+  display: block;
+}
+
+.tab-view {
   display: grid;
   gap: var(--panel-gap);
+  align-content: start;
 }
 
 .tab-view.hidden,
@@ -168,6 +185,9 @@ h1 {
 }
 
 .card {
+  display: grid;
+  gap: var(--panel-section-gap);
+  align-content: start;
   padding: var(--panel-card-padding);
 }
 
@@ -185,10 +205,27 @@ h1 {
   min-width: 0;
 }
 
+.shopping-list-section__header .section-header__copy {
+  gap: var(--panel-compact-gap);
+}
+
 .shopping-list-section__header .primary-button {
   margin-left: auto;
   flex: 0 0 auto;
   white-space: nowrap;
+}
+
+.shopping-bulk-actions {
+  width: 100%;
+}
+
+.shopping-bulk-actions > button {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.shopping-bulk-actions > .danger-button {
+  margin-top: 0;
 }
 
 .description,

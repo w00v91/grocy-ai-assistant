@@ -119,12 +119,26 @@ test('recipe filter cards render compact dropdown summaries and keep dropdown st
   assert.match(source, /const openDetails = captureDetailsOpenState\(this\);[\s\S]*?restoreDetailsOpenState\(this, openDetails\);/);
 });
 
+test('shopping list bulk actions share one full row evenly in the native panel', async () => {
+  const source = await fs.readFile(dashboardPath, 'utf8');
+  const cssSource = await fs.readFile(dashboardCssPath, 'utf8');
+
+  assert.match(source, /buttonRow\.className = 'button-row shopping-bulk-actions';/);
+  assert.match(cssSource, /\.shopping-bulk-actions \{[\s\S]*?width: 100%;/);
+  assert.match(cssSource, /\.shopping-bulk-actions > button \{[\s\S]*?flex: 1 1 0;[\s\S]*?min-width: 0;/);
+  assert.match(cssSource, /\.shopping-bulk-actions > \.danger-button \{[\s\S]*?margin-top: 0;/);
+});
+
 test('shopping list header keeps title and refresh action on one row in mobile layouts', async () => {
   const source = await fs.readFile(dashboardPath, 'utf8');
   const cssSource = await fs.readFile(dashboardCssPath, 'utf8');
 
   assert.match(source, /listHeader\.className = 'section-header shopping-list-section__header';/);
+  assert.match(source, /listEyebrow\.className = 'eyebrow';/);
+  assert.match(source, /listEyebrow\.textContent = 'Einkauf';/);
+  assert.match(source, /listCopy\.append\(listEyebrow, listTitle\);/);
   assert.match(cssSource, /\.shopping-list-section__header \{[\s\S]*?align-items: center;[\s\S]*?flex-wrap: nowrap;/);
+  assert.match(cssSource, /\.shopping-list-section__header \.section-header__copy \{[\s\S]*?gap: var\(--panel-compact-gap\);/);
   assert.match(cssSource, /\.shopping-list-section__header \.primary-button \{[\s\S]*?margin-left: auto;[\s\S]*?white-space: nowrap;/);
   assert.match(cssSource, /@media \(max-width: 800px\) \{[\s\S]*?\.shopping-list-section__header \{[\s\S]*?flex-direction: row;[\s\S]*?align-items: center;/);
 });
@@ -146,8 +160,10 @@ test('shopping tab keeps the scanner trigger in the same mobile header row as th
   const cssSource = await fs.readFile(dashboardCssPath, 'utf8');
 
   assert.match(source, /heroHeader\.className = 'section-header shopping-hero-card__header';/);
+  assert.match(source, /heroCopy\.className = 'section-header__copy';/);
+  assert.match(source, /heroCopy\.append\(heroTitle\);/);
   assert.match(source, /scannerButton\.innerHTML = renderHaIcon\('mdi:barcode-scan', 'scanner-popup-button__icon'\);/);
-  assert.match(cssSource, /\.shopping-hero-card__header \{[\s\S]*?align-items: center;/);
+  assert.match(cssSource, /\.shopping-hero-card__header \{[\s\S]*?align-items: center;[\s\S]*?margin-bottom: var\(--panel-stack-gap\);/);
   assert.match(cssSource, /\.shopping-hero-card__header \.scanner-popup-button \{[\s\S]*?margin-left: auto;/);
   assert.match(cssSource, /\.scanner-popup-button__icon \{[\s\S]*?--mdc-icon-size: 24px;/);
   assert.match(cssSource, /@media \(max-width: 800px\) \{[\s\S]*?\.shopping-hero-card__header \{[\s\S]*?flex-direction: row;[\s\S]*?align-items: center;/);
@@ -299,7 +315,11 @@ test('dashboard shell derives spacing and surface styling from Home Assistant ca
   assert.match(source, /--panel-spacing: var\(--ha-card-padding, 16px\);/);
   assert.match(source, /--panel-card-padding: var\(--panel-spacing\);/);
   assert.match(source, /\.page-shell \{[\s\S]*?padding: var\(--panel-card-padding\) var\(--panel-card-padding\)/);
+  assert.match(source, /\.dashboard-content \{[\s\S]*?display: block;/);
+  assert.match(source, /grocy-ai-shopping-tab,[\s\S]*?grocy-ai-tab-nav \{[\s\S]*?display: block;/);
+  assert.match(source, /\.tab-view \{[\s\S]*?display: grid;[\s\S]*?gap: var\(--panel-gap\);[\s\S]*?align-content: start;/);
   assert.match(source, /\.card \{[\s\S]*?padding: var\(--panel-card-padding\);/);
+  assert.match(source, /\.card \{[\s\S]*?display: grid;[\s\S]*?gap: var\(--panel-section-gap\);[\s\S]*?align-content: start;/);
   assert.match(source, /\.shopping-search-shell \{[\s\S]*?gap: var\(--panel-section-gap\);[\s\S]*?padding: var\(--panel-gap\);[\s\S]*?border-radius: var\(--panel-radius\);/);
   assert.match(source, /\.shopping-list-native \.shopping-card__surface,[\s\S]*?\.variant-grid \.shopping-card__surface \{[\s\S]*?gap: var\(--panel-stack-gap\);[\s\S]*?padding: var\(--panel-stack-gap\);/);
   assert.match(source, /\.bottom-tabbar \{[\s\S]*?gap: var\(--panel-compact-gap\);[\s\S]*?padding: var\(--panel-stack-gap\);/);
