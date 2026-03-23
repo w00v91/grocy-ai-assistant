@@ -4,6 +4,9 @@
   display: block;
   color: var(--primary-text-color);
   min-height: 100%;
+  line-height: 1.4;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
   --panel-card-background: var(--ha-card-background-color, var(--card-background-color, #fff));
   --panel-border-color: var(--ha-divider-color, var(--divider-color, rgba(0, 0, 0, 0.12)));
   --panel-shadow: var(--ha-card-box-shadow, 0 2px 8px rgba(0, 0, 0, 0.08));
@@ -77,9 +80,9 @@
 }
 
 .topbar-title-row {
-  grid-auto-flow: column;
-  grid-auto-columns: max-content;
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
+  min-width: 0;
 }
 
 .topbar-title-icon {
@@ -128,7 +131,16 @@ ul {
 }
 
 h1 {
-  font-size: 2rem;
+  font-size: clamp(1.9rem, 3vw, 2.25rem);
+  line-height: 1.1;
+}
+
+.topbar-title-row h1,
+.section-header__copy h2,
+.section-header__copy h3,
+.recipe-item-title {
+  text-wrap: pretty;
+  overflow-wrap: break-word;
 }
 
 .dashboard-content {
@@ -662,6 +674,7 @@ select:focus-visible {
 
 .tab-button__label {
   font-weight: 600;
+  white-space: nowrap;
 }
 
 .tab-button__meta {
@@ -1342,6 +1355,32 @@ select:focus-visible {
     flex-direction: column;
   }
 
+  .topbar-meta {
+    gap: 0.5rem;
+  }
+
+  .eyebrow,
+  .search-state-chip,
+  .location-dropdown__summary-title,
+  .tab-button__label {
+    font-size: 0.92rem;
+  }
+
+  .description,
+  .muted,
+  .tab-status,
+  .topbar-status,
+  .search-helper-text,
+  .location-dropdown__summary-value {
+    font-size: 1rem;
+    line-height: 1.55;
+  }
+
+  .panel-card-group--two-column,
+  .shopping-details-grid {
+    grid-template-columns: 1fr;
+  }
+
   .shopping-item-content {
     align-items: stretch;
   }
@@ -1370,12 +1409,22 @@ select:focus-visible {
     min-width: 0;
   }
 
-
-
-
   .recipe-item-native__button,
   .stock-item {
     align-items: flex-start;
+  }
+
+  .stock-item {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .stock-item-attributes {
+    margin-left: 0;
+    justify-content: flex-start;
+  }
+
+  .location-dropdown__summary-value {
+    white-space: normal;
   }
 
   .storage-summary {
