@@ -3,6 +3,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## 2026-03-23 (Version 8.0.19)
+- Changed (Home-Assistant-Integration/Panel): Der Scanner-Button im nativen Einkaufs-Dashboard rendert jetzt ein Home-Assistant-konformes `ha-icon` mit `mdi:barcode-scan` statt des bisherigen pseudo-gemalten Barcode-Icons.
+- Added (Tests/Frontend): Eine Panel-Regression prüft jetzt explizit, dass der native Scanner-Trigger das HA-Icon `mdi:barcode-scan` verwendet.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.19` erhöht.
+
 ## 2026-03-23 (Version 8.0.18)
 - Changed (Home-Assistant-Integration/Panel): Im nativen Lager-Tab sitzt `Aktualisieren` jetzt direkt in der Kopfzeile der Abschnittskarte `Lagerliste` und wird dort rechtsbündig angezeigt.
 - Added (Tests/Frontend): Eine Frontend-Regression prüft, dass die Lagerlisten-Karte weiterhin die Überschrift `Lagerliste` samt rechts ausgerichtetem `Aktualisieren`-Button rendert.

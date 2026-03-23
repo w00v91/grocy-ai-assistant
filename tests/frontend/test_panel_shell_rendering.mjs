@@ -147,8 +147,10 @@ test('shopping tab keeps the scanner trigger in the same mobile header row as th
   const cssSource = await fs.readFile(dashboardCssPath, 'utf8');
 
   assert.match(source, /heroHeader\.className = 'section-header shopping-hero-card__header';/);
+  assert.match(source, /scannerButton\.innerHTML = renderHaIcon\('mdi:barcode-scan', 'scanner-popup-button__icon'\);/);
   assert.match(cssSource, /\.shopping-hero-card__header \{[\s\S]*?align-items: center;/);
   assert.match(cssSource, /\.shopping-hero-card__header \.scanner-popup-button \{[\s\S]*?margin-left: auto;/);
+  assert.match(cssSource, /\.scanner-popup-button__icon \{[\s\S]*?--mdc-icon-size: 24px;/);
   assert.match(cssSource, /@media \(max-width: 800px\) \{[\s\S]*?\.shopping-hero-card__header \{[\s\S]*?flex-direction: row;[\s\S]*?align-items: center;/);
 });
 
