@@ -22,6 +22,10 @@ const sharedShoppingCssPath = path.resolve(
   __dirname,
   '../../grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/shopping-ui.css',
 );
+const nativeDashboardCssPath = path.resolve(
+  __dirname,
+  '../../grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.css',
+);
 
 test('shared swipe helper exports reusable binding utilities', () => {
   assert.equal(typeof bindSwipeInteractions, 'function');
@@ -126,4 +130,12 @@ test('shared shopping card CSS keeps legacy swipe cards in their horizontal layo
   assert.match(source, /\.shopping-card--variant\.variant-card \.shopping-card__surface \{\s+grid-template-columns: minmax\(0, 1fr\);/);
   assert.doesNotMatch(source, /\n\.variant-card \.shopping-card__body \{/);
   assert.match(source, /@media \(max-width: 640px\) \{[\s\S]*?\.shopping-card__body--swipe \{\s+grid-template-columns: minmax\(0, 1fr\);[\s\S]*?\.shopping-item-card--legacy \.shopping-card__surface \{\s+grid-template-columns: auto minmax\(0, 1fr\);[\s\S]*?\.shopping-item-card--legacy \.shopping-card__body--swipe \{\s+grid-template-columns: minmax\(0, 1fr\) auto;[\s\S]*?\.shopping-item-card--legacy \.shopping-card__aside,[\s\S]*?justify-items: end;/);
+});
+
+test('tab button CSS keeps mobile labels vertically centered beside the icon', async () => {
+  const source = await fs.readFile(nativeDashboardCssPath, 'utf8');
+
+  assert.match(source, /\.tab-button \{\s+flex: 1 1 220px;[\s\S]*?line-height: 1;/);
+  assert.match(source, /\.tab-button__icon \{\s+--mdc-icon-size: 20px;[\s\S]*?display: inline-flex;[\s\S]*?align-self: center;[\s\S]*?line-height: 0;/);
+  assert.match(source, /\.tab-button__label \{\s+display: inline-flex;[\s\S]*?align-items: center;[\s\S]*?line-height: 1\.2;[\s\S]*?min-height: 1\.2em;/);
 });

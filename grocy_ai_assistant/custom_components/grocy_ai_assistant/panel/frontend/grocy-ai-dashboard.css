@@ -740,14 +740,25 @@ select:focus-visible {
   gap: var(--panel-compact-gap);
   min-width: 0;
   text-align: center;
+  line-height: 1;
 }
 
 .tab-button__icon {
   --mdc-icon-size: 20px;
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+  line-height: 0;
 }
 
 .tab-button__label {
+  display: inline-flex;
+  align-items: center;
   font-weight: 600;
+  line-height: 1.2;
+  min-height: 1.2em;
   white-space: nowrap;
 }
 
