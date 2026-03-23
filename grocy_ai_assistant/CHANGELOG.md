@@ -1,5 +1,7 @@
-# Changelog
-All notable changes to this project will be documented in this file.
+## 2026-03-23 (Version 8.0.31)
+- Fix (Grocy-Bildupload): Produktbild-Upload verwendet jetzt direkt die funktionierende `PUT /files/productpictures/...`-Variante mit `GROCY-API-KEY`, statt nacheinander nicht funktionierende `POST`-/`/api/files/...`-/Header-Modus-Fallbacks zu durchlaufen.
+- Test: Unit-Tests für den vereinfachten Uploadpfad und den Base64-Dateinamen-Fallback auf die direkte `/files/...`-Variante angepasst.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.31` erhöht.
 
 ## 2026-03-23 (Version 8.0.30)
 - Docs (API): README dokumentiert die tatsächlich in `grocy_ai_assistant/api/routes.py` bereitgestellten Integrations- und Dashboard-Routen jetzt gruppiert nach Zweck und ergänzt insbesondere die bisher fehlenden `/api/v1/`-Endpunkte für Einkaufsliste, Lager, Rezepte, Barcode und Last-Scan.
