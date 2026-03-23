@@ -1274,6 +1274,8 @@ class GrocyAIShoppingTab extends HTMLElement {
     heroCard.className = 'card hero-card shopping-hero-card';
     const heroHeader = document.createElement('div');
     heroHeader.className = 'section-header shopping-hero-card__header';
+    const heroCopy = document.createElement('div');
+    heroCopy.className = 'section-header__copy';
     const heroTitle = document.createElement('h2');
     heroTitle.textContent = 'Grocy AI Suche';
     const scannerButton = document.createElement('button');
@@ -1282,7 +1284,8 @@ class GrocyAIShoppingTab extends HTMLElement {
     scannerButton.dataset.action = 'shopping-open-scanner';
     scannerButton.setAttribute('aria-label', 'Barcode-Scanner öffnen');
     scannerButton.innerHTML = renderHaIcon('mdi:barcode-scan', 'scanner-popup-button__icon');
-    heroHeader.append(heroTitle, scannerButton);
+    heroCopy.append(heroTitle);
+    heroHeader.append(heroCopy, scannerButton);
     const searchBar = document.createElement('grocy-ai-shopping-search-bar');
     heroCard.append(heroHeader, searchBar);
 
@@ -1290,14 +1293,20 @@ class GrocyAIShoppingTab extends HTMLElement {
     listSection.className = 'card shopping-list-section';
     const listHeader = document.createElement('div');
     listHeader.className = 'section-header shopping-list-section__header';
+    const listCopy = document.createElement('div');
+    listCopy.className = 'section-header__copy';
+    const listEyebrow = document.createElement('p');
+    listEyebrow.className = 'eyebrow';
+    listEyebrow.textContent = 'Einkauf';
     const listTitle = document.createElement('h2');
     listTitle.textContent = 'Einkaufsliste';
+    listCopy.append(listEyebrow, listTitle);
     const refreshButton = document.createElement('button');
     refreshButton.className = 'primary-button';
     refreshButton.type = 'button';
     refreshButton.dataset.action = 'shopping-refresh';
     refreshButton.textContent = 'Aktualisieren';
-    listHeader.append(listTitle, refreshButton);
+    listHeader.append(listCopy, refreshButton);
 
     const list = document.createElement('ul');
     list.className = 'shopping-list-native';

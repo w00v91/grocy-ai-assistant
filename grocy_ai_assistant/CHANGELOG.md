@@ -3,6 +3,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## 2026-03-23 (Version 8.0.20)
+- Changed (Home-Assistant-Integration/Panel): Die Kopfzeile der nativen Einkaufsliste zeigt jetzt wie die übrigen Tabs eine `Einkauf`-Eyebrow über `Einkaufsliste`.
+- Fix (Home-Assistant-Integration/Panel): Unter der Überschrift `Grocy AI Suche` sitzt wieder ein sichtbarer Abstand zur Suchleiste, damit die Section-Header-Vertikale konsistent wirkt.
+- Added (Tests/Frontend): Eine Panel-Regression prüft die neue `Einkauf`-Eyebrow der Einkaufsliste sowie den wiederhergestellten Header-Abstand der Shopping-Suche.
+- Changed (Versioning): Integrationsversion auf `8.0.20` erhöht.
+
 ## 2026-03-23 (Version 8.0.19)
 - Changed (Home-Assistant-Integration/Panel): Der Scanner-Button im nativen Einkaufs-Dashboard rendert jetzt ein Home-Assistant-konformes `ha-icon` mit `mdi:barcode-scan` statt des bisherigen pseudo-gemalten Barcode-Icons.
 - Added (Tests/Frontend): Eine Panel-Regression prüft jetzt explizit, dass der native Scanner-Trigger das HA-Icon `mdi:barcode-scan` verwendet.

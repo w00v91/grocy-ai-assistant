@@ -109,6 +109,7 @@
 
 .shopping-hero-card__header {
   align-items: center;
+  margin-bottom: var(--panel-stack-gap);
 }
 
 .shopping-hero-card__header h2 {
@@ -183,6 +184,10 @@ h1 {
 .shopping-list-section__header h2 {
   flex: 1 1 auto;
   min-width: 0;
+}
+
+.shopping-list-section__header .section-header__copy {
+  gap: var(--panel-compact-gap);
 }
 
 .shopping-list-section__header .primary-button {
