@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## 2026-03-23 (Dokumentation)
+
+- Docs: `README.md` an die tatsächliche Repository-Struktur angepasst; der Projektbaum zeigt jetzt `grocy_ai_assistant/CHANGELOG.md` statt eines Root-Changelogs.
+- Docs: Versionsangaben im README auf den aktuellen Stand aus `grocy_ai_assistant/config.yaml` (`8.0.27`) und `grocy_ai_assistant/custom_components/grocy_ai_assistant/manifest.json` (`8.0.29`) aktualisiert und den Changelog-Link auf den realen Pfad korrigiert.
+- Docs: Relative Markdown-Links im README gegen die vorhandenen Dateipfade geprüft.
+
 ## 2026-03-23 (Version 8.0.29)
 
 - Fix (Home-Assistant-Integration/Panel/Einkauf): Die Produktsuche im nativen Shopping-Panel feuert Submit-, Clear- und Varianten-Klick-Events nicht mehr doppelt ab; dadurch wird `analyze_product_name` beim direkten Neuanlegen eines Produkts nur noch einmal ausgelöst.
