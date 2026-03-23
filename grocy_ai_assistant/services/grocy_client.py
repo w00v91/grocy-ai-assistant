@@ -464,7 +464,13 @@ class GrocyClient:
             if response.status_code != 400:
                 raise
 
-            retry_payload = self._build_product_payload_retry(product_payload)
+            retry_payload = self._build_product_payload_retry(
+                product_payload,
+                getattr(response, "text", ""),
+            )
+            if retry_payload == product_payload:
+                raise
+
             attempted_payloads: list[Dict[str, Any]] = [product_payload]
 
             while retry_payload not in attempted_payloads:
@@ -515,8 +521,11 @@ class GrocyClient:
         }
 
     def _build_product_payload_retry(
-        self, product_payload: Dict[str, Any]
+        self, product_payload: Dict[str, Any], response_text: str
     ) -> Dict[str, Any]:
+        if not self.UNKNOWN_COLUMN_PATTERN.search(response_text or ""):
+            return product_payload
+
         valid_location_ids = {item["id"] for item in self.get_locations()}
         valid_unit_ids = set(self.get_quantity_units().keys())
 

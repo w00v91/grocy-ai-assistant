@@ -2329,7 +2329,7 @@ def test_attach_product_picture_retries_with_base64_filename(monkeypatch, tmp_pa
 def test_create_product_retries_with_sanitized_payload_on_400(monkeypatch):
     class BadRequestResponse:
         status_code = 400
-        text = "invalid fields"
+        text = '{"error_message":"table products has no column named calories"}'
 
         def raise_for_status(self):
             raise HTTPError("Bad Request")
@@ -2407,7 +2407,7 @@ def test_create_product_keeps_valid_ids_in_retry_payload(monkeypatch):
 
     class BadRequestResponse:
         status_code = 400
-        text = "invalid fields"
+        text = '{"error_message":"table products has no column named fat"}'
 
         def raise_for_status(self):
             raise HTTPError("Bad Request")
@@ -2469,6 +2469,61 @@ def test_create_product_keeps_valid_ids_in_retry_payload(monkeypatch):
     assert posted_payloads[1]["qu_id_purchase"] == 2
     assert posted_payloads[1]["qu_id_stock"] == 1
     assert "fat" not in posted_payloads[1]
+
+
+def test_create_product_does_not_retry_without_unknown_column_error(monkeypatch):
+    posted_payloads = []
+
+    class BadRequestResponse:
+        status_code = 400
+        text = (
+            '{"error_message":"SQLSTATE[23000]: Integrity constraint violation: 19 '
+            'UNIQUE constraint failed: products.name"}'
+        )
+
+        def raise_for_status(self):
+            raise HTTPError("Bad Request")
+
+        def json(self):
+            return {}
+
+    def fake_post(url, *args, **kwargs):
+        posted_payloads.append(kwargs.get("json"))
+        return BadRequestResponse()
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.services.grocy_client.requests.post", fake_post
+    )
+
+    client = GrocyClient(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+        )
+    )
+
+    with pytest.raises(HTTPError):
+        client.create_product(
+            {
+                "name": "Oliven",
+                "description": "text",
+                "location_id": 1,
+                "qu_id_purchase": 1,
+                "qu_id_stock": 1,
+            }
+        )
+
+    assert posted_payloads == [
+        {
+            "name": "Oliven",
+            "description": "text",
+            "location_id": 1,
+            "qu_id_purchase": 1,
+            "qu_id_stock": 1,
+        }
+    ]
 
 
 def test_create_product_retries_by_removing_unknown_columns(monkeypatch):
