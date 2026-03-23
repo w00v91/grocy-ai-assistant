@@ -36,9 +36,9 @@ Weitere Details: [ARCHITECTURE.md](ARCHITECTURE.md)
 │   ├── models/
 │   └── services/
 ├── tests/
-├── CHANGELOG.md
 ├── ARCHITECTURE.md
 ├── README.md
+├── grocy_ai_assistant/CHANGELOG.md
 └── grocy_ai_assistant/DOCS.md
 ```
 
@@ -223,8 +223,10 @@ Zusätzlich nutzt die Integration eine Konstante in `const.py`, die synchron zur
 
 Aktueller Stand:
 
-- **Add-on:** `8.0.12`
-- **Integration:** `8.0.12`
+- **Add-on (`grocy_ai_assistant/config.yaml`):** `8.0.27`
+- **Integration (`grocy_ai_assistant/custom_components/grocy_ai_assistant/manifest.json`):** `8.0.29`
+
+Hinweis: Der aktuelle Repository-Stand zeigt hier bewusst zwei unterschiedliche Versionswerte, weil Add-on und Integration derzeit nicht auf exakt demselben Release-Stand liegen.
 
 ## Add-on-Dokumentation
 
@@ -232,4 +234,4 @@ Eine Home-Assistant-konforme Add-on-Benutzerdokumentation findest du in `grocy_a
 
 ## Changelog
 
-Änderungen werden in [CHANGELOG.md](CHANGELOG.md) gepflegt.
+Änderungen werden in [grocy_ai_assistant/CHANGELOG.md](grocy_ai_assistant/CHANGELOG.md) gepflegt.

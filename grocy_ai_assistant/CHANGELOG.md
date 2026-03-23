@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## 2026-03-23 (Dokumentation)
+
+- Docs: `README.md` an die tatsächliche Repository-Struktur angepasst; der Projektbaum zeigt jetzt `grocy_ai_assistant/CHANGELOG.md` statt eines Root-Changelogs.
+- Docs: Versionsangaben im README auf den aktuellen Stand aus `grocy_ai_assistant/config.yaml` (`8.0.27`) und `grocy_ai_assistant/custom_components/grocy_ai_assistant/manifest.json` (`8.0.29`) aktualisiert und den Changelog-Link auf den realen Pfad korrigiert.
+- Docs: Relative Markdown-Links im README gegen die vorhandenen Dateipfade geprüft.
+
 ## 2026-03-23 (Version 8.0.29)
 
 - Fix (Grocy/Produktanlage): Produkt-Create-Retries laufen jetzt nur noch bei echten Schemafehlern vom Typ `has no column named ...`; generische `400 Bad Request`-Antworten wie doppelte Produktnamen lösen keinen fehlerhaften zweiten Create-Call mehr aus.
