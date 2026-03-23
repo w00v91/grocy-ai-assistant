@@ -6,6 +6,10 @@ All notable changes to this project will be documented in this file.
 
 - Fix (Produktsuche/Varianten): Auswahl der Eingabe-Variante im nativen Shopping-Panel erkennt nun wieder zuverlässig `productSource=input`, erzwingt dadurch die Neuanlage statt erneut in die Variantenauswahl zu fallen und belässt Suchtexte ohne explizite Mengenangabe ohne künstliches `1`-Präfix.
 - Test: Frontend-Controller-Tests für `productSource` aus dem Variantendatensatz sowie für Vorschlagsübernahme ohne implizites `1`-Präfix ergänzt.
+- Fix (Home-Assistant-Integration/Panel/Einkauf): Das Status-Badge unter der Produktsuche im nativen Panel darf jetzt bei langen Meldungen umbrechen, statt horizontal auszureißen.
+- Fix (Dashboard/Web/Einkauf): Auch das Status-Badge unter der Produktsuche im klassischen Dashboard bricht lange Texte jetzt sauber um.
+- Added (Tests/Frontend): CSS-Regressionen sichern das neue Umbruch-Verhalten der Such-Status-Badges im nativen Panel und im Web-Dashboard ab.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.26` erhöht.
 
 ## 2026-03-23 (Version 8.0.25)
 
