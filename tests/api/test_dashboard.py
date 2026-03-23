@@ -73,6 +73,16 @@ def test_dashboard_has_mobile_friendly_layout_rules(client):
     assert "flex-direction: column;" in static_response.text
 
 
+def test_dashboard_search_status_badge_wraps_long_text(client):
+    static_response = client.get("/dashboard-static/dashboard.css")
+
+    assert static_response.status_code == 200
+    assert "#status-shopping.search-status-badge" in static_response.text
+    assert "flex-wrap: wrap;" in static_response.text
+    assert "white-space: normal;" in static_response.text
+    assert "overflow-wrap: anywhere;" in static_response.text
+
+
 def test_dashboard_exposes_nested_panel_frontend_assets(client):
     css_response = client.get("/dashboard-static/panel-frontend/shopping-ui.css")
     js_response = client.get("/dashboard-static/panel-frontend/shopping-ui.js")

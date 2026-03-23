@@ -941,6 +941,7 @@ button:focus-visible {
 
 #status-shopping.search-status-badge {
   display: inline-flex;
+  flex-wrap: wrap;
   justify-self: flex-start;
   align-items: center;
   width: fit-content;
@@ -952,6 +953,8 @@ button:focus-visible {
   color: var(--badge-text);
   font-size: 0.82rem;
   font-weight: 700;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.8rem; }
 li {

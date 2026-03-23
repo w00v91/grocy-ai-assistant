@@ -135,8 +135,8 @@ test('shopping tab uses a badge-style search status and omits list status text a
 
   assert.match(source, /helper\.className = `search-helper-text shopping-status-chip shopping-status-chip--\$\{model\.errorMessage \? 'error' : searchUiState\}`;/);
   assert.doesNotMatch(source, /const status = document\.createElement\('p'\);[\s\S]*?listSection\.append\(listHeader, list, status, buttonRow\);/);
-  assert.match(cssSource, /\.search-helper-text \{[\s\S]*?width: fit-content;[\s\S]*?max-width: 100%;/);
-  assert.match(cssSource, /\.search-helper-text\.shopping-status-chip \{[\s\S]*?justify-self: start;/);
+  assert.match(cssSource, /\.search-helper-text \{[\s\S]*?width: fit-content;[\s\S]*?max-width: 100%;[\s\S]*?white-space: normal;[\s\S]*?overflow-wrap: anywhere;/);
+  assert.match(cssSource, /\.search-helper-text\.shopping-status-chip \{[\s\S]*?justify-self: start;[\s\S]*?flex-wrap: wrap;/);
   assert.match(cssSource, /\.search-helper-text\.shopping-status-chip--error \{[\s\S]*?background:/);
 });
 
