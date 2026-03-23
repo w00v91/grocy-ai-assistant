@@ -107,6 +107,20 @@
   justify-items: end;
 }
 
+.shopping-hero-card__header {
+  align-items: center;
+}
+
+.shopping-hero-card__header h2 {
+  min-width: 0;
+  margin: 0;
+}
+
+.shopping-hero-card__header .scanner-popup-button {
+  margin-left: auto;
+  flex: 0 0 auto;
+}
+
 .topbar-meta {
   align-items: center;
   flex-wrap: wrap;
@@ -1432,6 +1446,11 @@ select:focus-visible {
   .search-submit-button {
     width: 100%;
     min-width: 0;
+  }
+
+  .shopping-hero-card__header {
+    flex-direction: row;
+    align-items: center;
   }
 
   .recipe-item-native__button,

@@ -142,6 +142,16 @@ test('storage tab keeps product filter and include-all toggle in one control row
   assert.match(cssSource, /\.storage-summary \{[\s\S]*?display: flex;[\s\S]*?flex-wrap: wrap;[\s\S]*?justify-content: flex-start;/);
 });
 
+test('shopping tab keeps the scanner trigger in the same mobile header row as the title', async () => {
+  const source = await fs.readFile(dashboardPath, 'utf8');
+  const cssSource = await fs.readFile(dashboardCssPath, 'utf8');
+
+  assert.match(source, /heroHeader\.className = 'section-header shopping-hero-card__header';/);
+  assert.match(cssSource, /\.shopping-hero-card__header \{[\s\S]*?align-items: center;/);
+  assert.match(cssSource, /\.shopping-hero-card__header \.scanner-popup-button \{[\s\S]*?margin-left: auto;/);
+  assert.match(cssSource, /@media \(max-width: 800px\) \{[\s\S]*?\.shopping-hero-card__header \{[\s\S]*?flex-direction: row;[\s\S]*?align-items: center;/);
+});
+
 test('recipes, storage, and modal renders restore focused form controls after rerenders', async () => {
   const source = await fs.readFile(dashboardPath, 'utf8');
 

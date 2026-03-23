@@ -4,6 +4,8 @@
 All notable changes to this project will be documented in this file.
 
 ## 2026-03-23 (Version 8.0.18)
+- Fix (Home-Assistant-Integration/Panel/Mobile): Im Einkaufslisten-Tab bleibt der Scanner-Button auf mobilen Viewports jetzt in derselben Kopfzeile wie die Überschrift `Grocy AI Suche` und sitzt rechtsbündig statt unter die Überschrift umzubrechen.
+- Added (Tests/Frontend): Eine Panel-CSS-Regression prüft jetzt explizit die mobile Kopfzeile des Einkaufslisten-Tabs samt rechtsbündigem Scanner-Button.
 - Fix (Home-Assistant-Integration/Panel/Mobile): Die Kopfzeile der nativen Einkaufsliste hält `Einkaufsliste` und den Button `Aktualisieren` jetzt auch auf schmalen Viewports in einer gemeinsamen Zeile; der Button sitzt dabei rechtsbündig statt unter dem Titel umzubrechen.
 - Added (Tests/Frontend): Eine Panel-Regression sichert die einzeilige Shopping-Listen-Kopfzeile inklusive Mobile-Override ab.
 - Fix (Lager-Tab/Filterlayout): Im nativen Panel stehen Produktfilter und `Alle Produkte anzeigen` jetzt in derselben Kontrollzeile; die Summen-Badges sitzen separat darunter.
