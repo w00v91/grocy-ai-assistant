@@ -64,6 +64,10 @@ test('dashboard panel keeps product-picture requests on the HA proxy before the 
   assert.match(source, /function resolvePanelImageUrl\(url, dashboardApi, options = \{\}\)/);
   assert.match(source, /const normalizedApiBasePath = String\(options\?\.apiBasePath \|\| ''\)\.replace\(\/\\\/\+\$\/, ''\);/);
   assert.match(source, /return normalizedApiBasePath \? `\$\{normalizedApiBasePath\}\$\{normalizedPath\}` : normalizedPath;/);
+  assert.match(source, /bindAuthenticatedPanelImages\(this, \{ loadImage: model\.loadProtectedImage \}\);/);
+  assert.match(source, /loadProtectedImage: \(url, options\) => this\._loadAuthenticatedPanelImage\(url, options\),/);
+  assert.match(source, /async _loadAuthenticatedPanelImage\(url, \{ signal \} = \{\}\) \{/);
+  assert.match(source, /Authorization: `Bearer \$\{accessToken\}`/);
   assert.match(source, /const panelImageApiBasePath = this\._dashboardApiBasePath\s+\|\|\s+String\(panelConfig\?\.dashboard_api_base_path \|\| panelConfig\?\.api_base_path \|\| ''\)\.replace\(\/\\\/\+\$\/, ''\);/);
   assert.match(source, /resolveImageUrl: \(url\) => resolvePanelImageUrl\(url, this\._dashboardApi, \{ apiBasePath: panelImageApiBasePath \}\),/);
 });
@@ -98,10 +102,10 @@ test('shopping tab and search bar keep their stable DOM shells instead of replac
 test('native panel binds shared shopping image fallbacks after list and variant renders', async () => {
   const source = await fs.readFile(dashboardPath, 'utf8');
 
-  assert.match(source, /import \{ bindShoppingImageFallbacks, escapeHtml, formatAmount, formatBadgeValue, formatStockCount, renderShoppingListItemCard, renderShoppingVariantCard, resolveShoppingImageSource \} from '\.\/shopping-ui\.js';/);
+  assert.match(source, /import \{ bindAuthenticatedPanelImages, bindShoppingImageFallbacks, cleanupAuthenticatedPanelImages, DEFAULT_IMAGE_PLACEHOLDER, escapeHtml, formatAmount, formatBadgeValue, formatStockCount, renderShoppingListItemCard, renderShoppingVariantCard, resolveRenderableImageSource, resolveShoppingImageSource \} from '\.\/shopping-ui\.js';/);
   assert.match(source, /const markup = renderShoppingVariantCard\(variant, \{\s+amount: parsedAmount \|\| variant\.amount \|\| variant\.default_amount \|\| '1',[\s\S]*?ctaLabel: '',[\s\S]*?resolveImageUrl: this\._viewModel\?\.resolveImageUrl,/);
-  assert.match(source, /variantGrid\.replaceChildren\(\.\.\.nodes\);\s+bindShoppingImageFallbacks\(this\);/);
-  assert.match(source, /list\.replaceChildren\(\.\.\.items\.map\(\(item\) => this\._createShoppingListItem\(item, model\)\)\);\s+bindShoppingImageFallbacks\(this\);/);
+  assert.match(source, /variantGrid\.replaceChildren\(\.\.\.nodes\);\s+bindShoppingImageFallbacks\(this\);\s+bindAuthenticatedPanelImages\(this, \{ loadImage: model\.loadProtectedImage \}\);/);
+  assert.match(source, /list\.replaceChildren\(\.\.\.items\.map\(\(item\) => this\._createShoppingListItem\(item, model\)\)\);\s+bindShoppingImageFallbacks\(this\);\s+bindAuthenticatedPanelImages\(this, \{ loadImage: model\.loadProtectedImage \}\);/);
 });
 
 

@@ -159,7 +159,7 @@ def test_panel_registers_dashboard_proxy_view_once(monkeypatch):
 
     assert len(hass.http.registered_views) == 2
     assert hass.http.registered_views[0].url == panel_module.PANEL_PICTURE_PROXY_URL
-    assert hass.http.registered_views[0].requires_auth is False
+    assert hass.http.registered_views[0].requires_auth is True
     assert (
         hass.http.registered_views[1].url
         == "/api/grocy_ai_assistant/dashboard-proxy/{path:.*}"
@@ -250,6 +250,8 @@ def test_panel_resolves_nested_entry_config_for_dashboard_metadata_and_client(
     assert addon_client_instances
     assert addon_client_instances[-1].args[0] == "http://addon.local:8123"
     assert addon_client_instances[-1].args[1] == "secret-token"
+
+
 def test_native_shopping_hero_renders_einkauf_eyebrow_above_search_title():
     source = (
         Path(__file__).resolve().parents[2]
@@ -267,7 +269,7 @@ def test_native_shopping_hero_renders_einkauf_eyebrow_above_search_title():
     assert "listCopy.append(listTitle);" in source
 
 
-def test_public_product_picture_proxy_forwards_get_without_ha_auth(monkeypatch):
+def test_authenticated_product_picture_proxy_forwards_get_via_panel_route(monkeypatch):
     panel_module, _, _, addon_client_instances = _load_panel_module(monkeypatch)
 
     hass = _FakeHass()
