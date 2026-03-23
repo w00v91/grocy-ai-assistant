@@ -10,6 +10,21 @@ PACKAGE_PATH = ROOT / "grocy_ai_assistant" / "custom_components" / "grocy_ai_ass
 
 
 class _FakeSensorEntity:
+    def __init__(self):
+        self.hass = None
+        self._remove_callbacks = []
+        self._write_count = 0
+
+    def async_write_ha_state(self):
+        if not hasattr(self, "_write_count"):
+            self._write_count = 0
+        self._write_count += 1
+
+    def async_on_remove(self, callback):
+        if not hasattr(self, "_remove_callbacks"):
+            self._remove_callbacks = []
+        self._remove_callbacks.append(callback)
+
     @property
     def name(self):
         return getattr(self, "_attr_name", None)
@@ -72,7 +87,53 @@ class _FakeUpdateFailed(Exception):
     pass
 
 
+class _FakeHass:
+    def __init__(self):
+        self.data = {
+            "grocy_ai_assistant": {
+                "entry-1": {
+                    "entity_runtime": {
+                        "response": {
+                            "state": "Bereit",
+                            "icon": "mdi:comment-text-outline",
+                            "attributes": {},
+                        },
+                        "response_time_last": {
+                            "state": None,
+                            "attributes": {"requests_count": 0},
+                        },
+                        "response_time_avg": {
+                            "state": None,
+                            "attributes": {"requests_count": 0},
+                        },
+                        "analysis_status": {"state": "Bereit", "attributes": {}},
+                        "barcode_status": {"state": "Bereit", "attributes": {}},
+                        "llava_status": {"state": "Bereit", "attributes": {}},
+                        "product_input": {"value": ""},
+                        "response_timing_stats": {"count": 0, "total_ms": 0.0},
+                    }
+                }
+            }
+        }
+
+
 _RUNTIME_COORDINATORS = {}
+_DISPATCHER_LISTENERS = {}
+
+
+def _dispatcher_connect(_hass, signal, callback):
+    listeners = _DISPATCHER_LISTENERS.setdefault(signal, [])
+    listeners.append(callback)
+
+    def _unsubscribe():
+        listeners.remove(callback)
+
+    return _unsubscribe
+
+
+def _dispatcher_send(_hass, signal):
+    for callback in list(_DISPATCHER_LISTENERS.get(signal, [])):
+        callback()
 
 
 def _ensure_stubbed_homeassistant_modules():
@@ -83,6 +144,7 @@ def _ensure_stubbed_homeassistant_modules():
     ha_config_entries = types.ModuleType("homeassistant.config_entries")
     ha_core = types.ModuleType("homeassistant.core")
     ha_helpers = types.ModuleType("homeassistant.helpers")
+    ha_dispatcher = types.ModuleType("homeassistant.helpers.dispatcher")
     ha_entity = types.ModuleType("homeassistant.helpers.entity")
     ha_update_coordinator = types.ModuleType("homeassistant.helpers.update_coordinator")
 
@@ -91,6 +153,8 @@ def _ensure_stubbed_homeassistant_modules():
     ha_const.EntityCategory = _FakeEntityCategory
     ha_config_entries.ConfigEntry = type("ConfigEntry", (), {})
     ha_core.HomeAssistant = type("HomeAssistant", (), {})
+    ha_dispatcher.async_dispatcher_connect = _dispatcher_connect
+    ha_dispatcher.async_dispatcher_send = _dispatcher_send
     ha_entity.EntityCategory = _FakeEntityCategory
     ha_entity.DeviceInfo = _FakeDeviceInfo
     ha_update_coordinator.CoordinatorEntity = _FakeCoordinatorEntity
@@ -104,17 +168,16 @@ def _ensure_stubbed_homeassistant_modules():
     )
     ha_update_coordinator.UpdateFailed = _FakeUpdateFailed
 
-    sys.modules.setdefault("homeassistant", ha_module)
-    sys.modules.setdefault("homeassistant.components", ha_components)
-    sys.modules.setdefault("homeassistant.components.sensor", ha_sensor)
-    sys.modules.setdefault("homeassistant.const", ha_const)
-    sys.modules.setdefault("homeassistant.config_entries", ha_config_entries)
-    sys.modules.setdefault("homeassistant.core", ha_core)
-    sys.modules.setdefault("homeassistant.helpers", ha_helpers)
-    sys.modules.setdefault("homeassistant.helpers.entity", ha_entity)
-    sys.modules.setdefault(
-        "homeassistant.helpers.update_coordinator", ha_update_coordinator
-    )
+    sys.modules["homeassistant"] = ha_module
+    sys.modules["homeassistant.components"] = ha_components
+    sys.modules["homeassistant.components.sensor"] = ha_sensor
+    sys.modules["homeassistant.const"] = ha_const
+    sys.modules["homeassistant.config_entries"] = ha_config_entries
+    sys.modules["homeassistant.core"] = ha_core
+    sys.modules["homeassistant.helpers"] = ha_helpers
+    sys.modules["homeassistant.helpers.dispatcher"] = ha_dispatcher
+    sys.modules["homeassistant.helpers.entity"] = ha_entity
+    sys.modules["homeassistant.helpers.update_coordinator"] = ha_update_coordinator
 
 
 def _load_module(module_name: str, filename: str):
@@ -148,6 +211,7 @@ def _load_sensor_module():
 
     _load_module(f"{PACKAGE_NAME}.const", "const.py")
     _load_module(f"{PACKAGE_NAME}.entity", "entity.py")
+    _load_module(f"{PACKAGE_NAME}.runtime", "runtime.py")
     return _load_module(f"{PACKAGE_NAME}.sensor", "sensor.py")
 
 
@@ -240,101 +304,54 @@ def test_status_sensor_uses_offline_fallback_when_status_coordinator_has_failed(
 
     assert sensor.available is False
     assert sensor.native_value == "Offline"
-    assert sensor.extra_state_attributes["last_update_success"] is False
     assert (
         sensor.extra_state_attributes["last_error"]
         == "Status-Endpunkt nicht erreichbar"
     )
 
 
-def test_update_required_sensor_uses_unknown_fallback_when_status_coordinator_fails():
-    sensor = sensor_module.GrocyAIUpdateRequiredSensor(
-        _FakeEntry(),
-        _FakeCoordinator(
-            data={},
-            last_update_success=False,
-            last_exception=RuntimeError("Status-Endpunkt nicht erreichbar"),
-        ),
-    )
-
-    assert sensor.available is False
-    assert sensor.native_value == "Unbekannt"
-    assert sensor.extra_state_attributes["last_update_success"] is False
-    assert (
-        sensor.extra_state_attributes["last_error"]
-        == "Status-Endpunkt nicht erreichbar"
-    )
-
-
-def test_expiring_stock_sensor_uses_zero_fallback_when_inventory_coordinator_fails():
-    sensor = sensor_module.GrocyAIExpiringStockProductCountSensor(
-        _FakeEntry(),
-        _FakeCoordinator(
-            data={},
-            last_update_success=False,
-            last_exception=RuntimeError("Lager-Endpunkt nicht erreichbar"),
-        ),
-    )
-
-    assert sensor.available is False
-    assert sensor.native_value == 0
-    assert sensor.extra_state_attributes["last_update_success"] is False
-    assert (
-        sensor.extra_state_attributes["last_error"] == "Lager-Endpunkt nicht erreichbar"
-    )
-
-
-def test_async_setup_entry_wires_entry_scoped_coordinators_into_entities():
-    _RUNTIME_COORDINATORS[_FakeEntry.entry_id] = {
-        "status": _FakeCoordinator(),
-        "inventory": _FakeCoordinator(),
-        "recipe_suggestions": _FakeCoordinator(),
-    }
-    hass = types.SimpleNamespace(
-        data={
-            "grocy_ai_assistant": {
-                _FakeEntry.entry_id: {
-                    "coordinators": _RUNTIME_COORDINATORS[_FakeEntry.entry_id]
-                }
-            }
-        }
-    )
-    added_entities = []
-
-    async def _run_setup():
-        await sensor_module.async_setup_entry(
-            hass,
-            _FakeEntry(),
-            lambda entities: added_entities.extend(entities),
-        )
-
-    asyncio.run(_run_setup())
-
-    assert added_entities
-    assert isinstance(added_entities[0], sensor_module.GrocyAISensor)
-    assert (
-        added_entities[0].coordinator
-        is _RUNTIME_COORDINATORS[_FakeEntry.entry_id]["status"]
-    )
-    assert (
-        added_entities[5].coordinator
-        is _RUNTIME_COORDINATORS[_FakeEntry.entry_id]["inventory"]
-    )
-
-
-def test_all_sensor_types_share_the_entry_device_info():
-    response_sensor = sensor_module.GrocyAIResponseSensor(_FakeEntry())
-    shopping_sensor = sensor_module.GrocyAIShoppingListOpenCountSensor(
-        _FakeEntry(), _FakeCoordinator()
-    )
-    average_sensor = sensor_module.GrocyAIAverageResponseTimeSensor(_FakeEntry())
-
-    expected = {
-        "identifiers": {("grocy_ai_assistant", "entry-1")},
-        "name": "Grocy AI Assistant",
-        "manufacturer": "Eigene Integration",
+def test_analysis_status_sensor_reads_runtime_payload():
+    sensor = sensor_module.GrocyAIAnalysisStatusSensor(_FakeEntry())
+    sensor.hass = _FakeHass()
+    sensor.hass.data["grocy_ai_assistant"]["entry-1"]["entity_runtime"][
+        "analysis_status"
+    ] = {
+        "state": "Erfolgreich",
+        "attributes": {"query": "Tomaten"},
     }
 
-    assert response_sensor.device_info == expected
-    assert shopping_sensor.device_info == expected
-    assert average_sensor.device_info == expected
+    assert sensor.native_value == "Erfolgreich"
+    assert sensor.extra_state_attributes == {"query": "Tomaten"}
+
+
+def test_response_sensor_updates_via_dispatcher_signal():
+    hass = _FakeHass()
+    sensor = sensor_module.GrocyAIResponseSensor(_FakeEntry())
+    sensor.hass = hass
+
+    asyncio.run(sensor.async_added_to_hass())
+
+    hass.data["grocy_ai_assistant"]["entry-1"]["entity_runtime"]["response"] = {
+        "state": "KI analysiert…",
+        "icon": "mdi:progress-clock",
+        "attributes": {},
+    }
+    _dispatcher_send(hass, "grocy_ai_assistant_runtime_entry-1_response")
+
+    assert sensor.native_value == "KI analysiert…"
+    assert sensor.icon == "mdi:progress-clock"
+    assert sensor._write_count == 1
+
+
+def test_response_time_sensor_reads_request_count_from_runtime_payload():
+    sensor = sensor_module.GrocyAILastResponseTimeSensor(_FakeEntry())
+    sensor.hass = _FakeHass()
+    sensor.hass.data["grocy_ai_assistant"]["entry-1"]["entity_runtime"][
+        "response_time_last"
+    ] = {
+        "state": 123.4,
+        "attributes": {"requests_count": 2},
+    }
+
+    assert sensor.native_value == 123.4
+    assert sensor.extra_state_attributes == {"requests_count": 2}

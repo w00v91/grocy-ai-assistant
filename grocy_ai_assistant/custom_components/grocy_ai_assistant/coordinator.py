@@ -30,6 +30,7 @@ from .entity_payloads import (
     build_shopping_list_summary,
     build_stock_summary,
 )
+from .runtime import get_entry_runtime_data
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -49,14 +50,6 @@ def _resolve_api_base_url(config: dict[str, Any]) -> str:
         or config.get("addon_base_url")
         or DEFAULT_ADDON_BASE_URL
     )
-
-
-def get_entry_runtime_data(hass: HomeAssistant, entry_id: str) -> dict[str, Any]:
-    domain_data = hass.data.get(DOMAIN, {})
-    entry_data = domain_data.get(entry_id)
-    if not isinstance(entry_data, dict):
-        raise KeyError(f"Keine Runtime-Daten für Entry {entry_id} gefunden")
-    return entry_data
 
 
 def get_entry_coordinators(
