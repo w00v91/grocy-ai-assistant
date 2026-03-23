@@ -3,6 +3,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## 2026-03-23 (Version 8.0.18)
+- Fix (Lager-Tab/Filterlayout): Im nativen Panel stehen Produktfilter und `Alle Produkte anzeigen` jetzt in derselben Kontrollzeile; die Summen-Badges sitzen separat darunter.
+- Fix (Dashboard/Legacy/Mobile): Der Lager-Tab stapelt Produktfilter und Checkbox auf schmalen Viewports nicht mehr untereinander, sodass beide Controls in einer Zeile bleiben.
+- Added (Tests/Frontend): Panel-Regressionstests prüfen jetzt die separate Lager-Kontrollzeile und die darunter liegenden Summen-Badges.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.18` erhöht.
+
 ## 2026-03-23 (Version 8.0.17)
 - Fix (Home-Assistant-Integration/Panel): Die native Bottom-Bar blendet sich jetzt aus, sobald eines der Dashboard-Modals geöffnet ist, damit sie keine Modal-Actions am unteren Rand mehr überdeckt.
 - Fix (Home-Assistant-Integration/Panel): Dashboard-Modals liegen per höherem `z-index` jetzt zuverlässig über der Floating-Bottom-Bar, auch in nativen Mobile-/WebView-Shells.

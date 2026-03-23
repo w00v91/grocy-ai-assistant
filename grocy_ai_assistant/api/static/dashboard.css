@@ -979,13 +979,12 @@ img {
   }
 
   .storage-controls {
-    flex-direction: column;
-    align-items: flex-start;
+    align-items: center;
     gap: 0.5rem;
   }
 
   .storage-controls #storage-filter-input {
-    width: 100%;
+    min-width: 0;
   }
   button {
     min-height: 44px;
