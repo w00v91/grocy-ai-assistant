@@ -13,10 +13,10 @@ test('resolveTabFromLocation reads storage tab from query parameter', () => {
   assert.equal(tab, 'storage');
 });
 
-test('resolveTabFromLocation reads notifications tab from query parameter', () => {
+test('resolveTabFromLocation falls back to shopping for removed notifications query parameter', () => {
   const tab = resolveTabFromLocation(new URL('https://example.local/grocy-ai?tab=notifications'));
 
-  assert.equal(tab, 'notifications');
+  assert.equal(tab, DEFAULT_TAB);
 });
 
 test('resolveTabFromLocation falls back to shopping for invalid tabs', () => {
@@ -40,5 +40,5 @@ test('buildPanelUrlWithTab normalizes the next browser URL', () => {
     'notifications',
   );
 
-  assert.equal(nextUrl, '/grocy-ai?tab=notifications');
+  assert.equal(nextUrl, '/grocy-ai?tab=shopping');
 });

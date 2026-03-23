@@ -17,18 +17,15 @@ const TAB_LABELS = {
   shopping: 'Einkauf',
   recipes: 'Rezepte',
   storage: 'Lager',
-  notifications: 'Benachrichtigungen',
 };
 const TAB_ICONS = Object.freeze({
   shopping: 'mdi:cart-outline',
   recipes: 'mdi:silverware-fork-knife',
   storage: 'mdi:fridge-outline',
-  notifications: 'mdi:bell-outline',
 });
-const VISIBLE_TAB_ORDER = TAB_ORDER.filter((tab) => tab !== 'notifications');
 const DEFAULT_POLLING_INTERVAL_SECONDS = 5;
 const DEFAULT_POLLING_INTERVAL_MS = DEFAULT_POLLING_INTERVAL_SECONDS * 1000;
-const DEFAULT_INTEGRATION_VERSION = '8.0.19';
+const DEFAULT_INTEGRATION_VERSION = '8.0.20';
 const GROCY_RECIPE_DISPLAY_LIMIT = 3;
 const AI_RECIPE_DISPLAY_LIMIT = 3;
 const TAB_VIEW_STATE = Object.freeze({
@@ -908,7 +905,7 @@ class GrocyAITabNav extends HTMLElement {
     nav.setAttribute('role', 'tablist');
 
     const buttons = new Map();
-    VISIBLE_TAB_ORDER.forEach((tab) => {
+    TAB_ORDER.forEach((tab) => {
       const button = document.createElement('button');
       button.type = 'button';
       button.className = 'tab-button';
@@ -3172,7 +3169,6 @@ class GrocyAIDashboardPanel extends HTMLElement {
           <grocy-ai-shopping-tab></grocy-ai-shopping-tab>
           <grocy-ai-recipes-tab></grocy-ai-recipes-tab>
           <grocy-ai-storage-tab></grocy-ai-storage-tab>
-          <grocy-ai-notifications-tab></grocy-ai-notifications-tab>
         </section>
         <grocy-ai-dashboard-modals></grocy-ai-dashboard-modals>
         <grocy-ai-scanner-bridge></grocy-ai-scanner-bridge>
@@ -3275,10 +3271,9 @@ class GrocyAIDashboardPanel extends HTMLElement {
     const shoppingTab = this.shadowRoot.querySelector('grocy-ai-shopping-tab');
     const recipesTab = this.shadowRoot.querySelector('grocy-ai-recipes-tab');
     const storageTab = this.shadowRoot.querySelector('grocy-ai-storage-tab');
-    const notificationsTab = this.shadowRoot.querySelector('grocy-ai-notifications-tab');
     const modals = this.shadowRoot.querySelector('grocy-ai-dashboard-modals');
     const scannerBridge = this.shadowRoot.querySelector('grocy-ai-scanner-bridge');
-    if (!topbar || !tabNav || !shoppingTab || !recipesTab || !storageTab || !notificationsTab || !modals || !scannerBridge) {
+    if (!topbar || !tabNav || !shoppingTab || !recipesTab || !storageTab || !modals || !scannerBridge) {
       return;
     }
 
@@ -3319,13 +3314,6 @@ class GrocyAIDashboardPanel extends HTMLElement {
       activeConsumeItem: state.storage.items.find((item) => String(getActionableStorageId(item)) === String(state.storage.consumeModal.itemId)) || null,
       activeDeleteItem: state.storage.items.find((item) => String(getActionableStorageId(item)) === String(state.storage.deleteModal.itemId)) || null,
       resolveImageUrl: (url) => resolvePanelImageUrl(url, this._dashboardApi, { apiBasePath: panelImageApiBasePath }),
-    };
-    notificationsTab.viewModel = {
-      ...state.notifications,
-      active: state.activeTab === 'notifications',
-      title: 'Benachrichtigungen',
-      tabName: 'notifications',
-      legacyUrl: state.notifications.legacyFallbackUrl || this._getResolvedLegacyDashboardEmergencyUrl(),
     };
 
     const activeItem = state.shopping.list.find((item) => String(item.id) === String(state.shopping.detailModal.itemId))
@@ -3587,11 +3575,6 @@ class GrocyAIDashboardPanel extends HTMLElement {
       void this._initializeStorageTab();
     }
 
-    if (tabName === 'notifications') {
-      this._updateNotificationsState({
-        legacyFallbackUrl: this._getResolvedLegacyDashboardEmergencyUrl(),
-      });
-    }
   }
 
   async _initializeRecipesTab() {
@@ -4653,7 +4636,6 @@ registerCustomElement('grocy-ai-shopping-search-bar', GrocyAIShoppingSearchBar);
 registerCustomElement('grocy-ai-shopping-tab', GrocyAIShoppingTab);
 registerCustomElement('grocy-ai-recipes-tab', GrocyAIRecipesTab);
 registerCustomElement('grocy-ai-storage-tab', GrocyAIStorageTab);
-registerCustomElement('grocy-ai-notifications-tab', GrocyAINotificationsTab);
 registerCustomElement('grocy-ai-dashboard-modals', GrocyAIDashboardModals);
 registerCustomElement('grocy-ai-scanner-bridge', GrocyAIScannerBridge);
 registerCustomElement('grocy-ai-dashboard-panel', GrocyAIDashboardPanel);

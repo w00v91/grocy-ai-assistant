@@ -3,6 +3,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## 2026-03-23 (Version 8.0.20)
+- Changed (Home-Assistant-Integration/Panel): Der native Dashboard-Shell entfernt den Tab `Benachrichtigungen` komplett aus Navigation, Routing und Panel-Markup; Benachrichtigungen werden damit nicht mehr über das native Dashboard angeboten, sondern ausschließlich über die App-Oberfläche gesteuert.
+- Added (Tests/Frontend): Routing- und Shell-Regressionen sichern ab, dass `tab=notifications` im nativen Panel auf `shopping` zurückfällt und keine Notification-Tab-Struktur mehr gerendert wird.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.20` erhöht.
+
 ## 2026-03-23 (Version 8.0.19)
 - Changed (Home-Assistant-Integration/Panel): Der Scanner-Button im nativen Einkaufs-Dashboard rendert jetzt ein Home-Assistant-konformes `ha-icon` mit `mdi:barcode-scan` statt des bisherigen pseudo-gemalten Barcode-Icons.
 - Added (Tests/Frontend): Eine Panel-Regression prüft jetzt explizit, dass der native Scanner-Trigger das HA-Icon `mdi:barcode-scan` verwendet.
