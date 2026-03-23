@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## 2026-03-23 (Version 8.0.29)
+
+- Fix (Grocy/Produktanlage): Produkt-Create-Retries laufen jetzt nur noch bei echten Schemafehlern vom Typ `has no column named ...`; generische `400 Bad Request`-Antworten wie doppelte Produktnamen lösen keinen fehlerhaften zweiten Create-Call mehr aus.
+- Added (Tests/Grocy): Unit-Regressionen decken jetzt sowohl den weiterhin erlaubten Unknown-Column-Retry als auch den neuen No-Retry-Pfad bei `UNIQUE constraint failed: products.name` ab.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.29` erhöht.
+
 ## 2026-03-23 (Version 8.0.28)
 
 - Fix (Home-Assistant-Integration/Panel/Einkauf): Die Produktsuche im nativen Shopping-Panel startet Live-Vorschläge jetzt erst ab zwei Buchstaben des eigentlichen Produktnamens; Mengenpräfixe wie `2 A` zählen dabei nicht als zusätzliche Suchzeichen.
