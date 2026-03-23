@@ -19,9 +19,10 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
 
 class _BaseAddonButton(ButtonEntity):
-    def __init__(self, entry, *, name: str, unique_suffix: str, icon: str):
+    def __init__(self, entry, *, translation_key: str, unique_suffix: str, icon: str):
         self._entry = entry
-        self._attr_name = name
+        self._attr_translation_key = translation_key
+        self._attr_has_entity_name = True
         self._attr_unique_id = f"{entry.entry_id}_{unique_suffix}"
         self._attr_icon = icon
 
@@ -45,7 +46,7 @@ class GrocyAICatalogRebuildButton(_BaseAddonButton):
     def __init__(self, entry):
         super().__init__(
             entry,
-            name="Grocy AI Katalog neu aufbauen",
+            translation_key="catalog_rebuild",
             unique_suffix="catalog_rebuild",
             icon="mdi:database-refresh-outline",
         )
@@ -53,17 +54,15 @@ class GrocyAICatalogRebuildButton(_BaseAddonButton):
     async def async_press(self) -> None:
         payload = await self._build_client().rebuild_catalog()
         if payload.get("_http_status") != 200:
-            raise RuntimeError(
-                payload.get("detail") or "Katalog-Neuaufbau fehlgeschlagen"
-            )
-        _LOGGER.info("Grocy AI Katalog-Neuaufbau erfolgreich ausgelöst")
+            raise RuntimeError(payload.get("detail") or "Catalog rebuild failed")
+        _LOGGER.info("Grocy AI catalog rebuild triggered successfully")
 
 
 class GrocyAINotificationTestButton(_BaseAddonButton):
     def __init__(self, entry):
         super().__init__(
             entry,
-            name="Grocy AI Test-Benachrichtigung",
+            translation_key="notification_test",
             unique_suffix="notification_test",
             icon="mdi:bell-ring-outline",
         )
@@ -71,7 +70,5 @@ class GrocyAINotificationTestButton(_BaseAddonButton):
     async def async_press(self) -> None:
         payload = await self._build_client().test_notifications()
         if payload.get("_http_status") != 200:
-            raise RuntimeError(
-                payload.get("detail") or "Test-Benachrichtigung fehlgeschlagen"
-            )
-        _LOGGER.info("Grocy AI Test-Benachrichtigung erfolgreich ausgelöst")
+            raise RuntimeError(payload.get("detail") or "Notification test failed")
+        _LOGGER.info("Grocy AI notification test triggered successfully")

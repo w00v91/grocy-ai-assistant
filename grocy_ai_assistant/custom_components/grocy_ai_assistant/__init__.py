@@ -175,7 +175,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 response_reset_unsubs.pop(entry.entry_id, None)
                 hass.states.async_set(
                     _response_sensor_entity_id(hass, entry),
-                    "Bereit",
+                    "ready",
                     {"icon": "mdi:comment-text-outline"},
                 )
 
@@ -233,7 +233,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     def _build_active_client() -> AddonClient:
         current_entry = hass.config_entries.async_get_entry(entry.entry_id)
         if current_entry is None:
-            raise RuntimeError(f"Config entry {entry.entry_id} wurde nicht gefunden")
+            raise RuntimeError(f"Config entry {entry.entry_id} was not found")
 
         active_conf = {**current_entry.data, **current_entry.options}
         return AddonClient(
@@ -252,19 +252,19 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
         if not product_name:
             _set_response_state(
-                "Kein Produktname übergeben", "mdi:alert-circle", reset_after=True
+                "No product name provided", "mdi:alert-circle", reset_after=True
             )
             _set_analysis_status(
                 *build_error_status_payload(
                     source="dashboard_search",
-                    error="Kein Produktname übergeben",
+                    error="No product name provided",
                 )
             )
             return
 
         client = _build_active_client()
 
-        _set_response_state("KI analysiert…", "mdi:progress-clock")
+        _set_response_state("processing", "mdi:progress-clock")
         start_time = time.perf_counter()
 
         try:
@@ -272,7 +272,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             duration_ms = (time.perf_counter() - start_time) * 1000
             _set_response_timing_states(duration_ms)
             if payload.get("_http_status") != 200:
-                raise RuntimeError(payload.get("detail") or "Unbekannter API-Fehler")
+                raise RuntimeError(payload.get("detail") or "Unknown API error")
 
             _set_analysis_status(
                 *build_analysis_status_payload(
@@ -282,13 +282,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 )
             )
             _set_response_state(
-                payload.get("message", "Vorgang abgeschlossen"),
+                payload.get("message", "Completed"),
                 "mdi:check-circle",
                 reset_after=True,
             )
             hass.states.async_set(_product_input_entity_id(hass, entry), "")
         except Exception as error:
-            _LOGGER.error("Fehler beim Add-on Aufruf: %s", error)
+            _LOGGER.error("Add-on request failed: %s", error)
             _set_analysis_status(
                 *build_error_status_payload(
                     source="dashboard_search",
@@ -296,9 +296,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     extra={"query": product_name},
                 )
             )
-            _set_response_state(
-                f"Fehler: {error}", "mdi:alert-circle", reset_after=True
-            )
+            _set_response_state(f"Error: {error}", "mdi:alert-circle", reset_after=True)
 
     async def barcode_lookup_service(call):
         barcode = str(call.data.get("barcode") or "").strip()
@@ -306,7 +304,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             _set_barcode_status(
                 *build_error_status_payload(
                     source="barcode_lookup",
-                    error="Kein Barcode übergeben",
+                    error="No barcode provided",
                 )
             )
             return
@@ -317,9 +315,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             payload = await client.lookup_barcode(barcode)
             duration_ms = (time.perf_counter() - start_time) * 1000
             if payload.get("_http_status") != 200:
-                raise RuntimeError(
-                    payload.get("detail") or "Barcode-Lookup fehlgeschlagen"
-                )
+                raise RuntimeError(payload.get("detail") or "Barcode lookup failed")
             _set_barcode_status(
                 *build_barcode_status_payload(
                     barcode=barcode,
@@ -342,7 +338,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             _set_llava_status(
                 *build_error_status_payload(
                     source="scanner_llava",
-                    error="Keine Bilddaten übergeben",
+                    error="No image data provided",
                 )
             )
             return
@@ -353,7 +349,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             payload = await client.scan_image(image_base64)
             duration_ms = (time.perf_counter() - start_time) * 1000
             if payload.get("_http_status") != 200:
-                raise RuntimeError(payload.get("detail") or "LLaVA-Scan fehlgeschlagen")
+                raise RuntimeError(payload.get("detail") or "Image analysis failed")
             _set_llava_status(
                 *build_llava_status_payload(
                     payload=payload,

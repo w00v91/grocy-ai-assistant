@@ -148,7 +148,7 @@ def test_build_analysis_status_payload_contains_last_result_attributes():
         duration_ms=123.45,
     )
 
-    assert state == "Erfolgreich"
+    assert state == "success"
     assert attributes["query"] == "Milch"
     assert attributes["action"] == "add_to_shopping_list"
     assert attributes["product_id"] == 42
@@ -172,7 +172,7 @@ def test_build_barcode_status_payload_maps_found_result_fields():
         duration_ms=50,
     )
 
-    assert state == "Treffer"
+    assert state == "match"
     assert attributes["barcode"] == "4008400402222"
     assert attributes["product_name"] == "Müsli"
     assert attributes["nutrition_grade"] == "A"
@@ -192,7 +192,7 @@ def test_build_llava_status_payload_maps_successful_scan_result():
         duration_ms=87,
     )
 
-    assert state == "Erfolgreich"
+    assert state == "success"
     assert attributes["product_name"] == "Cornflakes"
     assert attributes["brand"] == "ACME"
     assert attributes["hint"] == "Gelbe Packung"
@@ -206,7 +206,7 @@ def test_build_error_status_payload_marks_state_as_error():
         extra={"barcode": "123"},
     )
 
-    assert state == "Fehler"
+    assert state == "error"
     assert attributes["source"] == "barcode_lookup"
     assert attributes["error"] == "Timeout"
     assert attributes["barcode"] == "123"

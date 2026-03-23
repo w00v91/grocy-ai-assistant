@@ -49,8 +49,10 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
 
 class _BaseAddonSensor(SensorEntity):
-    def __init__(self, entry):
+    def __init__(self, entry, *, translation_key: str):
         self._entry = entry
+        self._attr_translation_key = translation_key
+        self._attr_has_entity_name = True
 
     @property
     def should_poll(self):
@@ -67,10 +69,11 @@ class _CoordinatorAddonSensor(CoordinatorEntity, _BaseAddonSensor):
         entry,
         coordinator,
         *,
+        translation_key: str,
         data_key: str,
         fallback_native_value,
     ):
-        _BaseAddonSensor.__init__(self, entry)
+        _BaseAddonSensor.__init__(self, entry, translation_key=translation_key)
         CoordinatorEntity.__init__(self, coordinator)
         self._data_key = data_key
         self._fallback_native_value = fallback_native_value
@@ -102,10 +105,10 @@ class GrocyAISensor(_CoordinatorAddonSensor):
         super().__init__(
             entry,
             coordinator,
+            translation_key="status",
             data_key="status",
-            fallback_native_value="Offline",
+            fallback_native_value="offline",
         )
-        self._attr_name = "Grocy AI Status"
         self._attr_unique_id = f"{entry.entry_id}_status"
         self._attr_icon = "mdi:robot"
         self._attr_entity_category = EntityCategory.DIAGNOSTIC
@@ -116,21 +119,28 @@ class GrocyAIUpdateRequiredSensor(_CoordinatorAddonSensor):
         super().__init__(
             entry,
             coordinator,
+            translation_key="home_assistant_update_required",
             data_key="update_required",
-            fallback_native_value="Unbekannt",
+            fallback_native_value="unknown",
         )
-        self._attr_name = "Grocy AI Home Assistant Update erforderlich"
         self._attr_unique_id = f"{entry.entry_id}_ha_update_required"
         self._attr_icon = "mdi:update"
         self._attr_entity_category = EntityCategory.DIAGNOSTIC
 
 
 class _StaticStatusSensor(_BaseAddonSensor):
-    def __init__(self, entry, *, name: str, unique_suffix: str, icon: str):
-        super().__init__(entry)
-        self._attr_name = name
+    def __init__(
+        self,
+        entry,
+        *,
+        translation_key: str,
+        unique_suffix: str,
+        icon: str,
+        default_native_value: str = "ready",
+    ):
+        super().__init__(entry, translation_key=translation_key)
         self._attr_unique_id = f"{entry.entry_id}_{unique_suffix}"
-        self._attr_native_value = "Bereit"
+        self._attr_native_value = default_native_value
         self._attr_icon = icon
         self._attr_entity_category = EntityCategory.DIAGNOSTIC
 
@@ -139,21 +149,20 @@ class GrocyAIResponseSensor(_StaticStatusSensor):
     def __init__(self, entry):
         super().__init__(
             entry,
-            name="Grocy AI Response",
+            translation_key="response_text",
             unique_suffix="response_text",
             icon="mdi:comment-text-outline",
         )
 
     async def async_added_to_hass(self):
-        _LOGGER.info("Response Sensor registriert und bereit.")
+        _LOGGER.info("Response sensor registered and ready")
 
 
 class GrocyAILastResponseTimeSensor(_BaseAddonSensor):
     """Diagnostic sensor containing the duration of the latest AI request."""
 
     def __init__(self, entry):
-        super().__init__(entry)
-        self._attr_name = "Grocy AI KI Antwortzeit (letzte Anfrage)"
+        super().__init__(entry, translation_key="ai_response_time_last")
         self._attr_unique_id = f"{entry.entry_id}_ai_response_time_last_ms"
         self._attr_native_value = None
         self._attr_native_unit_of_measurement = "ms"
@@ -166,8 +175,7 @@ class GrocyAIAverageResponseTimeSensor(_BaseAddonSensor):
     """Diagnostic sensor containing the average duration of AI requests."""
 
     def __init__(self, entry):
-        super().__init__(entry)
-        self._attr_name = "Grocy AI KI Antwortzeit (Durchschnitt)"
+        super().__init__(entry, translation_key="ai_response_time_average")
         self._attr_unique_id = f"{entry.entry_id}_ai_response_time_avg_ms"
         self._attr_native_value = None
         self._attr_native_unit_of_measurement = "ms"
@@ -181,10 +189,10 @@ class GrocyAIShoppingListOpenCountSensor(_CoordinatorAddonSensor):
         super().__init__(
             entry,
             coordinator,
+            translation_key="shopping_list_open_count",
             data_key="shopping_list_open_count",
             fallback_native_value=0,
         )
-        self._attr_name = "Grocy AI Einkaufsliste offene Einträge"
         self._attr_unique_id = f"{entry.entry_id}_shopping_list_open_count"
         self._attr_icon = "mdi:cart-outline"
 
@@ -194,10 +202,10 @@ class GrocyAIStockProductCountSensor(_CoordinatorAddonSensor):
         super().__init__(
             entry,
             coordinator,
+            translation_key="stock_products_total_count",
             data_key="stock_products_total_count",
             fallback_native_value=0,
         )
-        self._attr_name = "Grocy AI Lagerprodukte gesamt"
         self._attr_unique_id = f"{entry.entry_id}_stock_products_total_count"
         self._attr_icon = "mdi:fridge-outline"
 
@@ -207,10 +215,10 @@ class GrocyAIExpiringStockProductCountSensor(_CoordinatorAddonSensor):
         super().__init__(
             entry,
             coordinator,
+            translation_key="stock_products_expiring_count",
             data_key="stock_products_expiring_count",
             fallback_native_value=0,
         )
-        self._attr_name = "Grocy AI Bald ablaufende Lagerprodukte"
         self._attr_unique_id = f"{entry.entry_id}_stock_products_expiring_count"
         self._attr_icon = "mdi:calendar-alert-outline"
 
@@ -221,16 +229,16 @@ class _RecipeSuggestionSensor(_CoordinatorAddonSensor):
         entry,
         coordinator,
         *,
-        name: str,
+        translation_key: str,
         suffix: str,
     ):
         super().__init__(
             entry,
             coordinator,
+            translation_key=translation_key,
             data_key=suffix,
-            fallback_native_value="Keine Vorschläge",
+            fallback_native_value="none",
         )
-        self._attr_name = name
         self._attr_unique_id = f"{entry.entry_id}_{suffix}"
         self._attr_icon = "mdi:chef-hat"
 
@@ -240,7 +248,7 @@ class GrocyAITopAIRecipeSuggestionSensor(_RecipeSuggestionSensor):
         super().__init__(
             entry,
             coordinator,
-            name="Grocy AI Top KI Rezeptvorschlag",
+            translation_key="recipe_suggestion_top_ai",
             suffix="recipe_suggestion_top_ai",
         )
 
@@ -250,7 +258,7 @@ class GrocyAITopGrocyRecipeSuggestionSensor(_RecipeSuggestionSensor):
         super().__init__(
             entry,
             coordinator,
-            name="Grocy AI Top Grocy Rezeptvorschlag",
+            translation_key="recipe_suggestion_top_grocy",
             suffix="recipe_suggestion_top_grocy",
         )
 
@@ -260,7 +268,7 @@ class GrocyAISoonExpiringRecipeSuggestionSensor(_RecipeSuggestionSensor):
         super().__init__(
             entry,
             coordinator,
-            name="Grocy AI Rezeptvorschläge bald ablaufend",
+            translation_key="recipe_suggestion_expiring",
             suffix="recipe_suggestion_expiring",
         )
 
@@ -269,7 +277,7 @@ class GrocyAIAnalysisStatusSensor(_StaticStatusSensor):
     def __init__(self, entry):
         super().__init__(
             entry,
-            name="Grocy AI Analyse Status",
+            translation_key="analysis_status",
             unique_suffix="analysis_status",
             icon="mdi:robot-outline",
         )
@@ -279,7 +287,7 @@ class GrocyAIBarcodeLookupStatusSensor(_StaticStatusSensor):
     def __init__(self, entry):
         super().__init__(
             entry,
-            name="Grocy AI Barcode Scanner Status",
+            translation_key="barcode_lookup_status",
             unique_suffix="barcode_lookup_status",
             icon="mdi:barcode-scan",
         )
@@ -289,7 +297,7 @@ class GrocyAILlavaScanStatusSensor(_StaticStatusSensor):
     def __init__(self, entry):
         super().__init__(
             entry,
-            name="Grocy AI LLaVA Scanner Status",
+            translation_key="llava_scan_status",
             unique_suffix="llava_scan_status",
             icon="mdi:image-search-outline",
         )

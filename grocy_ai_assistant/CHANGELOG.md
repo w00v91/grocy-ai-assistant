@@ -8,6 +8,11 @@ All notable changes to this project will be documented in this file.
 
 - Fix (Home-Assistant-Integration/Panel/Lager): Im Lager-Tab heißt der Checkbox-Text jetzt `Alle anzeigen`.
 - Fix (Home-Assistant-Integration/Panel/Lager/Mobile): Checkbox und Textfilter bleiben auf schmalen Viewports sauber auf gleicher Höhe; der Button `Aktualisieren` bricht im Lager-Tab mobil nicht mehr um.
+- Added (Home-Assistant-Integration/Übersetzungen): Neue `strings.json` sowie `translations/en.json` und `translations/de.json` ergänzen Config-Flow-, Entity- und Service-Texte im HA-üblichen Übersetzungsformat.
+- Refactor (Home-Assistant-Integration/Entities): Buttons, Sensoren und Text-Entity verwenden jetzt `translation_key` plus `has_entity_name`, damit Home Assistant lokalisierte Anzeigenamen aus den Übersetzungen aufbauen kann.
+- Refactor (Home-Assistant-Integration/States/Services): Harte deutsche Statuswerte wurden auf stabile State-Slugs reduziert; `services.yaml` nutzt jetzt konsistente, übersetzungsfreundliche Bezeichnungen und Beschreibungen.
+- Fix (Home-Assistant-Integration/Manifest): `manifest.json` markiert die Integration jetzt zusätzlich mit `single_config_entry`, damit Home Assistant die Integration bereits im UI als Einzelinstanz behandelt und kein weiterer Einrichtungsdialog angeboten wird.
+- Added (Tests/Home-Assistant-Integration): Ein Manifest-Regressionstest stellt sicher, dass die Single-Instance-Markierung künftig nicht versehentlich entfernt wird.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.24` erhöht.
 
 ## 2026-03-23 (Version 8.0.23)

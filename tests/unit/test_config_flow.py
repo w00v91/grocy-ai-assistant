@@ -1,4 +1,5 @@
 import asyncio
+import json
 import importlib.util
 import sys
 import types
@@ -243,3 +244,17 @@ def test_user_step_aborts_when_single_instance_already_configured(monkeypatch):
 
     with pytest.raises(_AbortFlow):
         asyncio.run(flow.async_step_user())
+
+
+def test_manifest_marks_integration_as_single_config_entry():
+    manifest_path = (
+        Path(__file__).resolve().parents[2]
+        / "grocy_ai_assistant"
+        / "custom_components"
+        / "grocy_ai_assistant"
+        / "manifest.json"
+    )
+
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+
+    assert manifest["single_config_entry"] is True

@@ -10,5 +10,6 @@
   "iot_class": "local_polling",
   "issue_tracker": "https://github.com/w00v91/grocy-ai-assistant/issues",
   "version": "8.0.24",
-  "requirements": []
+  "requirements": [],
+  "single_config_entry": true
 }
