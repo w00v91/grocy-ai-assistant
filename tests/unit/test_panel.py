@@ -250,6 +250,8 @@ def test_panel_resolves_nested_entry_config_for_dashboard_metadata_and_client(
     assert addon_client_instances
     assert addon_client_instances[-1].args[0] == "http://addon.local:8123"
     assert addon_client_instances[-1].args[1] == "secret-token"
+
+
 def test_native_shopping_hero_renders_einkauf_eyebrow_above_search_title():
     source = (
         Path(__file__).resolve().parents[2]

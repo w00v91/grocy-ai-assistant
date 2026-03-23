@@ -30,6 +30,7 @@ from .entity_payloads import (
     build_shopping_list_summary,
     build_stock_summary,
 )
+from .runtime import get_entry_data
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -51,18 +52,10 @@ def _resolve_api_base_url(config: dict[str, Any]) -> str:
     )
 
 
-def get_entry_runtime_data(hass: HomeAssistant, entry_id: str) -> dict[str, Any]:
-    domain_data = hass.data.get(DOMAIN, {})
-    entry_data = domain_data.get(entry_id)
-    if not isinstance(entry_data, dict):
-        raise KeyError(f"Keine Runtime-Daten für Entry {entry_id} gefunden")
-    return entry_data
-
-
 def get_entry_coordinators(
     hass: HomeAssistant, entry_id: str
 ) -> dict[str, DataUpdateCoordinator]:
-    coordinators = get_entry_runtime_data(hass, entry_id).get(DATA_COORDINATORS)
+    coordinators = get_entry_data(hass, entry_id).get(DATA_COORDINATORS)
     if not isinstance(coordinators, dict):
         raise KeyError(f"Keine Coordinatoren für Entry {entry_id} gefunden")
     return coordinators
@@ -306,6 +299,6 @@ async def async_setup_entry_coordinators(
         *(coordinator.async_refresh() for coordinator in coordinators.values())
     )
 
-    entry_runtime = get_entry_runtime_data(hass, entry.entry_id)
-    entry_runtime[DATA_COORDINATORS] = coordinators
+    entry_data = get_entry_data(hass, entry.entry_id)
+    entry_data[DATA_COORDINATORS] = coordinators
     return coordinators

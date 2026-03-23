@@ -2,6 +2,7 @@ import logging
 
 from homeassistant.components.sensor import SensorEntity, SensorStateClass
 from homeassistant.const import EntityCategory
+from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .coordinator import (
@@ -11,6 +12,16 @@ from .coordinator import (
     get_entry_coordinators,
 )
 from .entity import build_device_info
+from .runtime import (
+    RUNTIME_ANALYSIS_STATUS,
+    RUNTIME_BARCODE_STATUS,
+    RUNTIME_LLAVA_STATUS,
+    RUNTIME_RESPONSE,
+    RUNTIME_RESPONSE_TIME_AVG,
+    RUNTIME_RESPONSE_TIME_LAST,
+    async_runtime_signal,
+    get_runtime_sensor_payload,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -95,6 +106,58 @@ class _CoordinatorAddonSensor(CoordinatorEntity, _BaseAddonSensor):
         return attributes
 
 
+class _RuntimeAddonSensor(_BaseAddonSensor):
+    def __init__(
+        self,
+        entry,
+        *,
+        runtime_key: str,
+        name: str,
+        unique_suffix: str,
+        fallback_native_value,
+        icon: str,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ):
+        super().__init__(entry)
+        self._runtime_key = runtime_key
+        self._fallback_native_value = fallback_native_value
+        self._default_icon = icon
+        self._attr_name = name
+        self._attr_unique_id = f"{entry.entry_id}_{unique_suffix}"
+        self._attr_entity_category = entity_category
+
+    def _payload(self) -> dict:
+        if not hasattr(self, "hass"):
+            return {}
+        return get_runtime_sensor_payload(
+            self.hass, self._entry.entry_id, self._runtime_key
+        )
+
+    async def async_added_to_hass(self):
+        self.async_on_remove(
+            async_dispatcher_connect(
+                self.hass,
+                async_runtime_signal(self._entry.entry_id, self._runtime_key),
+                self._handle_runtime_update,
+            )
+        )
+
+    def _handle_runtime_update(self) -> None:
+        self.async_write_ha_state()
+
+    @property
+    def native_value(self):
+        return self._payload().get("state", self._fallback_native_value)
+
+    @property
+    def icon(self):
+        return self._payload().get("icon", self._default_icon)
+
+    @property
+    def extra_state_attributes(self):
+        return dict(self._payload().get("attributes") or {})
+
+
 class GrocyAISensor(_CoordinatorAddonSensor):
     """Sensor for add-on availability."""
 
@@ -125,55 +188,52 @@ class GrocyAIUpdateRequiredSensor(_CoordinatorAddonSensor):
         self._attr_entity_category = EntityCategory.DIAGNOSTIC
 
 
-class _StaticStatusSensor(_BaseAddonSensor):
-    def __init__(self, entry, *, name: str, unique_suffix: str, icon: str):
-        super().__init__(entry)
-        self._attr_name = name
-        self._attr_unique_id = f"{entry.entry_id}_{unique_suffix}"
-        self._attr_native_value = "Bereit"
-        self._attr_icon = icon
-        self._attr_entity_category = EntityCategory.DIAGNOSTIC
-
-
-class GrocyAIResponseSensor(_StaticStatusSensor):
+class GrocyAIResponseSensor(_RuntimeAddonSensor):
     def __init__(self, entry):
         super().__init__(
             entry,
+            runtime_key=RUNTIME_RESPONSE,
             name="Grocy AI Response",
             unique_suffix="response_text",
+            fallback_native_value="Bereit",
             icon="mdi:comment-text-outline",
         )
 
     async def async_added_to_hass(self):
+        await super().async_added_to_hass()
         _LOGGER.info("Response Sensor registriert und bereit.")
 
 
-class GrocyAILastResponseTimeSensor(_BaseAddonSensor):
+class GrocyAILastResponseTimeSensor(_RuntimeAddonSensor):
     """Diagnostic sensor containing the duration of the latest AI request."""
 
     def __init__(self, entry):
-        super().__init__(entry)
-        self._attr_name = "Grocy AI KI Antwortzeit (letzte Anfrage)"
-        self._attr_unique_id = f"{entry.entry_id}_ai_response_time_last_ms"
-        self._attr_native_value = None
+        super().__init__(
+            entry,
+            runtime_key=RUNTIME_RESPONSE_TIME_LAST,
+            name="Grocy AI KI Antwortzeit (letzte Anfrage)",
+            unique_suffix="ai_response_time_last_ms",
+            fallback_native_value=None,
+            icon="mdi:timer-outline",
+        )
         self._attr_native_unit_of_measurement = "ms"
         self._attr_state_class = SensorStateClass.MEASUREMENT
-        self._attr_icon = "mdi:timer-outline"
-        self._attr_entity_category = EntityCategory.DIAGNOSTIC
 
 
-class GrocyAIAverageResponseTimeSensor(_BaseAddonSensor):
+class GrocyAIAverageResponseTimeSensor(_RuntimeAddonSensor):
     """Diagnostic sensor containing the average duration of AI requests."""
 
     def __init__(self, entry):
-        super().__init__(entry)
-        self._attr_name = "Grocy AI KI Antwortzeit (Durchschnitt)"
-        self._attr_unique_id = f"{entry.entry_id}_ai_response_time_avg_ms"
-        self._attr_native_value = None
+        super().__init__(
+            entry,
+            runtime_key=RUNTIME_RESPONSE_TIME_AVG,
+            name="Grocy AI KI Antwortzeit (Durchschnitt)",
+            unique_suffix="ai_response_time_avg_ms",
+            fallback_native_value=None,
+            icon="mdi:chart-line",
+        )
         self._attr_native_unit_of_measurement = "ms"
         self._attr_state_class = SensorStateClass.MEASUREMENT
-        self._attr_icon = "mdi:chart-line"
-        self._attr_entity_category = EntityCategory.DIAGNOSTIC
 
 
 class GrocyAIShoppingListOpenCountSensor(_CoordinatorAddonSensor):
@@ -265,31 +325,37 @@ class GrocyAISoonExpiringRecipeSuggestionSensor(_RecipeSuggestionSensor):
         )
 
 
-class GrocyAIAnalysisStatusSensor(_StaticStatusSensor):
+class GrocyAIAnalysisStatusSensor(_RuntimeAddonSensor):
     def __init__(self, entry):
         super().__init__(
             entry,
+            runtime_key=RUNTIME_ANALYSIS_STATUS,
             name="Grocy AI Analyse Status",
             unique_suffix="analysis_status",
+            fallback_native_value="Bereit",
             icon="mdi:robot-outline",
         )
 
 
-class GrocyAIBarcodeLookupStatusSensor(_StaticStatusSensor):
+class GrocyAIBarcodeLookupStatusSensor(_RuntimeAddonSensor):
     def __init__(self, entry):
         super().__init__(
             entry,
+            runtime_key=RUNTIME_BARCODE_STATUS,
             name="Grocy AI Barcode Scanner Status",
             unique_suffix="barcode_lookup_status",
+            fallback_native_value="Bereit",
             icon="mdi:barcode-scan",
         )
 
 
-class GrocyAILlavaScanStatusSensor(_StaticStatusSensor):
+class GrocyAILlavaScanStatusSensor(_RuntimeAddonSensor):
     def __init__(self, entry):
         super().__init__(
             entry,
+            runtime_key=RUNTIME_LLAVA_STATUS,
             name="Grocy AI LLaVA Scanner Status",
             unique_suffix="llava_scan_status",
+            fallback_native_value="Bereit",
             icon="mdi:image-search-outline",
         )
