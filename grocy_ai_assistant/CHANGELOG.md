@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## 2026-03-23 (Version 8.0.26)
 
+- Fix (Home-Assistant-Integration/Panel/Sicherheit): Die Produktbild-Proxy-View des nativen Panels verlangt jetzt Home-Assistant-Authentifizierung statt Bildabrufe anonym offenzulegen.
+- Changed (Home-Assistant-Integration/Panel/Kommentar): `GrocyAIDashboardPictureProxyView` dokumentiert jetzt direkt im Code, dass Produktbilder aus dem eingeloggten HA-Frontend per same-origin-`<img src>` über den Panel-Proxy geladen werden und deshalb Session-Cookies ausreichen.
+- Added (Tests/Home-Assistant-Integration): Panel-Regressionen sichern ab, dass die dedizierte Produktbild-Route authentifiziert bleibt und weiterhin korrekt an das Add-on weiterleitet.
 - Fix (Produktsuche/Varianten): Auswahl der Eingabe-Variante im nativen Shopping-Panel erkennt nun wieder zuverlässig `productSource=input`, erzwingt dadurch die Neuanlage statt erneut in die Variantenauswahl zu fallen und belässt Suchtexte ohne explizite Mengenangabe ohne künstliches `1`-Präfix.
 - Test: Frontend-Controller-Tests für `productSource` aus dem Variantendatensatz sowie für Vorschlagsübernahme ohne implizites `1`-Präfix ergänzt.
 - Fix (Home-Assistant-Integration/Panel/Einkauf): Das Status-Badge unter der Produktsuche im nativen Panel darf jetzt bei langen Meldungen umbrechen, statt horizontal auszureißen.
