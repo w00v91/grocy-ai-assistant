@@ -450,10 +450,11 @@ class GrocyClient:
 
     def create_product(self, product_payload: Dict[str, Any]) -> int:
         create_endpoint = f"{self.settings.grocy_base_url}/objects/products"
+        normalized_payload = self._normalize_product_payload_ids(product_payload)
         response = requests.post(
             create_endpoint,
             headers=self.headers,
-            json=product_payload,
+            json=normalized_payload,
             timeout=30,
         )
 
@@ -465,13 +466,13 @@ class GrocyClient:
                 raise
 
             retry_payload = self._build_product_payload_retry(
-                product_payload,
+                normalized_payload,
                 getattr(response, "text", ""),
             )
-            if retry_payload == product_payload:
+            if retry_payload == normalized_payload:
                 raise
 
-            attempted_payloads: list[Dict[str, Any]] = [product_payload]
+            attempted_payloads: list[Dict[str, Any]] = [normalized_payload]
 
             while retry_payload not in attempted_payloads:
                 attempted_payloads.append(retry_payload)
@@ -520,36 +521,56 @@ class GrocyClient:
             key: value for key, value in product_payload.items() if key != unknown_field
         }
 
+    def _normalize_product_payload_ids(
+        self, product_payload: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        valid_location_ids = {
+            self._safe_int(item.get("id")) for item in self.get_locations()
+        }
+        valid_location_ids.discard(None)
+        valid_unit_ids = {
+            self._safe_int(unit_id) for unit_id in self.get_quantity_units().keys()
+        }
+        valid_unit_ids.discard(None)
+
+        fallback_unit_id = next(iter(valid_unit_ids), 1)
+        fallback_location_id = next(iter(valid_location_ids), 1)
+
+        normalized_payload = dict(product_payload)
+
+        location_id = self._safe_int(product_payload.get("location_id"))
+        normalized_payload["location_id"] = (
+            location_id if location_id in valid_location_ids else fallback_location_id
+        )
+
+        qu_id_stock = self._safe_int(product_payload.get("qu_id_stock"))
+        normalized_payload["qu_id_stock"] = (
+            qu_id_stock if qu_id_stock in valid_unit_ids else fallback_unit_id
+        )
+
+        qu_id_purchase = self._safe_int(product_payload.get("qu_id_purchase"))
+        normalized_payload["qu_id_purchase"] = (
+            qu_id_purchase
+            if qu_id_purchase in valid_unit_ids
+            else normalized_payload["qu_id_stock"]
+        )
+
+        return normalized_payload
+
     def _build_product_payload_retry(
         self, product_payload: Dict[str, Any], response_text: str
     ) -> Dict[str, Any]:
         if not self.UNKNOWN_COLUMN_PATTERN.search(response_text or ""):
             return product_payload
 
-        valid_location_ids = {item["id"] for item in self.get_locations()}
-        valid_unit_ids = set(self.get_quantity_units().keys())
-
-        fallback_unit_id = next(iter(valid_unit_ids), 1)
-        fallback_location_id = next(iter(valid_location_ids), 1)
-
-        location_id = self._safe_int(product_payload.get("location_id"))
-        if location_id not in valid_location_ids:
-            location_id = fallback_location_id
-
-        qu_id_stock = self._safe_int(product_payload.get("qu_id_stock"))
-        if qu_id_stock not in valid_unit_ids:
-            qu_id_stock = fallback_unit_id
-
-        qu_id_purchase = self._safe_int(product_payload.get("qu_id_purchase"))
-        if qu_id_purchase not in valid_unit_ids:
-            qu_id_purchase = qu_id_stock
+        normalized_payload = self._normalize_product_payload_ids(product_payload)
 
         return {
-            "name": self._safe_str(product_payload.get("name")),
-            "description": self._safe_str(product_payload.get("description")),
-            "location_id": location_id,
-            "qu_id_purchase": qu_id_purchase,
-            "qu_id_stock": qu_id_stock,
+            "name": self._safe_str(normalized_payload.get("name")),
+            "description": self._safe_str(normalized_payload.get("description")),
+            "location_id": normalized_payload["location_id"],
+            "qu_id_purchase": normalized_payload["qu_id_purchase"],
+            "qu_id_stock": normalized_payload["qu_id_stock"],
             "qu_factor_purchase_to_stock": 1,
         }
 
