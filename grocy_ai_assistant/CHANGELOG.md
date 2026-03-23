@@ -4,6 +4,9 @@
 All notable changes to this project will be documented in this file.
 
 ## 2026-03-23 (Version 8.0.17)
+- Fix (Home-Assistant-Integration/Panel): Die native Bottom-Bar blendet sich jetzt aus, sobald eines der Dashboard-Modals geöffnet ist, damit sie keine Modal-Actions am unteren Rand mehr überdeckt.
+- Fix (Home-Assistant-Integration/Panel): Dashboard-Modals liegen per höherem `z-index` jetzt zuverlässig über der Floating-Bottom-Bar, auch in nativen Mobile-/WebView-Shells.
+- Added (Tests/Frontend): Die Panel-Shell-Regression prüft jetzt explizit, dass die Bottom-Bar bei offenem Modal deaktiviert wird und Modals vor der Navigation liegen.
 - Changed (Dashboard/Scanner): Das Debug-Kästchen mit den Kamera-Fähigkeiten wurde aus dem Scanner-Popup im klassischen Dashboard entfernt.
 - Changed (Home-Assistant-Integration/Panel): Der native Scanner-Dialog zeigt keinen separaten Debug-Block mit Kamera-Fähigkeiten mehr.
 - Fix (Home-Assistant-Integration/Panel/Mobile): Das native Dashboard nutzt auf mobilen Viewports jetzt eine bessere Textskalierung und größere Mikrotypografie für Status-, Hilfs- und Karteninhalte, damit Beschriftungen auf dem Handy lesbarer bleiben.

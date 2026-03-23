@@ -168,7 +168,9 @@ test('native panel locks background scrolling while any modal is open', async ()
   assert.match(source, /_isAnyModalOpen\(state\) \{[\s\S]*?state\.shopping\.detailModal\.open[\s\S]*?state\.shopping\.scanner\.open[\s\S]*?state\.recipes\.createModal\.open[\s\S]*?state\.storage\.deleteModal\.open[\s\S]*?\}/);
   assert.match(source, /_setModalScrollLock\(locked\) \{[\s\S]*?body\.style\.overflow = 'hidden';[\s\S]*?body\.style\.position = 'fixed';[\s\S]*?document\.documentElement\.style\.overscrollBehavior = 'none';[\s\S]*?window\.scrollTo\(0, scrollTop\);/);
   assert.match(cssSource, /:host\(\[data-modal-open="true"\]\),[\s\S]*?\.page-shell--modal-open \{[\s\S]*?overflow: hidden;/);
-  assert.match(cssSource, /\.shopping-modal \{[\s\S]*?overscroll-behavior: contain;/);
+  assert.match(cssSource, /:host\(\[data-modal-open="true"\]\) \.bottom-tabbar \{[\s\S]*?opacity: 0;[\s\S]*?visibility: hidden;[\s\S]*?pointer-events: none;/);
+  assert.match(cssSource, /\.shopping-modal \{[\s\S]*?z-index: 60;[\s\S]*?overscroll-behavior: contain;/);
+  assert.match(cssSource, /\.bottom-tabbar \{[\s\S]*?z-index: 40;[\s\S]*?transition: opacity 0\.18s ease, visibility 0\.18s ease;/);
   assert.match(cssSource, /\.shopping-modal-content \{[\s\S]*?overflow: auto;[\s\S]*?overscroll-behavior: contain;[\s\S]*?-webkit-overflow-scrolling: touch;/);
 });
 
