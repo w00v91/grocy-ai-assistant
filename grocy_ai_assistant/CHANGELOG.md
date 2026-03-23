@@ -1,9 +1,11 @@
-- Fix (Produktsuche/Varianten): Auswahl der Eingabe-Variante im nativen Shopping-Panel erkennt nun wieder zuverlässig `productSource=input`, erzwingt dadurch die Neuanlage statt erneut in die Variantenauswahl zu fallen und belässt Suchtexte ohne explizite Mengenangabe ohne künstliches `1`-Präfix.
-- Test: Frontend-Controller-Tests für `productSource` aus dem Variantendatensatz sowie für Vorschlagsübernahme ohne implizites `1`-Präfix ergänzt.
-
 # Changelog
 
 All notable changes to this project will be documented in this file.
+
+## 2026-03-23 (Version 8.0.26)
+
+- Fix (Produktsuche/Varianten): Auswahl der Eingabe-Variante im nativen Shopping-Panel erkennt nun wieder zuverlässig `productSource=input`, erzwingt dadurch die Neuanlage statt erneut in die Variantenauswahl zu fallen und belässt Suchtexte ohne explizite Mengenangabe ohne künstliches `1`-Präfix.
+- Test: Frontend-Controller-Tests für `productSource` aus dem Variantendatensatz sowie für Vorschlagsübernahme ohne implizites `1`-Präfix ergänzt.
 
 ## 2026-03-23 (Version 8.0.25)
 
