@@ -1,207 +1,56 @@
 import logging
-from datetime import datetime, timezone
 
 from homeassistant.components.sensor import SensorEntity, SensorStateClass
 from homeassistant.const import EntityCategory
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .addon_client import AddonClient
-from .const import (
-    CONF_API_BASE_URL,
-    CONF_DEBUG_MODE,
-    DEFAULT_ADDON_BASE_URL,
-    INTEGRATION_VERSION,
+from .coordinator import (
+    COORDINATOR_INVENTORY,
+    COORDINATOR_RECIPE_SUGGESTIONS,
+    COORDINATOR_STATUS,
+    get_entry_coordinators,
 )
 from .entity import build_device_info
-from .entity_payloads import (
-    DEFAULT_EXPIRING_WITHIN_DAYS,
-    build_expiring_stock_summary,
-    build_recipe_summary,
-    build_shopping_list_summary,
-    build_stock_summary,
-)
 
 _LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(hass, entry, async_add_entities):
     """Set up sensors for a config entry."""
+    coordinators = get_entry_coordinators(hass, entry.entry_id)
     async_add_entities(
         [
-            GrocyAISensor(entry),
+            GrocyAISensor(entry, coordinators[COORDINATOR_STATUS]),
             GrocyAIResponseSensor(entry),
-            GrocyAIUpdateRequiredSensor(entry),
+            GrocyAIUpdateRequiredSensor(entry, coordinators[COORDINATOR_STATUS]),
             GrocyAILastResponseTimeSensor(entry),
             GrocyAIAverageResponseTimeSensor(entry),
-            GrocyAIShoppingListOpenCountSensor(entry),
-            GrocyAIStockProductCountSensor(entry),
-            GrocyAIExpiringStockProductCountSensor(entry),
-            GrocyAITopAIRecipeSuggestionSensor(entry),
-            GrocyAITopGrocyRecipeSuggestionSensor(entry),
-            GrocyAISoonExpiringRecipeSuggestionSensor(entry),
+            GrocyAIShoppingListOpenCountSensor(
+                entry, coordinators[COORDINATOR_INVENTORY]
+            ),
+            GrocyAIStockProductCountSensor(entry, coordinators[COORDINATOR_INVENTORY]),
+            GrocyAIExpiringStockProductCountSensor(
+                entry, coordinators[COORDINATOR_INVENTORY]
+            ),
+            GrocyAITopAIRecipeSuggestionSensor(
+                entry, coordinators[COORDINATOR_RECIPE_SUGGESTIONS]
+            ),
+            GrocyAITopGrocyRecipeSuggestionSensor(
+                entry, coordinators[COORDINATOR_RECIPE_SUGGESTIONS]
+            ),
+            GrocyAISoonExpiringRecipeSuggestionSensor(
+                entry, coordinators[COORDINATOR_RECIPE_SUGGESTIONS]
+            ),
             GrocyAIAnalysisStatusSensor(entry),
             GrocyAIBarcodeLookupStatusSensor(entry),
             GrocyAILlavaScanStatusSensor(entry),
-        ],
-        update_before_add=True,
+        ]
     )
 
 
 class _BaseAddonSensor(SensorEntity):
     def __init__(self, entry):
         self._entry = entry
-
-    def _build_client(self) -> AddonClient:
-        conf = {**self._entry.data, **self._entry.options}
-        return AddonClient(
-            conf.get(
-                CONF_API_BASE_URL,
-                conf.get("addon_base_url", DEFAULT_ADDON_BASE_URL),
-            ),
-            conf.get("api_key", ""),
-            integration_version=INTEGRATION_VERSION,
-        )
-
-    @property
-    def device_info(self):
-        return build_device_info(self._entry.entry_id)
-
-
-class _PollingAddonSensor(_BaseAddonSensor):
-    def __init__(self, entry):
-        super().__init__(entry)
-        self._debug_mode = bool(entry.options.get(CONF_DEBUG_MODE, False))
-        self._has_successful_update = False
-
-    @property
-    def _error_fallback_native_value(self):
-        return None
-
-    @staticmethod
-    def _updated_at() -> str:
-        return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
-
-    def _set_success_state(self, *, attributes: dict | None = None) -> None:
-        merged_attributes = dict(attributes or {})
-        merged_attributes["last_update_success"] = True
-        merged_attributes.pop("last_error", None)
-        merged_attributes.pop("http_status", None)
-        self._attr_extra_state_attributes = merged_attributes
-        self._attr_available = True
-        self._has_successful_update = True
-
-    def _set_failure_state(
-        self,
-        *,
-        error: Exception | str,
-        http_status: int | None = None,
-        fallback_native_value=None,
-    ) -> None:
-        merged_attributes = dict(
-            getattr(self, "_attr_extra_state_attributes", {}) or {}
-        )
-        merged_attributes.update(
-            {
-                "last_update_success": False,
-                "last_error": str(error),
-                "updated_at": self._updated_at(),
-            }
-        )
-        if http_status is not None:
-            merged_attributes["http_status"] = http_status
-        self._attr_extra_state_attributes = merged_attributes
-        if not self._has_successful_update and fallback_native_value is not None:
-            self._attr_native_value = fallback_native_value
-        self._attr_available = (
-            self._has_successful_update or fallback_native_value is not None
-        )
-
-    async def async_update(self):
-        try:
-            await self._async_update_native_value()
-        except Exception as error:
-            self._set_failure_state(
-                error=error,
-                fallback_native_value=self._error_fallback_native_value,
-            )
-            if self._debug_mode:
-                _LOGGER.debug("Sensorabfrage fehlgeschlagen (%s): %s", self.name, error)
-
-    async def _async_update_native_value(self):
-        raise NotImplementedError
-
-
-class GrocyAISensor(_PollingAddonSensor):
-    """Sensor for add-on availability."""
-
-    def __init__(self, entry):
-        super().__init__(entry)
-        self._attr_name = "Grocy AI Status"
-        self._attr_unique_id = f"{entry.entry_id}_status"
-        self._attr_native_value = "Initialisiere..."
-        self._attr_icon = "mdi:robot"
-        self._attr_entity_category = EntityCategory.DIAGNOSTIC
-
-    @property
-    def _error_fallback_native_value(self):
-        return "Offline"
-
-    async def _async_update_native_value(self):
-        payload = await self._build_client().get_status()
-        self._attr_available = True
-        if payload.get("_http_status") == 200:
-            self._attr_native_value = "Online"
-            self._attr_extra_state_attributes = {
-                "addon_version": payload.get("addon_version", "unbekannt"),
-                "required_integration_version": payload.get(
-                    "required_integration_version", "unbekannt"
-                ),
-                "homeassistant_restart_required": payload.get(
-                    "homeassistant_restart_required", False
-                ),
-            }
-        else:
-            self._attr_native_value = f"Error {payload.get('_http_status')}"
-
-
-class GrocyAIUpdateRequiredSensor(_PollingAddonSensor):
-    def __init__(self, entry):
-        super().__init__(entry)
-        self._attr_name = "Grocy AI Home Assistant Update erforderlich"
-        self._attr_unique_id = f"{entry.entry_id}_ha_update_required"
-        self._attr_native_value = "Nein"
-        self._attr_icon = "mdi:update"
-        self._attr_entity_category = EntityCategory.DIAGNOSTIC
-
-    @property
-    def _error_fallback_native_value(self):
-        return "Unbekannt"
-
-    async def _async_update_native_value(self):
-        payload = await self._build_client().get_status()
-        self._attr_available = True
-        if payload.get("_http_status") != 200:
-            self._attr_native_value = "Unbekannt"
-            return
-
-        restart_required = bool(payload.get("homeassistant_restart_required", False))
-        self._attr_native_value = "Ja" if restart_required else "Nein"
-        self._attr_extra_state_attributes = {
-            "required_integration_version": payload.get(
-                "required_integration_version", "unbekannt"
-            ),
-            "current_integration_version": INTEGRATION_VERSION,
-            "reason": payload.get("update_reason", ""),
-        }
-
-
-class _StaticStatusSensor(SensorEntity):
-    def __init__(self, entry, *, name: str, unique_suffix: str, icon: str):
-        self._entry = entry
-        self._attr_name = name
-        self._attr_unique_id = f"{entry.entry_id}_{unique_suffix}"
-        self._attr_native_value = "Bereit"
-        self._attr_icon = icon
-        self._attr_entity_category = EntityCategory.DIAGNOSTIC
 
     @property
     def should_poll(self):
@@ -210,6 +59,80 @@ class _StaticStatusSensor(SensorEntity):
     @property
     def device_info(self):
         return build_device_info(self._entry.entry_id)
+
+
+class _CoordinatorAddonSensor(CoordinatorEntity, _BaseAddonSensor):
+    def __init__(
+        self,
+        entry,
+        coordinator,
+        *,
+        data_key: str,
+        fallback_native_value,
+    ):
+        _BaseAddonSensor.__init__(self, entry)
+        CoordinatorEntity.__init__(self, coordinator)
+        self._data_key = data_key
+        self._fallback_native_value = fallback_native_value
+
+    def _payload(self) -> dict:
+        data = self.coordinator.data or {}
+        payload = data.get(self._data_key)
+        return payload if isinstance(payload, dict) else {}
+
+    @property
+    def native_value(self):
+        return self._payload().get("state", self._fallback_native_value)
+
+    @property
+    def extra_state_attributes(self):
+        attributes = dict(self._payload().get("attributes") or {})
+        attributes["last_update_success"] = self.coordinator.last_update_success
+        if self.coordinator.last_exception is not None:
+            attributes["last_error"] = str(self.coordinator.last_exception)
+        else:
+            attributes.pop("last_error", None)
+        return attributes
+
+
+class GrocyAISensor(_CoordinatorAddonSensor):
+    """Sensor for add-on availability."""
+
+    def __init__(self, entry, coordinator):
+        super().__init__(
+            entry,
+            coordinator,
+            data_key="status",
+            fallback_native_value="Offline",
+        )
+        self._attr_name = "Grocy AI Status"
+        self._attr_unique_id = f"{entry.entry_id}_status"
+        self._attr_icon = "mdi:robot"
+        self._attr_entity_category = EntityCategory.DIAGNOSTIC
+
+
+class GrocyAIUpdateRequiredSensor(_CoordinatorAddonSensor):
+    def __init__(self, entry, coordinator):
+        super().__init__(
+            entry,
+            coordinator,
+            data_key="update_required",
+            fallback_native_value="Unbekannt",
+        )
+        self._attr_name = "Grocy AI Home Assistant Update erforderlich"
+        self._attr_unique_id = f"{entry.entry_id}_ha_update_required"
+        self._attr_icon = "mdi:update"
+        self._attr_entity_category = EntityCategory.DIAGNOSTIC
+
+
+class _StaticStatusSensor(_BaseAddonSensor):
+    def __init__(self, entry, *, name: str, unique_suffix: str, icon: str):
+        super().__init__(entry)
+        self._attr_name = name
+        self._attr_unique_id = f"{entry.entry_id}_{unique_suffix}"
+        self._attr_native_value = "Bereit"
+        self._attr_icon = icon
+        self._attr_entity_category = EntityCategory.DIAGNOSTIC
 
 
 class GrocyAIResponseSensor(_StaticStatusSensor):
@@ -225,11 +148,11 @@ class GrocyAIResponseSensor(_StaticStatusSensor):
         _LOGGER.info("Response Sensor registriert und bereit.")
 
 
-class GrocyAILastResponseTimeSensor(SensorEntity):
+class GrocyAILastResponseTimeSensor(_BaseAddonSensor):
     """Diagnostic sensor containing the duration of the latest AI request."""
 
     def __init__(self, entry):
-        self._entry = entry
+        super().__init__(entry)
         self._attr_name = "Grocy AI KI Antwortzeit (letzte Anfrage)"
         self._attr_unique_id = f"{entry.entry_id}_ai_response_time_last_ms"
         self._attr_native_value = None
@@ -238,16 +161,12 @@ class GrocyAILastResponseTimeSensor(SensorEntity):
         self._attr_icon = "mdi:timer-outline"
         self._attr_entity_category = EntityCategory.DIAGNOSTIC
 
-    @property
-    def device_info(self):
-        return build_device_info(self._entry.entry_id)
 
-
-class GrocyAIAverageResponseTimeSensor(SensorEntity):
+class GrocyAIAverageResponseTimeSensor(_BaseAddonSensor):
     """Diagnostic sensor containing the average duration of AI requests."""
 
     def __init__(self, entry):
-        self._entry = entry
+        super().__init__(entry)
         self._attr_name = "Grocy AI KI Antwortzeit (Durchschnitt)"
         self._attr_unique_id = f"{entry.entry_id}_ai_response_time_avg_ms"
         self._attr_native_value = None
@@ -256,171 +175,91 @@ class GrocyAIAverageResponseTimeSensor(SensorEntity):
         self._attr_icon = "mdi:chart-line"
         self._attr_entity_category = EntityCategory.DIAGNOSTIC
 
-    @property
-    def device_info(self):
-        return build_device_info(self._entry.entry_id)
 
-
-class GrocyAIShoppingListOpenCountSensor(_PollingAddonSensor):
-    def __init__(self, entry):
-        super().__init__(entry)
+class GrocyAIShoppingListOpenCountSensor(_CoordinatorAddonSensor):
+    def __init__(self, entry, coordinator):
+        super().__init__(
+            entry,
+            coordinator,
+            data_key="shopping_list_open_count",
+            fallback_native_value=0,
+        )
         self._attr_name = "Grocy AI Einkaufsliste offene Einträge"
         self._attr_unique_id = f"{entry.entry_id}_shopping_list_open_count"
-        self._attr_native_value = 0
         self._attr_icon = "mdi:cart-outline"
 
-    @property
-    def _error_fallback_native_value(self):
-        return 0
 
-    async def _async_update_native_value(self):
-        payload = await self._build_client().get_shopping_list()
-        http_status = payload.get("_http_status")
-        if http_status != 200:
-            self._set_failure_state(
-                error=payload.get("detail") or f"HTTP {http_status}",
-                http_status=http_status,
-                fallback_native_value=0,
-            )
-            return
-
-        count, attributes = build_shopping_list_summary(payload.get("items") or [])
-        self._attr_native_value = count
-        self._set_success_state(attributes=attributes)
-
-
-class GrocyAIStockProductCountSensor(_PollingAddonSensor):
-    def __init__(self, entry):
-        super().__init__(entry)
+class GrocyAIStockProductCountSensor(_CoordinatorAddonSensor):
+    def __init__(self, entry, coordinator):
+        super().__init__(
+            entry,
+            coordinator,
+            data_key="stock_products_total_count",
+            fallback_native_value=0,
+        )
         self._attr_name = "Grocy AI Lagerprodukte gesamt"
         self._attr_unique_id = f"{entry.entry_id}_stock_products_total_count"
-        self._attr_native_value = 0
         self._attr_icon = "mdi:fridge-outline"
 
-    @property
-    def _error_fallback_native_value(self):
-        return 0
 
-    async def _async_update_native_value(self):
-        payload = await self._build_client().get_stock_products()
-        http_status = payload.get("_http_status")
-        if http_status != 200:
-            self._set_failure_state(
-                error=payload.get("detail") or f"HTTP {http_status}",
-                http_status=http_status,
-                fallback_native_value=0,
-            )
-            return
-
-        count, attributes = build_stock_summary(payload.get("items") or [])
-        self._attr_native_value = count
-        self._set_success_state(attributes=attributes)
-
-
-class GrocyAIExpiringStockProductCountSensor(_PollingAddonSensor):
-    def __init__(self, entry):
-        super().__init__(entry)
+class GrocyAIExpiringStockProductCountSensor(_CoordinatorAddonSensor):
+    def __init__(self, entry, coordinator):
+        super().__init__(
+            entry,
+            coordinator,
+            data_key="stock_products_expiring_count",
+            fallback_native_value=0,
+        )
         self._attr_name = "Grocy AI Bald ablaufende Lagerprodukte"
         self._attr_unique_id = f"{entry.entry_id}_stock_products_expiring_count"
-        self._attr_native_value = 0
         self._attr_icon = "mdi:calendar-alert-outline"
 
-    @property
-    def _error_fallback_native_value(self):
-        return 0
 
-    async def _async_update_native_value(self):
-        payload = await self._build_client().get_stock_products()
-        http_status = payload.get("_http_status")
-        if http_status != 200:
-            self._set_failure_state(
-                error=payload.get("detail") or f"HTTP {http_status}",
-                http_status=http_status,
-                fallback_native_value=0,
-            )
-            return
-
-        count, attributes = build_expiring_stock_summary(
-            payload.get("items") or [],
-            expiring_within_days=DEFAULT_EXPIRING_WITHIN_DAYS,
-        )
-        self._attr_native_value = count
-        self._set_success_state(attributes=attributes)
-
-
-class _RecipeSuggestionSensor(_PollingAddonSensor):
+class _RecipeSuggestionSensor(_CoordinatorAddonSensor):
     def __init__(
         self,
         entry,
+        coordinator,
         *,
-        soon_expiring_only: bool,
         name: str,
         suffix: str,
-        source: str | None = None,
     ):
-        super().__init__(entry)
-        self._soon_expiring_only = soon_expiring_only
-        self._source = source
+        super().__init__(
+            entry,
+            coordinator,
+            data_key=suffix,
+            fallback_native_value="Keine Vorschläge",
+        )
         self._attr_name = name
         self._attr_unique_id = f"{entry.entry_id}_{suffix}"
-        self._attr_native_value = "Keine Vorschläge"
         self._attr_icon = "mdi:chef-hat"
-
-    @property
-    def _error_fallback_native_value(self):
-        return "Keine Vorschläge"
-
-    async def _async_update_native_value(self):
-        payload = await self._build_client().get_recipe_suggestions(
-            soon_expiring_only=self._soon_expiring_only,
-            expiring_within_days=DEFAULT_EXPIRING_WITHIN_DAYS,
-        )
-        http_status = payload.get("_http_status")
-        if http_status != 200:
-            self._set_failure_state(
-                error=payload.get("detail") or f"HTTP {http_status}",
-                http_status=http_status,
-                fallback_native_value="Keine Vorschläge",
-            )
-            return
-
-        state, attributes = build_recipe_summary(
-            payload,
-            soon_expiring_only=self._soon_expiring_only,
-            expiring_within_days=DEFAULT_EXPIRING_WITHIN_DAYS,
-            source=self._source,
-        )
-        self._attr_native_value = state
-        self._set_success_state(attributes=attributes)
 
 
 class GrocyAITopAIRecipeSuggestionSensor(_RecipeSuggestionSensor):
-    def __init__(self, entry):
+    def __init__(self, entry, coordinator):
         super().__init__(
             entry,
-            soon_expiring_only=False,
+            coordinator,
             name="Grocy AI Top KI Rezeptvorschlag",
             suffix="recipe_suggestion_top_ai",
-            source="ai",
         )
 
 
 class GrocyAITopGrocyRecipeSuggestionSensor(_RecipeSuggestionSensor):
-    def __init__(self, entry):
+    def __init__(self, entry, coordinator):
         super().__init__(
             entry,
-            soon_expiring_only=False,
+            coordinator,
             name="Grocy AI Top Grocy Rezeptvorschlag",
             suffix="recipe_suggestion_top_grocy",
-            source="grocy",
         )
 
 
 class GrocyAISoonExpiringRecipeSuggestionSensor(_RecipeSuggestionSensor):
-    def __init__(self, entry):
+    def __init__(self, entry, coordinator):
         super().__init__(
             entry,
-            soon_expiring_only=True,
+            coordinator,
             name="Grocy AI Rezeptvorschläge bald ablaufend",
             suffix="recipe_suggestion_expiring",
         )
