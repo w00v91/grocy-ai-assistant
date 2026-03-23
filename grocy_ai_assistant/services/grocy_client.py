@@ -557,12 +557,8 @@ class GrocyClient:
         file_name = Path(image_path).name
         image_bytes = Path(image_path).read_bytes()
 
-        upload_headers_with_key = {
+        upload_headers = {
             "GROCY-API-KEY": self.settings.grocy_api_key,
-            "Content-Type": "application/octet-stream",
-            "Accept": "*/*",
-        }
-        upload_headers_curl_compatible = {
             "Content-Type": "application/octet-stream",
             "Accept": "*/*",
         }
@@ -572,39 +568,22 @@ class GrocyClient:
         if encoded_file_name != file_name:
             candidate_file_names.append(encoded_file_name)
 
-        upload_urls: list[str] = []
         stripped_base_url = self.settings.grocy_base_url.rstrip("/")
-        base_urls = [stripped_base_url]
-        if stripped_base_url.endswith("/api"):
-            base_urls.append(stripped_base_url[:-4])
+        upload_base_url = (
+            stripped_base_url[:-4]
+            if stripped_base_url.endswith("/api")
+            else stripped_base_url
+        )
 
-        for base_url in base_urls:
-            for upload_file_name in candidate_file_names:
-                upload_url = f"{base_url}/files/productpictures/{upload_file_name}"
-                if upload_url not in upload_urls:
-                    upload_urls.append(upload_url)
+        upload_urls: list[str] = []
+        for upload_file_name in candidate_file_names:
+            upload_url = f"{upload_base_url}/files/productpictures/{upload_file_name}"
+            if upload_url not in upload_urls:
+                upload_urls.append(upload_url)
 
-        upload_attempts: list[tuple[str, str, dict[str, str], str]] = []
-        for upload_url in upload_urls:
-            upload_attempts.append(
-                ("PUT", upload_url, upload_headers_with_key, "api_key")
-            )
-            upload_attempts.append(
-                ("PUT", upload_url, upload_headers_curl_compatible, "curl_compatible")
-            )
-            upload_attempts.append(
-                ("POST", upload_url, upload_headers_with_key, "api_key")
-            )
-            upload_attempts.append(
-                ("POST", upload_url, upload_headers_curl_compatible, "curl_compatible")
-            )
-
-        for index, (http_method, upload_url, upload_headers, header_mode) in enumerate(
-            upload_attempts
-        ):
+        for index, upload_url in enumerate(upload_urls):
             try:
-                upload_response = requests.request(
-                    http_method,
+                upload_response = requests.put(
                     upload_url,
                     headers=upload_headers,
                     data=image_bytes,
@@ -616,18 +595,13 @@ class GrocyClient:
                 status_code = (
                     error.response.status_code if error.response is not None else None
                 )
-                should_retry = index < len(upload_attempts) - 1 and status_code in {
-                    404,
-                    405,
-                }
+                should_retry = index < len(upload_urls) - 1 and status_code == 404
                 if not should_retry:
                     raise
                 logger.warning(
-                    "Produktbild-Upload über %s %s fehlgeschlagen (%s, header_mode=%s), versuche Fallback",
-                    http_method,
+                    "Produktbild-Upload über PUT %s fehlgeschlagen (%s), versuche Fallback-Dateiname",
                     upload_url,
                     status_code,
-                    header_mode,
                 )
 
         update_response = requests.put(
