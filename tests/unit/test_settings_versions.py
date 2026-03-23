@@ -1,3 +1,4 @@
+from collections import Counter
 import json
 import re
 
@@ -125,3 +126,25 @@ def test_changelog_top_version_is_synced_with_project_metadata():
 
     assert changelog_version == addon_version == manifest_version == const_version
     assert frontend_version == changelog_version
+
+
+def _parse_version_tuple(version: str) -> tuple[int, ...]:
+    return tuple(int(part) for part in version.split("."))
+
+
+def test_changelog_versions_are_unique_and_sorted_descending():
+    changelog_content = (
+        settings.PROJECT_ROOT / "grocy_ai_assistant" / "CHANGELOG.md"
+    ).read_text(encoding="utf-8")
+    versions = re.findall(
+        r"^##\s+(?:\d{4}-\d{2}-\d{2}\s+\(Version\s+([^\)]+)\)|\[([^\]]+)\])",
+        changelog_content,
+        re.MULTILINE,
+    )
+    normalized_versions = [left or right for left, right in versions]
+
+    assert normalized_versions
+    assert Counter(normalized_versions).most_common(1)[0][1] == 1
+    assert normalized_versions == sorted(
+        normalized_versions, key=_parse_version_tuple, reverse=True
+    )

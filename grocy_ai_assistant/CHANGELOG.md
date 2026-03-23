@@ -4,14 +4,12 @@ All notable changes to this project will be documented in this file.
 ## 2026-03-23 (Version 8.0.30)
 - Docs (API): README dokumentiert die tatsächlich in `grocy_ai_assistant/api/routes.py` bereitgestellten Integrations- und Dashboard-Routen jetzt gruppiert nach Zweck und ergänzt insbesondere die bisher fehlenden `/api/v1/`-Endpunkte für Einkaufsliste, Lager, Rezepte, Barcode und Last-Scan.
 - Docs (Add-on): `grocy_ai_assistant/DOCS.md` unterscheidet nun explizit zwischen Integrations-API (`/api/v1/...`) und Dashboard-/UI-API (`/api/dashboard/...`) und verweist für Notification-spezifische Endpunkte auf die dedizierten Architektur-/Dashboard-Spezifikationen.
-- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.30` erhöht.
+- Docs: `README.md` an die tatsächliche Repository-Struktur angepasst; der Projektbaum zeigt jetzt `grocy_ai_assistant/CHANGELOG.md` statt eines Root-Changelogs.
+- Docs: Versionsangaben im README auf die synchronen Versionsstände aus `grocy_ai_assistant/config.yaml`, `grocy_ai_assistant/custom_components/grocy_ai_assistant/manifest.json` und `grocy_ai_assistant/custom_components/grocy_ai_assistant/const.py` (`8.0.30`) aktualisiert und den Changelog-Link auf den realen Pfad korrigiert.
+- Docs: Relative Markdown-Links im README gegen die vorhandenen Dateipfade geprüft.
+- Changed (Versioning): Spitzenversion im Changelog mit `config.yaml`, `manifest.json` und `const.py` auf `8.0.30` abgeglichen; Versionsstände für Add-on und Integration bleiben synchron.
 - Fix (Grocy/Create-Product): Produktanlagen normalisieren jetzt ungültige KI-Lagerort- und Mengeneinheits-IDs vor dem ersten POST auf valide Grocy-IDs, sodass `/api/dashboard/search` nicht mehr mit 400 auf `/objects/products` scheitert.
 - Test: Unit-Regressionen für die Vorab-Normalisierung ungültiger `location_id`-/`qu_id_*`-Werte ergänzt; Versionsstände auf `8.0.30` erhöht.
-
-## 2026-03-23 (Dokumentation)
-- Docs: `README.md` an die tatsächliche Repository-Struktur angepasst; der Projektbaum zeigt jetzt `grocy_ai_assistant/CHANGELOG.md` statt eines Root-Changelogs.
-- Docs: Versionsangaben im README auf den aktuellen Stand aus `grocy_ai_assistant/config.yaml` (`8.0.27`) und `grocy_ai_assistant/custom_components/grocy_ai_assistant/manifest.json` (`8.0.29`) aktualisiert und den Changelog-Link auf den realen Pfad korrigiert.
-- Docs: Relative Markdown-Links im README gegen die vorhandenen Dateipfade geprüft.
 
 ## 2026-03-23 (Version 8.0.29)
 
@@ -58,9 +56,6 @@ All notable changes to this project will be documented in this file.
 - Changed (Dashboard/Web/Einkauf): Die Einkaufs-Statusmeldung wurde aus der Listenkarte entfernt und als Badge in den Suchbereich verschoben.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.25` erhöht.
 
-
-## 2026-03-23 (Version 8.0.25)
-
 - Refactor (Home-Assistant-Integration/Runtime-State): Die Integration entfernt direkte `hass.states.async_set(...)`-Schreibzugriffe aus `__init__.py` und hält kurzlebige Antwort-, Analyse-, Barcode-, LLaVA- und Timingdaten jetzt entry-scoped in einer zentralen Runtime-Datenstruktur unter `hass.data[DOMAIN][entry_id]`.
 - Refactor (Home-Assistant-Integration/Entities): Response-, Status- und Timing-Sensoren veröffentlichen ihre Zustände nun entity-getrieben über Dispatcher-Signale und `async_write_ha_state()` statt per externem Write in die State Machine.
 - Refactor (Home-Assistant-Integration/Text): Das Produkt-Eingabefeld nutzt jetzt echte `TextEntity`-Updates inklusive `RestoreEntity`, sodass Service-Aufrufe den Wert aus der Runtime-Struktur lesen und erfolgreiche Syncs das Feld sauber über die Entity leeren.
@@ -94,12 +89,10 @@ All notable changes to this project will be documented in this file.
 ## 2026-03-23 (Version 8.0.21)
 - Refactor (Home-Assistant-Integration/Sensoren): Neue Coordinator-Schicht in `custom_components/grocy_ai_assistant/coordinator.py` bündelt Status-, Lager-/Shopping- und Rezeptvorschlags-Polling entry-scoped in `hass.data[DOMAIN][entry.entry_id]` inklusive zentralem Fehler- und Availability-Handling.
 - Refactor (Home-Assistant-Integration/Sensoren): Die polling-basierten Sensoren in `sensor.py` leiten ihren State jetzt ausschließlich aus `coordinator.data` ab und führen keine direkten Add-on-API-Calls oder eigenes `async_update` mehr aus.
-- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.21` erhöht.
-
 - Fix (Home-Assistant-Integration/Panel/Mobile): Die Labels der unteren Tab-Buttons `Produktsuche` und `Lager` bleiben beim Wechsel in den mobilen Viewport jetzt vertikal mittig im Button statt nach oben zu springen.
 - Added (Tests/Frontend): Eine CSS-Regression prüft jetzt die stabilisierte Icon-/Label-Ausrichtung der nativen Tab-Buttons.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.21` erhöht.
-- 
+
 ## 2026-03-23 (Version 8.0.20)
 - Changed (Home-Assistant-Integration/Panel): Der native Dashboard-Shell entfernt den Tab `Benachrichtigungen` komplett aus Navigation, Routing und Panel-Markup; Benachrichtigungen werden damit nicht mehr über das native Dashboard angeboten, sondern ausschließlich über die App-Oberfläche gesteuert.
 - Added (Tests/Frontend): Routing- und Shell-Regressionen sichern ab, dass `tab=notifications` im nativen Panel auf `shopping` zurückfällt und keine Notification-Tab-Struktur mehr gerendert wird.
@@ -153,6 +146,8 @@ All notable changes to this project will be documented in this file.
 - Fix (Home-Assistant-Integration/Panel): Die Swipe-Buttons im nativen Lager-Tab erben das zentrierte Variantenkarten-Layout nicht mehr, sodass Produktname und Zusatzinfos wieder linksbündig wie in der Einkaufsliste dargestellt werden.
 - Fix (Home-Assistant-Integration/Panel): Die Badge-Spalte der nativen Lager-Swipe-Karten richtet sich wieder wie in der Einkaufsliste aus, statt durch die Variantenkarten-Styles mittig zu verrutschen.
 - Added (Tests/Frontend): Eine CSS-Regression stellt sicher, dass die zentrierten Variantenkarten-Styles nur noch echte Variantenkarten betreffen.
+- Fix (Home-Assistant-Integration/Panel/Scanner): Das native Scanner-Popup startet die Kamera beim Öffnen nicht mehr automatisch, sondern erst nach explizitem Klick auf `Scanner starten`. Das reduziert Abstürze in problematischen Browsern/WebViews beim reinen Öffnen des Popups.
+- Changed (Home-Assistant-Integration/Panel/Scanner): Beim Öffnen zeigt das Popup bzw. die Topbar jetzt den Hinweis `Scanner geöffnet. Kamera bitte manuell starten.`, damit der neue Ablauf klar erkennbar ist.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.15` erhöht.
 
 ## 2026-03-22 (Version 8.0.14)
@@ -160,46 +155,37 @@ All notable changes to this project will be documented in this file.
 - Changed (Home-Assistant-Integration/Panel): Im Rezepte-Tab blendet das Dropdown `Produkte in ausgewählten Standorten` die Badges `Menge` und `MHD` aus und zeigt optional nur noch den Lagerort als Zusatzinfo.
 - Changed (Home-Assistant-Integration/Panel): Die Status-Badges im nativen Lager-Tab sitzen jetzt direkt unter dem Textfilter in einer kompakten Zeile statt untereinander bzw. vollbreit.
 - Added (Tests/Frontend): Shared-UI- und Panel-Regressionstests decken die CTA-freie Variantenkarte sowie das reduzierte Rezepte-Produkt-Dropdown weiterhin ab.
-
-- Fix (Home-Assistant-Integration/Panel/Scanner): Das native Scanner-Popup nutzt beim Kamera-Start wieder kompatible `getUserMedia`-Fallbacks (`navigator.getUserMedia`/`webkitGetUserMedia`/`mozGetUserMedia`/`msGetUserMedia`) statt ausschließlich `navigator.mediaDevices.getUserMedia`, sodass der Scanner nach der Portierung auch in Home-Assistant-WebViews und älteren mobilen Browsern wieder startet.
-- Fix (Home-Assistant-Integration/Panel/Scanner): Vor dem Start des nativen Kamera-Streams werden `playsinline`, `autoplay` und `muted` zusätzlich explizit am Video-Element gesetzt, um mobiles WebKit-/App-Verhalten robuster zu machen.
-- Added (Tests/Frontend): Eine Panel-Regression sichert die wiederhergestellten Kamera-Fallbacks und die explizite Video-Initialisierung des nativen Scanner-Popups ab.
-- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.14` erhöht.
-- Changed (Versioning): Integrationsversion auf `8.0.14` erhöht.
-
-- Fix (Home-Assistant-Integration/Panel/Scanner): Das native Scanner-Popup startet die Kamera beim Öffnen nicht mehr automatisch, sondern erst nach explizitem Klick auf `Scanner starten`. Das reduziert Abstürze in problematischen Browsern/WebViews beim reinen Öffnen des Popups.
-- Changed (Home-Assistant-Integration/Panel/Scanner): Beim Öffnen zeigt das Popup bzw. die Topbar jetzt den Hinweis `Scanner geöffnet. Kamera bitte manuell starten.`, damit der neue Ablauf klar erkennbar ist.
-- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.15` erhöht.
-
 - Fix (Home-Assistant-Integration/Panel/Scanner): Das native Scanner-Popup nutzt beim Kamera-Start wieder kompatible `getUserMedia`-Fallbacks (`navigator.getUserMedia`/`webkitGetUserMedia`/`mozGetUserMedia`/`msGetUserMedia`) statt ausschließlich `navigator.mediaDevices.getUserMedia`, sodass der Scanner nach der Portierung auch in Home-Assistant-WebViews und älteren mobilen Browsern wieder startet.
 - Fix (Home-Assistant-Integration/Panel/Scanner): Vor dem Start des nativen Kamera-Streams werden `playsinline`, `autoplay` und `muted` zusätzlich explizit am Video-Element gesetzt, um mobiles WebKit-/App-Verhalten robuster zu machen.
 - Added (Tests/Frontend): Eine Panel-Regression sichert die wiederhergestellten Kamera-Fallbacks und die explizite Video-Initialisierung des nativen Scanner-Popups ab.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.14` erhöht.
 
+## [8.0.13] - 2026-03-22
 - Changed (Home-Assistant-Integration/Panel): Die Kopfzeile des nativen Dashboards zeigt das Badge `3/4 Bereiche nativ` nicht mehr an.
 - Changed (Home-Assistant-Integration/Panel): Im nativen Rezepte-Tab entfallen Migrationshinweis und Meta-Badges; `Rezept hinzufügen` und `Rezepte laden` stehen jetzt als gemeinsame Aktionszeile direkt unter `Rezeptvorschläge`.
 - Changed (Home-Assistant-Integration/Panel): Im nativen Lager-Tab ersetzt eine Badge-Zeile unter dem Textfilter die bisherige Statusmeldung und zeigt Summen für `Produkte`, `Produkte auf Lager` und `Produkte nicht auf Lager`.
 - Added (Tests/Frontend): Panel-Regressionstests sichern die entfernte Kopfzeilen-Badge, die Rezepte-Aktionszeile und die neuen Lager-Badges ab.
-- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.13` erhöht.
-
 - Changed (Home-Assistant-Integration/Panel, Dashboard/Web): Die Rezepte-Filter für `Lagerort` sowie `Produkte in ausgewählten Standorten` erscheinen wieder als kompakte Dropdown-Zusammenfassungen mit Auswahl-Status statt dauerhaft geöffneter Listen.
 - Fix (Home-Assistant-Integration/Panel, Dashboard/Web): Produktattribute im Rezepte-Bestand werden wieder als Badges für `Menge`, `MHD` und optional `Lagerort` dargestellt.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.13` erhöht.
 
+## [8.0.12] - 2026-03-22
 - Fix (Frontend/Shopping): `renderShoppingListItemCard(...)` respektiert jetzt sowohl `badgeOrder` als auch `stockBadgeOrder`, sodass konfigurierbare Badge-Reihenfolgen in der rechten Badge-Spalte wieder konsistent gerendert werden.
 - Fix (Notifications/UTC): Notification-Zeitstempel und zugehörige Tests verwenden jetzt timezone-aware UTC-Werte statt `datetime.utcnow()`, wodurch Deprecation-Warnungen entfallen.
 - Docs: README-Versionen sowie Panel-/Notification-Dokumentation an den aktuellen Stand (`8.0.12`, native Rezepte/Lager-Tabs, aktuelle Notification-API-Routen) angepasst.
 - Changed (Home-Assistant-Integration/Panel): Die Produktvariantenauswahl im nativen Shopping-Dashboard rendert wieder die gemeinsame Kachelansicht mit Bild, Badges, Kontextinfos und CTA statt der reduzierten Listen-/Zeilenkarte.
 - Added (Tests/Frontend): Ein Panel-Shell-Regressionstest sichert ab, dass die native Variantensuche wieder `renderShoppingVariantCard(...)` inklusive Bildauflösung nutzt.
-- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.12` erhöht.
 - Fix (Home-Assistant-Integration/Panel): Der native Rezepte-Tab stapelt seine Karten im Mobile-View jetzt einspaltig, sodass Grocy- und KI-Rezepte nicht mehr nebeneinander in zwei Spalten erscheinen.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.12` erhöht.
 
+## [8.0.11] - 2026-03-22
 - Fix (Home-Assistant-Integration/Panel): Im nativen Desktop-Panel wird die Bottom-Bar jetzt an der tatsächlich gerenderten Shell-Mitte ausgerichtet; beim Öffnen oder Schließen der Home-Assistant-Sidebar bleibt sie dadurch zentriert statt leicht nach links versetzt.
 - Fix (Home-Assistant-Integration/Panel): Die Status-Badges im nativen Lager-Tab berechnen `auf Lager` und `nicht auf Lager` jetzt auch bei deaktiviertem Toggle `Alle Produkte anzeigen` korrekt über einen separaten Summenabruf mit identischem Filter.
 - Fix (Dashboard/Web): Die Lager-Statusmeldung des Web-Dashboards nutzt für `nicht auf Lager`-Hinweise jetzt ebenfalls die vollständige Summenzählung, selbst wenn nur aktuelle Bestandsartikel angezeigt werden.
 - Changed (Home-Assistant-Integration/Panel): In der nativen Einkaufsliste bleibt das `Bestand`-Badge in der rechten Badge-Liste, wird dort aber vor `Menge` und `MHD` als oberstes Badge gerendert.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.11` erhöht.
+
+## [8.0.10] - 2026-03-22
 - Fix (Home-Assistant-Integration/Panel): Im nativen Lager-Tab blendet das MHD-Badge in den Swipe-Karten sein sichtbares `MHD`-Präfix jetzt ebenfalls aus und zeigt nur noch den Datumswert an.
 - Added (Tests/Frontend): Ein nativer Storage-Swipe-Regressionstest sichert jetzt die versteckte MHD-Badge-Beschriftung für Lager-Karten ab.
 - Changed (Home-Assistant-Integration/Panel): In der nativen Einkaufsliste rendert das `Bestand`-Badge jetzt als Haupt-Badge direkt unter dem Produkttitel statt in der rechten Badge-Spalte, damit der Status ganz oben im Listen-Eintrag sichtbar ist.
@@ -207,17 +193,21 @@ All notable changes to this project will be documented in this file.
 - Fix (Home-Assistant-Integration/Panel): Im nativen `storage`-/`Lager`-Tab sitzt das Badge `Im Bestand` bzw. `Nicht im Bestand` jetzt rechts in derselben Badge-Spalte wie `Menge` und `MHD`; innerhalb der Badge-Liste wird der Status zuerst angezeigt.
 - Added (Tests/Frontend): Shared-Shopping-UI-Regressionstests decken jetzt auch eine konfigurierbare Badge-Reihenfolge für rechte Badge-Spalten ab.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.10` erhöht.
+
+## [8.0.9] - 2026-03-22
 - Changed (Home-Assistant-Integration/Panel): Die Bottom-Bar des nativen Dashboards nutzt im Desktop-View jetzt dieselbe maximale Breite wie die zentrierte Content-Shell, sodass Navigation und Inhalt bündig auf derselben Achse sitzen.
 - Fix (Home-Assistant-Integration/Panel): Die native Bottom-Bar ersetzt ihre Tab-Buttons nicht mehr bei jedem Status-/Polling-Update, sondern synchronisiert nur noch den aktiven Tab-Zustand; Hover- und Klick-Interaktionen bleiben dadurch im Dashboard stabiler.
 - Fix (Home-Assistant-Integration/Panel): Die Tab-Buttons der nativen Bottom-Bar heben sich bei Hover/Fokus nicht mehr per `translateY(...)` an, wodurch das springende Verhalten mit Mauszeiger entfällt.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.9` erhöht.
+
+## [8.0.8] - 2026-03-22
 - Changed (Home-Assistant-Integration/Panel): Der native `storage`-/`Lager`-Tab rendert seine Swipe-Einträge jetzt mit derselben Shared-Shopping-Kartenstruktur wie die native Einkaufsliste; dadurch übernehmen Lager-Items die kompaktere Badge-/Detail-Anordnung und das Styling der nativen Einkaufsliste.
 - Changed (Home-Assistant-Integration/Panel): Im Lager-Swipe-Eintrag entfällt der separate `Löschen`-Button; Löschen bleibt im Modal verfügbar, während `Im Bestand` bzw. `Nicht im Bestand` als oberstes Status-Badge direkt unter dem Produkttitel erscheint.
 - Added (Tests/Frontend): Shared-UI- und Storage-Swipe-Regressionstests decken jetzt das konfigurierbare Haupt-Badge sowie das vereinheitlichte Lager-Listenmarkup ohne Inline-Löschbutton ab.
-- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.8` erhöht.
 - Fix (Home-Assistant-Integration/Panel): In der nativen Einkaufsliste sitzt das `Bestand`-Badge wieder oben rechts bei den übrigen Badges; auf mobilen Viewports bleibt die rechte Badge-Spalte jetzt zweispaltig und Badges umbrechen nicht mehr unter den Hauptinhalt.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.8` erhöht.
 
+## [8.0.7] - 2026-03-22
 - Fix (Backend/Startup): `jinja2` ist wieder als explizite Python-Dependency eingetragen, damit `starlette.templating.Jinja2Templates` beim App-Start ohne Flask-Transitivabhängigkeit verfügbar ist.
 - Fix (Home-Assistant-Integration/Sensoren): `EntityCategory` wird jetzt aus `homeassistant.const` importiert, damit Sensor-Tests und aktuelle Home-Assistant-Versionen denselben Importpfad nutzen.
 - Fix (Home-Assistant-Integration/Panel): Das native Shopping-Panel übergibt wieder `stockBadgePlacement: 'main'`, sodass der bestehende Swipe-Regressionstest wieder mit der Implementierung übereinstimmt.
@@ -225,232 +215,269 @@ All notable changes to this project will be documented in this file.
 - Changed (Dokumentation): README und `DOCS.md` dokumentieren jetzt das verschachtelte Add-on-Schema, das aktuelle Sidebar-Icon sowie den vollständigen lokalen Prüfablauf.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.7` erhöht.
 
+## [8.0.6] - 2026-03-22
 - Changed (Home-Assistant-Integration/Panel): Das native Dashboard leitet seine Abstände und Card-Surfaces jetzt aus den Home-Assistant-Theme-Variablen für `ha-card` ab, damit Shell, Karten, Suchflächen, Listen, Detail-Boxen und Bottom-Bar denselben spacing-/theme-nahen Rhythmus wie andere HA-Oberflächen übernehmen.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.6` erhöht.
 - Test: `node --test tests/frontend/test_panel_shell_rendering.mjs`, `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `8.0.6` erhöht.
+
+## [8.0.4] - 2026-03-22
 - Changed (Home-Assistant-Integration/Panel): Die native Bottom-Bar ist jetzt auch im Dashboard selbst sauber zentriert, statt sich am Viewport asymmetrisch auszurichten.
 - Changed (Home-Assistant-Integration/Panel): Auf mobilen Viewports rendert die Bottom-Bar ihre Tab-Links jetzt als kompakte, horizontal scrollbare Pills statt als umbrechende Liste; Desktop bleibt unverändert.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.4` erhöht.
 - Test: `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `node --test tests/frontend/test_panel_shell_rendering.mjs`, `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `8.0.4` erhöht.
 
 ## [8.0.3] - 2026-03-22
-
 - Changed (Home-Assistant-Integration/Panel): Das native Storage-Bearbeiten-Modal übernimmt wieder die Legacy-Reihenfolge für Menge, MHD, Lagerort und die fünf Nährwertfelder; beim Öffnen werden zunächst Lagerdaten gesetzt und anschließend detaillierte Produkt-Nährwerte per `fetchProductNutrition(...)` nachgeladen.
 - Added (Tests/Frontend): Zusätzliche Frontend-Regressionstests decken Rendering, Initialzustand, Volatile-State-Sync sowie den Save-Flow der neuen Storage-Nährwertfelder ab.
-- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.3` erhöht.
-- Test: `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/dashboard-api-client.js`, `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `node --test tests/frontend/test_dashboard_api_client.mjs tests/frontend/test_panel_shell_rendering.mjs tests/frontend/test_storage_edit_nutrition_fields.mjs`, `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py tests/unit/test_panel.py`; Versionsstände auf `8.0.3` erhöht.
 - Changed (Home-Assistant-Integration/Panel): Das native Dashboard nutzt im Desktop-View jetzt eine zentrierte Shell mit maximal halber Viewport-Breite bzw. Legacy-ähnlichen 960px, sodass der Inhalt wieder näher am bisherigen Legacy-Dashboard sitzt.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.3` erhöht.
-- Test: `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `node --test tests/frontend/test_panel_shell_rendering.mjs`, `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `8.0.3` erhöht.
+- Test: `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/dashboard-api-client.js`, `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `node --test tests/frontend/test_dashboard_api_client.mjs tests/frontend/test_panel_shell_rendering.mjs tests/frontend/test_storage_edit_nutrition_fields.mjs`, `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py tests/unit/test_panel.py`; Versionsstände auf `8.0.3` erhöht.
 
-
+## [8.0.2] - 2026-03-22
 - Fix (Home-Assistant-Integration/Panel): In der nativen Einkaufsliste entfällt das sichtbare `MHD`-Präfix im MHD-Badge; gleichzeitig verschwindet das `Offen`-Badge und `Bestand` sitzt wieder in der rechten Badge-Spalte an dessen Stelle.
 - Changed (Home-Assistant-Integration/Panel): Mobile Shopping-Karten im nativen Dashboard wurden kompakter abgestimmt (kleinere Abstände, Thumbnails, Badge- und Textgrößen), damit die Einkaufsliste auf Handybildschirmen weniger überladen wirkt.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.2` erhöht.
 - Test: `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/shopping-ui.js`, `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `node --test tests/frontend/test_shopping_ui_shared.mjs tests/frontend/test_panel_shell_rendering.mjs`, `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `8.0.2` erhöht.
 
+## [8.0.1] - 2026-03-22
 - Fix (Home-Assistant-Integration/Panel): In der nativen Einkaufsliste erscheint das `Bestand`-Badge wieder unter Produktname bzw. Notiz statt in der rechten Badge-Spalte, damit die Karten näher am früheren Layout bleiben.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.1` erhöht.
 - Test: `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/shopping-ui.js`, `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `node --test tests/frontend/test_shopping_ui_shared.mjs tests/frontend/test_native_shopping_swipe.mjs`, `pytest tests/unit/test_panel.py tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `8.0.1` erhöht.
 
+## [8.0.0] - 2026-03-22
 - Changed (Home-Assistant-Integration/Panel): Das native Dashboard verwendet jetzt Home-Assistant-nähere Navigationsmuster mit `mdi`-Icons statt Emoji-Tabs, einer mit dem Sidebar-Icon synchronen Topbar sowie expliziten `tablist`-/`tab`-/`tabpanel`-ARIA-Beziehungen für Shopping, Rezepte, Lager und den Fallback-Tab.
 - Changed (Home-Assistant-Integration/Panel): Fokuszustände folgen im nativen Panel jetzt klarer den HA-Bedienmustern; die Floating-Navigation bleibt visuell erhalten, ist aber semantisch und per Tastatur sauberer angebunden.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.0` erhöht.
 - Test: `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `node --test tests/frontend/test_panel_shell_rendering.mjs`, `pytest tests/unit/test_panel.py tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `8.0.0` erhöht.
+
+## [7.4.40]
 - Fix (Home-Assistant-Integration/Panel): Die HA-Option `dashboard_polling_interval_seconds` erlaubt jetzt bewusst den Wert `0`, der das automatische Shopping-Polling im nativen Panel komplett deaktiviert, ohne manuelle Refreshes oder Listen-Reloads nach Such-/Mutationsaktionen zu verhindern.
 - Changed (Home-Assistant-Integration/Panel): Die native Panel-Konfiguration reicht das Shopping-Polling-Intervall jetzt explizit an das Frontend weiter; `0` bedeutet deaktiviert, positive Werte bleiben Sekundenintervalle.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `7.4.40` erhöht.
 - Test: `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `node --test tests/frontend/test_panel_shell_rendering.mjs`, `pytest tests/unit/test_config_flow.py tests/unit/test_panel.py tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.40` erhöht.
 
+## [7.4.39]
 - Changed (Home-Assistant-Integration/Panel): Der native `storage`-Tab zeigt `Menge`, `MHD` und `Lagerort` in der Swipe-Liste jetzt als Shopping-ähnliche Badges; der Löschen-CTA wandert aus dem Listeneintrag in das Produkt-bearbeiten-Modal.
 - Added (Home-Assistant-Integration/Panel): Das Produkt-bearbeiten-Modal im nativen `storage`-Tab zeigt jetzt ein gleich großes Produktbild sowie einen zusätzlichen CTA zum Löschen des Produktbilds.
-- Changed (Versioning): Versionsstände für Add-on und Integration auf `7.4.39` erhöht.
 - Fix (Home-Assistant-Integration/Panel): Das native Shopping-Polling pausiert jetzt auch bei verborgenem Dokument analog zum Legacy-Dashboard, startet bei `visibilitychange` auf sichtbar wieder und lädt die Einkaufsliste dabei einmalig per Silent-Refresh nach, ohne bestehende Pausen durch Detail-, MHD-, Scanner-Modale oder `viewState.editing` zu umgehen.
-- Changed (Versioning): Versionsstände für Add-on und Integration auf `7.4.39` erhöht.
-- Test: `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `node --test tests/frontend/test_panel_shell_rendering.mjs`, `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.39` erhöht.
 - Changed (Home-Assistant-Integration/Panel): Die Swipe-Karten in `shopping` und `storage` nutzen jetzt denselben dreispaltigen Aufbau `Bild | Name/Notiz/Lagerort | Buttons/Badges/Info`, damit die Tab-Ansichten konsistenter bleiben und optionale Notizen in der Einkaufsliste nur noch bei Bedarf angezeigt werden.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `7.4.39` erhöht.
+- Test: `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `node --test tests/frontend/test_panel_shell_rendering.mjs`, `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.39` erhöht.
 - Test: `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/shopping-ui.js`, `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `node --test tests/frontend/test_shopping_ui_shared.mjs tests/frontend/test_native_shopping_swipe.mjs`, `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.39` erhöht.
 
+## [7.4.38]
 - Changed (Home-Assistant-Integration/Panel): Die Swipe-Items im nativen Shopping-Such-Tab gruppieren `Menge`, `MHD` und `Bestand` jetzt rechts direkt unter dem `Offen`-Badge; der `Lagerort` erscheint stattdessen als kompaktes Badge unter der Notiz statt als volle Kontextzeile.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `7.4.38` erhöht.
 - Test: `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/shopping-ui.js`, `node --test tests/frontend/test_shopping_ui_shared.mjs tests/frontend/test_native_shopping_swipe.mjs`, `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.38` erhöht.
 
+## [7.4.37]
 - Fix (Home-Assistant-Integration/Panel): Die nativen `recipes`-, `storage`- und Modal-Komponenten überspringen bei reinen Feldwert-Updates jetzt vollständige `innerHTML`-Re-Renders und behalten dadurch Fokus, Cursorposition sowie geöffnete Auswahl-/`details`-Listen spürbar stabiler – analog zur Shopping-Suche im nativen Panel.
+- Fix (Dashboard/Legacy, Home-Assistant-Integration/Panel): Die geteilte Shopping-Card-CSS hält `shopping-item-card--legacy`-Swipe-Einträge jetzt auch auf schmalen Viewports bewusst im alten horizontalen Legacy-Layout, sodass Bild, Status und Badge-Buttons im Legacy-Dashboard sowie im nativen HA-Panel nicht mehr „durcheinandergewürfelt“ umbrechen.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `7.4.37` erhöht.
 - Test: `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `node --test tests/frontend/test_panel_shell_rendering.mjs`, `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.37` erhöht.
-- Fix (Dashboard/Legacy, Home-Assistant-Integration/Panel): Die geteilte Shopping-Card-CSS hält `shopping-item-card--legacy`-Swipe-Einträge jetzt auch auf schmalen Viewports bewusst im alten horizontalen Legacy-Layout, sodass Bild, Status und Badge-Buttons im Legacy-Dashboard sowie im nativen HA-Panel nicht mehr „durcheinandergewürfelt“ umbrechen.
 - Test: `node --test tests/frontend/test_native_shopping_swipe.mjs`, `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.37` erhöht.
-- Changed (Versioning): Versionsstände für Add-on und Integration auf `7.4.37` erhöht.
 
+## [7.4.36]
 - Fix (Home-Assistant-Integration/Panel): Die nativen `recipes`-, `storage`- und Modal-Renderer stellen nach State-Updates den fokussierten Formular-Controller inklusive Cursorposition wieder her, damit Texteingaben, Zahlenfelder und Checkbox-/Auswahllisten beim Tippen oder Toggle nicht mehr durch Re-Renders den Fokus verlieren.
-- Changed (Versioning): Versionsstände für Add-on und Integration auf `7.4.36` erhöht.
-- Test: `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `node --test tests/frontend/test_panel_shell_rendering.mjs`, `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.36` erhöht.
-- Changed (Home-Assistant-Integration/Panel): Der native `storage`-Tab rendert Lagerprodukte wieder als vertikale Legacy-Liste mit Swipe-Gesten für Bearbeiten/Verbrauchen statt als Kachel-Grid; Löschen bleibt zusätzlich direkt als Button am Listeneintrag verfügbar.
-- Test: `node --test tests/frontend/test_native_shopping_swipe.mjs tests/frontend/test_panel_shell_rendering.mjs`, `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.35` erhöht.
 - Changed (Home-Assistant-Integration/Panel): Die Native-Dashboard-Topbar zeigt keine Tab-Pills und keinen Hinweistext zur Panel-URL bzw. zum Sidebar-Icon mehr, damit der Kopfbereich ruhiger bleibt.
-- Test: `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `node --test tests/frontend/test_panel_shell_rendering.mjs`, `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.36` erhöht.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `7.4.36` erhöht.
+- Test: `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `node --test tests/frontend/test_panel_shell_rendering.mjs`, `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.36` erhöht.
 
+## [7.4.35]
+- Changed (Home-Assistant-Integration/Panel): Der native `storage`-Tab rendert Lagerprodukte wieder als vertikale Legacy-Liste mit Swipe-Gesten für Bearbeiten/Verbrauchen statt als Kachel-Grid; Löschen bleibt zusätzlich direkt als Button am Listeneintrag verfügbar.
 - Fix (Home-Assistant-Integration/Panel): Die Swipe-Karten in der nativen Einkaufslistenansicht zeigen `MHD` und `Bestand` jetzt nur noch einmal als Badge; die doppelte Wiederholung in der Zusatz-Metazeile entfällt, während optionale Standortinfos erhalten bleiben.
-- Changed (Versioning): Versionsstände für Add-on und Integration auf `7.4.35` erhöht.
-- Test: `node --test tests/frontend/test_shopping_ui_shared.mjs tests/frontend/test_native_shopping_swipe.mjs`, `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.35` erhöht.
 - Fix (Dashboard/Legacy): Die FastAPI-Static-Mounts registrieren `/dashboard-static/panel-frontend` jetzt vor dem allgemeineren `/dashboard-static`, damit Legacy-Imports für `shopping-ui.css`, `shopping-ui.js` und `swipe-interactions.js` hinter Home-Assistant-Ingress nicht mehr im 404-JSON des falschen Mounts landen.
-- Test: `pytest tests/api/test_dashboard.py tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; zusätzlicher API-Regressionstest deckt die verschachtelten Panel-Frontend-Assets direkt ab.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `7.4.35` erhöht.
+- Test: `node --test tests/frontend/test_native_shopping_swipe.mjs tests/frontend/test_panel_shell_rendering.mjs`, `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.35` erhöht.
+- Test: `node --test tests/frontend/test_shopping_ui_shared.mjs tests/frontend/test_native_shopping_swipe.mjs`, `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.35` erhöht.
+- Test: `pytest tests/api/test_dashboard.py tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; zusätzlicher API-Regressionstest deckt die verschachtelten Panel-Frontend-Assets direkt ab.
 
+## [7.4.34]
 - Added (Dokumentation/Migration): `docs/legacy-native-panel-mapping.md` definiert jetzt eine klare visuelle Abnahme für „ähnlicher Stil bei gleicher Funktion“ und verankert `dashboard.html` explizit als Referenz für Karten-, Grid-, Spalten-, Modal- und CTA-Parität pro Tab.
 - Added (Dokumentation/Migration): Für `shopping`, `recipes`, `storage` und `notifications` gibt es jetzt tab-lokale Vergleichslisten mit Legacy-Komponente, nativer Entsprechung, Funktionsgleichheit, Interaktionsform, visuellem Schwerpunkt und erlaubten HA-Mehrwert-Abweichungen.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `7.4.34` erhöht.
 - Test: `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.34` erhöht.
 
+## [7.4.33]
 - Refactor (Home-Assistant-Integration/Panel): Das native Panel konsolidiert Polling, Busy-/Statusanzeigen, Modal-Steuerung, Bottom-Tab-Navigation und URL-/History-Sync jetzt über gemeinsame Helfer in `createDashboardStore`, `tab-routing.js`, `GrocyAIDashboardModals` und `GrocyAIScannerBridge`; tab-spezifische Zustandsmodelle liegen für `shopping`, `recipes`, `storage` und `notifications` nun mit festen `loaded`/`loading`/`error`/`empty`/`editing`-Flags vor.
 - Changed (Home-Assistant-Integration/Panel): Der Shopping-Scanner bleibt ein tab-fokussiertes Overlay, ist aber jetzt als eigener `shopping.scanner`-Teilbaum gekapselt und blockiert Polling bzw. fremde Tab-Zustände nur noch innerhalb des Shopping-Flows.
 - Changed (Home-Assistant-Integration/Panel): Der bisherige `legacy_dashboard_url` wird im Panel nur noch als `legacy_dashboard_emergency_url` für den Notfall-/Fallbackpfad der noch nicht nativ migrierten Benachrichtigungen bereitgestellt.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `7.4.33` erhöht.
 - Test: `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/dashboard-store.js`, `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `node --test tests/frontend/test_dashboard_store.mjs tests/frontend/test_tab_routing.mjs tests/frontend/test_panel_api_base_path.mjs`, `pytest tests/unit/test_panel.py tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.33` erhöht.
 
+## [7.4.32]
 - Changed (Home-Assistant-Integration/Panel): Der `storage`-Tab ist jetzt nativ migriert und rendert den Lagerbestand als echtes Grid mit Bild, Bestandsinfos, Lagerort, MHD/Metadaten sowie Quick Actions statt als Legacy-Fallback.
 - Changed (Home-Assistant-Integration/Panel): Native Storage-Filter übernehmen Textsuche, Toggle „Alle Produkte anzeigen“, manuelles Refresh sowie die Dialog-Flows für Bearbeiten, Lagerort ändern, Verbrauchen und Löschen über die bestehenden Dashboard-Endpunkte.
-- Test: `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/dashboard-api-client.js`, `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `node --test tests/frontend/test_dashboard_api_client.mjs tests/frontend/test_panel_shell_rendering.mjs`, `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.32` erhöht.
 - Fix (Home-Assistant-Integration/Panel): Die Swipe-Einkaufslistenkarte im nativen Dashboard nutzt jetzt dieselben MHD-/Mengen-Badge-Buttons, dieselbe Legacy-Kartenklasse und dieselben Swipe-Labels wie das Legacy-Dashboard, damit keine doppelten bzw. abweichenden Buttons mehr angezeigt werden.
+- Test: `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/dashboard-api-client.js`, `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `node --test tests/frontend/test_dashboard_api_client.mjs tests/frontend/test_panel_shell_rendering.mjs`, `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.32` erhöht.
 - Test: `node --test tests/frontend/test_native_shopping_swipe.mjs`, `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.32` erhöht.
 
+## [7.4.31]
 - Changed (Home-Assistant-Integration/Panel): Der `recipes`-Tab ist jetzt als erster vollständiger Nicht-Shopping-Tab nativ migriert und rendert Grocy-/KI-Rezeptvorschläge, Lagerstandorte, Produktauswahl, CTA-Aktionen sowie Rezeptdetails/-anlegen ohne Legacy-iframe direkt im HA-Panel.
 - Refactor (Home-Assistant-Integration/Panel): Das native Panel nutzt für Rezeptflows jetzt dieselben bestehenden Backend-Endpunkte wie das Legacy-Dashboard (`recipe-suggestions`, `locations`, `stock-products`, `POST /api/dashboard/recipe/{recipe_id}/add-missing`) über den gemeinsamen Panel-API-Client.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `7.4.31` erhöht.
 - Test: `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/dashboard-api-client.js`, `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.31` erhöht.
 
+## [7.4.30]
 - Refactor (Home-Assistant-Integration/Panel): Neue Shared-Renderer in `panel/frontend/shared-panel-ui.js` extrahieren Kartencontainer, zweispaltige Card-Gruppen, Status-/Empty-/Loading-Karten, Aktionsleisten und Kachel-Grids aus der bestehenden Shopping-UI als wiederverwendbare Bausteine.
 - Changed (Home-Assistant-Integration/Panel): Die Tabs `recipes` und `storage` nutzen diese Shared-Bausteine jetzt zuerst für ihre Migrations-/Bridge-Oberflächen und übernehmen dabei Überschriftenhierarchie, Grid-/Kachel-Logik, CTA-Gewichtung sowie Badge-/Meta-Abstände aus `dashboard.html`; Shopping bleibt Referenzimplementierung.
 - Changed (Dashboard/UI): Gemeinsame Panel-/Shopping-CSS deckt jetzt zusätzliche Status-Chip-Varianten und Grid-/Card-Group-Regeln für die neuen Shared-Renderer ab.
 - Test: `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/shared-panel-ui.js`, `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/shopping-ui.js`, `node --test tests/frontend/test_shared_panel_ui.mjs tests/frontend/test_panel_shell_rendering.mjs tests/frontend/test_shopping_ui_shared.mjs`, `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.30` erhöht.
 
+## [7.4.29]
 - Added (Dokumentation/Migration): Neue Mapping-Matrix `docs/legacy-native-panel-mapping.md`, die Legacy-Dashboard und natives Home-Assistant-Panel tabweise für `shopping`, `recipes`, `storage` und `notifications` gegenüberstellt und pro Bereich als Abnahmeliste für die weitere Migration dient.
-- Test: `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.29` erhöht.
-
 - Changed (Home-Assistant-Integration/Panel): Nach erfolgreichem Start protokolliert das native Panel jetzt zusätzlich ein `GROCY-AI`-Konsole-Banner mit der aktuellen Integrationsversion `7.4.29` im Browser-Log.
-- Changed (Versioning): Versionsstände für Add-on und Integration auf `7.4.29` erhöht.
-- Test: `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`.
-
 - Fix (Home-Assistant-Integration/Panel): Die gemeinsame Swipe-Logik unterstützt im nativen Dashboard jetzt zusätzlich echte `touchstart`-/`touchmove`-/`touchend`-Events samt Vertikal-Scroll-Erkennung, sodass Wischgesten in mobilen Home-Assistant-WebViews wieder zuverlässig ausgelöst werden.
 - Fix (Home-Assistant-Integration/Panel): Native Shopping-Karten und Variantentreffer registrieren jetzt einen gemeinsamen Bild-Fallback, der fehlgeschlagene Produktbild-Requests automatisch auf das Platzhalterbild umstellt; dadurch verschwinden leere bzw. kaputte Bildrahmen im nativen Dashboard.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `7.4.29` erhöht.
+- Test: `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.29` erhöht.
+- Test: `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`.
 - Test: `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/swipe-interactions.js`, `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/shopping-ui.js`, `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `node --test tests/frontend/test_native_shopping_swipe.mjs tests/frontend/test_panel_shell_rendering.mjs tests/frontend/test_shopping_ui_shared.mjs`, `pytest tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.29` erhöht.
+
+## [7.4.28]
 - Changed (Home-Assistant-Integration/Panel): Die native Shopping-Liste nutzt jetzt dieselbe Swipe-Interaktion wie das Legacy-Dashboard für Primäraktionen; Tap öffnet Details, ein Swipe nach rechts markiert Einträge als erledigt und ein Swipe nach links löscht sie direkt im HA-Panel.
 - Refactor (Dashboard/Migration): Die Swipe-Logik wurde in ein gemeinsames Frontend-Modul `swipe-interactions.js` extrahiert, das sowohl vom Legacy-Dashboard als auch vom nativen Panel verwendet wird.
-- Test: `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/swipe-interactions.js`, `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `node --check grocy_ai_assistant/api/static/dashboard.js`, `node --test tests/frontend/test_native_shopping_swipe.mjs tests/frontend/test_panel_shell_rendering.mjs tests/frontend/test_shopping_ui_shared.mjs`, `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.28` erhöht.
 - Fix (Home-Assistant-Integration/Panel): Das native Shopping-Dashboard überschreibt beim Rendern weder den Shopping-Tab noch die Produktsuche per `innerHTML`; dadurch bleibt die gemountete `<grocy-ai-shopping-search-bar>` im DOM erhalten und das Textfeld zur Produktsuche wird im Integration-Dashboard wieder sichtbar.
+- Test: `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/swipe-interactions.js`, `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `node --check grocy_ai_assistant/api/static/dashboard.js`, `node --test tests/frontend/test_native_shopping_swipe.mjs tests/frontend/test_panel_shell_rendering.mjs tests/frontend/test_shopping_ui_shared.mjs`, `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.28` erhöht.
 - Test: `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `node --test tests/frontend/test_panel_shell_rendering.mjs`, `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.28` erhöht.
 
+## [7.4.27]
 - Fix (Home-Assistant-Integration/Panel): Produktbilder im nativen Shopping-Panel laufen über eine dedizierte öffentliche Home-Assistant-Proxy-Route für `GET /api/dashboard/product-picture`, damit Browser-`<img>`-Requests ohne expliziten Bearer-Header nicht mehr mit `401 Unauthorized` an der HA-Auth scheitern.
 - Test: `pytest tests/unit/test_panel.py tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`, `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `node --test tests/frontend/test_panel_shell_rendering.mjs`; Versionsstände auf `7.4.27` erhöht.
 
+## [7.4.26]
 - Fix (Home-Assistant-Integration/Panel): Produktbilder im nativen Shopping-Panel verwenden für `/api/dashboard/product-picture` bereits beim ersten Render den konfigurierten Home-Assistant-Proxy-Prefix, auch wenn der Dashboard-API-Client noch nicht initialisiert ist; dadurch laufen Thumbnail-Requests nicht mehr versehentlich direkt gegen Home Assistant unter `/api/dashboard/...` und enden nicht mehr in `404 Not Found`.
 - Test: `node --test tests/frontend/test_panel_shell_rendering.mjs`, `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.26` erhöht.
 
+## [7.4.25]
 - Fix (Home-Assistant-Integration/Panel): `shopping-search-controller.js` enthält in `createDefaultTimerApi()` kein fehlerhaft zusammengeführtes Zwischen-`return` mehr, sodass das Modul wieder ohne `Unexpected identifier 'setTimeoutImpl'` lädt und Browser-/Test-Timer korrekt aufgelöst werden.
 - Test: `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/shopping-search-controller.js`, `node --test tests/frontend/test_shopping_search_controller.mjs tests/frontend/shopping_search_controller.test.mjs`, `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.25` erhöht.
 
+## [7.4.24]
 - Fix (Home-Assistant-Integration/Panel): Das native Panel-Frontend deklariert `escapeHtml` und `formatAmount` nicht mehr doppelt in `grocy-ai-dashboard.js`, sondern nutzt ausschließlich die Imports aus `shopping-ui.js`; dadurch lädt das Modul wieder ohne `Identifier 'escapeHtml' has already been declared`.
 - Test: `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `node --test tests/frontend/test_panel_shell_rendering.mjs`, `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.24` erhöht.
 
+## [7.4.22]
 - Changed (Dashboard/Migration): Die Shopping-UI für Produktsuche, Variantenkarten und Einkaufslisten-Items basiert jetzt auf einem gemeinsamen Frontend-Baustein `shopping-ui.js`/`shopping-ui.css`, den sowohl das Legacy-Dashboard als auch das native Home-Assistant-Panel verwenden.
 - Changed (Dashboard/UI): Das native Shopping-Panel übernimmt damit den Kartenaufbau der Legacy-Einkaufsliste inklusive Variantencard-Struktur, Badge-/Statusdarstellung sowie Bestands- und MHD-Kontext; Navigation/Auth/Container bleiben weiterhin HA-nativ.
 - Changed (API/Static): Das FastAPI-App-Mount stellt die Panel-Frontend-Bausteine zusätzlich unter `/dashboard-static/panel-frontend` bereit, damit das Legacy-Dashboard dieselben UI-Helfer ohne Kopierlogik laden kann.
-- Test: `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/shopping-ui.js`, `node --check grocy_ai_assistant/api/static/dashboard.js`, `node --test tests/frontend/test_shopping_ui_shared.mjs`, `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.22` erhöht.
 - Changed (Home-Assistant-Integration/Panel): Die bisherige `GrocyAIScannerBridge` im nativen HA-Panel wurde durch eine echte Scanner-Web-Component ersetzt, die Kamera, Barcode-Erkennung, Bildanalyse und Ergebnisdarstellung ohne Legacy-iframe direkt im Panel rendert.
 - Changed (Home-Assistant-Integration/Panel): Scanner-Treffer aus Barcode-Lookup und `POST /api/v1/scan/image` werden jetzt unmittelbar in denselben nativen Search-/Varianten-/Add-to-list-Flow übergeben wie Texteingaben, sodass Varianten, Suchstatus und Listen-Updates konsistent bleiben.
 - Changed (Dashboard/Migration): Der native Panel-API-Client unterstützt jetzt die v1-Scanner-Endpunkte für Barcode- und Bildscans; zusätzlich bevorzugt der Shopping-Search-Controller in Browser-Tests die vorhandene `window`-Timer-API.
-- Test: `node --test tests/frontend/test_dashboard_api_client.mjs tests/frontend/test_panel_api_base_path.mjs tests/frontend/test_panel_shell_rendering.mjs tests/frontend/test_shopping_search_controller.mjs`, `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `pytest tests/unit/test_panel.py tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.22` erhöht.
 - Fix (Home-Assistant-Integration/Panel): Die native Shopping-Suche hält Suchfeld und Search-Bar-Host jetzt als statische DOM-Knoten dauerhaft stabil und aktualisiert Status, Attribute sowie Variantenlisten nur noch inkrementell, sodass Debounce-/Varianten-Updates den `shopping-query`-Input nicht mehr per `innerHTML` neu erzeugen.
 - Fix (Home-Assistant-Integration/Panel): Der Shopping-Tab rendert seine Search-Bar nicht mehr bei jedem State-Update neu, wodurch Fokus und Cursorposition des Suchfelds auch während `setQuery(...)`- und Variantenlade-Flows erhalten bleiben und reine Status-/Ladeflag-Wechsel keine unnötigen Listen-Re-Renders auslösen.
-- Test: Frontend-Regressionstests sichern jetzt Fokus-/Cursor-Stabilität für Query- und Varianten-Updates ab (`node --test tests/frontend/test_shopping_search_focus_retention.mjs tests/frontend/shopping_search_controller.test.mjs tests/frontend/test_shopping_search_controller.mjs`, `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`); Versionsstände auf `7.4.22` erhöht.
 - Changed (Home-Assistant-Integration/Panel): Die native Shopping-Liste rendert jetzt Produktbilder mit derselben `toImageSource(...)`-Fallback-Logik wie das Legacy-Dashboard, sodass leere/fehlende `picture_url`-Werte auf ein stabiles Platzhalterbild statt auf kaputte Bildrahmen fallen.
 - Changed (Home-Assistant-Integration/Panel): Die Variantenkarten der nativen Shopping-Suche zeigen nun ebenfalls Produktbilder; die Panel-CSS übernimmt Größen, Seitenverhältnis, Objektanpassung und Abstände analog zur Legacy-Optik.
+- Test: `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/shopping-ui.js`, `node --check grocy_ai_assistant/api/static/dashboard.js`, `node --test tests/frontend/test_shopping_ui_shared.mjs`, `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.22` erhöht.
+- Test: `node --test tests/frontend/test_dashboard_api_client.mjs tests/frontend/test_panel_api_base_path.mjs tests/frontend/test_panel_shell_rendering.mjs tests/frontend/test_shopping_search_controller.mjs`, `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `pytest tests/unit/test_panel.py tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.22` erhöht.
+- Test: Frontend-Regressionstests sichern jetzt Fokus-/Cursor-Stabilität für Query- und Varianten-Updates ab (`node --test tests/frontend/test_shopping_search_focus_retention.mjs tests/frontend/shopping_search_controller.test.mjs tests/frontend/test_shopping_search_controller.mjs`, `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`); Versionsstände auf `7.4.22` erhöht.
 - Test: `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`; Versionsstand der Integration auf `7.4.22` erhöht.
 
+## [7.4.21]
 - Fix (Home-Assistant-Integration/Panel): Der native Dashboard-API-Client sendet Requests an `/api/grocy_ai_assistant/dashboard-proxy` jetzt zusätzlich mit dem aktuellen Home-Assistant-Bearer-Token aus dem Frontend-Kontext, sodass HA-geschützte Proxy-Aufrufe wie die Einkaufsliste im nativen Panel nicht mehr mit `401 Unauthorized` abgewiesen werden.
 - Test: `node --test tests/frontend/test_dashboard_api_client.mjs tests/frontend/test_panel_api_base_path.mjs tests/frontend/test_panel_shell_rendering.mjs`, `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `pytest tests/unit/test_panel.py tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.21` erhöht.
 
+## [7.4.20]
 - Fix (Home-Assistant-Integration/Panel): Das native Dashboard nutzt für Shopping-Requests jetzt einen Home-Assistant-authentifizierten Proxy unter `/api/grocy_ai_assistant/dashboard-proxy`, statt im Browser privilegierte Supervisor-/Ingress-Session-Endpunkte aufzurufen; dadurch entfallen die `401 Unauthorized`-Fehler von `hassio/ingress/session`.
 - Fix (Home-Assistant-Integration/Panel): Der Proxy reicht sowohl Dashboard-API-Aufrufe als auch die Legacy-Dashboard-HTML-/Asset-Routen an das Add-on weiter und setzt dabei den passenden Prefix-Header, sodass native Requests und Legacy-Fallbacks denselben stabilen HA-Pfad verwenden.
 - Test: `node --test tests/frontend/test_panel_api_base_path.mjs tests/frontend/test_panel_shell_rendering.mjs`, `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `pytest tests/unit/test_panel.py tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.20` erhöht.
 
+## [7.4.19]
 - Fix (Home-Assistant-Integration/Panel): Das native Dashboard fordert seinen echten Home-Assistant-Ingress-Sessionpfad jetzt bei Bedarf per `hassio/ingress/session` an, statt API-Aufrufe auf den statischen Platzhalter `/api/hassio_ingress/grocy_ai_assistant/` zu schicken, sodass Shopping-Requests im nativen Panel nicht mehr mit `503 Service Unavailable` scheitern.
 - Fix (Home-Assistant-Integration/Panel): Legacy-Bridge-Tabs und `open-legacy-dashboard` verwenden denselben aufgelösten Ingress-Pfad wie die nativen Shopping-Requests, damit auch Übergangsbereiche zuverlässig im aktiven HA-Kontext öffnen.
 - Test: `node --test tests/frontend/test_panel_api_base_path.mjs`, `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `pytest tests/unit/test_addon_config_yaml.py tests/unit/test_settings_versions.py`; Versionsstände auf `7.4.19` erhöht.
 
+## [7.4.18]
 - Fix (Home-Assistant-Integration/Panel): Das native Dashboard baut seine Shadow-DOM-Shell jetzt deterministisch vor jedem State-Render auf und bricht bei unvollständigen Child-Elementen defensiv ab, damit frühe `hass`-/`route`-Updates nicht mehr mit `Cannot set properties of null (setting 'viewModel')` in `_renderState(...)` abbrechen.
 - Test: `node --test tests/frontend/test_panel_shell_rendering.mjs`, `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `pytest tests/unit/test_addon_config_yaml.py`; Versionsstände auf `7.4.18` erhöht.
 
+## [7.4.17]
 - Fix (Home-Assistant-Integration/Panel): Die native Panel-Registrierung entfernt einen vorhandenen Sidebar-Eintrag jetzt nur noch nach einer erfolgreichen Vorregistrierung, sodass Home Assistant beim ersten Laden kein `Removing unknown panel grocy-ai` mehr ins Frontend-Log schreibt.
-- Test: `pytest tests/unit/test_panel.py tests/unit/test_addon_config_yaml.py`, `ruff check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel.py tests/unit/test_panel.py tests/unit/test_addon_config_yaml.py`; Versionsstände auf `7.4.17` erhöht.
 - Fix (Home-Assistant-Integration/Panel): Die Registrierung der nativen Panel-Webcomponents läuft jetzt über einen robusten `registerCustomElement(...)`-Helper mit DOMException-Fallback, damit Registry-spezifische Reload-/Reuse-Szenarien keine Folgefehler oder irreführenden Sourcemap-404s mehr auslösen.
+- Test: `pytest tests/unit/test_panel.py tests/unit/test_addon_config_yaml.py`, `ruff check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel.py tests/unit/test_panel.py tests/unit/test_addon_config_yaml.py`; Versionsstände auf `7.4.17` erhöht.
 - Test: `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `pytest tests/unit/test_addon_config_yaml.py`; Versionsstände auf `7.4.17` erhöht.
+
+## [7.4.16]
 - Fix (Home-Assistant-Integration/Panel): Die Legacy-Bridge-Tabs für Rezepte, Lager und Benachrichtigungen nutzen jetzt eigene Konstruktoren statt denselben `GrocyAILegacyBridgeTab`, damit Home Assistants `CustomElementRegistry` keine `constructor has already been used with this registry`-Exception mehr wirft.
 - Test: `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `pytest tests/unit/test_addon_config_yaml.py`; Versionsstände auf `7.4.16` erhöht.
+
+## [7.4.15]
 - Fix (Home-Assistant-Integration/Panel): Der fehlerhaft zusammengeführte `_switchTab(...)`-Block im nativen Panel-Frontend wurde bereinigt, sodass `grocy-ai-dashboard.js` wieder gültiges JavaScript lädt und Tab-Wechsel/URL-Sync stabil funktionieren.
 - Test: `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`, `pytest tests/unit/test_addon_config_yaml.py`; Versionsstände auf `7.4.15` erhöht.
+
+## [7.4.14]
 - Fix (Home-Assistant-Integration/Panel): Die native Panel-Registrierung wartet `async_register_panel(...)` jetzt korrekt ab, damit Home Assistant keinen `RuntimeWarning: coroutine was never awaited` mehr für `panel.py` protokolliert.
 - Test: `pytest tests/unit/test_panel.py tests/unit/test_addon_config_yaml.py`, `ruff check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel.py tests/unit/test_panel.py`; Versionsstände auf `7.4.14` erhöht.
+
+## [7.4.13]
 - Changed (Home-Assistant-Integration/Panel): Die Konfigurationsoption `panel_url` entfällt aus Config- und Options-Flow; das Dashboard hängt sich stattdessen immer automatisch als natives Home-Assistant-Panel auf dem festen Pfad `/grocy-ai` in die Seitenleiste ein.
 - Changed (Home-Assistant-Integration/Panel): Die Panel-Registrierung verwendet intern nur noch den bekannten Ingress-Fallback für Legacy-Abschnitte und ignoriert keine benutzerdefinierte Panel-URL mehr.
 - Test: `pytest tests/unit/test_panel.py tests/unit/test_addon_config_yaml.py`; Versionsstände auf `7.4.13` erhöht.
+
+## [7.4.12]
 - Fix (Dashboard/Legacy): Die versehentlich entfernten Status-Helper `getShoppingStatusElement()` und `getRecipeStatusElement()` sind wieder vorhanden, damit Tab-Wechsel, Topbar-Status-Sync und das Laden der Einkaufsliste im Legacy-Dashboard nicht mehr mit `ReferenceError` abbrechen.
 - Test: `node --test tests/frontend/test_legacy_dashboard_status_helpers.mjs`, `node --check grocy_ai_assistant/api/static/dashboard.js`; Versionsstände auf `7.4.12` erhöht.
+
+## [7.4.11]
 - Changed (Dashboard/UI): Die Variantenanzeige im Legacy-Dashboard rendert Treffer jetzt über die native Web-Component `<grocy-variant-results>` mit reaktiven Properties für Varianten, Menge sowie Lade-/Leerzustand statt HTML-String-Zusammenbau.
 - Changed (Dashboard/UI): Variantenauswahl läuft jetzt über explizite `variant-select`-Komponenten-Events; das bestehende Quellverhalten für `grocy`, `ai` und `input` bleibt dabei unverändert.
-- Test: `node --check grocy_ai_assistant/api/static/dashboard.js`; Versionsstände auf `7.4.11` erhöht.
 - Changed (Home-Assistant-Integration/Panel): Die native Shopping-Suche rendert jetzt als zweistufige Search-Bar mit expliziten UI-Zuständen für leer, tippt, lädt Vorschläge, Vorschläge sichtbar, Submit und Fehler; Statusmeldungen wie „Prüfe Produkt…“ oder „Füge Produkt hinzu…“ werden reaktiv direkt aus dem Search-State angezeigt.
 - Changed (Dashboard/Migration): Live-Vorschläge aus `loadVariants()` erscheinen in der nativen HA-Oberfläche direkt unter dem Eingabefeld; Variantenauswahl übernimmt weiterhin die bestehende `confirmVariant(...)`-/`searchSuggestedProduct(...)`-Logik inklusive mengenpräfixierter Suche wie `2 Hafermilch`.
-- Test: Frontend-Checks für Search-Controller und Panel ergänzt bzw. aktualisiert (`node --test tests/frontend/test_shopping_search_controller.mjs`, `node --check ...`); Versionsstände auf `7.4.11` erhöht.
-
 - Changed (Home-Assistant-Integration/Panel): Die native Shopping-Suche übernimmt jetzt explizit das Debounce- und Antwort-Reihenfolgemodell der Legacy-Suche, leert Varianten bei leerer Eingabe sofort und verhindert UI-Rücksprünge durch veraltete Antworten auch während eines laufenden Enter-Submits.
+- Test: `node --check grocy_ai_assistant/api/static/dashboard.js`; Versionsstände auf `7.4.11` erhöht.
+- Test: Frontend-Checks für Search-Controller und Panel ergänzt bzw. aktualisiert (`node --test tests/frontend/test_shopping_search_controller.mjs`, `node --check ...`); Versionsstände auf `7.4.11` erhöht.
 - Test: Neue Frontend-Tests decken schnelles Tippen, leere Eingaben, veraltete Antworten und Enter während noch ladender Variantenanfragen ab; Versionsstände auf `7.4.11` erhöht.
+
+## [7.4.10]
 - Added (Home-Assistant-Integration/Panel): Der native Panel-Pfad `/grocy-ai` wird jetzt explizit an das Frontend durchgereicht, in README/DOCS dokumentiert und per Lovelace-/Deep-Link-Beispielen für Home-Assistant-Dashboards beschrieben.
 - Changed (Home-Assistant-Integration/Panel): Das native Dashboard unterstützt jetzt Tab-Deep-Links über `/grocy-ai?tab=...`, `#tab=...` und Pfadsegmente wie `/grocy-ai/recipes`; die Topbar zeigt dazu passende Schnelllinks und den finalen Panel-Pfad an.
-- Test: `tests/unit/test_panel.py`, `tests/unit/test_addon_config_yaml.py` und `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`; Versionsstände auf `7.4.10` erhöht.
 - Changed (Home-Assistant-Integration/Panel): Das native Dashboard liest den initialen Bereich jetzt stabil über `?tab=` oder einen Routenabschnitt (`/grocy-ai/<tab>`) und synchronisiert Tab-Wechsel per History-API zurück in die URL, inklusive Fallback auf `shopping`.
-- Test: Neue Frontend-Unit-Tests decken direkte Aufrufe wie `.../grocy-ai?tab=storage` und `.../grocy-ai?tab=notifications` sowie den URL-Aufbau für Browser-Navigation ab; Versionsstände auf `7.4.10` erhöht.
 - Changed (Home-Assistant-Integration/Panel): Die Integration registriert das native Dashboard jetzt zentral als echtes Home-Assistant-Panel mit festem Slug `grocy-ai`, Sidebar-Metadaten und statischer Frontend-Route statt auf Ingress-/iframe-URLs in der Registrierung zu fokussieren.
 - Changed (Home-Assistant-Integration/Panel): Setup und Unload des Panels laufen nun über dedizierte `panel.py`-Hilfen mit Referenzzählung, damit der Sidebar-Eintrag beim Laden automatisch erscheint und beim letzten Entladen sauber entfernt wird.
-- Test: `tests/unit/test_panel.py` prüft jetzt Panel-Metadaten, die registrierte Modul-Route sowie das Entfernen des Sidebar-Eintrags; Versionsstände wurden auf `7.4.10` erhöht.
 - Changed (Home-Assistant-Integration/Panel): Die native Shopping-Suche nutzt jetzt einen UI-unabhängigen Search-Controller mit reaktivem Store für `query`, erkannte Mengenpräfixe, Varianten, Lade-/Submit-Status sowie fachliche Status- und Fehlermeldungen.
 - Changed (Dashboard/Migration): Die bestehende Suchlogik aus `dashboard.js` wurde für die native HA-UI als klarer State-Flow `idle -> typing -> loading_variants -> variants_ready -> submitting -> success/error` übernommen; Variantenauswahl, KI-/Input-Vorschläge und die bestehenden `/api/dashboard/...`-Endpoints bleiben unverändert.
 - Changed (Dashboard/Legacy): Mengenpräfix-Parsing und Clear-Button-Regel der Legacy-Suche sind in ein kleines Hilfsmodul ausgelagert, damit die fachlichen Suchregeln außerhalb von `dashboard.js` wiederverwendbar bleiben.
+- Test: `tests/unit/test_panel.py`, `tests/unit/test_addon_config_yaml.py` und `node --check grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.js`; Versionsstände auf `7.4.10` erhöht.
+- Test: Neue Frontend-Unit-Tests decken direkte Aufrufe wie `.../grocy-ai?tab=storage` und `.../grocy-ai?tab=notifications` sowie den URL-Aufbau für Browser-Navigation ab; Versionsstände auf `7.4.10` erhöht.
+- Test: `tests/unit/test_panel.py` prüft jetzt Panel-Metadaten, die registrierte Modul-Route sowie das Entfernen des Sidebar-Eintrags; Versionsstände wurden auf `7.4.10` erhöht.
 - Test: `node --check` für das Legacy-Dashboard, den nativen HA-Panel-Code und den neuen Search-Controller ausgeführt; relevante Unit-Tests sowie Versionsstände auf `7.4.10` aktualisiert.
 
+## [7.4.9]
 - Changed (Dashboard/UI): Topbar, Tabs, Kartencontainer, Dialoge sowie Formular- und Statusflächen des Legacy-Dashboards orientieren sich jetzt an Home-Assistant-Surface-, Button- und Feldmustern statt an eigenständigem Glassmorphism-/Gradient-Styling.
 - Changed (Dashboard/Theme): Das Dashboard nutzt nur noch die vom Home-Assistant-Parent synchronisierten Theme-Variablen; das visuelle Theme-Badge und die Beobachtung von `data-theme` entfallen zugunsten HA-nativer Variablen-Mappings.
 - Test: `node --check` für das Dashboard-Skript ausgeführt und Versionsstände für Add-on und Integration auf `7.4.9` erhöht.
 
+## [7.4.8]
 - Changed (Home-Assistant-Integration/Panel): Das native Panel rendert das Dashboard jetzt in fachlich getrennten Web-Komponenten für Shopping, Rezepte, Lager, Benachrichtigungen, Modals und Scanner, statt nur eine statische Platzhalter-Seite anzuzeigen.
 - Changed (Dashboard/Migration): Die Shopping-Ansicht läuft bereits nativ über einen reaktiven Store inklusive Ladezuständen, Statusmeldungen, Button-Aktionen, Debounce-Suche, Modals und Polling; die übrigen Tabs bleiben tabweise über dedizierte Fallback-Komponenten an das Legacy-Dashboard angebunden.
 - Changed (Dashboard/Migration): `dashboard.html` und das alte `dashboard.js` bleiben als Übergangs-/Fallback-Schicht bestehen, bis Rezepte, Lager, Benachrichtigungen und Scanner vollständig nativ gerendert werden.
 - Test: Native Panel-Module per `node --check` geprüft und relevante Python-Unit-Tests für Panel- sowie Versionsmetadaten ausgeführt; Versionsstände auf `7.4.8` erhöht.
 
-- Fix (API/Ingress): Interne Add-on-Hostnamen ohne DNS-Suffix wie `local-grocy-ai-assistant` oder `grocy-ai-assistant` werden nicht mehr fälschlich als externe Hosts behandelt, sodass `/api/v1/...` aus Home Assistant nicht mehr per HTTPS-307 umgeleitet wird.
-- Fix (API/Rezeptvorschläge): Rezeptvorschläge werden jetzt auch für `soon_expiring_only`-Abfragen gecacht, damit die drei Home-Assistant-Rezeptsensoren nicht bei jedem Poll erneut eine KI-Generierung auslösen.
-- Test: API-Tests decken interne Hostnamen ohne Punkt sowie den Cache-Hit für bald ablaufende Rezeptabfragen ab.
-- Versionsstände für Add-on und Integration auf `7.4.6` erhöht.
+## [7.4.7]
 - Changed (Home-Assistant-Integration/Panel): `custom_components/grocy_ai_assistant/panel.py` registriert das Sidebar-Panel jetzt nativ über ein eigenes Frontend-Modul statt über ein `iframe`-Panel.
 - Added (Home-Assistant-Integration/Panel): Neues Frontend-Bundle unter `custom_components/grocy_ai_assistant/panel/frontend/` rendert eine native Home-Assistant-Ansicht und zeigt dabei `hass`-, Routing- und Theme-Kontext direkt im Modul an.
 - Test: `tests/unit/test_panel.py` prüft nun die Registrierung des nativen Panel-Moduls samt statischem Bundle-Pfad; Versionsmetadaten wurden auf `7.4.7` erhöht.
 
+## [7.4.6]
+- Fix (API/Ingress): Interne Add-on-Hostnamen ohne DNS-Suffix wie `local-grocy-ai-assistant` oder `grocy-ai-assistant` werden nicht mehr fälschlich als externe Hosts behandelt, sodass `/api/v1/...` aus Home Assistant nicht mehr per HTTPS-307 umgeleitet wird.
+- Fix (API/Rezeptvorschläge): Rezeptvorschläge werden jetzt auch für `soon_expiring_only`-Abfragen gecacht, damit die drei Home-Assistant-Rezeptsensoren nicht bei jedem Poll erneut eine KI-Generierung auslösen.
+- Test: API-Tests decken interne Hostnamen ohne Punkt sowie den Cache-Hit für bald ablaufende Rezeptabfragen ab.
+- Versionsstände für Add-on und Integration auf `7.4.6` erhöht.
 - Changed (Dashboard/Architektur): `dashboard.js` lädt jetzt ein separates API-Client-, DOM- und Store-Modul, sodass die bisherige HTML-Seite dieselbe Logik weiterhin nutzt, die spätere native Home-Assistant-Oberfläche aber auf klar getrennte Zustands-/API-Bausteine aufsetzen kann.
 - Changed (Dashboard/State): Zuvor globale Dashboard-Zustände für Tabs, Ladeindikatoren, Polling, Storage-Bearbeitung, Scanner sowie Shopping-Modalfluss wurden in einen zentralen Store verschoben und für die Altseite zusätzlich unter `window.__grocyDashboardState`/`window.__grocyDashboardStore` sichtbar gemacht.
 - Changed (Dashboard/API): Alle direkten `/api/dashboard/...`-HTTP-Aufrufe laufen jetzt über `dashboard-api-client.js`, während `dashboard-dom.js` wiederkehrende DOM-Umschaltungen wie Busy-Indikator, Tab-Sichtbarkeit und Scroll-Locking kapselt.
 - Test: Dashboard-Frontend per `node --check` für die neuen ES-Module geprüft und Versionsmetadaten auf `7.4.6` angehoben.
 
+## [7.4.5]
 - Changed (Dashboard/UI): `dashboard.css` bündelt jetzt wiederkehrende Oberflächenwerte wie Card-Padding, Control-Höhen, Border-Radien, Flächen und Elevation in semantischen Tokens und mappt diese soweit möglich auf Home-Assistant-Variablen mit Fallbacks.
 - Changed (Dashboard/UI): Topbar, Karten, Bottom-Tabbar, Formularfelder, Buttons und Modals verwenden nun die neuen Surface-/Spacing-/Radius-Tokens konsistent, damit Light-/Dark-Mode näher am Home-Assistant-Look bleibt.
 - Test: Versionsmetadaten und Add-on-Konfiguration wurden auf `7.4.5` angehoben bzw. im Test synchronisiert.
-
 - Changed (Dashboard/Theme): Das iframe-Dashboard übernimmt Home-Assistant-Themefarben jetzt explizit aus dem Parent-Dokument statt auf eine isolierte iframe-Vererbung zu hoffen.
 - Changed (Dashboard/UI): Die manuelle Light/Dark-Umschaltung wurde durch einen Home-Assistant-Theme-Statusbadge ersetzt; die Dashboard-CSS nutzt nun HA-nahe Farbvariablen mit Fallbacks.
 - Test: API-Tests prüfen jetzt die Theme-Bridge-Metadaten im HTML sowie die neue Theme-Synchronisation in CSS/JavaScript.
 - Versionsstände für Add-on und Integration auf `7.4.5` erhöht.
 
+## [7.4.3]
 - Changed (Home-Assistant-Integration/Sensoren): Der bisherige Sensor `Grocy AI Top Rezeptvorschlag` wurde in die zwei getrennten Sensoren `Grocy AI Top KI Rezeptvorschlag` und `Grocy AI Top Grocy Rezeptvorschlag` aufgeteilt.
 - Changed (Home-Assistant-Integration/Sensoren): Beide neuen Topsensoren zeigen jetzt jeweils nur noch den besten Vorschlag ihrer Quelle an, inklusive quellspezifischer Attributdaten für genau ein Rezept.
 - Test: Unit-Tests decken die neue quellspezifische Rezeptauswahl sowie die reduzierten Sensorattribute ab.
@@ -1078,6 +1105,20 @@ All notable changes to this project will be documented in this file.
 
 - Fix (API/Grocy/Nährwerte): Wenn Grocy ein Nährwert-Update mit 400 ablehnt und keine unbekannte Spalte aus der Fehlermeldung extrahiert werden kann, wird das Update nun defensiv übersprungen statt den gesamten Request mit 500 abzubrechen.
 
+## [7.1.89]
+
+### Added
+
+- Test: Unit-Test ergänzt, der sicherstellt, dass bei leerem MHD nur `{"amount": ...}` gesendet wird.
+
+### Changed
+
+- Pflege: Add-on-Version auf `7.1.89` erhöht.
+
+### Fixed
+
+- Fix (API/Grocy): `PUT /objects/stock/{id}` sendet `best_before_date` nur noch, wenn tatsächlich ein Datum gesetzt ist; leere Werte werden nicht mehr als `null` übertragen, um 400-Fehler beim Speichern im Produkt-Popup zu vermeiden.
+
 ## [7.1.88]
 
 ### Added
@@ -1117,20 +1158,6 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 
 - Fix (UI/Lager-Tab): Mengenänderungen im Produkt-Popup akzeptieren wieder Kommawerte (z. B. `1,5`) und werden korrekt gespeichert.
-
-## [7.1.89]
-
-### Added
-
-- Test: Unit-Test ergänzt, der sicherstellt, dass bei leerem MHD nur `{"amount": ...}` gesendet wird.
-
-### Changed
-
-- Pflege: Add-on-Version auf `7.1.89` erhöht.
-
-### Fixed
-
-- Fix (API/Grocy): `PUT /objects/stock/{id}` sendet `best_before_date` nur noch, wenn tatsächlich ein Datum gesetzt ist; leere Werte werden nicht mehr als `null` übertragen, um 400-Fehler beim Speichern im Produkt-Popup zu vermeiden.
 
 ## [7.1.85]
 

@@ -314,8 +314,12 @@ Aktueller Stand:
 
 - **Add-on (`grocy_ai_assistant/config.yaml`):** `8.0.30`
 - **Integration (`grocy_ai_assistant/custom_components/grocy_ai_assistant/manifest.json`):** `8.0.30`
+- **Integrationskonstante (`grocy_ai_assistant/custom_components/grocy_ai_assistant/const.py`):** `8.0.30`
 
-Hinweis: Der aktuelle Repository-Stand zeigt hier bewusst zwei unterschiedliche Versionswerte, weil Add-on und Integration derzeit nicht auf exakt demselben Release-Stand liegen.
+### Maintainer-Workflow
+
+- Version-Bump und zugehöriger Changelog-Eintrag müssen immer im selben Commit bzw. derselben Änderung gemeinsam erfolgen.
+- Vor einem Release muss die Spitzenversion in `grocy_ai_assistant/CHANGELOG.md` mit `grocy_ai_assistant/config.yaml`, `grocy_ai_assistant/custom_components/grocy_ai_assistant/manifest.json` und `grocy_ai_assistant/custom_components/grocy_ai_assistant/const.py` übereinstimmen.
 
 ## Add-on-Dokumentation
 
