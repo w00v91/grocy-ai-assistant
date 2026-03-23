@@ -1,0 +1,225 @@
+{
+  "config": {
+    "abort": {
+      "single_instance_allowed": "Only a single Grocy AI Assistant configuration is allowed."
+    },
+    "step": {
+      "user": {
+        "title": "Set up Grocy AI Assistant",
+        "description": "Connect Home Assistant to the Grocy AI Assistant add-on.",
+        "data": {
+          "api_key": "API key"
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "General settings",
+        "description": "Update connection and dashboard polling settings.",
+        "data": {
+          "api_key": "API key",
+          "dashboard_polling_interval_seconds": "Dashboard polling interval (seconds)"
+        }
+      },
+      "debug": {
+        "title": "Debug settings",
+        "description": "Enable additional integration logging for troubleshooting.",
+        "data": {
+          "debug_mode": "Enable debug mode"
+        }
+      }
+    }
+  },
+  "entity": {
+    "button": {
+      "catalog_rebuild": {
+        "name": "Catalog rebuild"
+      },
+      "notification_test": {
+        "name": "Notification test"
+      }
+    },
+    "sensor": {
+      "status": {
+        "name": "Status",
+        "state": {
+          "online": "Online",
+          "offline": "Offline"
+        }
+      },
+      "home_assistant_update_required": {
+        "name": "Home Assistant update required",
+        "state": {
+          "required": "Required",
+          "not_required": "Not required",
+          "unknown": "Unknown"
+        }
+      },
+      "response_text": {
+        "name": "Response",
+        "state": {
+          "ready": "Ready",
+          "processing": "Processing"
+        }
+      },
+      "ai_response_time_last": {
+        "name": "AI response time (latest request)"
+      },
+      "ai_response_time_average": {
+        "name": "AI response time (average)"
+      },
+      "shopping_list_open_count": {
+        "name": "Shopping list open entries"
+      },
+      "stock_products_total_count": {
+        "name": "Stock products total"
+      },
+      "stock_products_expiring_count": {
+        "name": "Stock products expiring soon"
+      },
+      "recipe_suggestion_top_ai": {
+        "name": "Top AI recipe suggestion",
+        "state": {
+          "none": "No suggestions"
+        }
+      },
+      "recipe_suggestion_top_grocy": {
+        "name": "Top Grocy recipe suggestion",
+        "state": {
+          "none": "No suggestions"
+        }
+      },
+      "recipe_suggestion_expiring": {
+        "name": "Recipe suggestions for expiring stock",
+        "state": {
+          "none": "No suggestions"
+        }
+      },
+      "analysis_status": {
+        "name": "Analysis status",
+        "state": {
+          "ready": "Ready",
+          "success": "Successful",
+          "error": "Error"
+        }
+      },
+      "barcode_lookup_status": {
+        "name": "Barcode lookup status",
+        "state": {
+          "ready": "Ready",
+          "match": "Match",
+          "no_match": "No match",
+          "error": "Error"
+        }
+      },
+      "llava_scan_status": {
+        "name": "Image analysis status",
+        "state": {
+          "ready": "Ready",
+          "success": "Successful",
+          "no_result": "No result",
+          "error": "Error"
+        }
+      }
+    },
+    "text": {
+      "product_input": {
+        "name": "Product name"
+      }
+    }
+  },
+  "services": {
+    "add_product_via_ai": {
+      "name": "Analyze and sync product",
+      "description": "Analyze a product name with Grocy AI Assistant and sync the result to Grocy.",
+      "fields": {
+        "name": {
+          "name": "Product name",
+          "description": "Product name to analyze. If empty, the integration text entity is used."
+        }
+      }
+    },
+    "sync_product": {
+      "name": "Analyze and sync product",
+      "description": "Analyze a product name with Grocy AI Assistant and sync the result to Grocy.",
+      "fields": {
+        "name": {
+          "name": "Product name",
+          "description": "Product name to analyze. If empty, the integration text entity is used."
+        }
+      }
+    },
+    "notification_emit_event": {
+      "name": "Emit notification event",
+      "description": "Emit an internal notification event for the Grocy AI Assistant rule engine.",
+      "fields": {
+        "event_type": {
+          "name": "Event type",
+          "description": "Supported event type, for example item_added or shopping_due."
+        },
+        "title": {
+          "name": "Title",
+          "description": "Optional notification title."
+        },
+        "message": {
+          "name": "Message",
+          "description": "Optional notification message body."
+        },
+        "severity": {
+          "name": "Severity",
+          "description": "Notification severity level."
+        }
+      }
+    },
+    "notification_test_device": {
+      "name": "Send test notification to device",
+      "description": "Send a mobile push test notification to one configured target device.",
+      "fields": {
+        "target_id": {
+          "name": "Target ID",
+          "description": "Notification target ID, for example notify.mobile_app_pixel_8."
+        }
+      }
+    },
+    "notification_test_all": {
+      "name": "Send test notification to all devices",
+      "description": "Send a mobile push test notification to all active target devices."
+    },
+    "notification_test_persistent": {
+      "name": "Send persistent test notification",
+      "description": "Send a test notification using Home Assistant persistent notifications."
+    },
+    "barcode_lookup": {
+      "name": "Look up barcode",
+      "description": "Look up a barcode with the Grocy AI Assistant add-on and update the barcode status entity.",
+      "fields": {
+        "barcode": {
+          "name": "Barcode",
+          "description": "Barcode value to look up."
+        }
+      }
+    },
+    "scanner_llava_analyze": {
+      "name": "Analyze image",
+      "description": "Analyze a Base64-encoded image with the Grocy AI Assistant image scanner and update the image analysis status entity.",
+      "fields": {
+        "image_base64": {
+          "name": "Image data (Base64)",
+          "description": "Base64-encoded image payload without a file path."
+        }
+      }
+    },
+    "scan_image": {
+      "name": "Analyze image",
+      "description": "Analyze a Base64-encoded image with the Grocy AI Assistant image scanner and update the image analysis status entity.",
+      "fields": {
+        "image_base64": {
+          "name": "Image data (Base64)",
+          "description": "Base64-encoded image payload without a file path."
+        }
+      }
+    }
+  }
+}

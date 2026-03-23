@@ -139,11 +139,7 @@ def build_recipe_summary(
     source: str | None = None,
 ) -> tuple[str, dict[str, Any]]:
     top_recipe = _select_top_recipe(payload, source=source)
-    state = (
-        str(top_recipe.get("title") or "Keine Vorschläge")
-        if top_recipe
-        else "Keine Vorschläge"
-    )
+    state = str(top_recipe.get("title") or "none") if top_recipe else "none"
     grocy_recipes = [dict(recipe) for recipe in payload.get("grocy_recipes") or []]
     ai_recipes = [dict(recipe) for recipe in payload.get("ai_recipes") or []]
     if source:
@@ -176,7 +172,7 @@ def build_analysis_status_payload(
 ) -> tuple[str, dict[str, Any]]:
     http_status = payload.get("_http_status")
     success = bool(payload.get("success", http_status == 200))
-    state = "Erfolgreich" if success and http_status == 200 else "Fehler"
+    state = "success" if success and http_status == 200 else "error"
     attributes = {
         "query": query,
         "success": success,
@@ -200,7 +196,7 @@ def build_barcode_status_payload(
     duration_ms: float | None = None,
 ) -> tuple[str, dict[str, Any]]:
     found = bool(payload.get("found"))
-    state = "Treffer" if found else "Kein Treffer"
+    state = "match" if found else "no_match"
     attributes = {
         "barcode": barcode,
         "found": found,
@@ -224,7 +220,7 @@ def build_llava_status_payload(
     duration_ms: float | None = None,
 ) -> tuple[str, dict[str, Any]]:
     success = bool(payload.get("success"))
-    state = "Erfolgreich" if success else "Kein Ergebnis"
+    state = "success" if success else "no_result"
     attributes = {
         "success": success,
         "product_name": str(payload.get("product_name") or ""),
@@ -252,4 +248,4 @@ def build_error_status_payload(
     }
     if extra:
         attributes.update(extra)
-    return "Fehler", attributes
+    return "error", attributes

@@ -1,45 +1,48 @@
 add_product_via_ai:
-  name: Produkt via KI anlegen
-  description: Übergibt den Produktnamen an das Grocy AI Add-on; das Add-on übernimmt Analyse und Grocy-Sync.
+  name: Analyze and sync product
+  description: Analyze a product name with Grocy AI Assistant and sync the result to Grocy.
   fields:
     name:
-      name: Produktname
-      description: Der Name des Produkts (z.B. Milch, Äpfel). Wenn leer, wird das Textfeld der Integration genutzt.
-      example: "Gala Äpfel 1kg"
+      name: Product name
+      description: Product name to analyze. If empty, the integration text entity is used.
+      example: "Gala apples 1 kg"
       selector:
         text:
 
 sync_product:
-  name: Produkt mit Grocy synchronisieren
-  description: Nutzt die dedizierte Add-on-v1-API für Analyse und Grocy-Synchronisierung.
+  name: Analyze and sync product
+  description: Analyze a product name with Grocy AI Assistant and sync the result to Grocy.
   fields:
     name:
-      name: Produktname
-      description: Der Name des Produkts (z.B. Milch, Äpfel). Wenn leer, wird das Textfeld der Integration genutzt.
-      example: "Gala Äpfel 1kg"
+      name: Product name
+      description: Product name to analyze. If empty, the integration text entity is used.
+      example: "Gala apples 1 kg"
       selector:
         text:
 
 notification_emit_event:
-  name: Notification Event auslösen
-  description: Triggert ein internes Notification-Event, das durch die Rule Engine verarbeitet wird.
+  name: Emit notification event
+  description: Emit an internal notification event for the Grocy AI Assistant rule engine.
   fields:
     event_type:
-      name: Event-Typ
-      description: Einer der unterstützten Eventtypen (z.B. item_added, shopping_due).
+      name: Event type
+      description: Supported event type, for example item_added or shopping_due.
       required: true
       selector:
         text:
     title:
-      name: Titel
+      name: Title
+      description: Optional notification title.
       selector:
         text:
     message:
-      name: Nachricht
+      name: Message
+      description: Optional notification message body.
       selector:
         text:
     severity:
       name: Severity
+      description: Notification severity level.
       selector:
         select:
           options:
@@ -48,54 +51,54 @@ notification_emit_event:
             - critical
 
 notification_test_device:
-  name: Testbenachrichtigung an Gerät
-  description: Sendet eine Test-Push-Nachricht an ein spezifisches mobiles Ziel.
+  name: Send test notification to device
+  description: Send a mobile push test notification to one configured target device.
   fields:
     target_id:
-      name: Ziel-ID
-      description: Interne Ziel-ID, z.B. notify.mobile_app_pixel_8.
+      name: Target ID
+      description: Notification target ID, for example notify.mobile_app_pixel_8.
       required: true
       selector:
         text:
 
 notification_test_all:
-  name: Testbenachrichtigung an alle Geräte
-  description: Sendet eine Test-Push-Nachricht an alle aktiven mobilen Ziele.
+  name: Send test notification to all devices
+  description: Send a mobile push test notification to all active target devices.
 
 notification_test_persistent:
-  name: Test als Persistent Notification
-  description: Sendet eine Test-Nachricht in Home Assistant als persistent_notification.
+  name: Send persistent test notification
+  description: Send a test notification using Home Assistant persistent notifications.
 
 barcode_lookup:
-  name: Barcode nachschlagen
-  description: Führt einen Barcode-Lookup über das Grocy AI Add-on aus und aktualisiert den Barcode-Statussensor mit dem letzten Ergebnis.
+  name: Look up barcode
+  description: Look up a barcode with the Grocy AI Assistant add-on and update the barcode status entity.
   fields:
     barcode:
       name: Barcode
-      description: Die zu suchende Barcode-Nummer.
+      description: Barcode value to look up.
       required: true
       example: "4008400402222"
       selector:
         text:
 
 scanner_llava_analyze:
-  name: Bild per LLaVA analysieren
-  description: Übergibt ein Base64-kodiertes Bild an den LLaVA-Scanner und aktualisiert den Scanner-Statussensor mit dem letzten Ergebnis.
+  name: Analyze image
+  description: Analyze a Base64-encoded image with the Grocy AI Assistant image scanner and update the image analysis status entity.
   fields:
     image_base64:
-      name: Bilddaten (Base64)
-      description: Base64-kodiertes Bild ohne Dateipfad.
+      name: Image data (Base64)
+      description: Base64-encoded image payload without a file path.
       required: true
       selector:
         text:
 
 scan_image:
-  name: Bild analysieren
-  description: Nutzt die dedizierte Add-on-v1-API für Bildanalyse und aktualisiert den Scanner-Statussensor mit dem letzten Ergebnis.
+  name: Analyze image
+  description: Analyze a Base64-encoded image with the Grocy AI Assistant image scanner and update the image analysis status entity.
   fields:
     image_base64:
-      name: Bilddaten (Base64)
-      description: Base64-kodiertes Bild ohne Dateipfad.
+      name: Image data (Base64)
+      description: Base64-encoded image payload without a file path.
       required: true
       selector:
         text:

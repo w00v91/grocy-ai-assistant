@@ -4,6 +4,12 @@
 All notable changes to this project will be documented in this file.
 
 
+## 2026-03-23 (Version 8.0.24)
+- Added (Home-Assistant-Integration/Übersetzungen): Neue `strings.json` sowie `translations/en.json` und `translations/de.json` ergänzen Config-Flow-, Entity- und Service-Texte im HA-üblichen Übersetzungsformat.
+- Refactor (Home-Assistant-Integration/Entities): Buttons, Sensoren und Text-Entity verwenden jetzt `translation_key` plus `has_entity_name`, damit Home Assistant lokalisierte Anzeigenamen aus den Übersetzungen aufbauen kann.
+- Refactor (Home-Assistant-Integration/States/Services): Harte deutsche Statuswerte wurden auf stabile State-Slugs reduziert; `services.yaml` nutzt jetzt konsistente, übersetzungsfreundliche Bezeichnungen und Beschreibungen.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.24` erhöht.
+
 ## 2026-03-23 (Version 8.0.23)
 - Changed (Home-Assistant-Integration/Config Flow): Die Integration behandelt Config Entries jetzt explizit als Single-Instance und setzt in `async_step_user` eine stabile `unique_id`, wodurch weitere Einrichtungsversuche sauber abbrechen.
 - Changed (Home-Assistant-Integration/Konfiguration): Ein separater Reauth-/Reconfigure-Pfad wurde bewusst nicht ergänzt, weil die bestehende Options-Flow-Konfiguration bereits die relevanten Einstellungen der einzigen Instanz abdeckt.

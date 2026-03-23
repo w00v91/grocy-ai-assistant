@@ -152,7 +152,7 @@ class GrocyAIStatusCoordinator(GrocyAIBaseCoordinator):
         restart_required = bool(payload.get("homeassistant_restart_required", False))
         return {
             "status": {
-                "state": "Online",
+                "state": "online",
                 "attributes": {
                     "addon_version": payload.get("addon_version", "unbekannt"),
                     "required_integration_version": payload.get(
@@ -162,7 +162,7 @@ class GrocyAIStatusCoordinator(GrocyAIBaseCoordinator):
                 },
             },
             "update_required": {
-                "state": "Ja" if restart_required else "Nein",
+                "state": "required" if restart_required else "not_required",
                 "attributes": {
                     "required_integration_version": payload.get(
                         "required_integration_version", "unbekannt"
