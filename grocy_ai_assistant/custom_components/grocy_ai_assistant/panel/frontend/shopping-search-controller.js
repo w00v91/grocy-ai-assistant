@@ -12,7 +12,7 @@ export const SEARCH_FLOW_STATES = {
 };
 
 const DEFAULT_VARIANT_DEBOUNCE_MS = 250;
-const MIN_PRODUCT_SEARCH_LENGTH = 3;
+const MIN_PRODUCT_SEARCH_LENGTH = 2;
 
 function createDefaultTimerApi() {
   const setTimeoutImpl = typeof globalThis.window?.setTimeout === 'function'
@@ -296,7 +296,7 @@ export function createShoppingSearchController({
     }
 
     if (normalizedProductName.length < MIN_PRODUCT_SEARCH_LENGTH) {
-      const minimumLengthMessage = 'Bitte mindestens 3 Buchstaben für die Produktsuche eingeben.';
+      const minimumLengthMessage = 'Bitte mindestens 2 Buchstaben für die Produktsuche eingeben.';
       setState({
         flowState: SEARCH_FLOW_STATES.ERROR,
         isSubmitting: false,

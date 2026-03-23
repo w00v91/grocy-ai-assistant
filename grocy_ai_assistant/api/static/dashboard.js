@@ -5,7 +5,7 @@ import { parseAmountPrefixedSearch, shouldShowClearButton } from './dashboard-sh
 import { formatAmount, formatBadgeValue, formatStockCount, renderShoppingListItemCard, renderShoppingVariantCard } from './panel-frontend/shopping-ui.js';
 import { bindSwipeInteractions, resetSwipeVisualState } from './panel-frontend/swipe-interactions.js';
 
-const MIN_PRODUCT_SEARCH_LENGTH = 3;
+const MIN_PRODUCT_SEARCH_LENGTH = 2;
 
 function getMinimumSearchLengthMessage(length) {
   const remainingCharacters = MIN_PRODUCT_SEARCH_LENGTH - length;
@@ -1779,7 +1779,7 @@ async function searchProduct(options = {}) {
     return;
   }
   if (productName.trim().length < MIN_PRODUCT_SEARCH_LENGTH) {
-    status.textContent = 'Bitte mindestens 3 Buchstaben für die Produktsuche eingeben.';
+    status.textContent = 'Bitte mindestens 2 Buchstaben für die Produktsuche eingeben.';
     return;
   }
 

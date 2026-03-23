@@ -180,7 +180,7 @@ test('selectVariant keeps suggestion text without adding an implicit 1-prefix', 
 });
 
 
-test('setQuery waits for at least three product letters before loading variants', async () => {
+test('setQuery waits for at least two product letters before loading variants', async () => {
   const windowStub = installWindowStub();
   const apiCalls = [];
   const controller = createShoppingSearchController({
@@ -195,13 +195,13 @@ test('setQuery waits for at least three product letters before loading variants'
     },
   });
 
-  controller.actions.setQuery('2 Ap');
+  controller.actions.setQuery('A');
   await new Promise((resolve) => setTimeout(resolve, 0));
 
   const state = controller.getState();
   assert.deepEqual(apiCalls, []);
-  assert.equal(state.query, '2 Ap');
-  assert.equal(state.parsedAmount, 2);
+  assert.equal(state.query, 'A');
+  assert.equal(state.parsedAmount, null);
   assert.equal(state.flowState, SEARCH_FLOW_STATES.TYPING);
   assert.equal(state.statusMessage, 'Noch 1 Buchstabe bis zur Produktsuche.');
   assert.equal(state.variants.length, 0);
@@ -210,7 +210,7 @@ test('setQuery waits for at least three product letters before loading variants'
   windowStub.cleanup();
 });
 
-test('searchProduct rejects product names shorter than three letters', async () => {
+test('searchProduct rejects product names shorter than two letters', async () => {
   const windowStub = installWindowStub();
   const searchProductCalls = [];
   const controller = createShoppingSearchController({
@@ -225,15 +225,15 @@ test('searchProduct rejects product names shorter than three letters', async () 
     },
   });
 
-  controller.actions.setQuery('Ei');
+  controller.actions.setQuery('A');
   const result = await controller.actions.searchProduct();
 
   const state = controller.getState();
   assert.equal(result.ok, false);
   assert.deepEqual(searchProductCalls, []);
   assert.equal(state.flowState, SEARCH_FLOW_STATES.ERROR);
-  assert.equal(state.statusMessage, 'Bitte mindestens 3 Buchstaben für die Produktsuche eingeben.');
-  assert.equal(state.errorMessage, 'Bitte mindestens 3 Buchstaben für die Produktsuche eingeben.');
+  assert.equal(state.statusMessage, 'Bitte mindestens 2 Buchstaben für die Produktsuche eingeben.');
+  assert.equal(state.errorMessage, 'Bitte mindestens 2 Buchstaben für die Produktsuche eingeben.');
 
   controller.dispose();
   windowStub.cleanup();
