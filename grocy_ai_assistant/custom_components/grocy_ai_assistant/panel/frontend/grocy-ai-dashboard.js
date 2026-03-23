@@ -569,9 +569,6 @@ function buildStorageTabMarkup(model = {}) {
       className: 'hero-card storage-hero-card',
       eyebrow: 'Lager',
       title: 'Lager',
-      actions: [
-        { label: 'Aktualisieren', className: 'primary-button', dataset: { action: 'storage-refresh' } },
-      ],
       body: `
         <section class="storage-controls-shell shopping-search-shell" aria-live="polite">
           <div class="shopping-search-shell__header">
@@ -604,6 +601,9 @@ function buildStorageTabMarkup(model = {}) {
       className: 'card storage-list-section',
       title: 'Lagerliste',
       titleTag: 'h2',
+      actions: [
+        { label: 'Aktualisieren', className: 'primary-button', dataset: { action: 'storage-refresh' } },
+      ],
       body: listMarkup,
     })}
 
