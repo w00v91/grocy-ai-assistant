@@ -9,7 +9,25 @@ PACKAGE_PATH = ROOT / "grocy_ai_assistant" / "custom_components" / "grocy_ai_ass
 
 
 class _FakeTextEntity:
+    def __init__(self, *args, **kwargs):
+        self.hass = None
+        self._remove_callbacks = []
+
+    async def async_added_to_hass(self):
+        return None
+
     def async_write_ha_state(self):
+        return None
+
+    def async_on_remove(self, remove_callback):
+        self._remove_callbacks.append(remove_callback)
+
+
+class _FakeRestoreEntity:
+    async def async_added_to_hass(self):
+        return None
+
+    async def async_get_last_state(self):
         return None
 
 
@@ -29,12 +47,18 @@ def _ensure_stubbed_homeassistant_modules():
     ha_config_entries = types.ModuleType("homeassistant.config_entries")
     ha_core = types.ModuleType("homeassistant.core")
     ha_helpers = types.ModuleType("homeassistant.helpers")
+    ha_dispatcher = types.ModuleType("homeassistant.helpers.dispatcher")
     ha_entity = types.ModuleType("homeassistant.helpers.entity")
+    ha_restore_state = types.ModuleType("homeassistant.helpers.restore_state")
 
     ha_text.TextEntity = _FakeTextEntity
     ha_config_entries.ConfigEntry = object
     ha_core.HomeAssistant = object
+    ha_core.callback = lambda func: func
+    ha_dispatcher.async_dispatcher_connect = lambda hass, signal, target: (lambda: None)
+    ha_dispatcher.async_dispatcher_send = lambda hass, signal, *args: None
     ha_entity.DeviceInfo = _FakeDeviceInfo
+    ha_restore_state.RestoreEntity = _FakeRestoreEntity
 
     sys.modules.setdefault("homeassistant", ha_module)
     sys.modules.setdefault("homeassistant.components", ha_components)
@@ -42,7 +66,9 @@ def _ensure_stubbed_homeassistant_modules():
     sys.modules.setdefault("homeassistant.config_entries", ha_config_entries)
     sys.modules.setdefault("homeassistant.core", ha_core)
     sys.modules.setdefault("homeassistant.helpers", ha_helpers)
+    sys.modules.setdefault("homeassistant.helpers.dispatcher", ha_dispatcher)
     sys.modules.setdefault("homeassistant.helpers.entity", ha_entity)
+    sys.modules.setdefault("homeassistant.helpers.restore_state", ha_restore_state)
 
 
 def _load_module(module_name: str, filename: str):
@@ -88,3 +114,20 @@ def test_text_entity_uses_translated_entity_name():
 
     assert entity._attr_translation_key == "product_input"
     assert entity._attr_has_entity_name is True
+
+
+def test_text_entity_reads_runtime_value_from_hass_data():
+    entity = text_module.GrocyProductInput(_FakeEntry())
+    entity.hass = types.SimpleNamespace(
+        data={
+            "grocy_ai_assistant": {
+                "entry-1": {
+                    "runtime_state": {
+                        "product_input": "Hafermilch",
+                    }
+                }
+            }
+        }
+    )
+
+    assert text_module.get_product_input_value(entity.hass, "entry-1") == "Hafermilch"

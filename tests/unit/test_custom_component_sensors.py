@@ -10,6 +10,16 @@ PACKAGE_PATH = ROOT / "grocy_ai_assistant" / "custom_components" / "grocy_ai_ass
 
 
 class _FakeSensorEntity:
+    def __init__(self, *args, **kwargs):
+        self.hass = None
+        self._remove_callbacks = []
+
+    def async_on_remove(self, remove_callback):
+        self._remove_callbacks.append(remove_callback)
+
+    def async_write_ha_state(self):
+        return None
+
     @property
     def name(self):
         return getattr(self, "_attr_name", None)
@@ -83,6 +93,7 @@ def _ensure_stubbed_homeassistant_modules():
     ha_config_entries = types.ModuleType("homeassistant.config_entries")
     ha_core = types.ModuleType("homeassistant.core")
     ha_helpers = types.ModuleType("homeassistant.helpers")
+    ha_dispatcher = types.ModuleType("homeassistant.helpers.dispatcher")
     ha_entity = types.ModuleType("homeassistant.helpers.entity")
     ha_update_coordinator = types.ModuleType("homeassistant.helpers.update_coordinator")
 
@@ -91,6 +102,9 @@ def _ensure_stubbed_homeassistant_modules():
     ha_const.EntityCategory = _FakeEntityCategory
     ha_config_entries.ConfigEntry = type("ConfigEntry", (), {})
     ha_core.HomeAssistant = type("HomeAssistant", (), {})
+    ha_core.callback = lambda func: func
+    ha_dispatcher.async_dispatcher_connect = lambda hass, signal, target: (lambda: None)
+    ha_dispatcher.async_dispatcher_send = lambda hass, signal, *args: None
     ha_entity.EntityCategory = _FakeEntityCategory
     ha_entity.DeviceInfo = _FakeDeviceInfo
     ha_update_coordinator.CoordinatorEntity = _FakeCoordinatorEntity
@@ -111,6 +125,7 @@ def _ensure_stubbed_homeassistant_modules():
     sys.modules.setdefault("homeassistant.config_entries", ha_config_entries)
     sys.modules.setdefault("homeassistant.core", ha_core)
     sys.modules.setdefault("homeassistant.helpers", ha_helpers)
+    sys.modules.setdefault("homeassistant.helpers.dispatcher", ha_dispatcher)
     sys.modules.setdefault("homeassistant.helpers.entity", ha_entity)
     sys.modules.setdefault(
         "homeassistant.helpers.update_coordinator", ha_update_coordinator
@@ -351,3 +366,56 @@ def test_all_sensor_types_share_the_entry_device_info():
     assert response_sensor.device_info == expected
     assert shopping_sensor.device_info == expected
     assert average_sensor.device_info == expected
+
+
+def test_response_sensor_reads_runtime_payload_from_entry_state():
+    response_sensor = sensor_module.GrocyAIResponseSensor(_FakeEntry())
+    response_sensor.hass = types.SimpleNamespace(
+        data={
+            "grocy_ai_assistant": {
+                "entry-1": {
+                    "runtime_state": {
+                        "response": {
+                            "state": "processing",
+                            "attributes": {
+                                "icon": "mdi:progress-clock",
+                                "step": "sync",
+                            },
+                        }
+                    }
+                }
+            }
+        }
+    )
+
+    assert response_sensor.native_value == "processing"
+    assert response_sensor.extra_state_attributes["step"] == "sync"
+    assert response_sensor.icon == "mdi:progress-clock"
+
+
+def test_timing_sensors_read_centralized_runtime_metrics():
+    last_sensor = sensor_module.GrocyAILastResponseTimeSensor(_FakeEntry())
+    average_sensor = sensor_module.GrocyAIAverageResponseTimeSensor(_FakeEntry())
+    hass = types.SimpleNamespace(
+        data={
+            "grocy_ai_assistant": {
+                "entry-1": {
+                    "runtime_state": {
+                        "response_timing": {
+                            "count": 3,
+                            "total_ms": 420.0,
+                            "last_ms": 160.5,
+                            "average_ms": 140.0,
+                        }
+                    }
+                }
+            }
+        }
+    )
+    last_sensor.hass = hass
+    average_sensor.hass = hass
+
+    assert last_sensor.native_value == 160.5
+    assert average_sensor.native_value == 140.0
+    assert last_sensor.extra_state_attributes["requests_count"] == 3
+    assert average_sensor.extra_state_attributes["requests_count"] == 3

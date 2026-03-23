@@ -14,6 +14,14 @@ All notable changes to this project will be documented in this file.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.25` erhöht.
 
 
+## 2026-03-23 (Version 8.0.25)
+
+- Refactor (Home-Assistant-Integration/Runtime-State): Die Integration entfernt direkte `hass.states.async_set(...)`-Schreibzugriffe aus `__init__.py` und hält kurzlebige Antwort-, Analyse-, Barcode-, LLaVA- und Timingdaten jetzt entry-scoped in einer zentralen Runtime-Datenstruktur unter `hass.data[DOMAIN][entry_id]`.
+- Refactor (Home-Assistant-Integration/Entities): Response-, Status- und Timing-Sensoren veröffentlichen ihre Zustände nun entity-getrieben über Dispatcher-Signale und `async_write_ha_state()` statt per externem Write in die State Machine.
+- Refactor (Home-Assistant-Integration/Text): Das Produkt-Eingabefeld nutzt jetzt echte `TextEntity`-Updates inklusive `RestoreEntity`, sodass Service-Aufrufe den Wert aus der Runtime-Struktur lesen und erfolgreiche Syncs das Feld sauber über die Entity leeren.
+- Added (Tests/Home-Assistant-Integration): Unit-Tests decken jetzt die Runtime-State-Ausleitung für Response-/Timing-Sensoren sowie den textbasierten Produktwert ab.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.25` erhöht.
+
 ## 2026-03-23 (Version 8.0.24)
 
 - Fix (Home-Assistant-Integration/Panel/Lager): Im Lager-Tab heißt der Checkbox-Text jetzt `Alle anzeigen`.

@@ -3,7 +3,6 @@ import time
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.event import async_call_later
 
 from . import panel as dashboard_panel
@@ -21,6 +20,18 @@ from .entity_payloads import (
     build_error_status_payload,
     build_llava_status_payload,
 )
+from .runtime_state import (
+    RUNTIME_ANALYSIS_STATUS,
+    RUNTIME_BARCODE_STATUS,
+    RUNTIME_LLAVA_STATUS,
+    RUNTIME_RESPONSE,
+    async_record_response_timing,
+    async_set_product_input_value,
+    async_set_runtime_payload,
+    ensure_entry_runtime_data,
+    ensure_entry_runtime_state,
+    get_product_input_value,
+)
 from .services import (
     DATA_NOTIFICATION_MANAGER,
     NotificationManager,
@@ -28,90 +39,6 @@ from .services import (
 )
 
 _LOGGER = logging.getLogger(__name__)
-
-
-def _get_entity_id(
-    hass: HomeAssistant, entry_id: str, platform: str, unique_id: str, fallback: str
-) -> str:
-    registry = er.async_get(hass)
-    entity_id = registry.async_get_entity_id(
-        platform, DOMAIN, f"{entry_id}_{unique_id}"
-    )
-    return entity_id or fallback
-
-
-def _response_sensor_entity_id(hass: HomeAssistant, entry: ConfigEntry) -> str:
-    return _get_entity_id(
-        hass,
-        entry.entry_id,
-        "sensor",
-        "response_text",
-        f"sensor.{DOMAIN}_response",
-    )
-
-
-def _last_response_time_sensor_entity_id(
-    hass: HomeAssistant, entry: ConfigEntry
-) -> str:
-    return _get_entity_id(
-        hass,
-        entry.entry_id,
-        "sensor",
-        "ai_response_time_last_ms",
-        f"sensor.{DOMAIN}_ki_antwortzeit_letzte_anfrage",
-    )
-
-
-def _average_response_time_sensor_entity_id(
-    hass: HomeAssistant, entry: ConfigEntry
-) -> str:
-    return _get_entity_id(
-        hass,
-        entry.entry_id,
-        "sensor",
-        "ai_response_time_avg_ms",
-        f"sensor.{DOMAIN}_ki_antwortzeit_durchschnitt",
-    )
-
-
-def _product_input_entity_id(hass: HomeAssistant, entry: ConfigEntry) -> str:
-    return _get_entity_id(
-        hass,
-        entry.entry_id,
-        "text",
-        "product_input",
-        f"text.{DOMAIN}_produkt_name",
-    )
-
-
-def _analysis_status_sensor_entity_id(hass: HomeAssistant, entry: ConfigEntry) -> str:
-    return _get_entity_id(
-        hass,
-        entry.entry_id,
-        "sensor",
-        "analysis_status",
-        f"sensor.{DOMAIN}_analyse_status",
-    )
-
-
-def _barcode_status_sensor_entity_id(hass: HomeAssistant, entry: ConfigEntry) -> str:
-    return _get_entity_id(
-        hass,
-        entry.entry_id,
-        "sensor",
-        "barcode_lookup_status",
-        f"sensor.{DOMAIN}_barcode_scanner_status",
-    )
-
-
-def _llava_status_sensor_entity_id(hass: HomeAssistant, entry: ConfigEntry) -> str:
-    return _get_entity_id(
-        hass,
-        entry.entry_id,
-        "sensor",
-        "llava_scan_status",
-        f"sensor.{DOMAIN}_llava_scanner_status",
-    )
 
 
 def _resolve_api_base_url(config: dict) -> str:
@@ -134,25 +61,20 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up the integration."""
     entry.async_on_unload(entry.add_update_listener(async_update_options))
 
-    hass.data.setdefault(DOMAIN, {})
-    hass.data[DOMAIN][entry.entry_id] = {
-        DATA_ENTRY_CONFIG: _migrate_entry_payload({**entry.data, **entry.options})
-    }
+    entry_runtime = ensure_entry_runtime_data(hass, entry.entry_id)
+    entry_runtime.clear()
+    entry_runtime[DATA_ENTRY_CONFIG] = _migrate_entry_payload(
+        {**entry.data, **entry.options}
+    )
+    ensure_entry_runtime_state(hass, entry.entry_id)
 
     _LOGGER.info("Setting up Grocy AI Assistant for entry %s", entry.entry_id)
 
     await async_setup_entry_coordinators(hass, entry)
     await dashboard_panel.async_setup(hass)
 
-    response_reset_unsubs = hass.data[DOMAIN].setdefault("_response_reset_unsubs", {})
-    response_timing_stats = hass.data[DOMAIN].setdefault("_response_timing_stats", {})
-    stats = response_timing_stats.setdefault(
-        entry.entry_id,
-        {"count": 0, "total_ms": 0.0},
-    )
-
     def _cancel_response_reset() -> None:
-        if unsubscribe := response_reset_unsubs.pop(entry.entry_id, None):
+        if unsubscribe := entry_runtime.pop("response_reset_unsub", None):
             unsubscribe()
 
     def _set_response_state(
@@ -161,10 +83,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         *,
         reset_after: bool = False,
     ) -> None:
-        hass.states.async_set(
-            _response_sensor_entity_id(hass, entry),
-            message,
-            {"icon": icon},
+        async_set_runtime_payload(
+            hass,
+            entry.entry_id,
+            RUNTIME_RESPONSE,
+            state=message,
+            attributes={"icon": icon},
         )
 
         if reset_after:
@@ -172,62 +96,49 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
             @callback
             def _reset_response_state(_now) -> None:
-                response_reset_unsubs.pop(entry.entry_id, None)
-                hass.states.async_set(
-                    _response_sensor_entity_id(hass, entry),
-                    "ready",
-                    {"icon": "mdi:comment-text-outline"},
+                entry_runtime.pop("response_reset_unsub", None)
+                async_set_runtime_payload(
+                    hass,
+                    entry.entry_id,
+                    RUNTIME_RESPONSE,
+                    state="ready",
+                    attributes={"icon": "mdi:comment-text-outline"},
                 )
 
-            response_reset_unsubs[entry.entry_id] = async_call_later(
+            entry_runtime["response_reset_unsub"] = async_call_later(
                 hass, 30, _reset_response_state
             )
         else:
             _cancel_response_reset()
 
     def _set_response_timing_states(duration_ms: float) -> None:
-        stats["count"] = int(stats.get("count", 0)) + 1
-        stats["total_ms"] = float(stats.get("total_ms", 0.0)) + duration_ms
-        average_ms = stats["total_ms"] / max(stats["count"], 1)
-
-        hass.states.async_set(
-            _last_response_time_sensor_entity_id(hass, entry),
-            round(duration_ms, 1),
-            {
-                "unit_of_measurement": "ms",
-                "state_class": "measurement",
-                "requests_count": stats["count"],
-            },
-        )
-        hass.states.async_set(
-            _average_response_time_sensor_entity_id(hass, entry),
-            round(average_ms, 1),
-            {
-                "unit_of_measurement": "ms",
-                "state_class": "measurement",
-                "requests_count": stats["count"],
-            },
-        )
+        async_record_response_timing(hass, entry.entry_id, duration_ms)
 
     def _set_analysis_status(state: str, attributes: dict) -> None:
-        hass.states.async_set(
-            _analysis_status_sensor_entity_id(hass, entry),
-            state,
-            attributes,
+        async_set_runtime_payload(
+            hass,
+            entry.entry_id,
+            RUNTIME_ANALYSIS_STATUS,
+            state=state,
+            attributes=attributes,
         )
 
     def _set_barcode_status(state: str, attributes: dict) -> None:
-        hass.states.async_set(
-            _barcode_status_sensor_entity_id(hass, entry),
-            state,
-            attributes,
+        async_set_runtime_payload(
+            hass,
+            entry.entry_id,
+            RUNTIME_BARCODE_STATUS,
+            state=state,
+            attributes=attributes,
         )
 
     def _set_llava_status(state: str, attributes: dict) -> None:
-        hass.states.async_set(
-            _llava_status_sensor_entity_id(hass, entry),
-            state,
-            attributes,
+        async_set_runtime_payload(
+            hass,
+            entry.entry_id,
+            RUNTIME_LLAVA_STATUS,
+            state=state,
+            attributes=attributes,
         )
 
     def _build_active_client() -> AddonClient:
@@ -247,8 +158,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         product_name = (call.data.get("name") or "").strip()
 
         if not product_name:
-            state = hass.states.get(_product_input_entity_id(hass, entry))
-            product_name = (state.state if state else "").strip()
+            product_name = get_product_input_value(hass, entry.entry_id).strip()
 
         if not product_name:
             _set_response_state(
@@ -286,7 +196,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 "mdi:check-circle",
                 reset_after=True,
             )
-            hass.states.async_set(_product_input_entity_id(hass, entry), "")
+            async_set_product_input_value(hass, entry.entry_id, "")
         except Exception as error:
             _LOGGER.error("Add-on request failed: %s", error)
             _set_analysis_status(
@@ -395,14 +305,10 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload integration entry."""
     if (
         unsubscribe := hass.data.get(DOMAIN, {})
-        .get("_response_reset_unsubs", {})
-        .pop(entry.entry_id, None)
+        .get(entry.entry_id, {})
+        .pop("response_reset_unsub", None)
     ):
         unsubscribe()
-
-    hass.data.get(DOMAIN, {}).get("_response_timing_stats", {}).pop(
-        entry.entry_id, None
-    )
 
     hass.services.async_remove(DOMAIN, "add_product_via_ai")
     hass.services.async_remove(DOMAIN, "sync_product")
