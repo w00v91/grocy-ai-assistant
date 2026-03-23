@@ -1,6 +1,4 @@
-## [8.0.32]
-
-### Fixed
+## 2026-03-23 (Version 8.0.32)
 
 - Fix: Fokus-Restore im nativen Lager-Tab nutzt jetzt den aktiven Fokus innerhalb des Panel-Shadow-DOMs, sodass das Filterfeld auch nach Storage-Reloads stabil fokussiert bleibt.
 
