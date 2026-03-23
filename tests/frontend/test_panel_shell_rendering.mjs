@@ -24,17 +24,16 @@ test('dashboard panel ensures its shell exists before assigning child view model
   );
   assert.match(source, /_renderState\(state\) \{\s+this\._ensureShell\(\);/);
   assert.match(source, /const topbar = this\.shadowRoot\.querySelector\('grocy-ai-topbar'\);/);
-  assert.match(source, /if \(!topbar \|\| !tabNav \|\| !shoppingTab \|\| !recipesTab \|\| !storageTab \|\| !notificationsTab \|\| !modals \|\| !scannerBridge\) \{/);
+  assert.match(source, /if \(!topbar \|\| !tabNav \|\| !shoppingTab \|\| !recipesTab \|\| !storageTab \|\| !modals \|\| !scannerBridge\) \{/);
 });
 
 
 test('tab navigation only renders native shopping, recipes, and storage links', async () => {
   const source = await fs.readFile(dashboardPath, 'utf8');
 
-  assert.match(source, /const VISIBLE_TAB_ORDER = TAB_ORDER\.filter\(\(tab\) => tab !== 'notifications'\);/);
   assert.match(source, /class GrocyAITabNav extends HTMLElement \{\s+constructor\(\) \{/);
   assert.match(source, /_ensureStructure\(\) \{\s+if \(this\._elements\) return;/);
-  assert.match(source, /VISIBLE_TAB_ORDER\.forEach\(\(tab\) => \{/);
+  assert.match(source, /TAB_ORDER\.forEach\(\(tab\) => \{/);
   assert.match(source, /nav\.setAttribute\('role', 'tablist'\);/);
   assert.match(source, /button\.setAttribute\('role', 'tab'\);/);
   assert.match(source, /button\.setAttribute\('aria-controls', getTabPanelId\(tab\)\);/);
@@ -180,7 +179,7 @@ test('recipes, storage, and modal renders restore focused form controls after re
   assert.match(source, /class GrocyAIStorageTab extends HTMLElement \{[\s\S]*?_render\(\) \{\s+const snapshot = captureFocusedFormControl\(this\);[\s\S]*?restoreFocusedFormControl\(this, snapshot\);/);
 });
 
-test('native panel exposes ARIA tabpanel wiring for shopping, recipes, storage, and fallback notifications', async () => {
+test('native panel exposes ARIA tabpanel wiring for shopping, recipes, and storage only', async () => {
   const source = await fs.readFile(dashboardPath, 'utf8');
 
   assert.match(source, /function getTabButtonId\(tab\) \{/);
@@ -189,7 +188,7 @@ test('native panel exposes ARIA tabpanel wiring for shopping, recipes, storage, 
   assert.match(source, /root\.setAttribute\('role', 'tabpanel'\);/);
   assert.match(source, /aria-labelledby="\$\{getTabButtonId\('recipes'\)\}"/);
   assert.match(source, /aria-labelledby="\$\{getTabButtonId\('storage'\)\}"/);
-  assert.match(source, /aria-labelledby="\$\{getTabButtonId\('notifications'\)\}"/);
+  assert.doesNotMatch(source, /grocy-ai-notifications-tab/);
 });
 
 test('recipes, storage, and modal setters skip full rerenders for volatile field-only updates', async () => {

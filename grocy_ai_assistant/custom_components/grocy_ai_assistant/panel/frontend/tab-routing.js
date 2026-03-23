@@ -1,5 +1,5 @@
 export const DEFAULT_TAB = 'shopping';
-export const TAB_ORDER = ['shopping', 'recipes', 'storage', 'notifications'];
+export const TAB_ORDER = ['shopping', 'recipes', 'storage'];
 
 export function normalizeTab(tab) {
   const normalized = String(tab || '').trim().toLowerCase();
@@ -44,7 +44,7 @@ function readTabFromHash(hash) {
 
 function readTabFromRoute(route) {
   const routePath = [route?.prefix, route?.path].filter(Boolean).join('/');
-  const match = routePath.match(/(?:^|\/)grocy-ai\/(shopping|recipes|storage|notifications)(?:\/|$)/i);
+  const match = routePath.match(/(?:^|\/)grocy-ai\/(shopping|recipes|storage)(?:\/|$)/i);
   if (!match) return null;
   return normalizeTab(match[1]);
 }

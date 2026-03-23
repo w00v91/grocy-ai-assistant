@@ -4,10 +4,11 @@
 All notable changes to this project will be documented in this file.
 
 ## 2026-03-23 (Version 8.0.20)
+- Changed (Home-Assistant-Integration/Panel): Der native Dashboard-Shell entfernt den Tab `Benachrichtigungen` komplett aus Navigation, Routing und Panel-Markup; Benachrichtigungen werden damit nicht mehr über das native Dashboard angeboten, sondern ausschließlich über die App-Oberfläche gesteuert.
+- Added (Tests/Frontend): Routing- und Shell-Regressionen sichern ab, dass `tab=notifications` im nativen Panel auf `shopping` zurückfällt und keine Notification-Tab-Struktur mehr gerendert wird.
 - Changed (Home-Assistant-Integration/Panel): Die Kopfzeile der nativen Einkaufsliste zeigt jetzt wie die übrigen Tabs eine `Einkauf`-Eyebrow über `Einkaufsliste`.
 - Fix (Home-Assistant-Integration/Panel): Unter der Überschrift `Grocy AI Suche` sitzt wieder ein sichtbarer Abstand zur Suchleiste, damit die Section-Header-Vertikale konsistent wirkt.
 - Added (Tests/Frontend): Eine Panel-Regression prüft die neue `Einkauf`-Eyebrow der Einkaufsliste sowie den wiederhergestellten Header-Abstand der Shopping-Suche.
-- Changed (Versioning): Integrationsversion auf `8.0.20` erhöht.
 - Fix (Dashboard/Shopping): Die Aktionsbuttons `Einkauf abschließen` und `Einkaufsliste leeren` teilen sich jetzt im klassischen Dashboard dieselbe volle Zeile gleichmäßig statt untereinander zu erscheinen.
 - Fix (Home-Assistant-Integration/Panel): Die nativen Shopping-Aktionen `Einkauf abschließen` und `Einkaufsliste leeren` nutzen jetzt ebenfalls eine gemeinsame 50/50-Aktionszeile über die volle Kartenbreite.
 - Added (Tests/Frontend): Eine Panel-Regression prüft jetzt explizit die gemeinsame Vollbreiten-Aktionszeile der nativen Einkaufslisten-Buttons.
