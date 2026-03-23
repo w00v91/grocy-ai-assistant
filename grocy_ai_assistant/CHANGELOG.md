@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 
 
 
+## 2026-03-23 (Version 8.0.23)
+- Changed (Home-Assistant-Integration/Config Flow): Die Integration behandelt Config Entries jetzt explizit als Single-Instance und setzt in `async_step_user` eine stabile `unique_id`, wodurch weitere Einrichtungsversuche sauber abbrechen.
+- Changed (Home-Assistant-Integration/Konfiguration): Ein separater Reauth-/Reconfigure-Pfad wurde bewusst nicht ergänzt, weil die bestehende Options-Flow-Konfiguration bereits die relevanten Einstellungen der einzigen Instanz abdeckt.
+- Added (Tests/Home-Assistant-Integration): Unit-Tests decken jetzt ab, dass der User-Step die Single-Instance-`unique_id` setzt und bei bestehender Konfiguration korrekt abbricht.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.23` erhöht.
+
 ## 2026-03-23 (Version 8.0.22)
 - Changed (Home-Assistant-Integration/Panel): Die Eyebrow `Einkauf` wurde aus der Überschrift `Einkaufsliste` in den Shopping-Hero verschoben und sitzt jetzt direkt oberhalb von `Grocy AI Suche`.
 - Fix (Dashboard/Web): Die klassische Dashboard-Topbar zeigt `Grocy AI Assistant` wieder an ihrer ursprünglichen Stelle statt im Shopping-Hero.
