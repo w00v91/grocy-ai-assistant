@@ -120,6 +120,16 @@ test('recipe filter cards render compact dropdown summaries and keep dropdown st
   assert.match(source, /const openDetails = captureDetailsOpenState\(this\);[\s\S]*?restoreDetailsOpenState\(this, openDetails\);/);
 });
 
+test('shopping list header keeps title and refresh action on one row in mobile layouts', async () => {
+  const source = await fs.readFile(dashboardPath, 'utf8');
+  const cssSource = await fs.readFile(dashboardCssPath, 'utf8');
+
+  assert.match(source, /listHeader\.className = 'section-header shopping-list-section__header';/);
+  assert.match(cssSource, /\.shopping-list-section__header \{[\s\S]*?align-items: center;[\s\S]*?flex-wrap: nowrap;/);
+  assert.match(cssSource, /\.shopping-list-section__header \.primary-button \{[\s\S]*?margin-left: auto;[\s\S]*?white-space: nowrap;/);
+  assert.match(cssSource, /@media \(max-width: 800px\) \{[\s\S]*?\.shopping-list-section__header \{[\s\S]*?flex-direction: row;[\s\S]*?align-items: center;/);
+});
+
 test('storage tab wraps filter controls in a shopping-style shell and keeps summary badges under the text filter', async () => {
   const source = await fs.readFile(dashboardPath, 'utf8');
   const cssSource = await fs.readFile(dashboardCssPath, 'utf8');
