@@ -4,6 +4,9 @@
 All notable changes to this project will be documented in this file.
 
 ## 2026-03-23 (Version 8.0.20)
+- Fix (Dashboard/Shopping): Die Aktionsbuttons `Einkauf abschließen` und `Einkaufsliste leeren` teilen sich jetzt im klassischen Dashboard dieselbe volle Zeile gleichmäßig statt untereinander zu erscheinen.
+- Fix (Home-Assistant-Integration/Panel): Die nativen Shopping-Aktionen `Einkauf abschließen` und `Einkaufsliste leeren` nutzen jetzt ebenfalls eine gemeinsame 50/50-Aktionszeile über die volle Kartenbreite.
+- Added (Tests/Frontend): Eine Panel-Regression prüft jetzt explizit die gemeinsame Vollbreiten-Aktionszeile der nativen Einkaufslisten-Buttons.
 - Fix (Home-Assistant-Integration/Panel): Der native Dashboard-Content rendert die Tab-Hosts nicht mehr als eigene gestapelte Layout-Zeilen, sodass Inhalte in späteren Tabs nicht mehr pro Tab weiter nach unten rutschen.
 - Fix (Home-Assistant-Integration/Panel): `tab-view`- und `card`-Container nutzen jetzt wieder den Home-Assistant-üblichen Standardabstand zwischen Abschnitten; damit erhalten Shopping-, Rezept-, Lager- und Fallback-Bereiche wieder konsistente Section-Abstände.
 - Fix (Home-Assistant-Integration/Panel): In der nativen Einkaufsliste sitzt unter der Kopfzeile mit `Aktualisieren` wieder derselbe Standardabstand wie zwischen den übrigen Card-Sektionen.

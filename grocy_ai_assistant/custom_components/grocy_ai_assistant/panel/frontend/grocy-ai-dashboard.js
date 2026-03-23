@@ -1305,7 +1305,7 @@ class GrocyAIShoppingTab extends HTMLElement {
     status.className = 'tab-status';
 
     const buttonRow = document.createElement('div');
-    buttonRow.className = 'button-row';
+    buttonRow.className = 'button-row shopping-bulk-actions';
     const completeAllButton = document.createElement('button');
     completeAllButton.className = 'success-button';
     completeAllButton.type = 'button';
