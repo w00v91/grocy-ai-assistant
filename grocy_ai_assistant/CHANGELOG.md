@@ -3,6 +3,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## 2026-03-23 (Version 8.0.17)
+- Fix (Home-Assistant-Integration/Panel): Die native Bottom-Bar blendet sich jetzt aus, sobald eines der Dashboard-Modals geöffnet ist, damit sie keine Modal-Actions am unteren Rand mehr überdeckt.
+- Fix (Home-Assistant-Integration/Panel): Dashboard-Modals liegen per höherem `z-index` jetzt zuverlässig über der Floating-Bottom-Bar, auch in nativen Mobile-/WebView-Shells.
+- Added (Tests/Frontend): Die Panel-Shell-Regression prüft jetzt explizit, dass die Bottom-Bar bei offenem Modal deaktiviert wird und Modals vor der Navigation liegen.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.17` erhöht.
+
 ## 2026-03-22 (Version 8.0.16)
 - Changed (Home-Assistant-Integration/Panel): Im nativen Lager-Tab entfällt die beschreibende Hero-Subline; Textfilter, Summen-Badges und `Alle Produkte anzeigen` sitzen jetzt gemeinsam in einer `shopping-search-shell`-ähnlichen Filter-Shell.
 - Changed (Home-Assistant-Integration/Panel): Die native Lagerliste rendert jetzt in einer eigenen Abschnittskarte `Lagerliste`, analog zur Struktur des Einkaufslisten-Tabs.

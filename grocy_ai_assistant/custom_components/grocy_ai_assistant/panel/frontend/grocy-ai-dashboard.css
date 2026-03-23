@@ -644,6 +644,13 @@ select:focus-visible {
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.24);
   backdrop-filter: blur(16px);
   isolation: isolate;
+  transition: opacity 0.18s ease, visibility 0.18s ease;
+}
+
+:host([data-modal-open="true"]) .bottom-tabbar {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .tab-button {
@@ -674,7 +681,7 @@ select:focus-visible {
   inset: 0;
   display: grid;
   place-items: center;
-  z-index: 30;
+  z-index: 60;
   overscroll-behavior: contain;
 }
 
