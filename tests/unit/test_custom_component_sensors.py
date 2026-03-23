@@ -27,6 +27,15 @@ class _FakeSensorEntity:
         return getattr(self, "_attr_extra_state_attributes", None)
 
 
+class _FakeCoordinatorEntity:
+    def __init__(self, coordinator):
+        self.coordinator = coordinator
+
+    @property
+    def available(self):
+        return bool(getattr(self.coordinator, "last_update_success", False))
+
+
 class _FakeSensorStateClass:
     MEASUREMENT = "measurement"
 
@@ -40,10 +49,30 @@ class _FakeDeviceInfo(dict):
         super().__init__(**kwargs)
 
 
+class _FakeCoordinator:
+    def __init__(
+        self,
+        data=None,
+        *,
+        last_update_success: bool = True,
+        last_exception: Exception | None = None,
+    ):
+        self.data = data or {}
+        self.last_update_success = last_update_success
+        self.last_exception = last_exception
+
+
 class _FakeEntry:
     entry_id = "entry-1"
     data = {}
     options = {}
+
+
+class _FakeUpdateFailed(Exception):
+    pass
+
+
+_RUNTIME_COORDINATORS = {}
 
 
 def _ensure_stubbed_homeassistant_modules():
@@ -51,21 +80,41 @@ def _ensure_stubbed_homeassistant_modules():
     ha_components = types.ModuleType("homeassistant.components")
     ha_sensor = types.ModuleType("homeassistant.components.sensor")
     ha_const = types.ModuleType("homeassistant.const")
+    ha_config_entries = types.ModuleType("homeassistant.config_entries")
+    ha_core = types.ModuleType("homeassistant.core")
     ha_helpers = types.ModuleType("homeassistant.helpers")
     ha_entity = types.ModuleType("homeassistant.helpers.entity")
+    ha_update_coordinator = types.ModuleType("homeassistant.helpers.update_coordinator")
 
     ha_sensor.SensorEntity = _FakeSensorEntity
     ha_sensor.SensorStateClass = _FakeSensorStateClass
     ha_const.EntityCategory = _FakeEntityCategory
+    ha_config_entries.ConfigEntry = type("ConfigEntry", (), {})
+    ha_core.HomeAssistant = type("HomeAssistant", (), {})
     ha_entity.EntityCategory = _FakeEntityCategory
     ha_entity.DeviceInfo = _FakeDeviceInfo
+    ha_update_coordinator.CoordinatorEntity = _FakeCoordinatorEntity
+    ha_update_coordinator.DataUpdateCoordinator = type(
+        "DataUpdateCoordinator",
+        (),
+        {
+            "__init__": lambda self, *args, **kwargs: None,
+            "__class_getitem__": classmethod(lambda cls, item: cls),
+        },
+    )
+    ha_update_coordinator.UpdateFailed = _FakeUpdateFailed
 
     sys.modules.setdefault("homeassistant", ha_module)
     sys.modules.setdefault("homeassistant.components", ha_components)
     sys.modules.setdefault("homeassistant.components.sensor", ha_sensor)
     sys.modules.setdefault("homeassistant.const", ha_const)
+    sys.modules.setdefault("homeassistant.config_entries", ha_config_entries)
+    sys.modules.setdefault("homeassistant.core", ha_core)
     sys.modules.setdefault("homeassistant.helpers", ha_helpers)
     sys.modules.setdefault("homeassistant.helpers.entity", ha_entity)
+    sys.modules.setdefault(
+        "homeassistant.helpers.update_coordinator", ha_update_coordinator
+    )
 
 
 def _load_module(module_name: str, filename: str):
@@ -88,105 +137,86 @@ def _load_sensor_module():
     package.__path__ = [str(PACKAGE_PATH)]
     sys.modules[PACKAGE_NAME] = package
 
+    coordinator_module = types.ModuleType(f"{PACKAGE_NAME}.coordinator")
+    coordinator_module.COORDINATOR_STATUS = "status"
+    coordinator_module.COORDINATOR_INVENTORY = "inventory"
+    coordinator_module.COORDINATOR_RECIPE_SUGGESTIONS = "recipe_suggestions"
+    coordinator_module.get_entry_coordinators = (
+        lambda hass, entry_id: _RUNTIME_COORDINATORS[entry_id]
+    )
+    sys.modules[f"{PACKAGE_NAME}.coordinator"] = coordinator_module
+
     _load_module(f"{PACKAGE_NAME}.const", "const.py")
     _load_module(f"{PACKAGE_NAME}.entity", "entity.py")
-    _load_module(f"{PACKAGE_NAME}.entity_payloads", "entity_payloads.py")
-    _load_module(f"{PACKAGE_NAME}.addon_client", "addon_client.py")
     return _load_module(f"{PACKAGE_NAME}.sensor", "sensor.py")
 
 
 sensor_module = _load_sensor_module()
 
 
-class _StaticClient:
-    def __init__(self, payload=None, *, exc: Exception | None = None):
-        self._payload = payload
-        self._exc = exc
-
-    async def get_shopping_list(self):
-        if self._exc is not None:
-            raise self._exc
-        return self._payload
-
-    async def get_recipe_suggestions(self, **kwargs):
-        if self._exc is not None:
-            raise self._exc
-        return self._payload
-
-
-def test_shopping_list_sensor_uses_fallback_value_on_http_error():
-    sensor = sensor_module.GrocyAIShoppingListOpenCountSensor(_FakeEntry())
-    sensor._build_client = lambda: _StaticClient(
-        {"_http_status": 500, "detail": "Dashboard endpoint fehlgeschlagen"}
+def test_shopping_list_sensor_reads_count_and_attributes_from_inventory_coordinator():
+    sensor = sensor_module.GrocyAIShoppingListOpenCountSensor(
+        _FakeEntry(),
+        _FakeCoordinator(
+            data={
+                "shopping_list_open_count": {
+                    "state": 2,
+                    "attributes": {"items": [{"id": 1}, {"id": 2}]},
+                }
+            }
+        ),
     )
-
-    asyncio.run(sensor.async_update())
-
-    assert sensor.available is True
-    assert sensor.native_value == 0
-    assert sensor.extra_state_attributes["last_update_success"] is False
-    assert (
-        sensor.extra_state_attributes["last_error"]
-        == "Dashboard endpoint fehlgeschlagen"
-    )
-    assert sensor.extra_state_attributes["http_status"] == 500
-
-
-def test_shopping_list_sensor_preserves_last_successful_value_after_exception():
-    sensor = sensor_module.GrocyAIShoppingListOpenCountSensor(_FakeEntry())
-    sensor._build_client = lambda: _StaticClient(
-        {"_http_status": 200, "items": [{"id": 1}, {"id": 2}]}
-    )
-
-    asyncio.run(sensor.async_update())
 
     assert sensor.available is True
     assert sensor.native_value == 2
+    assert sensor.extra_state_attributes["items"] == [{"id": 1}, {"id": 2}]
     assert sensor.extra_state_attributes["last_update_success"] is True
 
-    sensor._build_client = lambda: _StaticClient(
-        exc=RuntimeError("Timeout beim Add-on")
-    )
-    asyncio.run(sensor.async_update())
 
-    assert sensor.available is True
-    assert sensor.native_value == 2
+def test_shopping_list_sensor_uses_coordinator_error_and_becomes_unavailable():
+    sensor = sensor_module.GrocyAIShoppingListOpenCountSensor(
+        _FakeEntry(),
+        _FakeCoordinator(
+            data={},
+            last_update_success=False,
+            last_exception=RuntimeError("Timeout beim Add-on"),
+        ),
+    )
+
+    assert sensor.available is False
+    assert sensor.native_value == 0
     assert sensor.extra_state_attributes["last_update_success"] is False
     assert sensor.extra_state_attributes["last_error"] == "Timeout beim Add-on"
 
 
-def test_recipe_sensor_exposes_default_state_instead_of_unavailable_on_http_error():
-    sensor = sensor_module.GrocyAITopAIRecipeSuggestionSensor(_FakeEntry())
-    sensor._build_client = lambda: _StaticClient(
-        {"_http_status": 503, "detail": "Rezeptdienst nicht bereit"}
+def test_recipe_sensor_uses_default_state_if_coordinator_has_no_payload():
+    sensor = sensor_module.GrocyAITopAIRecipeSuggestionSensor(
+        _FakeEntry(),
+        _FakeCoordinator(data={}),
     )
 
-    asyncio.run(sensor.async_update())
-
-    assert sensor.available is True
     assert sensor.native_value == "Keine Vorschläge"
-    assert sensor.extra_state_attributes["last_update_success"] is False
-    assert sensor.extra_state_attributes["last_error"] == "Rezeptdienst nicht bereit"
-    assert sensor.extra_state_attributes["http_status"] == 503
 
 
 def test_top_grocy_recipe_sensor_only_exposes_best_matching_grocy_recipe():
-    sensor = sensor_module.GrocyAITopGrocyRecipeSuggestionSensor(_FakeEntry())
-    sensor._build_client = lambda: _StaticClient(
-        {
-            "_http_status": 200,
-            "selected_products": ["Tomate"],
-            "grocy_recipes": [
-                {"title": "Tomaten Pasta", "source": "grocy"},
-                {"title": "Tomaten Suppe", "source": "grocy"},
-            ],
-            "ai_recipes": [
-                {"title": "Tomatensalat", "source": "ai"},
-            ],
-        }
+    sensor = sensor_module.GrocyAITopGrocyRecipeSuggestionSensor(
+        _FakeEntry(),
+        _FakeCoordinator(
+            data={
+                "recipe_suggestion_top_grocy": {
+                    "state": "Tomaten Pasta",
+                    "attributes": {
+                        "source": "grocy",
+                        "recipes_count": 1,
+                        "grocy_recipes": [
+                            {"title": "Tomaten Pasta", "source": "grocy"}
+                        ],
+                        "ai_recipes": [],
+                    },
+                }
+            }
+        ),
     )
-
-    asyncio.run(sensor.async_update())
 
     assert sensor.available is True
     assert sensor.native_value == "Tomaten Pasta"
@@ -198,15 +228,17 @@ def test_top_grocy_recipe_sensor_only_exposes_best_matching_grocy_recipe():
     assert sensor.extra_state_attributes["ai_recipes"] == []
 
 
-def test_status_sensor_uses_offline_fallback_on_initial_exception():
-    sensor = sensor_module.GrocyAISensor(_FakeEntry())
-    sensor._build_client = lambda: types.SimpleNamespace(
-        get_status=_raise_runtime_error("Status-Endpunkt nicht erreichbar")
+def test_status_sensor_uses_offline_fallback_when_status_coordinator_has_failed():
+    sensor = sensor_module.GrocyAISensor(
+        _FakeEntry(),
+        _FakeCoordinator(
+            data={},
+            last_update_success=False,
+            last_exception=RuntimeError("Status-Endpunkt nicht erreichbar"),
+        ),
     )
 
-    asyncio.run(sensor.async_update())
-
-    assert sensor.available is True
+    assert sensor.available is False
     assert sensor.native_value == "Offline"
     assert sensor.extra_state_attributes["last_update_success"] is False
     assert (
@@ -215,15 +247,17 @@ def test_status_sensor_uses_offline_fallback_on_initial_exception():
     )
 
 
-def test_update_required_sensor_uses_unknown_fallback_on_initial_exception():
-    sensor = sensor_module.GrocyAIUpdateRequiredSensor(_FakeEntry())
-    sensor._build_client = lambda: types.SimpleNamespace(
-        get_status=_raise_runtime_error("Status-Endpunkt nicht erreichbar")
+def test_update_required_sensor_uses_unknown_fallback_when_status_coordinator_fails():
+    sensor = sensor_module.GrocyAIUpdateRequiredSensor(
+        _FakeEntry(),
+        _FakeCoordinator(
+            data={},
+            last_update_success=False,
+            last_exception=RuntimeError("Status-Endpunkt nicht erreichbar"),
+        ),
     )
 
-    asyncio.run(sensor.async_update())
-
-    assert sensor.available is True
+    assert sensor.available is False
     assert sensor.native_value == "Unbekannt"
     assert sensor.extra_state_attributes["last_update_success"] is False
     assert (
@@ -232,15 +266,17 @@ def test_update_required_sensor_uses_unknown_fallback_on_initial_exception():
     )
 
 
-def test_expiring_stock_sensor_uses_zero_fallback_on_initial_exception():
-    sensor = sensor_module.GrocyAIExpiringStockProductCountSensor(_FakeEntry())
-    sensor._build_client = lambda: types.SimpleNamespace(
-        get_stock_products=_raise_runtime_error("Lager-Endpunkt nicht erreichbar")
+def test_expiring_stock_sensor_uses_zero_fallback_when_inventory_coordinator_fails():
+    sensor = sensor_module.GrocyAIExpiringStockProductCountSensor(
+        _FakeEntry(),
+        _FakeCoordinator(
+            data={},
+            last_update_success=False,
+            last_exception=RuntimeError("Lager-Endpunkt nicht erreichbar"),
+        ),
     )
 
-    asyncio.run(sensor.async_update())
-
-    assert sensor.available is True
+    assert sensor.available is False
     assert sensor.native_value == 0
     assert sensor.extra_state_attributes["last_update_success"] is False
     assert (
@@ -248,9 +284,49 @@ def test_expiring_stock_sensor_uses_zero_fallback_on_initial_exception():
     )
 
 
+def test_async_setup_entry_wires_entry_scoped_coordinators_into_entities():
+    _RUNTIME_COORDINATORS[_FakeEntry.entry_id] = {
+        "status": _FakeCoordinator(),
+        "inventory": _FakeCoordinator(),
+        "recipe_suggestions": _FakeCoordinator(),
+    }
+    hass = types.SimpleNamespace(
+        data={
+            "grocy_ai_assistant": {
+                _FakeEntry.entry_id: {
+                    "coordinators": _RUNTIME_COORDINATORS[_FakeEntry.entry_id]
+                }
+            }
+        }
+    )
+    added_entities = []
+
+    async def _run_setup():
+        await sensor_module.async_setup_entry(
+            hass,
+            _FakeEntry(),
+            lambda entities: added_entities.extend(entities),
+        )
+
+    asyncio.run(_run_setup())
+
+    assert added_entities
+    assert isinstance(added_entities[0], sensor_module.GrocyAISensor)
+    assert (
+        added_entities[0].coordinator
+        is _RUNTIME_COORDINATORS[_FakeEntry.entry_id]["status"]
+    )
+    assert (
+        added_entities[5].coordinator
+        is _RUNTIME_COORDINATORS[_FakeEntry.entry_id]["inventory"]
+    )
+
+
 def test_all_sensor_types_share_the_entry_device_info():
     response_sensor = sensor_module.GrocyAIResponseSensor(_FakeEntry())
-    shopping_sensor = sensor_module.GrocyAIShoppingListOpenCountSensor(_FakeEntry())
+    shopping_sensor = sensor_module.GrocyAIShoppingListOpenCountSensor(
+        _FakeEntry(), _FakeCoordinator()
+    )
     average_sensor = sensor_module.GrocyAIAverageResponseTimeSensor(_FakeEntry())
 
     expected = {
@@ -262,10 +338,3 @@ def test_all_sensor_types_share_the_entry_device_info():
     assert response_sensor.device_info == expected
     assert shopping_sensor.device_info == expected
     assert average_sensor.device_info == expected
-
-
-def _raise_runtime_error(message: str):
-    async def _raiser():
-        raise RuntimeError(message)
-
-    return _raiser

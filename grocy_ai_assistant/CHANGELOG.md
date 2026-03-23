@@ -3,6 +3,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## 2026-03-23 (Version 8.0.22)
+- Fix (Home-Assistant-Integration/Panel): Das native Dashboard liest Entry-Konfigurationen jetzt wieder korrekt aus `hass.data[DOMAIN][entry_id]["config"]`, sodass Proxy-Requests nach der Coordinator-Einführung wieder den konfigurierten API-Key und die Base-URL verwenden und nicht mit `Unauthorized` am Add-on scheitern.
+- Added (Tests/Home-Assistant-Integration): Ein Panel-Unit-Test deckt die verschachtelte Entry-Runtime-Struktur samt Dashboard-Metadaten und Proxy-Client-Konfiguration ab.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.22` erhöht.
+
+## 2026-03-23 (Version 8.0.21)
+- Refactor (Home-Assistant-Integration/Sensoren): Neue Coordinator-Schicht in `custom_components/grocy_ai_assistant/coordinator.py` bündelt Status-, Lager-/Shopping- und Rezeptvorschlags-Polling entry-scoped in `hass.data[DOMAIN][entry.entry_id]` inklusive zentralem Fehler- und Availability-Handling.
+- Refactor (Home-Assistant-Integration/Sensoren): Die polling-basierten Sensoren in `sensor.py` leiten ihren State jetzt ausschließlich aus `coordinator.data` ab und führen keine direkten Add-on-API-Calls oder eigenes `async_update` mehr aus.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.21` erhöht.
+
 ## 2026-03-23 (Version 8.0.20)
 - Changed (Home-Assistant-Integration/Panel): Der native Dashboard-Shell entfernt den Tab `Benachrichtigungen` komplett aus Navigation, Routing und Panel-Markup; Benachrichtigungen werden damit nicht mehr über das native Dashboard angeboten, sondern ausschließlich über die App-Oberfläche gesteuert.
 - Added (Tests/Frontend): Routing- und Shell-Regressionen sichern ab, dass `tab=notifications` im nativen Panel auf `shopping` zurückfällt und keine Notification-Tab-Struktur mehr gerendert wird.

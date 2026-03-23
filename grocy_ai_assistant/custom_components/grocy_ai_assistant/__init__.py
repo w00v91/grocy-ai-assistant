@@ -14,6 +14,7 @@ from .const import (
     DOMAIN,
     INTEGRATION_VERSION,
 )
+from .coordinator import DATA_ENTRY_CONFIG, async_setup_entry_coordinators
 from .entity_payloads import (
     build_analysis_status_payload,
     build_barcode_status_payload,
@@ -134,12 +135,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     entry.async_on_unload(entry.add_update_listener(async_update_options))
 
     hass.data.setdefault(DOMAIN, {})
-    hass.data[DOMAIN][entry.entry_id] = _migrate_entry_payload(
-        {**entry.data, **entry.options}
-    )
+    hass.data[DOMAIN][entry.entry_id] = {
+        DATA_ENTRY_CONFIG: _migrate_entry_payload({**entry.data, **entry.options})
+    }
 
     _LOGGER.info("Setting up Grocy AI Assistant for entry %s", entry.entry_id)
 
+    await async_setup_entry_coordinators(hass, entry)
     await dashboard_panel.async_setup(hass)
 
     response_reset_unsubs = hass.data[DOMAIN].setdefault("_response_reset_unsubs", {})
@@ -421,6 +423,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     unload_ok = await hass.config_entries.async_unload_platforms(
         entry, ["sensor", "text", "button"]
     )
+    hass.data.get(DOMAIN, {}).pop(entry.entry_id, None)
     await dashboard_panel.async_unload(hass)
     _LOGGER.debug("Unload entry %s result: %s", entry.entry_id, unload_ok)
     return unload_ok
