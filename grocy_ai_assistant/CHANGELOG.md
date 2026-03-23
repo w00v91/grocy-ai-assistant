@@ -3,6 +3,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## 2026-03-23 (Version 8.0.26)
+
+- Fix (Home-Assistant-Integration/Panel/Einkauf): Das Status-Badge unter der Produktsuche im nativen Panel darf jetzt bei langen Meldungen umbrechen, statt horizontal auszureißen.
+- Fix (Dashboard/Web/Einkauf): Auch das Status-Badge unter der Produktsuche im klassischen Dashboard bricht lange Texte jetzt sauber um.
+- Added (Tests/Frontend): CSS-Regressionen sichern das neue Umbruch-Verhalten der Such-Status-Badges im nativen Panel und im Web-Dashboard ab.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.26` erhöht.
+
 ## 2026-03-23 (Version 8.0.25)
 
 - Fix (Home-Assistant-Integration/Panel/Lager): Im nativen Lager-Tab bleibt der Button `Aktualisieren` jetzt auch in der Karten-Kopfzeile direkt neben `Lagerliste`, inklusive Mobile-Layout.
