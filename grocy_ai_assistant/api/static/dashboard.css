@@ -1634,21 +1634,6 @@ img {
   font-size: 0.9rem;
 }
 
-.scanner-capabilities {
-  margin-top: 0.55rem;
-}
-
-.scanner-capabilities pre {
-  margin: 0.45rem 0 0;
-  max-height: 180px;
-  overflow: auto;
-  padding: 0.6rem;
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--item-bg) 86%, #000);
-  border: 1px solid var(--item-border);
-  font-size: 0.78rem;
-}
-
 .scanner-actions {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
