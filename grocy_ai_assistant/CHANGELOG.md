@@ -3,6 +3,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## 2026-03-23 (Version 8.0.19)
+- Changed (Home-Assistant-Integration/Panel): Der Scanner-Button im nativen Einkaufs-Dashboard rendert jetzt ein Home-Assistant-konformes `ha-icon` mit `mdi:barcode-scan` statt des bisherigen pseudo-gemalten Barcode-Icons.
+- Added (Tests/Frontend): Eine Panel-Regression prüft jetzt explizit, dass der native Scanner-Trigger das HA-Icon `mdi:barcode-scan` verwendet.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.19` erhöht.
+
 ## 2026-03-23 (Version 8.0.18)
 - Fix (Home-Assistant-Integration/Panel/Mobile): Im Einkaufslisten-Tab bleibt der Scanner-Button auf mobilen Viewports jetzt in derselben Kopfzeile wie die Überschrift `Grocy AI Suche` und sitzt rechtsbündig statt unter die Überschrift umzubrechen.
 - Added (Tests/Frontend): Eine Panel-CSS-Regression prüft jetzt explizit die mobile Kopfzeile des Einkaufslisten-Tabs samt rechtsbündigem Scanner-Button.
