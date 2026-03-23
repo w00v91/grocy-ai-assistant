@@ -178,3 +178,63 @@ test('selectVariant keeps suggestion text without adding an implicit 1-prefix', 
   controller.dispose();
   windowStub.cleanup();
 });
+
+
+test('setQuery waits for at least two product letters before loading variants', async () => {
+  const windowStub = installWindowStub();
+  const apiCalls = [];
+  const controller = createShoppingSearchController({
+    api: {
+      async searchVariants(query) {
+        apiCalls.push(query);
+        return {
+          response: { ok: true },
+          payload: [{ id: 42, name: 'Apfel', source: 'grocy' }],
+        };
+      },
+    },
+  });
+
+  controller.actions.setQuery('A');
+  await new Promise((resolve) => setTimeout(resolve, 0));
+
+  const state = controller.getState();
+  assert.deepEqual(apiCalls, []);
+  assert.equal(state.query, 'A');
+  assert.equal(state.parsedAmount, null);
+  assert.equal(state.flowState, SEARCH_FLOW_STATES.TYPING);
+  assert.equal(state.statusMessage, 'Noch 1 Buchstabe bis zur Produktsuche.');
+  assert.equal(state.variants.length, 0);
+
+  controller.dispose();
+  windowStub.cleanup();
+});
+
+test('searchProduct rejects product names shorter than two letters', async () => {
+  const windowStub = installWindowStub();
+  const searchProductCalls = [];
+  const controller = createShoppingSearchController({
+    api: {
+      async searchProduct(payload) {
+        searchProductCalls.push(payload);
+        return {
+          response: { ok: true },
+          payload: { message: 'Produkt hinzugefügt.' },
+        };
+      },
+    },
+  });
+
+  controller.actions.setQuery('A');
+  const result = await controller.actions.searchProduct();
+
+  const state = controller.getState();
+  assert.equal(result.ok, false);
+  assert.deepEqual(searchProductCalls, []);
+  assert.equal(state.flowState, SEARCH_FLOW_STATES.ERROR);
+  assert.equal(state.statusMessage, 'Bitte mindestens 2 Buchstaben für die Produktsuche eingeben.');
+  assert.equal(state.errorMessage, 'Bitte mindestens 2 Buchstaben für die Produktsuche eingeben.');
+
+  controller.dispose();
+  windowStub.cleanup();
+});

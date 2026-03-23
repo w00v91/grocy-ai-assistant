@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## 2026-03-23 (Version 8.0.28)
+
+- Fix (Home-Assistant-Integration/Panel/Einkauf): Die Produktsuche im nativen Shopping-Panel startet Live-Vorschläge jetzt erst ab zwei Buchstaben des eigentlichen Produktnamens; Mengenpräfixe wie `2 A` zählen dabei nicht als zusätzliche Suchzeichen.
+- Fix (Dashboard/Web/Einkauf): Auch im klassischen Dashboard blockiert die Produktsuche Live-Anfragen und direkte Sucheingaben jetzt bis mindestens zwei Buchstaben eingegeben wurden.
+- Added (Tests/Frontend): Controller-Regressionen sichern ab, dass unter zwei Buchstaben weder Variantensuche noch Produktsubmit ausgelöst werden.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.28` erhöht.
+
 ## 2026-03-23 (Version 8.0.26)
 
 - Fix (Home-Assistant-Integration/Panel/Sicherheit): Die Produktbild-Proxy-View des nativen Panels verlangt jetzt Home-Assistant-Authentifizierung statt Bildabrufe anonym offenzulegen.

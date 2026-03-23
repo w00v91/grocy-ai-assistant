@@ -12,6 +12,7 @@ export const SEARCH_FLOW_STATES = {
 };
 
 const DEFAULT_VARIANT_DEBOUNCE_MS = 250;
+const MIN_PRODUCT_SEARCH_LENGTH = 2;
 
 function createDefaultTimerApi() {
   const setTimeoutImpl = typeof globalThis.window?.setTimeout === 'function'
@@ -42,6 +43,17 @@ export function parseAmountPrefixedSearch(rawValue) {
     productName: match[2].trim(),
     amountFromName: parsedAmount,
   };
+}
+
+
+function getMinimumSearchLengthMessage(length) {
+  const remainingCharacters = MIN_PRODUCT_SEARCH_LENGTH - length;
+  if (remainingCharacters <= 0) {
+    return 'Bereit.';
+  }
+  return remainingCharacters === 1
+    ? 'Noch 1 Buchstabe bis zur Produktsuche.'
+    : `Noch ${remainingCharacters} Buchstaben bis zur Produktsuche.`;
 }
 
 function buildInitialState() {
@@ -146,11 +158,28 @@ export function createShoppingSearchController({
     applyQueryState(query);
     const requestToken = invalidateVariantRequests();
     const normalizedQuery = String(query || '').trim();
-    const { amountFromName } = parseAmountPrefixedSearch(query);
+    const { productName, amountFromName } = parseAmountPrefixedSearch(query);
+    const normalizedProductName = productName.trim();
 
     if (!normalizedQuery) {
       clearVariantDebounce();
       resetVariantsForEmptyQuery(String(query || ''), amountFromName, requestToken);
+      return;
+    }
+
+    if (normalizedProductName.length < MIN_PRODUCT_SEARCH_LENGTH) {
+      clearVariantDebounce();
+      setState({
+        query: String(query || ''),
+        parsedAmount: amountFromName,
+        variants: [],
+        isLoadingVariants: false,
+        flowState: SEARCH_FLOW_STATES.TYPING,
+        statusMessage: getMinimumSearchLengthMessage(normalizedProductName.length),
+        errorMessage: '',
+        clearButtonVisible: Boolean(String(query || '')),
+        variantsRequestToken: requestToken,
+      });
       return;
     }
 
@@ -177,6 +206,21 @@ export function createShoppingSearchController({
 
     if (!normalizedQuery) {
       resetVariantsForEmptyQuery(effectiveQuery, amountFromName, requestToken);
+      return [];
+    }
+
+    if (normalizedQuery.length < MIN_PRODUCT_SEARCH_LENGTH) {
+      setState({
+        query: effectiveQuery,
+        parsedAmount: amountFromName,
+        variants: [],
+        isLoadingVariants: false,
+        flowState: SEARCH_FLOW_STATES.TYPING,
+        statusMessage: getMinimumSearchLengthMessage(normalizedQuery.length),
+        errorMessage: '',
+        clearButtonVisible: Boolean(effectiveQuery),
+        variantsRequestToken: requestToken,
+      });
       return [];
     }
 
@@ -247,6 +291,17 @@ export function createShoppingSearchController({
         isSubmitting: false,
         statusMessage: 'Bitte Produktname eingeben.',
         errorMessage: 'Bitte Produktname eingeben.',
+      });
+      return { ok: false, payload: null };
+    }
+
+    if (normalizedProductName.length < MIN_PRODUCT_SEARCH_LENGTH) {
+      const minimumLengthMessage = 'Bitte mindestens 2 Buchstaben für die Produktsuche eingeben.';
+      setState({
+        flowState: SEARCH_FLOW_STATES.ERROR,
+        isSubmitting: false,
+        statusMessage: minimumLengthMessage,
+        errorMessage: minimumLengthMessage,
       });
       return { ok: false, payload: null };
     }
