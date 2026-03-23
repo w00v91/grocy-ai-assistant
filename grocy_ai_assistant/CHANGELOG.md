@@ -3,6 +3,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## 2026-03-23 (Version 8.0.26)
+
+- Fix (Home-Assistant-Integration/Panel/Sicherheit): Die Produktbild-Proxy-View des nativen Panels verlangt jetzt Home-Assistant-Authentifizierung statt Bildabrufe anonym offenzulegen.
+- Changed (Home-Assistant-Integration/Panel/Kommentar): `GrocyAIDashboardPictureProxyView` dokumentiert jetzt direkt im Code, dass Produktbilder aus dem eingeloggten HA-Frontend per same-origin-`<img src>` über den Panel-Proxy geladen werden und deshalb Session-Cookies ausreichen.
+- Added (Tests/Home-Assistant-Integration): Panel-Regressionen sichern ab, dass die dedizierte Produktbild-Route authentifiziert bleibt und weiterhin korrekt an das Add-on weiterleitet.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.26` erhöht.
+
+
 ## 2026-03-23 (Version 8.0.25)
 
 - Fix (Home-Assistant-Integration/Panel/Lager): Im nativen Lager-Tab bleibt der Button `Aktualisieren` jetzt auch in der Karten-Kopfzeile direkt neben `Lagerliste`, inklusive Mobile-Layout.
