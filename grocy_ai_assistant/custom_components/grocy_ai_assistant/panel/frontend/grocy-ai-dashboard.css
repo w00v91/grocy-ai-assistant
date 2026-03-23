@@ -161,6 +161,22 @@ h1 {
   align-items: center;
 }
 
+.shopping-list-section__header {
+  align-items: center;
+  flex-wrap: nowrap;
+}
+
+.shopping-list-section__header h2 {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.shopping-list-section__header .primary-button {
+  margin-left: auto;
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
 .description,
 .muted,
 .tab-status,
@@ -1353,6 +1369,11 @@ select:focus-visible {
   .section-header,
   .shopping-card__actions {
     flex-direction: column;
+  }
+
+  .shopping-list-section__header {
+    flex-direction: row;
+    align-items: center;
   }
 
   .topbar-meta {
