@@ -388,10 +388,13 @@ grocy-ai-tab-nav {
   margin: 0;
   width: fit-content;
   max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .search-helper-text.shopping-status-chip {
   justify-self: start;
+  flex-wrap: wrap;
 }
 
 .search-helper-text.shopping-status-chip--error {
