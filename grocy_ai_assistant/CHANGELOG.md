@@ -3,9 +3,10 @@
 
 All notable changes to this project will be documented in this file.
 
-## 2026-03-23 (Version 8.0.21)
-- Changed (Dashboard/Shopping): Die Eyebrow `Grocy AI Assistant` sitzt jetzt direkt im Hero oberhalb von `Grocy AI Suche` statt oberhalb der Einkaufsliste bzw. Topbar.
-- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.21` erhöht.
+## 2026-03-23 (Version 8.0.22)
+- Changed (Home-Assistant-Integration/Panel): Die Eyebrow `Einkauf` wurde aus der Überschrift `Einkaufsliste` in den Shopping-Hero verschoben und sitzt jetzt direkt oberhalb von `Grocy AI Suche`.
+- Fix (Dashboard/Web): Die klassische Dashboard-Topbar zeigt `Grocy AI Assistant` wieder an ihrer ursprünglichen Stelle statt im Shopping-Hero.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.22` erhöht.
 
 ## 2026-03-23 (Version 8.0.20)
 - Changed (Home-Assistant-Integration/Panel): Der native Dashboard-Shell entfernt den Tab `Benachrichtigungen` komplett aus Navigation, Routing und Panel-Markup; Benachrichtigungen werden damit nicht mehr über das native Dashboard angeboten, sondern ausschließlich über die App-Oberfläche gesteuert.

@@ -25,7 +25,7 @@ const TAB_ICONS = Object.freeze({
 });
 const DEFAULT_POLLING_INTERVAL_SECONDS = 5;
 const DEFAULT_POLLING_INTERVAL_MS = DEFAULT_POLLING_INTERVAL_SECONDS * 1000;
-const DEFAULT_INTEGRATION_VERSION = '8.0.21';
+const DEFAULT_INTEGRATION_VERSION = '8.0.22';
 const GROCY_RECIPE_DISPLAY_LIMIT = 3;
 const AI_RECIPE_DISPLAY_LIMIT = 3;
 const TAB_VIEW_STATE = Object.freeze({
@@ -1273,6 +1273,9 @@ class GrocyAIShoppingTab extends HTMLElement {
     heroHeader.className = 'section-header shopping-hero-card__header';
     const heroCopy = document.createElement('div');
     heroCopy.className = 'section-header__copy';
+    const heroEyebrow = document.createElement('p');
+    heroEyebrow.className = 'eyebrow';
+    heroEyebrow.textContent = 'Einkauf';
     const heroTitle = document.createElement('h2');
     heroTitle.textContent = 'Grocy AI Suche';
     const scannerButton = document.createElement('button');
@@ -1281,7 +1284,7 @@ class GrocyAIShoppingTab extends HTMLElement {
     scannerButton.dataset.action = 'shopping-open-scanner';
     scannerButton.setAttribute('aria-label', 'Barcode-Scanner öffnen');
     scannerButton.innerHTML = renderHaIcon('mdi:barcode-scan', 'scanner-popup-button__icon');
-    heroCopy.append(heroTitle);
+    heroCopy.append(heroEyebrow, heroTitle);
     heroHeader.append(heroCopy, scannerButton);
     const searchBar = document.createElement('grocy-ai-shopping-search-bar');
     heroCard.append(heroHeader, searchBar);
@@ -1292,12 +1295,9 @@ class GrocyAIShoppingTab extends HTMLElement {
     listHeader.className = 'section-header shopping-list-section__header';
     const listCopy = document.createElement('div');
     listCopy.className = 'section-header__copy';
-    const listEyebrow = document.createElement('p');
-    listEyebrow.className = 'eyebrow';
-    listEyebrow.textContent = 'Einkauf';
     const listTitle = document.createElement('h2');
     listTitle.textContent = 'Einkaufsliste';
-    listCopy.append(listEyebrow, listTitle);
+    listCopy.append(listTitle);
     const refreshButton = document.createElement('button');
     refreshButton.className = 'primary-button';
     refreshButton.type = 'button';
