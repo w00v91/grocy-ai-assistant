@@ -28,7 +28,7 @@ const TAB_ICONS = Object.freeze({
 const VISIBLE_TAB_ORDER = TAB_ORDER.filter((tab) => tab !== 'notifications');
 const DEFAULT_POLLING_INTERVAL_SECONDS = 5;
 const DEFAULT_POLLING_INTERVAL_MS = DEFAULT_POLLING_INTERVAL_SECONDS * 1000;
-const DEFAULT_INTEGRATION_VERSION = '8.0.17';
+const DEFAULT_INTEGRATION_VERSION = '8.0.18';
 const GROCY_RECIPE_DISPLAY_LIMIT = 3;
 const AI_RECIPE_DISPLAY_LIMIT = 3;
 const TAB_VIEW_STATE = Object.freeze({
@@ -581,19 +581,21 @@ function buildStorageTabMarkup(model = {}) {
             </div>
           </div>
           <div class="storage-controls">
-            <label class="storage-filter-field" for="storage-filter-input-native">
-              <span class="eyebrow">Textfilter</span>
-              <input id="storage-filter-input-native" class="ha-control" data-role="storage-filter" type="text" placeholder="Produkte filtern..." value="${escapeHtml(model.filter || '')}" />
-              <div class="storage-summary">
-                <span class="migration-chip">${escapeHtml(`${model.summary.totalCount} Produkte`)}</span>
-                <span class="migration-chip">${escapeHtml(`${model.summary.inStockCount} Produkte auf Lager`)}</span>
-                <span class="migration-chip">${escapeHtml(`${model.summary.outOfStockCount} Produkte nicht auf Lager`)}</span>
-              </div>
-            </label>
-            <label class="storage-toggle" for="storage-include-all-products-native">
-              <input id="storage-include-all-products-native" class="ha-control" data-role="storage-include-all" type="checkbox"${model.includeAllProducts ? ' checked' : ''} />
-              <span>Alle Produkte anzeigen</span>
-            </label>
+            <div class="storage-controls-row">
+              <label class="storage-filter-field" for="storage-filter-input-native">
+                <span class="eyebrow">Textfilter</span>
+                <input id="storage-filter-input-native" class="ha-control" data-role="storage-filter" type="text" placeholder="Produkte filtern..." value="${escapeHtml(model.filter || '')}" />
+              </label>
+              <label class="storage-toggle" for="storage-include-all-products-native">
+                <input id="storage-include-all-products-native" class="ha-control" data-role="storage-include-all" type="checkbox"${model.includeAllProducts ? ' checked' : ''} />
+                <span>Alle Produkte anzeigen</span>
+              </label>
+            </div>
+            <div class="storage-summary">
+              <span class="migration-chip">${escapeHtml(`${model.summary.totalCount} Produkte`)}</span>
+              <span class="migration-chip">${escapeHtml(`${model.summary.inStockCount} Produkte auf Lager`)}</span>
+              <span class="migration-chip">${escapeHtml(`${model.summary.outOfStockCount} Produkte nicht auf Lager`)}</span>
+            </div>
           </div>
         </section>
       `,
@@ -1290,7 +1292,7 @@ class GrocyAIShoppingTab extends HTMLElement {
     const listSection = document.createElement('section');
     listSection.className = 'card shopping-list-section';
     const listHeader = document.createElement('div');
-    listHeader.className = 'section-header section-header-stacked';
+    listHeader.className = 'section-header shopping-list-section__header';
     const listTitle = document.createElement('h2');
     listTitle.textContent = 'Einkaufsliste';
     const refreshButton = document.createElement('button');
