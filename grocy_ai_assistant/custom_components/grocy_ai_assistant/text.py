@@ -2,9 +2,17 @@ import logging
 
 from homeassistant.components.text import TextEntity
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers.dispatcher import async_dispatcher_connect
+from homeassistant.helpers.restore_state import RestoreEntity
 
 from .entity import build_device_info
+from .runtime_state import (
+    RUNTIME_PRODUCT_INPUT,
+    async_set_product_input_value,
+    dispatcher_signal,
+    get_product_input_value,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -17,7 +25,7 @@ async def async_setup_entry(
     async_add_entities([GrocyProductInput(entry)], True)
 
 
-class GrocyProductInput(TextEntity):
+class GrocyProductInput(RestoreEntity, TextEntity):
     """Entity for entering the product name."""
 
     def __init__(self, entry):
@@ -28,9 +36,35 @@ class GrocyProductInput(TextEntity):
         self._attr_icon = "mdi:cart-plus"
         self._attr_native_value = ""
 
+    async def async_added_to_hass(self) -> None:
+        await super().async_added_to_hass()
+        self.async_on_remove(
+            async_dispatcher_connect(
+                self.hass,
+                dispatcher_signal(self._entry.entry_id, RUNTIME_PRODUCT_INPUT),
+                self._handle_value_update,
+            )
+        )
+
+        runtime_value = get_product_input_value(self.hass, self._entry.entry_id)
+        if runtime_value:
+            self._attr_native_value = runtime_value
+            return
+
+        if last_state := await self.async_get_last_state():
+            restored_value = last_state.state or ""
+            self._attr_native_value = restored_value
+            async_set_product_input_value(
+                self.hass, self._entry.entry_id, restored_value
+            )
+
     async def async_set_value(self, value: str) -> None:
-        self._attr_native_value = value
+        async_set_product_input_value(self.hass, self._entry.entry_id, value)
         _LOGGER.debug("Updated product input text (length=%s)", len(value))
+
+    @callback
+    def _handle_value_update(self, value: str) -> None:
+        self._attr_native_value = value
         self.async_write_ha_state()
 
     @property

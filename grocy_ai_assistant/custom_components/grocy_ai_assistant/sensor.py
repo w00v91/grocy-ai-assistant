@@ -1,7 +1,10 @@
 import logging
+from typing import Any
 
 from homeassistant.components.sensor import SensorEntity, SensorStateClass
 from homeassistant.const import EntityCategory
+from homeassistant.core import callback
+from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .coordinator import (
@@ -11,6 +14,19 @@ from .coordinator import (
     get_entry_coordinators,
 )
 from .entity import build_device_info
+from .runtime_state import (
+    RUNTIME_ANALYSIS_STATUS,
+    RUNTIME_BARCODE_STATUS,
+    RUNTIME_LLAVA_STATUS,
+    RUNTIME_RESPONSE,
+    RUNTIME_RESPONSE_TIMING,
+    DEFAULT_RESPONSE_PAYLOAD,
+    DEFAULT_RESPONSE_TIMING,
+    DEFAULT_STATUS_PAYLOAD,
+    dispatcher_signal,
+    get_response_timing,
+    get_runtime_payload,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -98,6 +114,99 @@ class _CoordinatorAddonSensor(CoordinatorEntity, _BaseAddonSensor):
         return attributes
 
 
+class _RuntimePayloadSensor(_BaseAddonSensor):
+    def __init__(
+        self,
+        entry,
+        *,
+        translation_key: str,
+        unique_suffix: str,
+        runtime_key: str,
+        icon: str,
+        default_payload: dict[str, Any],
+    ):
+        super().__init__(entry, translation_key=translation_key)
+        self._attr_unique_id = f"{entry.entry_id}_{unique_suffix}"
+        self._runtime_key = runtime_key
+        self._default_payload = default_payload
+        self._attr_icon = icon
+        self._attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def _payload(self) -> dict[str, Any]:
+        if self.hass is None:
+            return dict(self._default_payload)
+
+        payload = get_runtime_payload(
+            self.hass, self._entry.entry_id, self._runtime_key
+        )
+        return payload or dict(self._default_payload)
+
+    async def async_added_to_hass(self):
+        signal = dispatcher_signal(self._entry.entry_id, self._runtime_key)
+        self.async_on_remove(
+            async_dispatcher_connect(self.hass, signal, self._handle_runtime_update)
+        )
+
+    @callback
+    def _handle_runtime_update(self, _payload: dict[str, Any]) -> None:
+        self.async_write_ha_state()
+
+    @property
+    def native_value(self):
+        return self._payload().get("state", self._default_payload.get("state"))
+
+    @property
+    def extra_state_attributes(self):
+        return dict(self._payload().get("attributes") or {})
+
+    @property
+    def icon(self):
+        return str(self.extra_state_attributes.get("icon") or self._attr_icon)
+
+
+class _RuntimeTimingSensor(_BaseAddonSensor):
+    def __init__(
+        self,
+        entry,
+        *,
+        translation_key: str,
+        unique_suffix: str,
+        state_key: str,
+        icon: str,
+    ):
+        super().__init__(entry, translation_key=translation_key)
+        self._attr_unique_id = f"{entry.entry_id}_{unique_suffix}"
+        self._state_key = state_key
+        self._attr_native_unit_of_measurement = "ms"
+        self._attr_state_class = SensorStateClass.MEASUREMENT
+        self._attr_icon = icon
+        self._attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def _timing(self) -> dict[str, Any]:
+        if self.hass is None:
+            return dict(DEFAULT_RESPONSE_TIMING)
+        return get_response_timing(self.hass, self._entry.entry_id)
+
+    async def async_added_to_hass(self):
+        signal = dispatcher_signal(self._entry.entry_id, RUNTIME_RESPONSE_TIMING)
+        self.async_on_remove(
+            async_dispatcher_connect(self.hass, signal, self._handle_runtime_update)
+        )
+
+    @callback
+    def _handle_runtime_update(self, _payload: dict[str, Any]) -> None:
+        self.async_write_ha_state()
+
+    @property
+    def native_value(self):
+        return self._timing().get(self._state_key)
+
+    @property
+    def extra_state_attributes(self):
+        timing = self._timing()
+        return {"requests_count": int(timing.get("count", 0))}
+
+
 class GrocyAISensor(_CoordinatorAddonSensor):
     """Sensor for add-on availability."""
 
@@ -128,60 +237,46 @@ class GrocyAIUpdateRequiredSensor(_CoordinatorAddonSensor):
         self._attr_entity_category = EntityCategory.DIAGNOSTIC
 
 
-class _StaticStatusSensor(_BaseAddonSensor):
-    def __init__(
-        self,
-        entry,
-        *,
-        translation_key: str,
-        unique_suffix: str,
-        icon: str,
-        default_native_value: str = "ready",
-    ):
-        super().__init__(entry, translation_key=translation_key)
-        self._attr_unique_id = f"{entry.entry_id}_{unique_suffix}"
-        self._attr_native_value = default_native_value
-        self._attr_icon = icon
-        self._attr_entity_category = EntityCategory.DIAGNOSTIC
-
-
-class GrocyAIResponseSensor(_StaticStatusSensor):
+class GrocyAIResponseSensor(_RuntimePayloadSensor):
     def __init__(self, entry):
         super().__init__(
             entry,
             translation_key="response_text",
             unique_suffix="response_text",
+            runtime_key=RUNTIME_RESPONSE,
             icon="mdi:comment-text-outline",
+            default_payload=DEFAULT_RESPONSE_PAYLOAD,
         )
 
     async def async_added_to_hass(self):
+        await super().async_added_to_hass()
         _LOGGER.info("Response sensor registered and ready")
 
 
-class GrocyAILastResponseTimeSensor(_BaseAddonSensor):
+class GrocyAILastResponseTimeSensor(_RuntimeTimingSensor):
     """Diagnostic sensor containing the duration of the latest AI request."""
 
     def __init__(self, entry):
-        super().__init__(entry, translation_key="ai_response_time_last")
-        self._attr_unique_id = f"{entry.entry_id}_ai_response_time_last_ms"
-        self._attr_native_value = None
-        self._attr_native_unit_of_measurement = "ms"
-        self._attr_state_class = SensorStateClass.MEASUREMENT
-        self._attr_icon = "mdi:timer-outline"
-        self._attr_entity_category = EntityCategory.DIAGNOSTIC
+        super().__init__(
+            entry,
+            translation_key="ai_response_time_last",
+            unique_suffix="ai_response_time_last_ms",
+            state_key="last_ms",
+            icon="mdi:timer-outline",
+        )
 
 
-class GrocyAIAverageResponseTimeSensor(_BaseAddonSensor):
+class GrocyAIAverageResponseTimeSensor(_RuntimeTimingSensor):
     """Diagnostic sensor containing the average duration of AI requests."""
 
     def __init__(self, entry):
-        super().__init__(entry, translation_key="ai_response_time_average")
-        self._attr_unique_id = f"{entry.entry_id}_ai_response_time_avg_ms"
-        self._attr_native_value = None
-        self._attr_native_unit_of_measurement = "ms"
-        self._attr_state_class = SensorStateClass.MEASUREMENT
-        self._attr_icon = "mdi:chart-line"
-        self._attr_entity_category = EntityCategory.DIAGNOSTIC
+        super().__init__(
+            entry,
+            translation_key="ai_response_time_average",
+            unique_suffix="ai_response_time_avg_ms",
+            state_key="average_ms",
+            icon="mdi:chart-line",
+        )
 
 
 class GrocyAIShoppingListOpenCountSensor(_CoordinatorAddonSensor):
@@ -273,31 +368,37 @@ class GrocyAISoonExpiringRecipeSuggestionSensor(_RecipeSuggestionSensor):
         )
 
 
-class GrocyAIAnalysisStatusSensor(_StaticStatusSensor):
+class GrocyAIAnalysisStatusSensor(_RuntimePayloadSensor):
     def __init__(self, entry):
         super().__init__(
             entry,
             translation_key="analysis_status",
             unique_suffix="analysis_status",
+            runtime_key=RUNTIME_ANALYSIS_STATUS,
             icon="mdi:robot-outline",
+            default_payload=DEFAULT_STATUS_PAYLOAD,
         )
 
 
-class GrocyAIBarcodeLookupStatusSensor(_StaticStatusSensor):
+class GrocyAIBarcodeLookupStatusSensor(_RuntimePayloadSensor):
     def __init__(self, entry):
         super().__init__(
             entry,
             translation_key="barcode_lookup_status",
             unique_suffix="barcode_lookup_status",
+            runtime_key=RUNTIME_BARCODE_STATUS,
             icon="mdi:barcode-scan",
+            default_payload=DEFAULT_STATUS_PAYLOAD,
         )
 
 
-class GrocyAILlavaScanStatusSensor(_StaticStatusSensor):
+class GrocyAILlavaScanStatusSensor(_RuntimePayloadSensor):
     def __init__(self, entry):
         super().__init__(
             entry,
             translation_key="llava_scan_status",
             unique_suffix="llava_scan_status",
+            runtime_key=RUNTIME_LLAVA_STATUS,
             icon="mdi:image-search-outline",
+            default_payload=DEFAULT_STATUS_PAYLOAD,
         )
