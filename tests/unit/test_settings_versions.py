@@ -1,4 +1,5 @@
 import json
+import re
 
 from grocy_ai_assistant.config import options_store, settings
 
@@ -77,3 +78,50 @@ cloud_ai:
     reloaded_settings = settings.get_settings()
     assert reloaded_settings.grocy_api_key == "second-key"
     assert reloaded_settings.image_generation_enabled is True
+
+
+def _extract_version(pattern: str, content: str) -> str:
+    match = re.search(pattern, content, re.MULTILINE)
+
+    assert match is not None
+    return match.group(1)
+
+
+def test_changelog_top_version_is_synced_with_project_metadata():
+    changelog_version = _extract_version(
+        r"^##\s+\d{4}-\d{2}-\d{2}\s+\(Version\s+([^\)]+)\)",
+        (settings.PROJECT_ROOT / "grocy_ai_assistant" / "CHANGELOG.md").read_text(
+            encoding="utf-8"
+        ),
+    )
+    addon_version = options_store.parse_simple_yaml(
+        settings.ADDON_CONFIG_PATH.read_text(encoding="utf-8")
+    )["version"]
+    manifest_version = json.loads(
+        settings.INTEGRATION_MANIFEST_PATH.read_text(encoding="utf-8")
+    )["version"]
+    const_version = _extract_version(
+        r'^INTEGRATION_VERSION\s*=\s*"([^"]+)"$',
+        (
+            settings.PROJECT_ROOT
+            / "grocy_ai_assistant"
+            / "custom_components"
+            / "grocy_ai_assistant"
+            / "const.py"
+        ).read_text(encoding="utf-8"),
+    )
+    frontend_version = _extract_version(
+        r"^const DEFAULT_INTEGRATION_VERSION = '([^']+)';$",
+        (
+            settings.PROJECT_ROOT
+            / "grocy_ai_assistant"
+            / "custom_components"
+            / "grocy_ai_assistant"
+            / "panel"
+            / "frontend"
+            / "grocy-ai-dashboard.js"
+        ).read_text(encoding="utf-8"),
+    )
+
+    assert changelog_version == addon_version == manifest_version == const_version
+    assert frontend_version == changelog_version
