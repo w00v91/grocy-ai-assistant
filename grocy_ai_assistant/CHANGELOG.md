@@ -5,6 +5,8 @@
 
 # Changelog
 
+- Fix (Grocy/Create-Product): Produktanlagen normalisieren jetzt ungültige KI-Lagerort- und Mengeneinheits-IDs vor dem ersten POST auf valide Grocy-IDs, sodass `/api/dashboard/search` nicht mehr mit 400 auf `/objects/products` scheitert.
+- Test: Unit-Regressionen für die Vorab-Normalisierung ungültiger `location_id`-/`qu_id_*`-Werte ergänzt; Versionsstände auf `8.0.30` erhöht.
 All notable changes to this project will be documented in this file.
 
 ## 2026-03-23 (Dokumentation)
