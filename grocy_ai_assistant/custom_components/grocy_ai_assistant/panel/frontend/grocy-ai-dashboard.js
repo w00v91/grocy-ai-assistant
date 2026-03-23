@@ -28,7 +28,7 @@ const TAB_ICONS = Object.freeze({
 const VISIBLE_TAB_ORDER = TAB_ORDER.filter((tab) => tab !== 'notifications');
 const DEFAULT_POLLING_INTERVAL_SECONDS = 5;
 const DEFAULT_POLLING_INTERVAL_MS = DEFAULT_POLLING_INTERVAL_SECONDS * 1000;
-const DEFAULT_INTEGRATION_VERSION = '8.0.17';
+const DEFAULT_INTEGRATION_VERSION = '8.0.18';
 const GROCY_RECIPE_DISPLAY_LIMIT = 3;
 const AI_RECIPE_DISPLAY_LIMIT = 3;
 const TAB_VIEW_STATE = Object.freeze({
@@ -569,9 +569,6 @@ function buildStorageTabMarkup(model = {}) {
       className: 'hero-card storage-hero-card',
       eyebrow: 'Lager',
       title: 'Lager',
-      actions: [
-        { label: 'Aktualisieren', className: 'primary-button', dataset: { action: 'storage-refresh' } },
-      ],
       body: `
         <section class="storage-controls-shell shopping-search-shell" aria-live="polite">
           <div class="shopping-search-shell__header">
@@ -602,6 +599,9 @@ function buildStorageTabMarkup(model = {}) {
       className: 'card storage-list-section',
       title: 'Lagerliste',
       titleTag: 'h2',
+      actions: [
+        { label: 'Aktualisieren', className: 'primary-button', dataset: { action: 'storage-refresh' } },
+      ],
       body: listMarkup,
     })}
 

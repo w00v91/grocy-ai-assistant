@@ -98,7 +98,12 @@ test('native storage summary keeps filter badges for total, in-stock, and out-of
   assert.match(storageTabSection, /<span class="migration-chip">\$\{escapeHtml\(`\$\{model\.summary\.totalCount\} Produkte`\)\}<\/span>/);
   assert.match(storageTabSection, /<span class="migration-chip">\$\{escapeHtml\(`\$\{model\.summary\.inStockCount\} Produkte auf Lager`\)\}<\/span>/);
   assert.match(storageTabSection, /<span class="migration-chip">\$\{escapeHtml\(`\$\{model\.summary\.outOfStockCount\} Produkte nicht auf Lager`\)\}<\/span>/);
-  assert.match(storageTabSection, /className: 'card storage-list-section'[\s\S]*?title: 'Lagerliste'/);
+  assert.match(storageTabSection, /className: 'card storage-list-section'[\s\S]*?title: 'Lagerliste'[\s\S]*?actions: \[[\s\S]*?label: 'Aktualisieren'/);
+  const storageHeroSection = storageTabSection.slice(
+    storageTabSection.indexOf("className: 'hero-card storage-hero-card'"),
+    storageTabSection.indexOf("className: 'card storage-list-section'"),
+  );
+  assert.doesNotMatch(storageHeroSection, /actions: \[[\s\S]*?label: 'Aktualisieren'/);
   assert.match(source, /async _fetchStorageSummary\(api, \{ query = '', visibleItems = \[\] \} = \{\}\) \{/);
   assert.match(source, /includeAllProducts: true,\s+query,/);
   assert.match(source, /const summary = latestState\.includeAllProducts[\s\S]*?: await this\._fetchStorageSummary\(api, \{/);

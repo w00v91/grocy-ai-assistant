@@ -3,6 +3,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## 2026-03-23 (Version 8.0.18)
+- Changed (Home-Assistant-Integration/Panel): Im nativen Lager-Tab sitzt `Aktualisieren` jetzt direkt in der Kopfzeile der Abschnittskarte `Lagerliste` und wird dort rechtsbündig angezeigt.
+- Added (Tests/Frontend): Eine Frontend-Regression prüft, dass die Lagerlisten-Karte weiterhin die Überschrift `Lagerliste` samt rechts ausgerichtetem `Aktualisieren`-Button rendert.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.18` erhöht.
+
 ## 2026-03-23 (Version 8.0.17)
 - Fix (Home-Assistant-Integration/Panel): Die native Bottom-Bar blendet sich jetzt aus, sobald eines der Dashboard-Modals geöffnet ist, damit sie keine Modal-Actions am unteren Rand mehr überdeckt.
 - Fix (Home-Assistant-Integration/Panel): Dashboard-Modals liegen per höherem `z-index` jetzt zuverlässig über der Floating-Bottom-Bar, auch in nativen Mobile-/WebView-Shells.
