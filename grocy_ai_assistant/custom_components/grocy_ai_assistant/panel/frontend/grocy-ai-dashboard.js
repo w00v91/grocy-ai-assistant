@@ -285,10 +285,31 @@ function buildFocusRestoreSelector(element) {
   return tagName;
 }
 
+function getActiveElementWithinRoot(root) {
+  if (!(root instanceof HTMLElement)) return null;
+
+  const candidateRoots = [];
+  const rootNode = typeof root.getRootNode === 'function' ? root.getRootNode() : null;
+  if (rootNode) candidateRoots.push(rootNode);
+  if (document) candidateRoots.push(document);
+
+  for (const candidateRoot of candidateRoots) {
+    let activeElement = candidateRoot?.activeElement;
+    while (activeElement?.shadowRoot?.activeElement instanceof HTMLElement) {
+      activeElement = activeElement.shadowRoot.activeElement;
+    }
+    if (activeElement instanceof HTMLElement && root.contains(activeElement)) {
+      return activeElement;
+    }
+  }
+
+  return null;
+}
+
 function captureFocusedFormControl(root) {
   if (!(root instanceof HTMLElement)) return null;
-  const activeElement = document.activeElement;
-  if (!(activeElement instanceof HTMLElement) || !root.contains(activeElement)) return null;
+  const activeElement = getActiveElementWithinRoot(root);
+  if (!(activeElement instanceof HTMLElement)) return null;
 
   const selector = buildFocusRestoreSelector(activeElement);
   if (!selector) return null;
