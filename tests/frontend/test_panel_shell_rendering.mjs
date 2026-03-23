@@ -129,6 +129,17 @@ test('shopping list bulk actions share one full row evenly in the native panel',
   assert.match(cssSource, /\.shopping-bulk-actions > \.danger-button \{[\s\S]*?margin-top: 0;/);
 });
 
+test('shopping tab uses a badge-style search status and omits list status text above bulk actions', async () => {
+  const source = await fs.readFile(dashboardPath, 'utf8');
+  const cssSource = await fs.readFile(dashboardCssPath, 'utf8');
+
+  assert.match(source, /helper\.className = `search-helper-text shopping-status-chip shopping-status-chip--\$\{model\.errorMessage \? 'error' : searchUiState\}`;/);
+  assert.doesNotMatch(source, /const status = document\.createElement\('p'\);[\s\S]*?listSection\.append\(listHeader, list, status, buttonRow\);/);
+  assert.match(cssSource, /\.search-helper-text \{[\s\S]*?width: fit-content;[\s\S]*?max-width: 100%;/);
+  assert.match(cssSource, /\.search-helper-text\.shopping-status-chip \{[\s\S]*?justify-self: start;/);
+  assert.match(cssSource, /\.search-helper-text\.shopping-status-chip--error \{[\s\S]*?background:/);
+});
+
 test('shopping list header keeps title and refresh action on one row in mobile layouts', async () => {
   const source = await fs.readFile(dashboardPath, 'utf8');
   const cssSource = await fs.readFile(dashboardCssPath, 'utf8');
@@ -152,8 +163,9 @@ test('storage tab keeps product filter and include-all toggle in one control row
   assert.match(source, /<div class="storage-summary">[\s\S]*?<span class="migration-chip">\$\{escapeHtml\(`\$\{model\.summary\.totalCount\} Produkte`\)\}<\/span>[\s\S]*?<\/div>/);
   assert.match(cssSource, /\.storage-controls-shell \{[\s\S]*?width: 100%;/);
   assert.match(cssSource, /\.storage-controls-row \{[\s\S]*?grid-template-columns: minmax\(0, 1\.6fr\) auto;[\s\S]*?align-items: end;/);
-  assert.match(cssSource, /\.storage-list-section \.section-header \{[\s\S]*?align-items: center;[\s\S]*?flex-wrap: nowrap;/);
+  assert.match(cssSource, /\.storage-list-section \.section-header \{[\s\S]*?flex-direction: row;[\s\S]*?align-items: center;[\s\S]*?flex-wrap: nowrap;/);
   assert.match(cssSource, /\.storage-list-section \.primary-button \{[\s\S]*?white-space: nowrap;/);
+  assert.match(cssSource, /\.storage-toggle \{[\s\S]*?align-self: end;[\s\S]*?min-height: 3rem;/);
   assert.match(cssSource, /@media \(max-width: 800px\) \{[\s\S]*?\.storage-controls-row \{[\s\S]*?grid-template-columns: minmax\(0, 1fr\) auto;[\s\S]*?align-items: end;/);
   assert.match(cssSource, /\.storage-summary \{[\s\S]*?display: flex;[\s\S]*?flex-wrap: wrap;[\s\S]*?justify-content: flex-start;/);
 });

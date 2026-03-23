@@ -1057,6 +1057,7 @@ async function loadShoppingList(options = {}) {
   const load = async () => {
   const key = ensureApiKey();
   const status = getShoppingStatusElement();
+  status?.classList.add('search-status-badge');
   if (!key) {
     status.textContent = 'Kein API-Key angegeben.';
     return;
@@ -1296,6 +1297,7 @@ async function loadVariants() {
   return withBusyState(async () => {
   const key = ensureApiKey();
   const status = getShoppingStatusElement();
+  status?.classList.add('search-status-badge');
   const name = document.getElementById('name').value || '';
   const { productName, amountFromName } = parseAmountPrefixedSearch(name);
 
@@ -1333,6 +1335,7 @@ async function confirmVariant(productId, productName, amountOverride = null) {
   return withBusyState(async () => {
   const key = ensureApiKey();
   const status = getShoppingStatusElement();
+  status?.classList.add('search-status-badge');
 
   if (!key) {
     status.textContent = 'Kein API-Key angegeben.';
@@ -1378,6 +1381,7 @@ async function confirmVariant(productId, productName, amountOverride = null) {
 
 async function incrementShoppingItemAmount(shoppingListId) {
   const status = getShoppingStatusElement();
+  status?.classList.add('search-status-badge');
 
   return withBusyState(async () => {
     const { response, payload } = await dashboardApi.incrementShoppingItemAmount(shoppingListId);
@@ -1393,6 +1397,7 @@ async function incrementShoppingItemAmount(shoppingListId) {
 async function removeShoppingItem(shoppingListId) {
   const key = ensureApiKey();
   const status = getShoppingStatusElement();
+  status?.classList.add('search-status-badge');
   if (!key) {
     status.textContent = 'Kein API-Key angegeben.';
     return;
@@ -1410,6 +1415,7 @@ async function removeShoppingItem(shoppingListId) {
 async function purchaseShoppingItem(shoppingListId) {
   const key = ensureApiKey();
   const status = getShoppingStatusElement();
+  status?.classList.add('search-status-badge');
   if (!key) {
     status.textContent = 'Kein API-Key angegeben.';
     return;
@@ -1478,6 +1484,7 @@ function openShoppingNoteEditor(shoppingListId, currentNote = '') {
 async function saveShoppingNote(shoppingListId, note) {
   const key = ensureApiKey();
   const status = getShoppingStatusElement();
+  status?.classList.add('search-status-badge');
 
   if (!key) {
     status.textContent = 'Kein API-Key angegeben.';
@@ -1509,6 +1516,7 @@ async function saveShoppingNote(shoppingListId, note) {
 async function saveShoppingAmount(shoppingListId, amount) {
   const key = ensureApiKey();
   const status = getShoppingStatusElement();
+  status?.classList.add('search-status-badge');
 
   if (!key) {
     status.textContent = 'Kein API-Key angegeben.';
@@ -1577,6 +1585,7 @@ function closeMhdPicker() {
 async function saveMhdPickerDate() {
   const key = ensureApiKey();
   const status = getShoppingStatusElement();
+  status?.classList.add('search-status-badge');
   const input = document.getElementById('mhd-date-input');
   const bestBeforeDate = String(input?.value || '').trim();
 
@@ -1615,6 +1624,7 @@ async function saveMhdPickerDate() {
 async function resetMhdPickerDate() {
   const key = ensureApiKey();
   const status = getShoppingStatusElement();
+  status?.classList.add('search-status-badge');
 
   if (!key) {
     status.textContent = 'Kein API-Key angegeben.';
@@ -1684,6 +1694,7 @@ async function completeShoppingList() {
   return withBusyState(async () => {
   const key = ensureApiKey();
   const status = getShoppingStatusElement();
+  status?.classList.add('search-status-badge');
   if (!key) {
     status.textContent = 'Kein API-Key angegeben.';
     return;
@@ -1710,6 +1721,7 @@ async function clearShoppingList() {
   return withBusyState(async () => {
   const key = ensureApiKey();
   const status = getShoppingStatusElement();
+  status?.classList.add('search-status-badge');
   if (!key) {
     status.textContent = 'Kein API-Key angegeben.';
     return;
@@ -1736,6 +1748,7 @@ async function searchProduct(options = {}) {
   return withBusyState(async () => {
   const rawName = document.getElementById('name').value;
   const status = getShoppingStatusElement();
+  status?.classList.add('search-status-badge');
   const key = ensureApiKey();
   const { productName, amountFromName } = parseAmountPrefixedSearch(rawName);
   const amount = amountFromName ?? getShoppingAmount();

@@ -3,6 +3,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## 2026-03-23 (Version 8.0.25)
+
+- Fix (Home-Assistant-Integration/Panel/Lager): Im nativen Lager-Tab bleibt der Button `Aktualisieren` jetzt auch in der Karten-Kopfzeile direkt neben `Lagerliste`, inklusive Mobile-Layout.
+- Fix (Home-Assistant-Integration/Panel/Lager): Der Toggle `Alle anzeigen` nutzt jetzt dieselbe Steuerhöhe wie das Produkt-Filterfeld.
+- Fix (Home-Assistant-Integration/Panel/Einkauf): Die separate Statuszeile oberhalb von `Einkauf abschließen` wurde aus der nativen Einkaufsliste entfernt.
+- Changed (Home-Assistant-Integration/Panel/Einkauf): Die Statusmeldung unter `Produkt prüfen` rendert jetzt als Badge statt als einfacher Hilfstext.
+- Fix (Dashboard/Web/Lager): Im klassischen Dashboard teilen sich Produktfilter und `Alle anzeigen` jetzt ebenfalls eine gemeinsame Kontrollzeile mit gleich hoher Checkbox-Fläche.
+- Changed (Dashboard/Web/Einkauf): Die Einkaufs-Statusmeldung wurde aus der Listenkarte entfernt und als Badge in den Suchbereich verschoben.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.25` erhöht.
+
 
 ## 2026-03-23 (Version 8.0.24)
 
