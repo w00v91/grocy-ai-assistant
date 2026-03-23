@@ -1,3 +1,8 @@
+## 2026-03-23 (Version 8.0.30)
+- Docs (API): README dokumentiert die tatsächlich in `grocy_ai_assistant/api/routes.py` bereitgestellten Integrations- und Dashboard-Routen jetzt gruppiert nach Zweck und ergänzt insbesondere die bisher fehlenden `/api/v1/`-Endpunkte für Einkaufsliste, Lager, Rezepte, Barcode und Last-Scan.
+- Docs (Add-on): `grocy_ai_assistant/DOCS.md` unterscheidet nun explizit zwischen Integrations-API (`/api/v1/...`) und Dashboard-/UI-API (`/api/dashboard/...`) und verweist für Notification-spezifische Endpunkte auf die dedizierten Architektur-/Dashboard-Spezifikationen.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.30` erhöht.
+
 # Changelog
 
 All notable changes to this project will be documented in this file.

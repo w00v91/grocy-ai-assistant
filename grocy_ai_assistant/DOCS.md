@@ -134,6 +134,47 @@ Für Home-Assistant-Buttons und `navigate`-Aktionen ist `?tab=...` die empfohlen
 
 Die native Oberfläche unterstützt weiterhin Deep Links auf **Einkauf**, **Rezepte**, **Lager** und **Benachrichtigungen** über den Panel-Pfad `/grocy-ai`.
 
+## API-Typen im Add-on
+
+Das Add-on stellt bewusst zwei API-Ebenen bereit:
+
+- **Integrations-API (`/api/v1/...`)**: stabile, auth-geschützte Endpunkte für die Home-Assistant-Integration und andere technische Clients.
+- **Dashboard-/UI-API (`/api/dashboard/...` sowie `/`)**: Endpunkte für Ingress, Web-Dashboard und interaktive UI-Aktionen. Diese API ist stärker auf konkrete Bedienabläufe und UI-Zustände zugeschnitten.
+
+Notification-spezifische Abläufe und Datenmodelle sind separat beschrieben in [docs/notification_architecture.md](../docs/notification_architecture.md) und [NOTIFICATION_DASHBOARD_SPEC.md](custom_components/grocy_ai_assistant/panel/frontend/NOTIFICATION_DASHBOARD_SPEC.md).
+
+## Relevante API-Endpunkte nach Zweck
+
+### Health/Status
+
+- **Integrations-API:** `GET /api/v1/health`, `GET /api/v1/capabilities`, `GET /api/v1/status`
+- **Dashboard-/UI-API:** `GET /api/status`, `GET /`
+
+### Einkauf
+
+- **Integrations-API:** `GET /api/v1/shopping-list`, `POST /api/v1/grocy/sync`
+- **Dashboard-/UI-API:** `POST /api/dashboard/search`, `GET /api/dashboard/search-variants`, `POST /api/dashboard/add-existing-product`, `GET /api/dashboard/shopping-list`, `PUT /api/dashboard/shopping-list/item/{shopping_list_id}/note`, `PUT /api/dashboard/shopping-list/item/{shopping_list_id}/best-before`, `POST /api/dashboard/shopping-list/item/{shopping_list_id}/best-before/reset`, `PUT /api/dashboard/shopping-list/item/{shopping_list_id}/amount`, `POST /api/dashboard/shopping-list/item/{shopping_list_id}/amount/increment`, `POST /api/dashboard/shopping-list/item/{shopping_list_id}/complete`, `DELETE /api/dashboard/shopping-list/item/{shopping_list_id}`, `POST /api/dashboard/shopping-list/{shopping_list_id}/complete`, `POST /api/dashboard/shopping-list/complete`, `DELETE /api/dashboard/shopping-list/clear`
+
+### Lager
+
+- **Integrations-API:** `GET /api/v1/stock`
+- **Dashboard-/UI-API:** `GET /api/dashboard/locations`, `GET /api/dashboard/stock-products`, `POST /api/dashboard/stock-products/{stock_id}/consume`, `PUT /api/dashboard/stock-products/{stock_id}`, `DELETE /api/dashboard/stock-products/{stock_id}`, `GET /api/dashboard/products/{product_id}/nutrition`, `GET /api/dashboard/product-picture`, `POST /api/dashboard/product-picture-cache/refresh`, `DELETE /api/dashboard/products/{product_id}/picture`
+
+### Rezepte
+
+- **Integrations-API:** `GET /api/v1/recipes`
+- **Dashboard-/UI-API:** `POST /api/dashboard/recipe-suggestions`, `POST /api/dashboard/recipe/{recipe_id}/add-missing`
+
+### Scanner
+
+- **Integrations-API:** `GET /api/v1/barcode/{barcode}`, `POST /api/v1/scan/image`, `GET /api/v1/last-scan`, `POST /api/v1/catalog/rebuild`
+- **Dashboard-/UI-API:** `GET /api/dashboard/barcode/{barcode}`, `POST /api/dashboard/scanner/llava`
+
+### Notifications
+
+- **Integrations-API:** `POST /api/v1/notifications/test`
+- **Dashboard-/UI-API:** `GET /api/dashboard/notifications/overview`, `PUT /api/dashboard/notifications/settings`, `PATCH /api/dashboard/notifications/devices/{device_id}`, `POST /api/dashboard/notifications/rules`, `PATCH /api/dashboard/notifications/rules/{rule_id}`, `DELETE /api/dashboard/notifications/rules/{rule_id}`, `POST /api/dashboard/notifications/tests/device`, `POST /api/dashboard/notifications/tests/all`, `POST /api/dashboard/notifications/tests/persistent`
+
 ## Hinweise zur Nutzung
 
 - Die Weboberfläche läuft über **Ingress** auf Port `8000`.

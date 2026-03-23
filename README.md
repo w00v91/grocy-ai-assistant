@@ -64,21 +64,110 @@ Standardmäßig läuft der Service dann auf `http://localhost:8000`.
 
 ## Wichtige API-Endpunkte
 
-### Integrations-/Service-API
+`grocy_ai_assistant/api/routes.py` ist die maßgebliche Quelle für die tatsächlich bereitgestellten Routen. Die HTTP-Oberflächen lassen sich in zwei Familien aufteilen:
 
-- `GET /api/v1/health` – schlanker, direkt erreichbarer Health-Check für die Integration
-- `GET /api/v1/capabilities` – direkt erreichbare Übersicht unterstützter Backend-Funktionen und Defaults
-- `GET /api/v1/status` – Status, Versionen, Kompatibilitätsprüfung Integration ↔ Add-on
+- **Integrations-API (`/api/v1/...`)** für Home-Assistant-Integration, Automationen und andere maschinenlesbare Clients.
+- **Dashboard-/UI-API (`/api/dashboard/...` und `/`)** für das eingebaute Web-Dashboard, inklusive formularnaher Aktionen und UI-spezifischer Hilfsrouten.
+
+### Health/Status
+
+#### Integrations-API (`/api/v1/...`)
+
+- `GET /api/v1/health` – schlanker Health-Check mit Add-on- und Mindest-Integrationsversion
+- `GET /api/v1/capabilities` – Feature-Flags, dokumentierte Defaults und verfügbare `/api/v1/...`-Endpunkte
+- `GET /api/v1/status` – detaillierter Laufzeitstatus inklusive Kompatibilitätsprüfung Integration ↔ Add-on
+
+#### Dashboard-/UI-API (`/api/dashboard/...`)
+
+- `GET /api/status` – UI-naher Statusendpunkt für Dashboard/Ingress
+- `GET /` – Dashboard-Startseite
+
+### Einkauf
+
+#### Integrations-API (`/api/v1/...`)
+
+- `GET /api/v1/shopping-list` – aktuelle Einkaufsliste abrufen
+- `POST /api/v1/grocy/sync` – Produkt analysieren, ggf. anlegen und zur Einkaufsliste hinzufügen
+
+#### Dashboard-/UI-API (`/api/dashboard/...`)
+
+- `POST /api/dashboard/search` – Produktsuche/-anlage mit direkter Einkaufslisten-Aktion
+- `GET /api/dashboard/search-variants` – Varianten-/Fallback-Suche für uneindeutige Produkte
+- `POST /api/dashboard/add-existing-product` – vorhandenes Grocy-Produkt direkt zur Einkaufsliste hinzufügen
+- `GET /api/dashboard/shopping-list` – Einkaufsliste für das Dashboard laden
+- `PUT /api/dashboard/shopping-list/item/{shopping_list_id}/note` – Notiz eines Einkaufslisteneintrags aktualisieren
+- `PUT /api/dashboard/shopping-list/item/{shopping_list_id}/best-before` – MHD eines Einkaufslisteneintrags setzen
+- `POST /api/dashboard/shopping-list/item/{shopping_list_id}/best-before/reset` – MHD eines Einkaufslisteneintrags zurücksetzen
+- `PUT /api/dashboard/shopping-list/item/{shopping_list_id}/amount` – Menge eines Einkaufslisteneintrags setzen
+- `POST /api/dashboard/shopping-list/item/{shopping_list_id}/amount/increment` – Menge inkrementieren
+- `POST /api/dashboard/shopping-list/item/{shopping_list_id}/complete` – einzelnen Einkaufslisteneintrag abschließen
+- `DELETE /api/dashboard/shopping-list/item/{shopping_list_id}` – einzelnen Einkaufslisteneintrag löschen
+- `POST /api/dashboard/shopping-list/{shopping_list_id}/complete` – konkrete Grocy-Einkaufsliste abschließen
+- `POST /api/dashboard/shopping-list/complete` – Standard-Einkaufsliste abschließen
+- `DELETE /api/dashboard/shopping-list/clear` – Einkaufsliste leeren
+
+### Lager
+
+#### Integrations-API (`/api/v1/...`)
+
+- `GET /api/v1/stock` – Lagerübersicht, optional filterbar per `location_ids`, `include_all_products` und `q`
+
+#### Dashboard-/UI-API (`/api/dashboard/...`)
+
+- `GET /api/dashboard/locations` – verfügbare Lagerorte laden
+- `GET /api/dashboard/stock-products` – Lagerprodukte für das Dashboard abrufen
+- `POST /api/dashboard/stock-products/{stock_id}/consume` – Bestand verbrauchen
+- `PUT /api/dashboard/stock-products/{stock_id}` – Bestandseintrag aktualisieren
+- `DELETE /api/dashboard/stock-products/{stock_id}` – Bestandseintrag löschen
+- `GET /api/dashboard/products/{product_id}/nutrition` – Produkt-Nährwerte für Detailansichten laden
+- `GET /api/dashboard/product-picture` – Produktbild via Dashboard-Proxy ausliefern
+- `POST /api/dashboard/product-picture-cache/refresh` – Bild-Cache aktualisieren
+- `DELETE /api/dashboard/products/{product_id}/picture` – Produktbild entfernen
+
+### Rezepte
+
+#### Integrations-API (`/api/v1/...`)
+
+- `GET /api/v1/recipes` – Rezeptvorschläge auf Basis von Produkt- und Lagerortfiltern sowie optional nahendem MHD
+
+#### Dashboard-/UI-API (`/api/dashboard/...`)
+
+- `POST /api/dashboard/recipe-suggestions` – Rezeptvorschläge für das Dashboard laden
+- `POST /api/dashboard/recipe/{recipe_id}/add-missing` – fehlende Rezeptzutaten zur Einkaufsliste hinzufügen
+
+### Scanner
+
+#### Integrations-API (`/api/v1/...`)
+
+- `GET /api/v1/barcode/{barcode}` – Barcode-Lookup gegen OpenFoodFacts/Grocy
 - `POST /api/v1/scan/image` – Bildanalyse via LLaVA
-- `POST /api/v1/grocy/sync` – Produktanalyse und Grocy-Synchronisierung
-- `POST /api/v1/catalog/rebuild` – Katalog-/Cache-Aktualisierung
-- `POST /api/v1/notifications/test` – Test einer persistenten Benachrichtigung
+- `GET /api/v1/last-scan` – zuletzt gespeichertes Scanner-Ergebnis abrufen
+- `POST /api/v1/catalog/rebuild` – Katalog-/Cache-Neuaufbau für Such-/Scanner-Workflows
 
-### Dashboard-/UI-API
+#### Dashboard-/UI-API (`/api/dashboard/...`)
 
-- `POST /api/dashboard/search` – Dashboard-Produktsuche/Anlage inkl. Einkaufsliste
-- `GET /api/dashboard/shopping-list` – Einkaufsliste laden
-- `GET /` – Dashboard
+- `GET /api/dashboard/barcode/{barcode}` – Barcode-Lookup für das Dashboard
+- `POST /api/dashboard/scanner/llava` – bildbasierte Produkterkennung für den Scanner-Dialog
+
+### Notifications
+
+#### Integrations-API (`/api/v1/...`)
+
+- `POST /api/v1/notifications/test` – persistente Test-Benachrichtigung auslösen
+
+#### Dashboard-/UI-API (`/api/dashboard/...`)
+
+- `GET /api/dashboard/notifications/overview` – Notification-Übersicht für den aktuellen Nutzer laden
+- `PUT /api/dashboard/notifications/settings` – Notification-Einstellungen aktualisieren
+- `PATCH /api/dashboard/notifications/devices/{device_id}` – Zielgerät aktivieren/deaktivieren
+- `POST /api/dashboard/notifications/rules` – Notification-Regel anlegen
+- `PATCH /api/dashboard/notifications/rules/{rule_id}` – Notification-Regel aktualisieren
+- `DELETE /api/dashboard/notifications/rules/{rule_id}` – Notification-Regel löschen
+- `POST /api/dashboard/notifications/tests/device` – Test an ein einzelnes Gerät senden
+- `POST /api/dashboard/notifications/tests/all` – Test an alle aktiven Geräte senden
+- `POST /api/dashboard/notifications/tests/persistent` – persistente Test-Benachrichtigung senden
+
+Für Details zur Notification-Architektur und zum Dashboard-Verhalten siehe [docs/notification_architecture.md](docs/notification_architecture.md) sowie [grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/NOTIFICATION_DASHBOARD_SPEC.md](grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/NOTIFICATION_DASHBOARD_SPEC.md).
 
 ## Konfiguration
 
@@ -223,8 +312,8 @@ Zusätzlich nutzt die Integration eine Konstante in `const.py`, die synchron zur
 
 Aktueller Stand:
 
-- **Add-on (`grocy_ai_assistant/config.yaml`):** `8.0.27`
-- **Integration (`grocy_ai_assistant/custom_components/grocy_ai_assistant/manifest.json`):** `8.0.29`
+- **Add-on (`grocy_ai_assistant/config.yaml`):** `8.0.30`
+- **Integration (`grocy_ai_assistant/custom_components/grocy_ai_assistant/manifest.json`):** `8.0.30`
 
 Hinweis: Der aktuelle Repository-Stand zeigt hier bewusst zwei unterschiedliche Versionswerte, weil Add-on und Integration derzeit nicht auf exakt demselben Release-Stand liegen.
 
