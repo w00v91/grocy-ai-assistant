@@ -107,6 +107,20 @@
   justify-items: end;
 }
 
+.shopping-hero-card__header {
+  align-items: center;
+}
+
+.shopping-hero-card__header h2 {
+  min-width: 0;
+  margin: 0;
+}
+
+.shopping-hero-card__header .scanner-popup-button {
+  margin-left: auto;
+  flex: 0 0 auto;
+}
+
 .topbar-meta {
   align-items: center;
   flex-wrap: wrap;
@@ -159,6 +173,22 @@ h1 {
 
 .section-header-stacked {
   align-items: center;
+}
+
+.shopping-list-section__header {
+  align-items: center;
+  flex-wrap: nowrap;
+}
+
+.shopping-list-section__header h2 {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.shopping-list-section__header .primary-button {
+  margin-left: auto;
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 
 .description,
@@ -861,6 +891,7 @@ select:focus-visible {
 }
 
 .storage-controls,
+.storage-controls-row,
 .storage-summary,
 .storage-filter-field,
 .storage-edit-grid label {
@@ -869,6 +900,10 @@ select:focus-visible {
 }
 
 .storage-controls {
+  gap: 0.85rem;
+}
+
+.storage-controls-row {
   grid-template-columns: minmax(0, 1.6fr) auto;
   align-items: end;
 }
@@ -1350,6 +1385,11 @@ select:focus-visible {
     flex-direction: column;
   }
 
+  .shopping-list-section__header {
+    flex-direction: row;
+    align-items: center;
+  }
+
   .topbar-meta {
     gap: 0.5rem;
   }
@@ -1392,16 +1432,25 @@ select:focus-visible {
   .variant-card__meta,
   .scanner-modal-header,
   .scanner-result-card__header,
-  .expiring-search-controls,
-  .storage-controls {
+  .expiring-search-controls {
     grid-template-columns: 1fr;
     flex-direction: column;
     align-items: stretch;
   }
 
+  .storage-controls-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+  }
+
   .search-submit-button {
     width: 100%;
     min-width: 0;
+  }
+
+  .shopping-hero-card__header {
+    flex-direction: row;
+    align-items: center;
   }
 
   .recipe-item-native__button,

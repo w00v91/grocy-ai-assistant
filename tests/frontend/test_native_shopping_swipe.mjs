@@ -95,6 +95,7 @@ test('native storage summary keeps filter badges for total, in-stock, and out-of
   );
 
   assert.match(storageTabSection, /<section class="storage-controls-shell shopping-search-shell" aria-live="polite">[\s\S]*?Filter & Anzeige/);
+  assert.match(storageTabSection, /<div class="storage-controls-row">[\s\S]*?storage-filter-input-native[\s\S]*?storage-include-all-products-native[\s\S]*?<\/div>/);
   assert.match(storageTabSection, /<span class="migration-chip">\$\{escapeHtml\(`\$\{model\.summary\.totalCount\} Produkte`\)\}<\/span>/);
   assert.match(storageTabSection, /<span class="migration-chip">\$\{escapeHtml\(`\$\{model\.summary\.inStockCount\} Produkte auf Lager`\)\}<\/span>/);
   assert.match(storageTabSection, /<span class="migration-chip">\$\{escapeHtml\(`\$\{model\.summary\.outOfStockCount\} Produkte nicht auf Lager`\)\}<\/span>/);
