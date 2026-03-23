@@ -3,6 +3,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## 2026-03-23 (Version 8.0.18)
+- Fix (Home-Assistant-Integration/Panel/Mobile): Im Einkaufslisten-Tab bleibt der Scanner-Button auf mobilen Viewports jetzt in derselben Kopfzeile wie die Überschrift `Grocy AI Suche` und sitzt rechtsbündig statt unter die Überschrift umzubrechen.
+- Added (Tests/Frontend): Eine Panel-CSS-Regression prüft jetzt explizit die mobile Kopfzeile des Einkaufslisten-Tabs samt rechtsbündigem Scanner-Button.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.18` erhöht.
+
 ## 2026-03-23 (Version 8.0.17)
 - Fix (Home-Assistant-Integration/Panel): Die native Bottom-Bar blendet sich jetzt aus, sobald eines der Dashboard-Modals geöffnet ist, damit sie keine Modal-Actions am unteren Rand mehr überdeckt.
 - Fix (Home-Assistant-Integration/Panel): Dashboard-Modals liegen per höherem `z-index` jetzt zuverlässig über der Floating-Bottom-Bar, auch in nativen Mobile-/WebView-Shells.

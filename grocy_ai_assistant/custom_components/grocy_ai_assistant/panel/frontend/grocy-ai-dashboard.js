@@ -1271,7 +1271,7 @@ class GrocyAIShoppingTab extends HTMLElement {
     const heroCard = document.createElement('section');
     heroCard.className = 'card hero-card shopping-hero-card';
     const heroHeader = document.createElement('div');
-    heroHeader.className = 'section-header';
+    heroHeader.className = 'section-header shopping-hero-card__header';
     const heroTitle = document.createElement('h2');
     heroTitle.textContent = 'Grocy AI Suche';
     const scannerButton = document.createElement('button');
