@@ -4,7 +4,6 @@
 All notable changes to this project will be documented in this file.
 
 
-
 ## 2026-03-23 (Version 8.0.23)
 - Changed (Home-Assistant-Integration/Config Flow): Die Integration behandelt Config Entries jetzt explizit als Single-Instance und setzt in `async_step_user` eine stabile `unique_id`, wodurch weitere Einrichtungsversuche sauber abbrechen.
 - Changed (Home-Assistant-Integration/Konfiguration): Ein separater Reauth-/Reconfigure-Pfad wurde bewusst nicht ergänzt, weil die bestehende Options-Flow-Konfiguration bereits die relevanten Einstellungen der einzigen Instanz abdeckt.
@@ -12,6 +11,8 @@ All notable changes to this project will be documented in this file.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.23` erhöht.
 
 ## 2026-03-23 (Version 8.0.22)
+- Fix (Home-Assistant-Integration/Panel): Das native Dashboard liest Entry-Konfigurationen jetzt wieder korrekt aus `hass.data[DOMAIN][entry_id]["config"]`, sodass Proxy-Requests nach der Coordinator-Einführung wieder den konfigurierten API-Key und die Base-URL verwenden und nicht mit `Unauthorized` am Add-on scheitern.
+- Added (Tests/Home-Assistant-Integration): Ein Panel-Unit-Test deckt die verschachtelte Entry-Runtime-Struktur samt Dashboard-Metadaten und Proxy-Client-Konfiguration ab.
 - Changed (Home-Assistant-Integration/Panel): Die Eyebrow `Einkauf` wurde aus der Überschrift `Einkaufsliste` in den Shopping-Hero verschoben und sitzt jetzt direkt oberhalb von `Grocy AI Suche`.
 - Fix (Dashboard/Web): Die klassische Dashboard-Topbar zeigt `Grocy AI Assistant` wieder an ihrer ursprünglichen Stelle statt im Shopping-Hero.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.22` erhöht.
@@ -19,6 +20,8 @@ All notable changes to this project will be documented in this file.
 ## 2026-03-23 (Version 8.0.21)
 - Refactor (Home-Assistant-Integration/Sensoren): Neue Coordinator-Schicht in `custom_components/grocy_ai_assistant/coordinator.py` bündelt Status-, Lager-/Shopping- und Rezeptvorschlags-Polling entry-scoped in `hass.data[DOMAIN][entry.entry_id]` inklusive zentralem Fehler- und Availability-Handling.
 - Refactor (Home-Assistant-Integration/Sensoren): Die polling-basierten Sensoren in `sensor.py` leiten ihren State jetzt ausschließlich aus `coordinator.data` ab und führen keine direkten Add-on-API-Calls oder eigenes `async_update` mehr aus.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.21` erhöht.
+
 - Fix (Home-Assistant-Integration/Panel/Mobile): Die Labels der unteren Tab-Buttons `Produktsuche` und `Lager` bleiben beim Wechsel in den mobilen Viewport jetzt vertikal mittig im Button statt nach oben zu springen.
 - Added (Tests/Frontend): Eine CSS-Regression prüft jetzt die stabilisierte Icon-/Label-Ausrichtung der nativen Tab-Buttons.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.21` erhöht.

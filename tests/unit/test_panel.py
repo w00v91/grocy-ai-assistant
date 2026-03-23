@@ -210,6 +210,46 @@ def test_panel_reregisters_without_unknown_panel_remove_on_first_setup(monkeypat
     assert [call[0] for call in remove_calls] == [(hass, "grocy-ai")]
 
 
+def test_panel_resolves_nested_entry_config_for_dashboard_metadata_and_client(
+    monkeypatch,
+):
+    panel_module, register_calls, _, addon_client_instances = _load_panel_module(
+        monkeypatch
+    )
+
+    hass = _FakeHass()
+    hass.data["grocy_ai_assistant"] = {
+        "entry-1": {
+            "config": {
+                "api_key": "secret-token",
+                "api_base_url": "http://addon.local:8123",
+                "dashboard_polling_interval_seconds": 15,
+            },
+            "coordinators": {},
+        }
+    }
+
+    asyncio.run(panel_module.async_setup(hass))
+
+    _, kwargs = register_calls[0]
+    assert kwargs["config"]["dashboard_polling_interval_seconds"] == 15
+
+    class _FakeRequest:
+        method = "GET"
+        query = {}
+        headers = {}
+
+        async def read(self):
+            return b""
+
+    response = asyncio.run(
+        hass.http.registered_views[1].get(_FakeRequest(), "api/test")
+    )
+
+    assert response.status == 200
+    assert addon_client_instances
+    assert addon_client_instances[-1].args[0] == "http://addon.local:8123"
+    assert addon_client_instances[-1].args[1] == "secret-token"
 def test_native_shopping_hero_renders_einkauf_eyebrow_above_search_title():
     source = (
         Path(__file__).resolve().parents[2]

@@ -41,13 +41,22 @@ def _resolve_api_base_url(config: dict) -> str:
     )
 
 
+def _resolve_entry_config(entry_value: dict) -> dict:
+    if not isinstance(entry_value, dict):
+        return {}
+    nested_config = entry_value.get("config")
+    if isinstance(nested_config, dict):
+        return nested_config
+    return entry_value
+
+
 def _resolve_active_config(hass: HomeAssistant) -> dict:
     domain_data = hass.data.get(DOMAIN, {})
     for key, value in domain_data.items():
         if key.startswith("_") or key == _PANEL_STATE_KEY:
             continue
         if isinstance(value, dict):
-            return value
+            return _resolve_entry_config(value)
     return {}
 
 
