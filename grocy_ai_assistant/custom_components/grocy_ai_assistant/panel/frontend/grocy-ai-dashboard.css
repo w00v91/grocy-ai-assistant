@@ -964,6 +964,19 @@ select:focus-visible {
   gap: var(--panel-stack-gap);
 }
 
+.storage-list-section .section-header {
+  align-items: center;
+  flex-wrap: nowrap;
+}
+
+.storage-list-section .section-header__actions {
+  flex: 0 0 auto;
+}
+
+.storage-list-section .primary-button {
+  white-space: nowrap;
+}
+
 .storage-filter-field .eyebrow {
   margin-bottom: 0;
 }
@@ -1487,7 +1500,7 @@ select:focus-visible {
 
   .storage-controls-row {
     grid-template-columns: minmax(0, 1fr) auto;
-    align-items: center;
+    align-items: end;
   }
 
   .search-submit-button {

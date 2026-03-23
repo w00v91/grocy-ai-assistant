@@ -134,9 +134,9 @@ test('shopping list header keeps title and refresh action on one row in mobile l
   const cssSource = await fs.readFile(dashboardCssPath, 'utf8');
 
   assert.match(source, /listHeader\.className = 'section-header shopping-list-section__header';/);
-  assert.match(source, /listEyebrow\.className = 'eyebrow';/);
-  assert.match(source, /listEyebrow\.textContent = 'Einkauf';/);
-  assert.match(source, /listCopy\.append\(listEyebrow, listTitle\);/);
+  assert.match(source, /listCopy\.className = 'section-header__copy';/);
+  assert.match(source, /listTitle\.textContent = 'Einkaufsliste';/);
+  assert.match(source, /listCopy\.append\(listTitle\);/);
   assert.match(cssSource, /\.shopping-list-section__header \{[\s\S]*?align-items: center;[\s\S]*?flex-wrap: nowrap;/);
   assert.match(cssSource, /\.shopping-list-section__header \.section-header__copy \{[\s\S]*?gap: var\(--panel-compact-gap\);/);
   assert.match(cssSource, /\.shopping-list-section__header \.primary-button \{[\s\S]*?margin-left: auto;[\s\S]*?white-space: nowrap;/);
@@ -148,10 +148,13 @@ test('storage tab keeps product filter and include-all toggle in one control row
   const cssSource = await fs.readFile(dashboardCssPath, 'utf8');
 
   assert.match(source, /<section class="storage-controls-shell shopping-search-shell" aria-live="polite">[\s\S]*?<div class="shopping-search-shell__header">[\s\S]*?Filter & Anzeige[\s\S]*?<div class="storage-controls">[\s\S]*?<div class="storage-controls-row">/);
-  assert.match(source, /<div class="storage-controls-row">[\s\S]*?<label class="storage-filter-field"[\s\S]*?<\/label>[\s\S]*?<label class="storage-toggle"[\s\S]*?Alle Produkte anzeigen[\s\S]*?<\/label>[\s\S]*?<\/div>/);
+  assert.match(source, /<div class="storage-controls-row">[\s\S]*?<label class="storage-filter-field"[\s\S]*?<\/label>[\s\S]*?<label class="storage-toggle"[\s\S]*?Alle anzeigen[\s\S]*?<\/label>[\s\S]*?<\/div>/);
   assert.match(source, /<div class="storage-summary">[\s\S]*?<span class="migration-chip">\$\{escapeHtml\(`\$\{model\.summary\.totalCount\} Produkte`\)\}<\/span>[\s\S]*?<\/div>/);
   assert.match(cssSource, /\.storage-controls-shell \{[\s\S]*?width: 100%;/);
   assert.match(cssSource, /\.storage-controls-row \{[\s\S]*?grid-template-columns: minmax\(0, 1\.6fr\) auto;[\s\S]*?align-items: end;/);
+  assert.match(cssSource, /\.storage-list-section \.section-header \{[\s\S]*?align-items: center;[\s\S]*?flex-wrap: nowrap;/);
+  assert.match(cssSource, /\.storage-list-section \.primary-button \{[\s\S]*?white-space: nowrap;/);
+  assert.match(cssSource, /@media \(max-width: 800px\) \{[\s\S]*?\.storage-controls-row \{[\s\S]*?grid-template-columns: minmax\(0, 1fr\) auto;[\s\S]*?align-items: end;/);
   assert.match(cssSource, /\.storage-summary \{[\s\S]*?display: flex;[\s\S]*?flex-wrap: wrap;[\s\S]*?justify-content: flex-start;/);
 });
 
@@ -161,7 +164,9 @@ test('shopping tab keeps the scanner trigger in the same mobile header row as th
 
   assert.match(source, /heroHeader\.className = 'section-header shopping-hero-card__header';/);
   assert.match(source, /heroCopy\.className = 'section-header__copy';/);
-  assert.match(source, /heroCopy\.append\(heroTitle\);/);
+  assert.match(source, /heroEyebrow\.className = 'eyebrow';/);
+  assert.match(source, /heroEyebrow\.textContent = 'Einkauf';/);
+  assert.match(source, /heroCopy\.append\(heroEyebrow, heroTitle\);/);
   assert.match(source, /scannerButton\.innerHTML = renderHaIcon\('mdi:barcode-scan', 'scanner-popup-button__icon'\);/);
   assert.match(cssSource, /\.shopping-hero-card__header \{[\s\S]*?align-items: center;[\s\S]*?margin-bottom: var\(--panel-stack-gap\);/);
   assert.match(cssSource, /\.shopping-hero-card__header \.scanner-popup-button \{[\s\S]*?margin-left: auto;/);

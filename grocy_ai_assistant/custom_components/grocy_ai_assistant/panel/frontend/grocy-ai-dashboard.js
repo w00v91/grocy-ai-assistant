@@ -582,7 +582,7 @@ function buildStorageTabMarkup(model = {}) {
               </label>
               <label class="storage-toggle" for="storage-include-all-products-native">
                 <input id="storage-include-all-products-native" class="ha-control" data-role="storage-include-all" type="checkbox"${model.includeAllProducts ? ' checked' : ''} />
-                <span>Alle Produkte anzeigen</span>
+                <span>Alle anzeigen</span>
               </label>
             </div>
             <div class="storage-summary">
