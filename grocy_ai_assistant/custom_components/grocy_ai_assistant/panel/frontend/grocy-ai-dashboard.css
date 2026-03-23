@@ -880,9 +880,8 @@ select:focus-visible {
   align-items: start;
 }
 
-.scanner-barcode-icon::before {
-  content: '▌▌▍▌';
-  letter-spacing: 0.1em;
+.scanner-popup-button__icon {
+  --mdc-icon-size: 24px;
 }
 
 .recipe-actions {
