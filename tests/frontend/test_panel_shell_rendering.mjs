@@ -310,7 +310,11 @@ test('dashboard shell derives spacing and surface styling from Home Assistant ca
   assert.match(source, /--panel-spacing: var\(--ha-card-padding, 16px\);/);
   assert.match(source, /--panel-card-padding: var\(--panel-spacing\);/);
   assert.match(source, /\.page-shell \{[\s\S]*?padding: var\(--panel-card-padding\) var\(--panel-card-padding\)/);
+  assert.match(source, /\.dashboard-content \{[\s\S]*?display: block;/);
+  assert.match(source, /grocy-ai-shopping-tab,[\s\S]*?grocy-ai-tab-nav \{[\s\S]*?display: block;/);
+  assert.match(source, /\.tab-view \{[\s\S]*?display: grid;[\s\S]*?gap: var\(--panel-gap\);[\s\S]*?align-content: start;/);
   assert.match(source, /\.card \{[\s\S]*?padding: var\(--panel-card-padding\);/);
+  assert.match(source, /\.card \{[\s\S]*?display: grid;[\s\S]*?gap: var\(--panel-section-gap\);[\s\S]*?align-content: start;/);
   assert.match(source, /\.shopping-search-shell \{[\s\S]*?gap: var\(--panel-section-gap\);[\s\S]*?padding: var\(--panel-gap\);[\s\S]*?border-radius: var\(--panel-radius\);/);
   assert.match(source, /\.shopping-list-native \.shopping-card__surface,[\s\S]*?\.variant-grid \.shopping-card__surface \{[\s\S]*?gap: var\(--panel-stack-gap\);[\s\S]*?padding: var\(--panel-stack-gap\);/);
   assert.match(source, /\.bottom-tabbar \{[\s\S]*?gap: var\(--panel-compact-gap\);[\s\S]*?padding: var\(--panel-stack-gap\);/);
