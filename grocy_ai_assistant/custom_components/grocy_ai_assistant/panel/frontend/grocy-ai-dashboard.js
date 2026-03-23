@@ -28,7 +28,7 @@ const TAB_ICONS = Object.freeze({
 const VISIBLE_TAB_ORDER = TAB_ORDER.filter((tab) => tab !== 'notifications');
 const DEFAULT_POLLING_INTERVAL_SECONDS = 5;
 const DEFAULT_POLLING_INTERVAL_MS = DEFAULT_POLLING_INTERVAL_SECONDS * 1000;
-const DEFAULT_INTEGRATION_VERSION = '8.0.18';
+const DEFAULT_INTEGRATION_VERSION = '8.0.19';
 const GROCY_RECIPE_DISPLAY_LIMIT = 3;
 const AI_RECIPE_DISPLAY_LIMIT = 3;
 const TAB_VIEW_STATE = Object.freeze({
@@ -1281,10 +1281,7 @@ class GrocyAIShoppingTab extends HTMLElement {
     scannerButton.type = 'button';
     scannerButton.dataset.action = 'shopping-open-scanner';
     scannerButton.setAttribute('aria-label', 'Barcode-Scanner öffnen');
-    const scannerIcon = document.createElement('span');
-    scannerIcon.className = 'scanner-barcode-icon';
-    scannerIcon.setAttribute('aria-hidden', 'true');
-    scannerButton.append(scannerIcon);
+    scannerButton.innerHTML = renderHaIcon('mdi:barcode-scan', 'scanner-popup-button__icon');
     heroHeader.append(heroTitle, scannerButton);
     const searchBar = document.createElement('grocy-ai-shopping-search-bar');
     heroCard.append(heroHeader, searchBar);
