@@ -25,7 +25,7 @@ const TAB_ICONS = Object.freeze({
 });
 const DEFAULT_POLLING_INTERVAL_SECONDS = 5;
 const DEFAULT_POLLING_INTERVAL_MS = DEFAULT_POLLING_INTERVAL_SECONDS * 1000;
-const DEFAULT_INTEGRATION_VERSION = '8.0.27';
+const DEFAULT_INTEGRATION_VERSION = '8.0.29';
 const GROCY_RECIPE_DISPLAY_LIMIT = 3;
 const AI_RECIPE_DISPLAY_LIMIT = 3;
 const TAB_VIEW_STATE = Object.freeze({
@@ -951,6 +951,7 @@ class GrocyAIShoppingSearchBar extends HTMLElement {
     this._viewModel = {};
     this._renderedVariantSignature = '';
     this._renderedStatusSignature = '';
+    this._eventsBound = false;
     this._boundInput = (event) => {
       this.dispatchEvent(new CustomEvent('shopping-query-change', {
         bubbles: true,
@@ -961,6 +962,8 @@ class GrocyAIShoppingSearchBar extends HTMLElement {
   }
 
   connectedCallback() {
+    if (this._eventsBound) return;
+    this._eventsBound = true;
     this.addEventListener('input', (event) => {
       if (event.target.matches('[data-role="shopping-query"]')) {
         this._boundInput(event);
@@ -1013,13 +1016,6 @@ class GrocyAIShoppingSearchBar extends HTMLElement {
     const form = document.createElement('form');
     form.className = 'search-row shopping-search-form';
     form.dataset.role = 'shopping-search-form';
-    form.addEventListener('submit', (event) => {
-      event.preventDefault();
-      this.dispatchEvent(new CustomEvent('shopping-submit-query', {
-        bubbles: true,
-        composed: true,
-      }));
-    });
 
     const inputWrapper = document.createElement('div');
     inputWrapper.className = 'search-input-wrapper';
@@ -1030,7 +1026,6 @@ class GrocyAIShoppingSearchBar extends HTMLElement {
     input.autocomplete = 'off';
     input.enterKeyHint = 'search';
     input.setAttribute('aria-describedby', 'shopping-search-helper');
-    input.addEventListener('input', (event) => this._boundInput(event));
 
     const clearButton = document.createElement('button');
     clearButton.className = 'clear-input-button';
@@ -1038,12 +1033,6 @@ class GrocyAIShoppingSearchBar extends HTMLElement {
     clearButton.dataset.action = 'shopping-clear-query';
     clearButton.setAttribute('aria-label', 'Sucheingabe löschen');
     clearButton.textContent = '×';
-    clearButton.addEventListener('click', () => {
-      this.dispatchEvent(new CustomEvent('shopping-clear-query', {
-        bubbles: true,
-        composed: true,
-      }));
-    });
     inputWrapper.append(input, clearButton);
 
     const submitButton = document.createElement('button');
@@ -1130,14 +1119,6 @@ class GrocyAIShoppingSearchBar extends HTMLElement {
     if (!article || !button) {
       return document.createElement('article');
     }
-
-    button.addEventListener('click', () => {
-      this.dispatchEvent(new CustomEvent('shopping-select-variant', {
-        bubbles: true,
-        composed: true,
-        detail: { ...button.dataset },
-      }));
-    });
     return article;
   }
 

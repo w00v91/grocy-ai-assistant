@@ -84,7 +84,14 @@ test('shopping tab and search bar keep their stable DOM shells instead of replac
   );
 
   assert.match(searchBarSection, /class GrocyAIShoppingSearchBar extends HTMLElement/);
+  assert.match(searchBarSection, /connectedCallback\(\) \{\s+if \(this\._eventsBound\) return;\s+this\._eventsBound = true;/);
   assert.match(searchBarSection, /_ensureStructure\(\) \{\s+if \(this\._elements\) return;/);
+  assert.match(searchBarSection, /this\.addEventListener\('submit', \(event\) => \{/);
+  assert.match(searchBarSection, /this\.addEventListener\('click', \(event\) => \{/);
+  assert.doesNotMatch(searchBarSection, /form\.addEventListener\('submit'/);
+  assert.doesNotMatch(searchBarSection, /input\.addEventListener\('input'/);
+  assert.doesNotMatch(searchBarSection, /clearButton\.addEventListener\('click'/);
+  assert.doesNotMatch(searchBarSection, /button\.addEventListener\('click'/);
   assert.doesNotMatch(
     searchBarSection,
     /_render\(\) \{[\s\S]*?this\.innerHTML\s*=/,
