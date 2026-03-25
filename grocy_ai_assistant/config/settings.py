@@ -59,6 +59,7 @@ class Settings(BaseModel):
     ollama_url: str = Field(default_factory=_default_ollama_url)
     ollama_model: str = "llama3"
     ollama_llava_model: str = "llava"
+    ollama_timeout_seconds: int = 60
     scanner_barcode_fallback_seconds: int = 5
     scanner_llava_min_confidence: int = 75
     scanner_llava_timeout_seconds: int = 45

@@ -62,9 +62,11 @@ def test_addon_config_yaml_contains_grouped_initial_info_sync_option():
 def test_repository_config_yaml_contains_expected_grouped_defaults():
     config = _load_config()
 
-    assert config["version"] == "8.0.30"
+    assert config["version"] == "8.0.33"
     assert config["options"]["grocy"]["grocy_api_key"] == "DEIN_GROCY_KEY"
     assert config["schema"]["grocy"]["grocy_api_key"] == "str"
+    assert config["options"]["ollama"]["ollama_timeout_seconds"] == 60
+    assert config["schema"]["ollama"]["ollama_timeout_seconds"] == "int(5,300)"
     assert config["options"]["debug_mode"] is False
     assert config["schema"]["debug_mode"] == "bool"
 

@@ -24,6 +24,9 @@ class IngredientDetector:
     def __init__(self, settings: Settings):
         self.settings = settings
 
+    def _ollama_timeout_seconds(self) -> int:
+        return max(5, min(300, int(self.settings.ollama_timeout_seconds)))
+
     @staticmethod
     def _grocy_context(locations: list[Dict[str, Any]] | None = None) -> Dict[str, str]:
         location_labels = [
@@ -73,7 +76,9 @@ class IngredientDetector:
         }
 
         response = requests.post(
-            self.settings.ollama_url, json=ollama_payload, timeout=60
+            self.settings.ollama_url,
+            json=ollama_payload,
+            timeout=self._ollama_timeout_seconds(),
         )
         response.raise_for_status()
         raw_answer = response.json().get("response")
@@ -160,7 +165,9 @@ class IngredientDetector:
         }
 
         response = requests.post(
-            self.settings.ollama_url, json=ollama_payload, timeout=60
+            self.settings.ollama_url,
+            json=ollama_payload,
+            timeout=self._ollama_timeout_seconds(),
         )
         response.raise_for_status()
         raw_answer = response.json().get("response")
@@ -221,7 +228,9 @@ class IngredientDetector:
         }
 
         response = requests.post(
-            self.settings.ollama_url, json=ollama_payload, timeout=60
+            self.settings.ollama_url,
+            json=ollama_payload,
+            timeout=self._ollama_timeout_seconds(),
         )
         response.raise_for_status()
         raw_answer = response.json().get("response")

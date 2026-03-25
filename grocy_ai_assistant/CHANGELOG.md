@@ -1,3 +1,10 @@
+## 2026-03-25 (Version 8.0.33)
+
+- Fix (Add-on/Ollama): Die bislang hart codierten `requests`-Timeouts (60s) für `analyze_product_name`, `suggest_similar_products` und `generate_recipe_suggestions` sind jetzt über die neue Add-on-Option `ollama.ollama_timeout_seconds` konfigurierbar.
+- Added (Add-on/App-Optionen): `config.yaml` ergänzt `options.ollama.ollama_timeout_seconds` inklusive Schema-Validierung `int(5,300)`.
+- Changed (API/Capabilities): `/api/v1/capabilities` liefert den neuen Default-Wert `ollama_timeout_seconds` mit aus.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.33` erhöht.
+
 ## 2026-03-23 (Version 8.0.32)
 
 - Fix: Fokus-Restore im nativen Lager-Tab nutzt jetzt den aktiven Fokus innerhalb des Panel-Shadow-DOMs, sodass das Filterfeld auch nach Storage-Reloads stabil fokussiert bleibt.
