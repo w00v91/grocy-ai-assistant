@@ -59,6 +59,69 @@ def test_startup_prefetch_waits_five_seconds(monkeypatch):
     assert "prefetch" in calls
 
 
+def test_startup_prefetch_reloads_settings_after_start_delay(monkeypatch):
+    observed_generate_flags: list[bool] = []
+
+    async def fake_sleep(_seconds: float):
+        return None
+
+    def fake_prefetch(_settings):
+        return None
+
+    def fake_generate(settings):
+        observed_generate_flags.append(
+            settings.generate_missing_product_images_on_startup
+        )
+        return {"status": "completed", "generated": 0, "total": 0}
+
+    def fake_initial_info_sync(_settings):
+        return None
+
+    def fake_wait_for_initial_refresh(self, timeout=None):
+        return True
+
+    settings_sequence = iter(
+        [
+            Settings(
+                api_key="k",
+                grocy_api_key="g",
+                generate_missing_product_images_on_startup=False,
+            ),
+            Settings(
+                api_key="k",
+                grocy_api_key="g",
+                generate_missing_product_images_on_startup=True,
+            ),
+        ]
+    )
+
+    monkeypatch.setattr(api_main, "ProductImageCache", _DummyCache)
+    monkeypatch.setattr(api_main, "LocationCache", _DummyCache)
+    monkeypatch.setattr(api_main.asyncio, "sleep", fake_sleep)
+    monkeypatch.setattr(api_main, "prefetch_initial_recipe_suggestions", fake_prefetch)
+    monkeypatch.setattr(
+        api_main,
+        "_generate_missing_product_images_on_startup",
+        fake_generate,
+    )
+    monkeypatch.setattr(
+        api_main, "_run_initial_info_sync_on_startup", fake_initial_info_sync
+    )
+    monkeypatch.setattr(
+        _DummyCache,
+        "wait_for_initial_refresh",
+        fake_wait_for_initial_refresh,
+        raising=False,
+    )
+    monkeypatch.setattr(api_main, "get_settings", lambda: next(settings_sequence))
+
+    app = api_main.create_app()
+    with TestClient(app):
+        pass
+
+    assert observed_generate_flags == [True]
+
+
 def test_product_image_cache_wait_for_initial_refresh_signals_after_refresh(
     monkeypatch,
 ):

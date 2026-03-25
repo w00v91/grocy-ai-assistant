@@ -400,9 +400,9 @@ def _run_initial_info_sync_on_startup(settings: Settings) -> None:
 
 @asynccontextmanager
 async def _lifespan(app: FastAPI):
-    settings = get_settings()
-    image_cache = ProductImageCache(settings)
-    location_cache = LocationCache(settings)
+    bootstrap_settings = get_settings()
+    image_cache = ProductImageCache(bootstrap_settings)
+    location_cache = LocationCache(bootstrap_settings)
     image_cache.start()
     location_cache.start()
     app.state.product_image_cache = image_cache
@@ -412,8 +412,9 @@ async def _lifespan(app: FastAPI):
     async def _delayed_prefetch_recipe_suggestions() -> None:
         await asyncio.sleep(5)
         try:
+            startup_settings = get_settings()
             prefetched = await asyncio.to_thread(
-                prefetch_initial_recipe_suggestions, settings
+                prefetch_initial_recipe_suggestions, startup_settings
             )
             if prefetched:
                 app.state.recipe_suggestion_cache.update(prefetched)
@@ -422,7 +423,7 @@ async def _lifespan(app: FastAPI):
                 )
 
             image_generation_result = await asyncio.to_thread(
-                _generate_missing_product_images_on_startup, settings
+                _generate_missing_product_images_on_startup, startup_settings
             )
             logger.info(
                 "Startup-Bildgenerierung Status: %s (generated=%s, total=%s)",
@@ -451,7 +452,7 @@ async def _lifespan(app: FastAPI):
                     image_sync_status.get("error"),
                 )
 
-            await asyncio.to_thread(_run_initial_info_sync_on_startup, settings)
+            await asyncio.to_thread(_run_initial_info_sync_on_startup, startup_settings)
         except Exception as error:
             logger.warning(
                 "Zeitverzögertes Vorladen der Rezeptvorschläge fehlgeschlagen: %s",

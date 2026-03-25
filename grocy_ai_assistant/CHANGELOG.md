@@ -1,3 +1,15 @@
+## 2026-03-25 (Version 8.0.39)
+
+- Fix (Startup/Optionen): Startup-Hintergrundjobs laden die Add-on-Optionen jetzt direkt vor dem zeitverzögerten Start neu, statt nur den frühesten Bootstrap-Stand zu verwenden. Dadurch wird `cloud_ai.generate_missing_product_images_on_startup` auch dann korrekt erkannt, wenn Optionen kurz nach Prozessstart verfügbar sind.
+- Added (Tests/Startup): Regressionstest stellt sicher, dass die Startup-Bildgenerierung mit dem **neu geladenen** Settings-Stand ausgeführt wird.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.39` erhöht.
+
+## 2026-03-25 (Version 8.0.38)
+
+- Fix (Options/Startup-Bildgenerierung): Der Options-Loader akzeptiert jetzt zusätzlich die Legacy-Gruppe `openai` als Alias für `cloud_ai`, sodass `generate_missing_product_images_on_startup` auch bei älteren oder migrierten Layouts korrekt erkannt wird.
+- Added (Tests/Optionen): Regressionstest stellt sicher, dass die Startup-Bildgenerierungsoption aus `options.openai.generate_missing_product_images_on_startup` korrekt geladen wird.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.38` erhöht.
+
 ## 2026-03-25 (Version 8.0.37)
 
 - Fix (Produktsuche): Fuzzy-Produktsuche akzeptiert jetzt auch 2-Buchstaben-Anfragen (z. B. "ei"), sodass kurze Suchbegriffe im Dashboard und in Variantenvorschlägen Treffer liefern.

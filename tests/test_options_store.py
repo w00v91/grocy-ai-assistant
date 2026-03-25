@@ -176,3 +176,36 @@ def test_load_addon_options_reads_mapped_values_from_deeply_nested_yaml_layout(
         },
         "metadata": {"source": "supervisor"},
     }
+
+
+def test_load_addon_options_accepts_legacy_openai_group_alias(tmp_path, monkeypatch):
+    yaml_path = tmp_path / "options.yaml"
+
+    monkeypatch.setattr(options_store, "ADDON_OPTIONS_YAML_PATH", yaml_path)
+    monkeypatch.setattr(
+        options_store, "LEGACY_ADDON_OPTIONS_JSON_PATH", tmp_path / "options.json"
+    )
+    monkeypatch.setattr(
+        options_store, "REPOSITORY_CONFIG_YAML_PATH", tmp_path / "config.yaml"
+    )
+
+    yaml_path.write_text(
+        """options:
+  openai:
+    image_generation_enabled: true
+    generate_missing_product_images_on_startup: true
+    openai_api_key: legacy-key
+""",
+        encoding="utf-8",
+    )
+
+    assert options_store.load_addon_options() == {
+        "image_generation_enabled": True,
+        "generate_missing_product_images_on_startup": True,
+        "openai_api_key": "legacy-key",
+        "openai": {
+            "image_generation_enabled": True,
+            "generate_missing_product_images_on_startup": True,
+            "openai_api_key": "legacy-key",
+        },
+    }
