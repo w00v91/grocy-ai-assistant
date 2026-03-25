@@ -1,8 +1,16 @@
-## 2026-03-25 (Version 8.0.40)
+## 2026-03-25 (Version 8.0.41)
 
+- Fix (Rezeptvorschläge/API-Latenz): Für KI-Rezeptvorschläge gilt jetzt ein eigener Timeout-Deckel von 20 Sekunden pro KI-Aufruf, auch wenn der globale Ollama-Timeout höher konfiguriert ist.
+- Added (Tests/Rezeptvorschläge): API-Regressionstest stellt sicher, dass der Timeout-Deckel beim Dashboard-Rezeptendpoint angewendet wird.
+- Added (Tests/KI-Client): Unit-Test deckt den expliziten `timeout_seconds`-Override im Rezeptgenerator ab.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.41` erhöht.
+
+## 2026-03-25 (Version 8.0.40)
 - Fix (Optionen/Runtime-Quellen): Wenn sowohl `/data/options.yaml` als auch `/data/options.json` vorhanden sind, verwendet der Loader jetzt den **zuletzt geänderten** Runtime-Stand statt YAML starr zu priorisieren. Damit werden aktuelle Optionen wie `cloud_ai.generate_missing_product_images_on_startup` zuverlässig erkannt.
 - Fix (Settings-Cache): Der Cache-Token berücksichtigt jetzt alle vorhandenen Optionsquellen gemeinsam, damit Änderungen an YAML **und** JSON sicher eine Settings-Neuladung auslösen.
 - Added (Tests/Optionen): Regressionstest prüft, dass bei gleichzeitiger YAML/JSON-Präsenz die neuere Datei gewinnt.
+- Fix (Rezeptvorschläge/Fehlerbehandlung): Timeouts bzw. Verbindungsfehler beim Ollama-Request in `generate_recipe_suggestions` führen nicht mehr zu einem API-500, sondern werden geloggt und auf lokale Rezept-Fallbacks zurückgeführt.
+- Fix (Rezeptvorschläge/Robustheit): Ungültige oder nicht parsebare KI-Antworten bei Rezeptvorschlägen werden jetzt defensiv abgefangen, damit der Dashboard-Request stabil bleibt.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.40` erhöht.
 
 ## 2026-03-25 (Version 8.0.39)
@@ -19,6 +27,8 @@
 
 ## 2026-03-25 (Version 8.0.37)
 
+- Fix (Produktsuche): Fuzzy-Produktsuche akzeptiert jetzt auch 2-Buchstaben-Anfragen (z. B. "ei"), sodass kurze Suchbegriffe im Dashboard und in Variantenvorschlägen Treffer liefern.
+- Added (Tests/Grocy): Unit-Test ergänzt, der die Produktsuche mit zwei Buchstaben absichert.
 - Fix (Home-Assistant-Integration/Panel/Auth): Token-Erkennung im nativen Dashboard berücksichtigt jetzt zusätzliche Home-Assistant-Tokenpfade (`accessToken` und `access_token` in `hass.auth`/`hass.connection.auth`) und verhindert so erneute `401 Unauthorized`-Antworten beim Laden von Panel-Daten in unterschiedlichen HA-Runtimes.
 - Added (Tests/Frontend): `tests/frontend/test_panel_shell_rendering.mjs` prüft die erweiterten Tokenpfade als Regression-Guard.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.37` erhöht.

@@ -68,6 +68,7 @@ from grocy_ai_assistant.services.grocy_client import GrocyClient
 logger = logging.getLogger(__name__)
 GROCY_RECIPE_SUGGESTION_LIMIT = 3
 AI_RECIPE_SUGGESTION_LIMIT = 3
+AI_RECIPE_SUGGESTION_TIMEOUT_CAP_SECONDS = 20
 AMOUNT_PREFIX_PATTERN = re.compile(r"^\s*(\d+(?:[.,]\d+)?)\s+(.+)$")
 router = APIRouter()
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
@@ -1066,6 +1067,14 @@ def _generate_recipe_suggestions(
 
     detector = IngredientDetector(settings)
 
+    recipe_ai_timeout_seconds = max(
+        5,
+        min(
+            int(settings.ollama_timeout_seconds),
+            AI_RECIPE_SUGGESTION_TIMEOUT_CAP_SECONDS,
+        ),
+    )
+
     ai_fallback_candidates = [
         {
             "title": f"{', '.join(selected_products[:2])} Pfanne",
@@ -1100,10 +1109,17 @@ def _generate_recipe_suggestions(
     known_ai_titles: set[str] = set()
 
     for _ in range(AI_RECIPE_SUGGESTION_LIMIT):
-        ai_raw = detector.generate_recipe_suggestions(
-            selected_products,
-            known_recipe_titles,
-        )
+        try:
+            ai_raw = detector.generate_recipe_suggestions(
+                selected_products,
+                known_recipe_titles,
+                timeout_seconds=recipe_ai_timeout_seconds,
+            )
+        except TypeError:
+            ai_raw = detector.generate_recipe_suggestions(
+                selected_products,
+                known_recipe_titles,
+            )
         if not isinstance(ai_raw, list) or not ai_raw:
             break
 

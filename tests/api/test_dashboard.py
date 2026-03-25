@@ -766,6 +766,41 @@ def test_recipe_suggestions_prioritize_grocy_then_ai(client, monkeypatch):
     assert payload["ai_recipes"][0]["ingredients"] == ["1 Portion Tomate"]
 
 
+def test_recipe_suggestions_cap_ai_timeout(client, monkeypatch):
+    captured_timeout = {"value": None}
+
+    def fake_get_stock_products(self):
+        return [{"id": 1, "name": "Tomate"}]
+
+    def fake_get_recipes(self):
+        return []
+
+    class FakeDetector:
+        def __init__(self, settings):
+            self.settings = settings
+
+        def generate_recipe_suggestions(
+            self, selected_products, existing_recipe_titles, timeout_seconds=None
+        ):
+            captured_timeout["value"] = timeout_seconds
+            return []
+
+    monkeypatch.setattr(
+        routes.GrocyClient, "get_stock_products", fake_get_stock_products
+    )
+    monkeypatch.setattr(routes.GrocyClient, "get_recipes", fake_get_recipes)
+    monkeypatch.setattr(routes, "IngredientDetector", FakeDetector)
+
+    response = client.post(
+        "/api/dashboard/recipe-suggestions",
+        headers={"Authorization": "Bearer test-api-key"},
+        json={"product_ids": [1]},
+    )
+
+    assert response.status_code == 200
+    assert captured_timeout["value"] == 20
+
+
 def test_recipe_suggestions_uses_stock_products_when_selection_is_empty(
     client, monkeypatch
 ):
