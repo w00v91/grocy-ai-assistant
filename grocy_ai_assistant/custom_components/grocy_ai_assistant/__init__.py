@@ -33,6 +33,7 @@ from .runtime_state import (
     get_product_input_value,
 )
 from .redaction import redact_sensitive_data
+from .repairs import async_clear_repairs_for_entry
 from .services import (
     DATA_NOTIFICATION_MANAGER,
     NotificationManager,
@@ -338,6 +339,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     unload_ok = await hass.config_entries.async_unload_platforms(
         entry, ["sensor", "text", "button"]
     )
+    await async_clear_repairs_for_entry(hass, entry.entry_id)
     hass.data.get(DOMAIN, {}).pop(entry.entry_id, None)
     await dashboard_panel.async_unload(hass)
     _LOGGER.debug("Unload entry %s result: %s", entry.entry_id, unload_ok)

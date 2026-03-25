@@ -221,5 +221,15 @@
         }
       }
     }
+  },
+  "issues": {
+    "restart_required": {
+      "title": "Home Assistant restart required",
+      "description": "Grocy AI Assistant requires a Home Assistant restart for this config entry to apply compatibility changes."
+    },
+    "addon_unreachable": {
+      "title": "Grocy AI Assistant add-on unreachable",
+      "description": "Grocy AI Assistant cannot currently reach the add-on endpoint for this config entry. Check network/add-on availability and integration connection settings."
+    }
   }
 }

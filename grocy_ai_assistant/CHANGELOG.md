@@ -1,3 +1,11 @@
+## 2026-03-25 (Version 8.0.35)
+
+- Added (Home-Assistant-Integration/Repairs): Neues Modul `custom_components/grocy_ai_assistant/repairs.py` ergänzt und `issue_registry`-basierte Repairs für Neustartpflicht sowie Add-on-Unerreichbarkeit implementiert.
+- Changed (Home-Assistant-Integration/Coordinator): Status-Coordinator synchronisiert Repairs jetzt nach dem initialen Refresh und bei späteren Coordinator-Updates automatisch.
+- Changed (Home-Assistant-Integration/Lifecycle): Beim Entladen eines Config-Entries werden zugehörige Repairs automatisch entfernt.
+- Added (Home-Assistant-Integration/Übersetzungen): `strings.json`, `translations/en.json` und `translations/de.json` um translation-key-basierte Issue-Texte erweitert.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.35` erhöht.
+
 ## 2026-03-25 (Version 8.0.34)
 
 - Improved (Startup-Bildsync/Logging): Der Startup-Logeintrag in `api.main` enthält jetzt zusätzlich den Bildsync-Status und die Anzahl aktualisierter Bilder (`status`, `refreshed_images`), damit der Ablauf im Log besser nachvollziehbar ist.
