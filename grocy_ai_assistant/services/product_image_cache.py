@@ -33,6 +33,9 @@ class ProductImageCache:
         self._initial_refresh_done = threading.Event()
         self._refresh_thread: threading.Thread | None = None
         self._refresh_lock = threading.Lock()
+        self._last_refresh_count: int | None = None
+        self._last_refresh_status: str = "not_started"
+        self._last_refresh_error: str = ""
 
     @property
     def cache_dir(self) -> Path:
@@ -46,6 +49,9 @@ class ProductImageCache:
         self._initial_refresh_done.clear()
         if not self._settings.grocy_api_key:
             logger.info("Produktbild-Cache wird nicht gestartet: grocy_api_key fehlt")
+            self._last_refresh_count = 0
+            self._last_refresh_status = "skipped_missing_api_key"
+            self._last_refresh_error = ""
             self._initial_refresh_done.set()
             return
 
@@ -59,6 +65,13 @@ class ProductImageCache:
     def wait_for_initial_refresh(self, timeout: float | None = None) -> bool:
         return self._initial_refresh_done.wait(timeout)
 
+    def get_last_refresh_status(self) -> dict[str, int | str | None]:
+        return {
+            "status": self._last_refresh_status,
+            "refreshed_images": self._last_refresh_count,
+            "error": self._last_refresh_error,
+        }
+
     def stop(self) -> None:
         self._stop_event.set()
         if self._refresh_thread and self._refresh_thread.is_alive():
@@ -67,6 +80,9 @@ class ProductImageCache:
     def refresh_all_product_images(self) -> int:
         if not self._settings.grocy_api_key:
             logger.warning("Bildcache-Refresh übersprungen: grocy_api_key fehlt")
+            self._last_refresh_count = 0
+            self._last_refresh_status = "skipped_missing_api_key"
+            self._last_refresh_error = ""
             return 0
 
         with self._refresh_lock:
@@ -76,6 +92,9 @@ class ProductImageCache:
                 logger.warning(
                     "Produktbild-Cache konnte Produktliste nicht laden: %s", error
                 )
+                self._last_refresh_count = 0
+                self._last_refresh_status = "failed_product_fetch"
+                self._last_refresh_error = str(error)
                 return 0
             refreshed_images = 0
             for product in products:
@@ -89,6 +108,9 @@ class ProductImageCache:
                         break
 
             logger.info("Produktbild-Cache aktualisiert: %s Bilder", refreshed_images)
+            self._last_refresh_count = refreshed_images
+            self._last_refresh_status = "ok"
+            self._last_refresh_error = ""
             return refreshed_images
 
     def get_cached_image(self, src: str) -> tuple[bytes | None, str]:

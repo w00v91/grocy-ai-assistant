@@ -16,6 +16,12 @@ def test_product_image_cache_start_skips_background_thread_without_grocy_key(tmp
     finally:
         cache.stop()
 
+    assert cache.get_last_refresh_status() == {
+        "status": "skipped_missing_api_key",
+        "refreshed_images": 0,
+        "error": "",
+    }
+
 
 def test_get_cached_image_downloads_and_reads(monkeypatch, tmp_path):
     settings = Settings(
@@ -80,6 +86,11 @@ def test_refresh_all_product_images_downloads_only_with_picture(monkeypatch, tmp
 
     assert refreshed == 1
     assert calls["download"] == 1
+    assert cache.get_last_refresh_status() == {
+        "status": "ok",
+        "refreshed_images": 1,
+        "error": "",
+    }
 
 
 def test_download_to_cache_falls_back_from_api_files_path(monkeypatch, tmp_path):

@@ -17,6 +17,9 @@ class _DummyCache:
     def stop(self):
         return None
 
+    def get_last_refresh_status(self):
+        return {"status": "ok", "refreshed_images": 0, "error": ""}
+
 
 def test_startup_prefetch_waits_five_seconds(monkeypatch):
     calls: list[object] = []
