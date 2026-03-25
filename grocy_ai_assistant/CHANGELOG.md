@@ -1,5 +1,8 @@
 ## 2026-03-25 (Version 8.0.35)
 
+- Clarified (Startup/Bildsync): Startup-Logs unterscheiden jetzt klar zwischen **Bildgenerierung** (fehlende Produktbilder per KI) und **Bildcache-Sync** (Spiegeln vorhandener Grocy-Bilder), um Missverständnisse im Betrieb zu vermeiden.
+- Added (Startup/Bildgenerierung): `_generate_missing_product_images_on_startup` liefert jetzt einen strukturierten Status (`status`, `generated`, `total`) zurück; der Status wird im Startup-Log explizit ausgegeben.
+- Added (Tests): Startup-Tests decken die neuen Rückgabestatus für deaktivierte Startup-Option bzw. deaktivierte Bildgenerierung ab.
 - Changed (Rezeptvorschläge/KI): KI-Rezepte werden jetzt nacheinander abgefragt, statt alle Vorschläge in einem einzelnen Abruf zu erwarten. Dabei werden bereits vorgeschlagene Titel bei jedem Folgeabruf mitgegeben, um Duplikate zu vermeiden.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.35` erhöht.
 

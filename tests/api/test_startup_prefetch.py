@@ -122,11 +122,12 @@ def test_startup_batch_disables_option_after_completion(monkeypatch, tmp_path):
         initial_info_sync=True,
     )
 
-    api_main._generate_missing_product_images_on_startup(settings)
+    result = api_main._generate_missing_product_images_on_startup(settings)
 
     stored = options_store.parse_simple_yaml(options_path.read_text(encoding="utf-8"))
     assert stored["cloud_ai"]["generate_missing_product_images_on_startup"] is False
     assert stored["ollama"]["initial_info_sync"] is True
+    assert result == {"status": "completed", "generated": 1, "total": 1}
 
 
 def test_startup_batch_generates_images_for_products_without_picture(monkeypatch):
@@ -162,9 +163,10 @@ def test_startup_batch_generates_images_for_products_without_picture(monkeypatch
         generate_missing_product_images_on_startup=True,
     )
 
-    api_main._generate_missing_product_images_on_startup(settings)
+    result = api_main._generate_missing_product_images_on_startup(settings)
 
     assert attached == [(1, "/tmp/Nudeln.png"), (2, "/tmp/Tomatensauce.png")]
+    assert result == {"status": "completed", "generated": 2, "total": 2}
 
 
 def test_startup_batch_skips_when_flag_disabled(monkeypatch):
@@ -181,7 +183,30 @@ def test_startup_batch_skips_when_flag_disabled(monkeypatch):
         generate_missing_product_images_on_startup=False,
     )
 
-    api_main._generate_missing_product_images_on_startup(settings)
+    result = api_main._generate_missing_product_images_on_startup(settings)
+    assert result == {"status": "skipped_option_disabled", "generated": 0, "total": 0}
+
+
+def test_startup_batch_skips_when_image_generation_disabled(monkeypatch):
+    class DummyGrocyClient:
+        def __init__(self, _settings):
+            raise AssertionError("should not be created")
+
+    monkeypatch.setattr(api_main, "GrocyClient", DummyGrocyClient)
+
+    settings = Settings(
+        api_key="k",
+        grocy_api_key="g",
+        image_generation_enabled=False,
+        generate_missing_product_images_on_startup=True,
+    )
+
+    result = api_main._generate_missing_product_images_on_startup(settings)
+    assert result == {
+        "status": "skipped_generation_disabled",
+        "generated": 0,
+        "total": 0,
+    }
 
 
 def test_startup_initial_info_sync_updates_missing_fields(monkeypatch, tmp_path):
