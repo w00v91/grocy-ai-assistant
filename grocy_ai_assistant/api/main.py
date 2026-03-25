@@ -413,13 +413,21 @@ async def _lifespan(app: FastAPI):
             image_sync_completed = await asyncio.to_thread(
                 image_cache.wait_for_initial_refresh, 120.0
             )
+            image_sync_status = await asyncio.to_thread(
+                image_cache.get_last_refresh_status
+            )
             if image_sync_completed:
                 logger.info(
-                    "Startup-Bildsync abgeschlossen, starte initialen Info-Sync"
+                    "Startup-Bildsync abgeschlossen (status=%s, refreshed_images=%s), starte initialen Info-Sync",
+                    image_sync_status.get("status"),
+                    image_sync_status.get("refreshed_images"),
                 )
             else:
                 logger.warning(
-                    "Startup-Bildsync nicht innerhalb von 120 Sekunden abgeschlossen; initialer Info-Sync startet trotzdem"
+                    "Startup-Bildsync nicht innerhalb von 120 Sekunden abgeschlossen (status=%s, refreshed_images=%s, error=%s); initialer Info-Sync startet trotzdem",
+                    image_sync_status.get("status"),
+                    image_sync_status.get("refreshed_images"),
+                    image_sync_status.get("error"),
                 )
 
             await asyncio.to_thread(_run_initial_info_sync_on_startup, settings)

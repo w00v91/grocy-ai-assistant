@@ -1,3 +1,10 @@
+## 2026-03-25 (Version 8.0.34)
+
+- Improved (Startup-Bildsync/Logging): Der Startup-Logeintrag in `api.main` enthält jetzt zusätzlich den Bildsync-Status und die Anzahl aktualisierter Bilder (`status`, `refreshed_images`), damit der Ablauf im Log besser nachvollziehbar ist.
+- Improved (Produktbild-Cache/Status): `ProductImageCache` speichert den letzten Refresh-Status inklusive Fehlergrund und stellt ihn über `get_last_refresh_status()` bereit.
+- Added (Tests): Unit-/Startup-Tests prüfen die neuen Statusinformationen des Produktbild-Caches.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.34` erhöht.
+
 ## 2026-03-25 (Version 8.0.33)
 
 - Fix (Add-on/Ollama): Die bislang hart codierten `requests`-Timeouts (60s) für `analyze_product_name`, `suggest_similar_products` und `generate_recipe_suggestions` sind jetzt über die neue Add-on-Option `ollama.ollama_timeout_seconds` konfigurierbar.
