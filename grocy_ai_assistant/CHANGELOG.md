@@ -1,5 +1,6 @@
 ## 2026-03-25 (Version 8.0.33)
 
+- Added (Home-Assistant-Integration/Diagnostics): Neue `diagnostics.py` für Config-Entry-Diagnosen ergänzt, inklusive Redaction sensibler Schlüssel, serialisierbarer Runtime-/Coordinator-Ausgabe und expliziter Status-Coordinator-Felder.
 - Fix (Add-on/Ollama): Die bislang hart codierten `requests`-Timeouts (60s) für `analyze_product_name`, `suggest_similar_products` und `generate_recipe_suggestions` sind jetzt über die neue Add-on-Option `ollama.ollama_timeout_seconds` konfigurierbar.
 - Added (Add-on/App-Optionen): `config.yaml` ergänzt `options.ollama.ollama_timeout_seconds` inklusive Schema-Validierung `int(5,300)`.
 - Changed (API/Capabilities): `/api/v1/capabilities` liefert den neuen Default-Wert `ollama_timeout_seconds` mit aus.
