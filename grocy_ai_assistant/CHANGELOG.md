@@ -1,3 +1,8 @@
+## 2026-03-25 (Version 8.0.35)
+
+- Changed (Rezeptvorschläge/KI): KI-Rezepte werden jetzt nacheinander abgefragt, statt alle Vorschläge in einem einzelnen Abruf zu erwarten. Dabei werden bereits vorgeschlagene Titel bei jedem Folgeabruf mitgegeben, um Duplikate zu vermeiden.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.35` erhöht.
+
 ## 2026-03-25 (Version 8.0.34)
 
 - Improved (Startup-Bildsync/Logging): Der Startup-Logeintrag in `api.main` enthält jetzt zusätzlich den Bildsync-Status und die Anzahl aktualisierter Bilder (`status`, `refreshed_images`), damit der Ablauf im Log besser nachvollziehbar ist.

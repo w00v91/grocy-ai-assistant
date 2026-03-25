@@ -1863,7 +1863,7 @@ def test_recipe_suggestions_caches_soon_expiring_requests(client, monkeypatch):
 
     assert first_response.status_code == 200
     assert second_response.status_code == 200
-    assert call_count["detector"] == 1
+    assert call_count["detector"] == 2
     assert second_response.json()["selected_products"] == ["Tomate", "Nudeln"]
 
 
