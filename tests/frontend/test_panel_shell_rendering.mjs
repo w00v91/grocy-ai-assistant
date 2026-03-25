@@ -68,6 +68,9 @@ test('dashboard panel keeps product-picture requests on the HA proxy before the 
   assert.match(source, /loadProtectedImage: \(url, options\) => this\._loadAuthenticatedPanelImage\(url, options\),/);
   assert.match(source, /async _loadAuthenticatedPanelImage\(url, \{ signal \} = \{\}\) \{/);
   assert.match(source, /Authorization: `Bearer \$\{accessToken\}`/);
+  assert.match(source, /this\._hass\?\.auth\?\.data\?\.access_token/);
+  assert.match(source, /this\._hass\?\.auth\?\.accessToken/);
+  assert.match(source, /this\._hass\?\.connection\?\.auth\?\.accessToken/);
   assert.match(source, /const panelImageApiBasePath = this\._dashboardApiBasePath\s+\|\|\s+String\(panelConfig\?\.dashboard_api_base_path \|\| panelConfig\?\.api_base_path \|\| ''\)\.replace\(\/\\\/\+\$\/, ''\);/);
   assert.match(source, /resolveImageUrl: \(url\) => resolvePanelImageUrl\(url, this\._dashboardApi, \{ apiBasePath: panelImageApiBasePath \}\),/);
 });
