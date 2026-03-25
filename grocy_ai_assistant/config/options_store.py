@@ -40,6 +40,9 @@ _GROUPED_OPTION_KEYS = {
         "generate_missing_product_images_on_startup",
     ),
 }
+_GROUPED_OPTION_READ_ALIASES = {
+    "openai": _GROUPED_OPTION_KEYS["cloud_ai"],
+}
 _ALL_GROUPED_OPTION_KEYS = {
     option_key
     for option_keys in _GROUPED_OPTION_KEYS.values()
@@ -84,7 +87,10 @@ def _collect_root_option_values(payload: dict[str, Any]) -> dict[str, Any]:
         if option_key in payload:
             normalized[option_key] = payload[option_key]
 
-    for group_name, option_keys in _GROUPED_OPTION_KEYS.items():
+    grouped_option_sources = dict(_GROUPED_OPTION_KEYS)
+    grouped_option_sources.update(_GROUPED_OPTION_READ_ALIASES)
+
+    for group_name, option_keys in grouped_option_sources.items():
         group_payload = payload.get(group_name)
         if not isinstance(group_payload, dict):
             continue

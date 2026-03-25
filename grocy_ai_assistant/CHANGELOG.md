@@ -1,3 +1,9 @@
+## 2026-03-25 (Version 8.0.38)
+
+- Fix (Options/Startup-Bildgenerierung): Der Options-Loader akzeptiert jetzt zusätzlich die Legacy-Gruppe `openai` als Alias für `cloud_ai`, sodass `generate_missing_product_images_on_startup` auch bei älteren oder migrierten Layouts korrekt erkannt wird.
+- Added (Tests/Optionen): Regressionstest stellt sicher, dass die Startup-Bildgenerierungsoption aus `options.openai.generate_missing_product_images_on_startup` korrekt geladen wird.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.38` erhöht.
+
 ## 2026-03-25 (Version 8.0.37)
 
 - Fix (Home-Assistant-Integration/Panel/Auth): Token-Erkennung im nativen Dashboard berücksichtigt jetzt zusätzliche Home-Assistant-Tokenpfade (`accessToken` und `access_token` in `hass.auth`/`hass.connection.auth`) und verhindert so erneute `401 Unauthorized`-Antworten beim Laden von Panel-Daten in unterschiedlichen HA-Runtimes.
