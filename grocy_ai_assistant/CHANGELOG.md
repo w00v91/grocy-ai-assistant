@@ -12,6 +12,8 @@
 
 ## 2026-03-25 (Version 8.0.37)
 
+- Fix (Produktsuche): Fuzzy-Produktsuche akzeptiert jetzt auch 2-Buchstaben-Anfragen (z. B. "ei"), sodass kurze Suchbegriffe im Dashboard und in Variantenvorschlägen Treffer liefern.
+- Added (Tests/Grocy): Unit-Test ergänzt, der die Produktsuche mit zwei Buchstaben absichert.
 - Fix (Home-Assistant-Integration/Panel/Auth): Token-Erkennung im nativen Dashboard berücksichtigt jetzt zusätzliche Home-Assistant-Tokenpfade (`accessToken` und `access_token` in `hass.auth`/`hass.connection.auth`) und verhindert so erneute `401 Unauthorized`-Antworten beim Laden von Panel-Daten in unterschiedlichen HA-Runtimes.
 - Added (Tests/Frontend): `tests/frontend/test_panel_shell_rendering.mjs` prüft die erweiterten Tokenpfade als Regression-Guard.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.37` erhöht.
