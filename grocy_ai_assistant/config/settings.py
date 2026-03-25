@@ -79,7 +79,8 @@ class Settings(BaseModel):
 logger = logging.getLogger(__name__)
 
 
-def _settings_cache_token() -> tuple[str, int | None, int | None]:
+def _settings_cache_token() -> tuple[str, ...]:
+    token_parts: list[str] = []
     for path in (
         options_store.ADDON_OPTIONS_YAML_PATH,
         options_store.LEGACY_ADDON_OPTIONS_JSON_PATH,
@@ -89,12 +90,15 @@ def _settings_cache_token() -> tuple[str, int | None, int | None]:
             stat_result = path.stat()
         except OSError:
             continue
-        return (str(path), stat_result.st_mtime_ns, stat_result.st_size)
-    return ("defaults", None, None)
+        token_parts.append(f"{path}:{stat_result.st_mtime_ns}:{stat_result.st_size}")
+
+    if token_parts:
+        return tuple(token_parts)
+    return ("defaults",)
 
 
 @lru_cache(maxsize=4)
-def _get_settings_cached(cache_token: tuple[str, int | None, int | None]) -> Settings:
+def _get_settings_cached(cache_token: tuple[str, ...]) -> Settings:
     try:
         payload = options_store.load_addon_options()
         if payload:

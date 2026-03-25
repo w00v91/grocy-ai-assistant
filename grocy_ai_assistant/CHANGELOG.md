@@ -1,3 +1,22 @@
+## 2026-03-25 (Version 8.0.40)
+
+- Fix (Optionen/Runtime-Quellen): Wenn sowohl `/data/options.yaml` als auch `/data/options.json` vorhanden sind, verwendet der Loader jetzt den **zuletzt geänderten** Runtime-Stand statt YAML starr zu priorisieren. Damit werden aktuelle Optionen wie `cloud_ai.generate_missing_product_images_on_startup` zuverlässig erkannt.
+- Fix (Settings-Cache): Der Cache-Token berücksichtigt jetzt alle vorhandenen Optionsquellen gemeinsam, damit Änderungen an YAML **und** JSON sicher eine Settings-Neuladung auslösen.
+- Added (Tests/Optionen): Regressionstest prüft, dass bei gleichzeitiger YAML/JSON-Präsenz die neuere Datei gewinnt.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.40` erhöht.
+
+## 2026-03-25 (Version 8.0.39)
+
+- Fix (Startup/Optionen): Startup-Hintergrundjobs laden die Add-on-Optionen jetzt direkt vor dem zeitverzögerten Start neu, statt nur den frühesten Bootstrap-Stand zu verwenden. Dadurch wird `cloud_ai.generate_missing_product_images_on_startup` auch dann korrekt erkannt, wenn Optionen kurz nach Prozessstart verfügbar sind.
+- Added (Tests/Startup): Regressionstest stellt sicher, dass die Startup-Bildgenerierung mit dem **neu geladenen** Settings-Stand ausgeführt wird.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.39` erhöht.
+
+## 2026-03-25 (Version 8.0.38)
+
+- Fix (Options/Startup-Bildgenerierung): Der Options-Loader akzeptiert jetzt zusätzlich die Legacy-Gruppe `openai` als Alias für `cloud_ai`, sodass `generate_missing_product_images_on_startup` auch bei älteren oder migrierten Layouts korrekt erkannt wird.
+- Added (Tests/Optionen): Regressionstest stellt sicher, dass die Startup-Bildgenerierungsoption aus `options.openai.generate_missing_product_images_on_startup` korrekt geladen wird.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.38` erhöht.
+
 ## 2026-03-25 (Version 8.0.37)
 
 - Fix (Home-Assistant-Integration/Panel/Auth): Token-Erkennung im nativen Dashboard berücksichtigt jetzt zusätzliche Home-Assistant-Tokenpfade (`accessToken` und `access_token` in `hass.auth`/`hass.connection.auth`) und verhindert so erneute `401 Unauthorized`-Antworten beim Laden von Panel-Daten in unterschiedlichen HA-Runtimes.

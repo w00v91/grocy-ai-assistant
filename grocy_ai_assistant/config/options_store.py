@@ -40,6 +40,9 @@ _GROUPED_OPTION_KEYS = {
         "generate_missing_product_images_on_startup",
     ),
 }
+_GROUPED_OPTION_READ_ALIASES = {
+    "openai": _GROUPED_OPTION_KEYS["cloud_ai"],
+}
 _ALL_GROUPED_OPTION_KEYS = {
     option_key
     for option_keys in _GROUPED_OPTION_KEYS.values()
@@ -84,7 +87,10 @@ def _collect_root_option_values(payload: dict[str, Any]) -> dict[str, Any]:
         if option_key in payload:
             normalized[option_key] = payload[option_key]
 
-    for group_name, option_keys in _GROUPED_OPTION_KEYS.items():
+    grouped_option_sources = dict(_GROUPED_OPTION_KEYS)
+    grouped_option_sources.update(_GROUPED_OPTION_READ_ALIASES)
+
+    for group_name, option_keys in grouped_option_sources.items():
         group_payload = payload.get(group_name)
         if not isinstance(group_payload, dict):
             continue
@@ -167,14 +173,30 @@ def _wrap_saved_options_if_needed(
 
 
 def load_addon_options() -> dict[str, Any]:
+    runtime_candidates: list[tuple[int, int, dict[str, Any]]] = []
+
     if ADDON_OPTIONS_YAML_PATH.exists():
-        return _normalize_option_layout(_load_yaml_file(ADDON_OPTIONS_YAML_PATH))
+        yaml_stat = ADDON_OPTIONS_YAML_PATH.stat()
+        runtime_candidates.append(
+            (
+                yaml_stat.st_mtime_ns,
+                0,
+                _normalize_option_layout(_load_yaml_file(ADDON_OPTIONS_YAML_PATH)),
+            )
+        )
 
     if LEGACY_ADDON_OPTIONS_JSON_PATH.exists():
+        json_stat = LEGACY_ADDON_OPTIONS_JSON_PATH.stat()
         payload = json.loads(LEGACY_ADDON_OPTIONS_JSON_PATH.read_text(encoding="utf-8"))
         if not isinstance(payload, dict):
             raise ValueError("options.json enthält kein Objekt")
-        return _normalize_option_layout(payload)
+        runtime_candidates.append(
+            (json_stat.st_mtime_ns, 1, _normalize_option_layout(payload))
+        )
+
+    if runtime_candidates:
+        runtime_candidates.sort(key=lambda item: (item[0], item[1]), reverse=True)
+        return runtime_candidates[0][2]
 
     if REPOSITORY_CONFIG_YAML_PATH.exists():
         payload = _load_yaml_file(REPOSITORY_CONFIG_YAML_PATH)

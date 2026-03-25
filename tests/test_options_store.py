@@ -67,6 +67,35 @@ options:
     }
 
 
+def test_load_addon_options_uses_newest_runtime_file_when_yaml_and_json_exist(
+    tmp_path, monkeypatch
+):
+    yaml_path = tmp_path / "options.yaml"
+    json_path = tmp_path / "options.json"
+
+    monkeypatch.setattr(options_store, "ADDON_OPTIONS_YAML_PATH", yaml_path)
+    monkeypatch.setattr(options_store, "LEGACY_ADDON_OPTIONS_JSON_PATH", json_path)
+    monkeypatch.setattr(
+        options_store, "REPOSITORY_CONFIG_YAML_PATH", tmp_path / "config.yaml"
+    )
+
+    yaml_path.write_text(
+        """options:
+  cloud_ai:
+    generate_missing_product_images_on_startup: false
+""",
+        encoding="utf-8",
+    )
+    json_path.write_text(
+        '{"cloud_ai":{"generate_missing_product_images_on_startup": true}}',
+        encoding="utf-8",
+    )
+
+    assert options_store.load_addon_options() == {
+        "generate_missing_product_images_on_startup": True
+    }
+
+
 def test_save_addon_options_writes_grouped_yaml_layout(tmp_path, monkeypatch):
     yaml_path = tmp_path / "options.yaml"
     monkeypatch.setattr(options_store, "ADDON_OPTIONS_YAML_PATH", yaml_path)
@@ -175,4 +204,37 @@ def test_load_addon_options_reads_mapped_values_from_deeply_nested_yaml_layout(
             "cloud_ai": {"openai_api_key": "nested-openai-key"},
         },
         "metadata": {"source": "supervisor"},
+    }
+
+
+def test_load_addon_options_accepts_legacy_openai_group_alias(tmp_path, monkeypatch):
+    yaml_path = tmp_path / "options.yaml"
+
+    monkeypatch.setattr(options_store, "ADDON_OPTIONS_YAML_PATH", yaml_path)
+    monkeypatch.setattr(
+        options_store, "LEGACY_ADDON_OPTIONS_JSON_PATH", tmp_path / "options.json"
+    )
+    monkeypatch.setattr(
+        options_store, "REPOSITORY_CONFIG_YAML_PATH", tmp_path / "config.yaml"
+    )
+
+    yaml_path.write_text(
+        """options:
+  openai:
+    image_generation_enabled: true
+    generate_missing_product_images_on_startup: true
+    openai_api_key: legacy-key
+""",
+        encoding="utf-8",
+    )
+
+    assert options_store.load_addon_options() == {
+        "image_generation_enabled": True,
+        "generate_missing_product_images_on_startup": True,
+        "openai_api_key": "legacy-key",
+        "openai": {
+            "image_generation_enabled": True,
+            "generate_missing_product_images_on_startup": True,
+            "openai_api_key": "legacy-key",
+        },
     }
