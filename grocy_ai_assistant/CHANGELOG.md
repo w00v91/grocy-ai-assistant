@@ -1,3 +1,9 @@
+## 2026-03-25 (Version 8.0.40)
+
+- Fix (Rezeptvorschläge/Fehlerbehandlung): Timeouts bzw. Verbindungsfehler beim Ollama-Request in `generate_recipe_suggestions` führen nicht mehr zu einem API-500, sondern werden geloggt und auf lokale Rezept-Fallbacks zurückgeführt.
+- Fix (Rezeptvorschläge/Robustheit): Ungültige oder nicht parsebare KI-Antworten bei Rezeptvorschlägen werden jetzt defensiv abgefangen, damit der Dashboard-Request stabil bleibt.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.40` erhöht.
+
 ## 2026-03-25 (Version 8.0.39)
 
 - Fix (Startup/Optionen): Startup-Hintergrundjobs laden die Add-on-Optionen jetzt direkt vor dem zeitverzögerten Start neu, statt nur den frühesten Bootstrap-Stand zu verwenden. Dadurch wird `cloud_ai.generate_missing_product_images_on_startup` auch dann korrekt erkannt, wenn Optionen kurz nach Prozessstart verfügbar sind.

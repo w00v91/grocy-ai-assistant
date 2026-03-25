@@ -226,17 +226,30 @@ class IngredientDetector:
             "stream": False,
             "format": "json",
         }
+        try:
+            response = requests.post(
+                self.settings.ollama_url,
+                json=ollama_payload,
+                timeout=self._ollama_timeout_seconds(),
+            )
+            response.raise_for_status()
+            raw_answer = response.json().get("response")
+            if self.settings.debug_mode:
+                logger.info("KI-Antwort generate_recipe_suggestions: %s", raw_answer)
+            parsed = json.loads(raw_answer)
+        except requests.RequestException as error:
+            logger.warning(
+                "KI-Rezeptvorschläge konnten nicht geladen werden (Netzwerk/Timeout): %s",
+                error,
+            )
+            return []
+        except (TypeError, ValueError, json.JSONDecodeError) as error:
+            logger.warning(
+                "KI-Rezeptvorschläge konnten nicht geparst werden, nutze Fallbacks: %s",
+                error,
+            )
+            return []
 
-        response = requests.post(
-            self.settings.ollama_url,
-            json=ollama_payload,
-            timeout=self._ollama_timeout_seconds(),
-        )
-        response.raise_for_status()
-        raw_answer = response.json().get("response")
-        if self.settings.debug_mode:
-            logger.info("KI-Antwort generate_recipe_suggestions: %s", raw_answer)
-        parsed = json.loads(raw_answer)
         if isinstance(parsed, dict):
             parsed = [parsed]
 
