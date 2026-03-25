@@ -1,3 +1,9 @@
+## 2026-03-25 (Version 8.0.37)
+
+- Fix (Home-Assistant-Integration/Panel/Auth): Token-Erkennung im nativen Dashboard berücksichtigt jetzt zusätzliche Home-Assistant-Tokenpfade (`accessToken` und `access_token` in `hass.auth`/`hass.connection.auth`) und verhindert so erneute `401 Unauthorized`-Antworten beim Laden von Panel-Daten in unterschiedlichen HA-Runtimes.
+- Added (Tests/Frontend): `tests/frontend/test_panel_shell_rendering.mjs` prüft die erweiterten Tokenpfade als Regression-Guard.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.37` erhöht.
+
 ## 2026-03-25 (Version 8.0.36)
 
 - Added (Home-Assistant-Integration/Repairs): Neues Repairs-Issue `invalid_auth` ergänzt; Auth-Fehler (z. B. 401/Unauthorized/Forbidden) werden jetzt getrennt von allgemeiner Unerreichbarkeit erfasst.

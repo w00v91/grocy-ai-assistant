@@ -25,7 +25,7 @@ const TAB_ICONS = Object.freeze({
 });
 const DEFAULT_POLLING_INTERVAL_SECONDS = 5;
 const DEFAULT_POLLING_INTERVAL_MS = DEFAULT_POLLING_INTERVAL_SECONDS * 1000;
-const DEFAULT_INTEGRATION_VERSION = '8.0.36';
+const DEFAULT_INTEGRATION_VERSION = '8.0.37';
 const GROCY_RECIPE_DISPLAY_LIMIT = 3;
 const AI_RECIPE_DISPLAY_LIMIT = 3;
 const TAB_VIEW_STATE = Object.freeze({
@@ -4606,11 +4606,24 @@ class GrocyAIDashboardPanel extends HTMLElement {
   }
 
   _getHomeAssistantAccessToken() {
-    const directToken = this._hass?.auth?.data?.accessToken;
-    if (directToken) return directToken;
+    const candidates = [
+      this._hass?.auth?.data?.accessToken,
+      this._hass?.auth?.data?.access_token,
+      this._hass?.auth?.accessToken,
+      this._hass?.auth?.access_token,
+      this._hass?.connection?.options?.auth?.accessToken,
+      this._hass?.connection?.options?.auth?.access_token,
+      this._hass?.connection?.auth?.accessToken,
+      this._hass?.connection?.auth?.access_token,
+      typeof this._hass?.auth?.getAccessToken === 'function' ? this._hass.auth.getAccessToken() : '',
+      typeof this._hass?.connection?.auth?.getAccessToken === 'function' ? this._hass.connection.auth.getAccessToken() : '',
+    ];
 
-    const connectionToken = this._hass?.connection?.options?.auth?.accessToken;
-    if (connectionToken) return connectionToken;
+    for (const candidate of candidates) {
+      if (candidate && typeof candidate.then === 'function') continue;
+      const normalized = String(candidate || '').trim();
+      if (normalized) return normalized;
+    }
 
     return '';
   }
