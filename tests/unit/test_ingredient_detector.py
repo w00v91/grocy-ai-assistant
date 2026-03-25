@@ -291,6 +291,64 @@ def test_generate_recipe_suggestions_logs_raw_ai_response_in_debug_mode(
     assert "KI-Antwort generate_recipe_suggestions" in caplog.text
 
 
+def test_generate_recipe_suggestions_returns_empty_on_request_timeout(
+    monkeypatch, caplog
+):
+    def fake_post(*args, **kwargs):
+        raise requests.exceptions.ReadTimeout("timed out")
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.ai.ingredient_detector.requests.post", fake_post
+    )
+
+    detector = IngredientDetector(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+        )
+    )
+
+    with caplog.at_level(logging.WARNING):
+        result = detector.generate_recipe_suggestions(["Tomate"], [])
+
+    assert result == []
+    assert "KI-Rezeptvorschläge konnten nicht geladen werden" in caplog.text
+
+
+def test_generate_recipe_suggestions_uses_explicit_timeout_override(monkeypatch):
+    captured_timeout = {}
+
+    def fake_post(*args, **kwargs):
+        captured_timeout["value"] = kwargs.get("timeout")
+        return FakeResponse(
+            {"response": '[{"title":"Suppe","reason":"passt","preparation":"Kochen"}]'}
+        )
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.ai.ingredient_detector.requests.post", fake_post
+    )
+
+    detector = IngredientDetector(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+            ollama_timeout_seconds=60,
+        )
+    )
+
+    detector.generate_recipe_suggestions(
+        ["Tomate"],
+        [],
+        timeout_seconds=12,
+    )
+
+    assert captured_timeout["value"] == 12
+
+
 def test_detect_product_from_image_uses_configurable_min_confidence(monkeypatch):
     captured_payload = {}
 

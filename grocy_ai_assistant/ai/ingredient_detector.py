@@ -198,6 +198,8 @@ class IngredientDetector:
         self,
         selected_products: list[str],
         existing_recipe_titles: list[str],
+        *,
+        timeout_seconds: int | None = None,
     ) -> list[Dict[str, Any]]:
         ingredients = ", ".join(selected_products)
         existing = (
@@ -226,17 +228,35 @@ class IngredientDetector:
             "stream": False,
             "format": "json",
         }
-
-        response = requests.post(
-            self.settings.ollama_url,
-            json=ollama_payload,
-            timeout=self._ollama_timeout_seconds(),
+        request_timeout = (
+            timeout_seconds
+            if timeout_seconds is not None and timeout_seconds > 0
+            else self._ollama_timeout_seconds()
         )
-        response.raise_for_status()
-        raw_answer = response.json().get("response")
-        if self.settings.debug_mode:
-            logger.info("KI-Antwort generate_recipe_suggestions: %s", raw_answer)
-        parsed = json.loads(raw_answer)
+        try:
+            response = requests.post(
+                self.settings.ollama_url,
+                json=ollama_payload,
+                timeout=request_timeout,
+            )
+            response.raise_for_status()
+            raw_answer = response.json().get("response")
+            if self.settings.debug_mode:
+                logger.info("KI-Antwort generate_recipe_suggestions: %s", raw_answer)
+            parsed = json.loads(raw_answer)
+        except requests.RequestException as error:
+            logger.warning(
+                "KI-Rezeptvorschläge konnten nicht geladen werden (Netzwerk/Timeout): %s",
+                error,
+            )
+            return []
+        except (TypeError, ValueError, json.JSONDecodeError) as error:
+            logger.warning(
+                "KI-Rezeptvorschläge konnten nicht geparst werden, nutze Fallbacks: %s",
+                error,
+            )
+            return []
+
         if isinstance(parsed, dict):
             parsed = [parsed]
 
