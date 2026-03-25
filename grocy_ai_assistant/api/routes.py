@@ -1065,15 +1065,6 @@ def _generate_recipe_suggestions(
         )
 
     detector = IngredientDetector(settings)
-    ai_raw = detector.generate_recipe_suggestions(
-        selected_products,
-        [item.title for item in grocy_recipes],
-    )
-    if not isinstance(ai_raw, list):
-        ai_raw = []
-
-    if not ai_raw:
-        ai_raw = []
 
     ai_fallback_candidates = [
         {
@@ -1105,13 +1096,36 @@ def _generate_recipe_suggestions(
     ]
 
     ai_recipes: list[RecipeSuggestionItem] = []
-    for item in ai_raw[:AI_RECIPE_SUGGESTION_LIMIT]:
-        if not isinstance(item, dict):
-            continue
+    known_recipe_titles = [item.title for item in grocy_recipes]
+    known_ai_titles: set[str] = set()
+
+    for _ in range(AI_RECIPE_SUGGESTION_LIMIT):
+        ai_raw = detector.generate_recipe_suggestions(
+            selected_products,
+            known_recipe_titles,
+        )
+        if not isinstance(ai_raw, list) or not ai_raw:
+            break
+
+        next_item: dict[str, Any] | None = None
+        for candidate in ai_raw:
+            if not isinstance(candidate, dict):
+                continue
+
+            candidate_title = html_to_plain_text(candidate.get("title") or "KI-Rezept")
+            normalized_title = candidate_title.casefold()
+            if normalized_title in known_ai_titles:
+                continue
+
+            next_item = candidate
+            break
+
+        if next_item is None:
+            break
 
         normalized_ingredients = [
             str(ingredient).strip()
-            for ingredient in (item.get("ingredients") or [])
+            for ingredient in (next_item.get("ingredients") or [])
             if str(ingredient).strip()
         ]
         if not normalized_ingredients:
@@ -1125,16 +1139,19 @@ def _generate_recipe_suggestions(
             if html_to_plain_text(ingredient)
         ]
 
+        normalized_title = html_to_plain_text(next_item.get("title") or "KI-Rezept")
         ai_recipes.append(
             RecipeSuggestionItem(
-                title=html_to_plain_text(item.get("title") or "KI-Rezept"),
+                title=normalized_title,
                 source="ai",
-                reason=html_to_plain_text(item.get("reason") or ""),
-                preparation=html_to_plain_text(item.get("preparation") or ""),
+                reason=html_to_plain_text(next_item.get("reason") or ""),
+                preparation=html_to_plain_text(next_item.get("preparation") or ""),
                 ingredients=normalized_ingredients,
                 picture_url="",
             )
         )
+        known_ai_titles.add(normalized_title.casefold())
+        known_recipe_titles.append(normalized_title)
 
     used_ai_titles = {item.title.casefold() for item in ai_recipes if item.title}
     for fallback_item in ai_fallback_candidates:

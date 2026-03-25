@@ -3,6 +3,7 @@
 - Clarified (Startup/Bildsync): Startup-Logs unterscheiden jetzt klar zwischen **Bildgenerierung** (fehlende Produktbilder per KI) und **Bildcache-Sync** (Spiegeln vorhandener Grocy-Bilder), um Missverständnisse im Betrieb zu vermeiden.
 - Added (Startup/Bildgenerierung): `_generate_missing_product_images_on_startup` liefert jetzt einen strukturierten Status (`status`, `generated`, `total`) zurück; der Status wird im Startup-Log explizit ausgegeben.
 - Added (Tests): Startup-Tests decken die neuen Rückgabestatus für deaktivierte Startup-Option bzw. deaktivierte Bildgenerierung ab.
+- Changed (Rezeptvorschläge/KI): KI-Rezepte werden jetzt nacheinander abgefragt, statt alle Vorschläge in einem einzelnen Abruf zu erwarten. Dabei werden bereits vorgeschlagene Titel bei jedem Folgeabruf mitgegeben, um Duplikate zu vermeiden.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.35` erhöht.
 
 ## 2026-03-25 (Version 8.0.34)
@@ -14,6 +15,8 @@
 
 ## 2026-03-25 (Version 8.0.33)
 
+- Added (Home-Assistant-Integration/Diagnostics): Neue `diagnostics.py` für Config-Entry-Diagnosen ergänzt, inklusive Redaction sensibler Schlüssel, serialisierbarer Runtime-/Coordinator-Ausgabe und expliziter Status-Coordinator-Felder.
+- Changed (Home-Assistant-Integration/Security): Neue Redaction-Utility für rekursive Maskierung (`"***"`) sensibler Schlüssel eingeführt, in Diagnostics verdrahtet und für Debug-Fehlerpfade genutzt, damit API-Keys/Tokens/Authorization-Header nicht in Logs oder Diagnostics landen.
 - Fix (Add-on/Ollama): Die bislang hart codierten `requests`-Timeouts (60s) für `analyze_product_name`, `suggest_similar_products` und `generate_recipe_suggestions` sind jetzt über die neue Add-on-Option `ollama.ollama_timeout_seconds` konfigurierbar.
 - Added (Add-on/App-Optionen): `config.yaml` ergänzt `options.ollama.ollama_timeout_seconds` inklusive Schema-Validierung `int(5,300)`.
 - Changed (API/Capabilities): `/api/v1/capabilities` liefert den neuen Default-Wert `ollama_timeout_seconds` mit aus.
