@@ -198,6 +198,8 @@ class IngredientDetector:
         self,
         selected_products: list[str],
         existing_recipe_titles: list[str],
+        *,
+        timeout_seconds: int | None = None,
     ) -> list[Dict[str, Any]]:
         ingredients = ", ".join(selected_products)
         existing = (
@@ -226,11 +228,16 @@ class IngredientDetector:
             "stream": False,
             "format": "json",
         }
+        request_timeout = (
+            timeout_seconds
+            if timeout_seconds is not None and timeout_seconds > 0
+            else self._ollama_timeout_seconds()
+        )
         try:
             response = requests.post(
                 self.settings.ollama_url,
                 json=ollama_payload,
-                timeout=self._ollama_timeout_seconds(),
+                timeout=request_timeout,
             )
             response.raise_for_status()
             raw_answer = response.json().get("response")
