@@ -25,6 +25,7 @@ _GROUPED_OPTION_KEYS = {
         "ollama_url",
         "ollama_model",
         "ollama_llava_model",
+        "ollama_timeout_seconds",
         "initial_info_sync",
     ),
     "scanner": (

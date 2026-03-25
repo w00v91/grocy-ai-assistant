@@ -1,5 +1,5 @@
 name: Grocy AI Assistant
-version: 8.0.32
+version: 8.0.33
 slug: grocy_ai_assistant
 dependencies:
 - a0d49513_grocy
@@ -31,6 +31,7 @@ options:
     ollama_url: http://homeassistant.local:11434/api/generate
     ollama_model: llama3
     ollama_llava_model: llava
+    ollama_timeout_seconds: 60
     initial_info_sync: false
   scanner:
     scanner_barcode_fallback_seconds: 5
@@ -53,6 +54,7 @@ schema:
     ollama_url: str
     ollama_model: str
     ollama_llava_model: str
+    ollama_timeout_seconds: int(5,300)
     initial_info_sync: bool
   scanner:
     scanner_barcode_fallback_seconds: int(1,30)

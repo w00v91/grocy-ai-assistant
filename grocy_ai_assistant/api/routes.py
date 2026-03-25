@@ -1380,6 +1380,7 @@ def get_capabilities(
             "/api/v1/notifications/test",
         ],
         defaults={
+            "ollama_timeout_seconds": settings.ollama_timeout_seconds,
             "scanner_llava_timeout_seconds": settings.scanner_llava_timeout_seconds,
             "dashboard_polling_interval_seconds": settings.dashboard_polling_interval_seconds,
             "notification_global_enabled": settings.notification_global_enabled,
