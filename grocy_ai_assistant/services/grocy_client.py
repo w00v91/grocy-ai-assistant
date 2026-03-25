@@ -43,7 +43,7 @@ class GrocyClient:
                 if len(stem) >= 4:
                     candidates.add(stem)
 
-        return {candidate for candidate in candidates if len(candidate) >= 3}
+        return {candidate for candidate in candidates if len(candidate) >= 2}
 
     @classmethod
     def _is_fuzzy_partial_name_match(cls, query: str, product_name: str) -> bool:

@@ -398,6 +398,35 @@ def test_clear_shopping_list_deletes_all_items(monkeypatch):
     ]
 
 
+
+
+def test_search_products_by_partial_name_supports_two_letter_queries(monkeypatch):
+    def fake_get(*args, **kwargs):
+        return FakeResponse(
+            [
+                {"id": 1, "name": "Ei"},
+                {"id": 2, "name": "Eis"},
+                {"id": 3, "name": "Milch"},
+            ]
+        )
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.services.grocy_client.requests.get", fake_get
+    )
+
+    client = GrocyClient(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+        )
+    )
+
+    result = client.search_products_by_partial_name("ei")
+
+    assert [product["name"] for product in result] == ["Ei", "Eis"]
+
 def test_search_products_by_partial_name_returns_all_variants(monkeypatch):
     def fake_get(*args, **kwargs):
         return FakeResponse(
