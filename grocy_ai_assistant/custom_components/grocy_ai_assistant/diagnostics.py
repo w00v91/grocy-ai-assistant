@@ -16,36 +16,8 @@ from .coordinator import (
     COORDINATOR_STATUS,
     DATA_COORDINATORS,
 )
+from .redaction import redact_sensitive_data
 from .runtime_state import DATA_ENTRY_RUNTIME_STATE
-
-_REDACT_EXACT_KEYS = {
-    "api_key",
-    "authorization",
-    "x-api-key",
-    "access_token",
-    "refresh_token",
-    "token",
-    "bearer",
-    "headers",
-}
-_REDACT_PARTIAL_KEYS = (
-    "token",
-    "secret",
-    "password",
-    "authorization",
-    "header",
-    "cookie",
-    "apikey",
-    "api_key",
-)
-_REDACTED = "***REDACTED***"
-
-
-def _is_sensitive_key(key: Any) -> bool:
-    key_str = str(key).strip().lower()
-    if key_str in _REDACT_EXACT_KEYS:
-        return True
-    return any(part in key_str for part in _REDACT_PARTIAL_KEYS)
 
 
 def _to_serializable(value: Any) -> Any:
@@ -75,29 +47,6 @@ def _to_serializable(value: Any) -> Any:
     return str(value)
 
 
-def _redact_sensitive(data: dict) -> dict:
-    """Return a redacted and serializable diagnostics dictionary."""
-
-    redacted: dict[str, Any] = {}
-    for key, value in data.items():
-        str_key = str(key)
-        if _is_sensitive_key(str_key):
-            redacted[str_key] = _REDACTED
-            continue
-
-        serializable = _to_serializable(value)
-        if isinstance(serializable, dict):
-            redacted[str_key] = _redact_sensitive(serializable)
-        elif isinstance(serializable, list):
-            redacted[str_key] = [
-                _redact_sensitive(item) if isinstance(item, dict) else item
-                for item in serializable
-            ]
-        else:
-            redacted[str_key] = serializable
-    return redacted
-
-
 def _coordinator_diagnostics(coordinator: Any) -> dict[str, Any]:
     if coordinator is None:
         return {}
@@ -109,7 +58,7 @@ def _coordinator_diagnostics(coordinator: Any) -> dict[str, Any]:
     return {
         "last_update_success": bool(getattr(coordinator, "last_update_success", False)),
         "last_exception": _to_serializable(getattr(coordinator, "last_exception", None)),
-        "data": _redact_sensitive(raw_data),
+        "data": redact_sensitive_data(raw_data),
     }
 
 
@@ -141,14 +90,14 @@ async def async_get_config_entry_diagnostics(
 
     return {
         "entry": {
-            "data": _redact_sensitive(_to_serializable(dict(entry.data))),
-            "options": _redact_sensitive(_to_serializable(dict(entry.options))),
+            "data": redact_sensitive_data(_to_serializable(dict(entry.data))),
+            "options": redact_sensitive_data(_to_serializable(dict(entry.options))),
         },
         "coordinators": coordinators,
-        "runtime_state": _redact_sensitive(
+        "runtime_state": redact_sensitive_data(
             _to_serializable(runtime_state if isinstance(runtime_state, dict) else {})
         ),
-        "runtime_data": _redact_sensitive(
+        "runtime_data": redact_sensitive_data(
             _to_serializable(entry_runtime if isinstance(entry_runtime, dict) else {})
         ),
     }

@@ -30,6 +30,7 @@ from .entity_payloads import (
     build_shopping_list_summary,
     build_stock_summary,
 )
+from .redaction import redact_sensitive_data
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -136,6 +137,13 @@ class GrocyAIBaseCoordinator(DataUpdateCoordinator[CoordinatorPayload]):
 
         http_status = payload.get("_http_status")
         if http_status != 200:
+            if self._debug_mode:
+                _LOGGER.debug(
+                    "Coordinator-Antwort mit Fehlerstatus (%s, %s): %s",
+                    self.name,
+                    label,
+                    redact_sensitive_data(payload),
+                )
             detail = payload.get("detail") or f"HTTP {http_status}"
             raise UpdateFailed(f"{label}: {detail}")
         return payload

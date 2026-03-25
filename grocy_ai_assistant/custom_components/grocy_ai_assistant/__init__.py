@@ -32,6 +32,7 @@ from .runtime_state import (
     ensure_entry_runtime_state,
     get_product_input_value,
 )
+from .redaction import redact_sensitive_data
 from .services import (
     DATA_NOTIFICATION_MANAGER,
     NotificationManager,
@@ -182,6 +183,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             duration_ms = (time.perf_counter() - start_time) * 1000
             _set_response_timing_states(duration_ms)
             if payload.get("_http_status") != 200:
+                _LOGGER.debug(
+                    "Add-on sync_product error payload: %s",
+                    redact_sensitive_data(payload),
+                )
                 raise RuntimeError(payload.get("detail") or "Unknown API error")
 
             _set_analysis_status(
@@ -225,6 +230,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             payload = await client.lookup_barcode(barcode)
             duration_ms = (time.perf_counter() - start_time) * 1000
             if payload.get("_http_status") != 200:
+                _LOGGER.debug(
+                    "Add-on lookup_barcode error payload: %s",
+                    redact_sensitive_data(payload),
+                )
                 raise RuntimeError(payload.get("detail") or "Barcode lookup failed")
             _set_barcode_status(
                 *build_barcode_status_payload(
@@ -259,6 +268,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             payload = await client.scan_image(image_base64)
             duration_ms = (time.perf_counter() - start_time) * 1000
             if payload.get("_http_status") != 200:
+                _LOGGER.debug(
+                    "Add-on scan_image error payload: %s",
+                    redact_sensitive_data(payload),
+                )
                 raise RuntimeError(payload.get("detail") or "Image analysis failed")
             _set_llava_status(
                 *build_llava_status_payload(
