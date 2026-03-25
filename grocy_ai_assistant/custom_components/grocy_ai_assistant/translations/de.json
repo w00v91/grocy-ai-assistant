@@ -221,5 +221,15 @@
         }
       }
     }
+  },
+  "issues": {
+    "restart_required": {
+      "title": "Home-Assistant-Neustart erforderlich",
+      "description": "Grocy AI Assistant benötigt für diesen Konfigurationseintrag einen Home-Assistant-Neustart, damit Kompatibilitätsänderungen wirksam werden."
+    },
+    "addon_unreachable": {
+      "title": "Grocy-AI-Assistant-Add-on nicht erreichbar",
+      "description": "Grocy AI Assistant kann den Add-on-Endpunkt für diesen Konfigurationseintrag aktuell nicht erreichen. Prüfe Netzwerk, Add-on-Status und Verbindungseinstellungen."
+    }
   }
 }

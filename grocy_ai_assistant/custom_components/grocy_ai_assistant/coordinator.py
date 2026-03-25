@@ -31,6 +31,7 @@ from .entity_payloads import (
     build_stock_summary,
 )
 from .redaction import redact_sensitive_data
+from .repairs import async_sync_repairs_for_entry
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -282,6 +283,31 @@ class GrocyAIRecipeSuggestionsCoordinator(GrocyAIBaseCoordinator):
         }
 
 
+async def _async_sync_status_repairs(
+    hass: HomeAssistant,
+    entry_id: str,
+    coordinator: DataUpdateCoordinator,
+) -> None:
+    """Build repair payload from coordinator state and sync issues."""
+
+    coordinator_data = coordinator.data or {}
+    status_data = (
+        coordinator_data.get("status", {}) if isinstance(coordinator_data, dict) else {}
+    )
+    status_attributes = (
+        status_data.get("attributes", {}) if isinstance(status_data, dict) else {}
+    )
+
+    payload = {
+        "homeassistant_restart_required": bool(
+            status_attributes.get("homeassistant_restart_required", False)
+        ),
+        "last_update_success": bool(getattr(coordinator, "last_update_success", False)),
+        "last_exception": getattr(coordinator, "last_exception", None),
+    }
+    await async_sync_repairs_for_entry(hass, entry_id, payload)
+
+
 async def async_setup_entry_coordinators(
     hass: HomeAssistant,
     entry: ConfigEntry,
@@ -316,4 +342,15 @@ async def async_setup_entry_coordinators(
 
     entry_runtime = get_entry_runtime_data(hass, entry.entry_id)
     entry_runtime[DATA_COORDINATORS] = coordinators
+
+    status_coordinator = coordinators[COORDINATOR_STATUS]
+
+    await _async_sync_status_repairs(hass, entry.entry_id, status_coordinator)
+
+    def _sync_repairs_listener() -> None:
+        hass.async_create_task(
+            _async_sync_status_repairs(hass, entry.entry_id, status_coordinator)
+        )
+
+    entry.async_on_unload(status_coordinator.async_add_listener(_sync_repairs_listener))
     return coordinators

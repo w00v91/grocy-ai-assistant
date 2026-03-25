@@ -1,5 +1,9 @@
 ## 2026-03-25 (Version 8.0.35)
 
+- Added (Home-Assistant-Integration/Repairs): Neues Modul `custom_components/grocy_ai_assistant/repairs.py` ergänzt und `issue_registry`-basierte Repairs für Neustartpflicht sowie Add-on-Unerreichbarkeit implementiert.
+- Changed (Home-Assistant-Integration/Coordinator): Status-Coordinator synchronisiert Repairs jetzt nach dem initialen Refresh und bei späteren Coordinator-Updates automatisch.
+- Changed (Home-Assistant-Integration/Lifecycle): Beim Entladen eines Config-Entries werden zugehörige Repairs automatisch entfernt.
+- Added (Home-Assistant-Integration/Übersetzungen): `strings.json`, `translations/en.json` und `translations/de.json` um translation-key-basierte Issue-Texte erweitert.
 - Clarified (Startup/Bildsync): Startup-Logs unterscheiden jetzt klar zwischen **Bildgenerierung** (fehlende Produktbilder per KI) und **Bildcache-Sync** (Spiegeln vorhandener Grocy-Bilder), um Missverständnisse im Betrieb zu vermeiden.
 - Added (Startup/Bildgenerierung): `_generate_missing_product_images_on_startup` liefert jetzt einen strukturierten Status (`status`, `generated`, `total`) zurück; der Status wird im Startup-Log explizit ausgegeben.
 - Added (Tests): Startup-Tests decken die neuen Rückgabestatus für deaktivierte Startup-Option bzw. deaktivierte Bildgenerierung ab.
