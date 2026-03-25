@@ -1,3 +1,9 @@
+## 2026-03-25 (Version 8.0.42)
+
+- Fix (Grocy-Bildupload): `attach_product_picture` behandelt jetzt `405 Method Not Allowed` beim `PUT`-Upload als Fallback-Fall und versucht anschließend zusätzliche Upload-Varianten statt hart abzubrechen.
+- Added (Tests/Grocy): Unit-Test ergänzt, der den `405`-Fall auf `PUT` abdeckt und den erfolgreichen Fallback über `POST` absichert.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.42` erhöht.
+
 ## 2026-03-25 (Version 8.0.41)
 
 - Fix (Rezeptvorschläge/API-Latenz): Für KI-Rezeptvorschläge gilt jetzt ein eigener Timeout-Deckel von 20 Sekunden pro KI-Aufruf, auch wenn der globale Ollama-Timeout höher konfiguriert ist.

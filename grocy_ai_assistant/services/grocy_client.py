@@ -602,9 +602,14 @@ class GrocyClient:
             if upload_url not in upload_urls:
                 upload_urls.append(upload_url)
 
-        for index, upload_url in enumerate(upload_urls):
+        upload_attempts: list[tuple[str, str]] = [
+            ("PUT", upload_url) for upload_url in upload_urls
+        ] + [("POST", upload_url) for upload_url in upload_urls]
+
+        for index, (method, upload_url) in enumerate(upload_attempts):
+            request_fn = requests.put if method == "PUT" else requests.post
             try:
-                upload_response = requests.put(
+                upload_response = request_fn(
                     upload_url,
                     headers=upload_headers,
                     data=image_bytes,
@@ -616,11 +621,13 @@ class GrocyClient:
                 status_code = (
                     error.response.status_code if error.response is not None else None
                 )
-                should_retry = index < len(upload_urls) - 1 and status_code == 404
+                is_retryable_status = status_code in {404, 405}
+                should_retry = index < len(upload_attempts) - 1 and is_retryable_status
                 if not should_retry:
                     raise
                 logger.warning(
-                    "Produktbild-Upload über PUT %s fehlgeschlagen (%s), versuche Fallback-Dateiname",
+                    "Produktbild-Upload über %s %s fehlgeschlagen (%s), versuche Fallback",
+                    method,
                     upload_url,
                     status_code,
                 )
