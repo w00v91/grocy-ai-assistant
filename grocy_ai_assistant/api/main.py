@@ -124,15 +124,20 @@ def _build_initial_sync_product_signature(product: dict) -> str:
     return json.dumps(signature_fields, sort_keys=True, ensure_ascii=False)
 
 
-def _generate_missing_product_images_on_startup(settings: Settings) -> None:
+def _generate_missing_product_images_on_startup(
+    settings: Settings,
+) -> dict[str, int | str]:
     if not settings.generate_missing_product_images_on_startup:
-        return
+        logger.info(
+            "Batch-Bildgenerierung beim Start übersprungen: generate_missing_product_images_on_startup ist deaktiviert"
+        )
+        return {"status": "skipped_option_disabled", "generated": 0, "total": 0}
 
     if not settings.image_generation_enabled:
         logger.info(
             "Batch-Bildgenerierung beim Start übersprungen: image_generation_enabled ist deaktiviert"
         )
-        return
+        return {"status": "skipped_generation_disabled", "generated": 0, "total": 0}
 
     client = GrocyClient(settings)
     detector = IngredientDetector(settings)
@@ -141,14 +146,19 @@ def _generate_missing_product_images_on_startup(settings: Settings) -> None:
         products_without_picture = client.get_products_without_picture()
     except Exception as error:
         logger.warning("Produkte ohne Bild konnten nicht geladen werden: %s", error)
-        return
+        return {
+            "status": "failed_products_fetch",
+            "generated": 0,
+            "total": 0,
+            "error": str(error),
+        }
 
     if not products_without_picture:
         logger.info(
             "Batch-Bildgenerierung beim Start: Keine Produkte ohne Bild gefunden"
         )
         _disable_startup_option("generate_missing_product_images_on_startup")
-        return
+        return {"status": "no_products_without_picture", "generated": 0, "total": 0}
 
     logger.info(
         "Batch-Bildgenerierung beim Start gestartet für %s Produkte ohne Bild",
@@ -186,6 +196,11 @@ def _generate_missing_product_images_on_startup(settings: Settings) -> None:
         len(products_without_picture),
     )
     _disable_startup_option("generate_missing_product_images_on_startup")
+    return {
+        "status": "completed",
+        "generated": generated_count,
+        "total": len(products_without_picture),
+    }
 
 
 def _run_initial_info_sync_on_startup(settings: Settings) -> None:
@@ -406,20 +421,34 @@ async def _lifespan(app: FastAPI):
                     "Initiale Rezeptvorschläge zeitverzögert vorab geladen und gecacht"
                 )
 
-            await asyncio.to_thread(
+            image_generation_result = await asyncio.to_thread(
                 _generate_missing_product_images_on_startup, settings
+            )
+            logger.info(
+                "Startup-Bildgenerierung Status: %s (generated=%s, total=%s)",
+                image_generation_result.get("status"),
+                image_generation_result.get("generated"),
+                image_generation_result.get("total"),
             )
 
             image_sync_completed = await asyncio.to_thread(
                 image_cache.wait_for_initial_refresh, 120.0
             )
+            image_sync_status = await asyncio.to_thread(
+                image_cache.get_last_refresh_status
+            )
             if image_sync_completed:
                 logger.info(
-                    "Startup-Bildsync abgeschlossen, starte initialen Info-Sync"
+                    "Startup-Bildcache-Sync abgeschlossen (status=%s, refreshed_images=%s), starte initialen Info-Sync",
+                    image_sync_status.get("status"),
+                    image_sync_status.get("refreshed_images"),
                 )
             else:
                 logger.warning(
-                    "Startup-Bildsync nicht innerhalb von 120 Sekunden abgeschlossen; initialer Info-Sync startet trotzdem"
+                    "Startup-Bildcache-Sync nicht innerhalb von 120 Sekunden abgeschlossen (status=%s, refreshed_images=%s, error=%s); initialer Info-Sync startet trotzdem",
+                    image_sync_status.get("status"),
+                    image_sync_status.get("refreshed_images"),
+                    image_sync_status.get("error"),
                 )
 
             await asyncio.to_thread(_run_initial_info_sync_on_startup, settings)
