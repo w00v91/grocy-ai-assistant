@@ -9,6 +9,7 @@ from .const import DOMAIN
 
 _RESTART_REQUIRED_SUFFIX = "restart_required"
 _ADDON_UNREACHABLE_SUFFIX = "addon_unreachable"
+_INVALID_AUTH_SUFFIX = "invalid_auth"
 
 
 def _issue_id(entry_id: str, suffix: str) -> str:
@@ -37,7 +38,11 @@ async def async_sync_repairs_for_entry(
     restart_required = bool(status_payload.get("homeassistant_restart_required", False))
     update_success = bool(status_payload.get("last_update_success", True))
     last_exception = status_payload.get("last_exception")
-    addon_unreachable = not update_success and bool(last_exception)
+    last_exception_text = str(last_exception).lower() if last_exception else ""
+    invalid_auth = (not update_success) and any(
+        marker in last_exception_text for marker in ("401", "unauthorized", "forbidden")
+    )
+    addon_unreachable = not update_success and bool(last_exception) and not invalid_auth
 
     restart_issue_id = _issue_id(entry_id, _RESTART_REQUIRED_SUFFIX)
     if restart_required:
@@ -65,6 +70,19 @@ async def async_sync_repairs_for_entry(
     else:
         issue_registry.async_delete_issue(hass, DOMAIN, unreachable_issue_id)
 
+    invalid_auth_issue_id = _issue_id(entry_id, _INVALID_AUTH_SUFFIX)
+    if invalid_auth:
+        issue_registry.async_create_issue(
+            hass,
+            DOMAIN,
+            invalid_auth_issue_id,
+            is_fixable=False,
+            severity=issue_registry.IssueSeverity.ERROR,
+            translation_key="invalid_auth",
+        )
+    else:
+        issue_registry.async_delete_issue(hass, DOMAIN, invalid_auth_issue_id)
+
 
 async def async_clear_repairs_for_entry(hass: HomeAssistant, entry_id: str) -> None:
     """Clear all repairs owned by a config entry."""
@@ -78,4 +96,7 @@ async def async_clear_repairs_for_entry(hass: HomeAssistant, entry_id: str) -> N
     )
     issue_registry.async_delete_issue(
         hass, DOMAIN, _issue_id(entry_id, _ADDON_UNREACHABLE_SUFFIX)
+    )
+    issue_registry.async_delete_issue(
+        hass, DOMAIN, _issue_id(entry_id, _INVALID_AUTH_SUFFIX)
     )

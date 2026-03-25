@@ -1,3 +1,9 @@
+## 2026-03-25 (Version 8.0.36)
+
+- Added (Home-Assistant-Integration/Repairs): Neues Repairs-Issue `invalid_auth` ergänzt; Auth-Fehler (z. B. 401/Unauthorized/Forbidden) werden jetzt getrennt von allgemeiner Unerreichbarkeit erfasst.
+- Changed (Home-Assistant-Integration/Übersetzungen): `strings.json`, `translations/en.json` und `translations/de.json` enthalten jetzt überarbeitete user-facing Repair-Meldungen mit Problem, Auswirkung und konkreten nächsten Schritten für `restart_required`, `addon_unreachable` und `invalid_auth`.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.36` erhöht.
+
 ## 2026-03-25 (Version 8.0.35)
 
 - Added (Home-Assistant-Integration/Repairs): Neues Modul `custom_components/grocy_ai_assistant/repairs.py` ergänzt und `issue_registry`-basierte Repairs für Neustartpflicht sowie Add-on-Unerreichbarkeit implementiert.

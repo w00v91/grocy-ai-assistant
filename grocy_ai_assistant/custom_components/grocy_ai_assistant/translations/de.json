@@ -225,11 +225,15 @@
   "issues": {
     "restart_required": {
       "title": "Home-Assistant-Neustart erforderlich",
-      "description": "Grocy AI Assistant benötigt für diesen Konfigurationseintrag einen Home-Assistant-Neustart, damit Kompatibilitätsänderungen wirksam werden."
+      "description": "Grocy AI Assistant benötigt einen Home-Assistant-Neustart, um Kompatibilitätsänderungen für diesen Konfigurationseintrag anzuwenden. Auswirkung: Synchronisierung und Statusaktualisierung können bis zum Neustart unzuverlässig sein. Nächste Schritte: Home Assistant vollständig neu starten und danach den Sensor „Status“ prüfen."
     },
     "addon_unreachable": {
       "title": "Grocy-AI-Assistant-Add-on nicht erreichbar",
-      "description": "Grocy AI Assistant kann den Add-on-Endpunkt für diesen Konfigurationseintrag aktuell nicht erreichen. Prüfe Netzwerk, Add-on-Status und Verbindungseinstellungen."
+      "description": "Der Grocy-AI-Assistant-Add-on-Endpunkt ist für diesen Konfigurationseintrag derzeit nicht erreichbar. Auswirkung: Produktanalyse, Barcode-Suche und Dashboard-Daten können nicht aktualisiert werden. Nächste Schritte: Add-on-Status prüfen, Netzwerkverbindung prüfen und in den Integrationsoptionen die API-Base-URL kontrollieren."
+    },
+    "invalid_auth": {
+      "title": "Ungültige Add-on-Authentifizierung",
+      "description": "Der Grocy AI Assistant konnte sich nicht am Add-on authentifizieren. Auswirkung: API-Aufrufe der Integration werden abgewiesen. Nächste Schritte: API-Schlüssel in den Integrationsoptionen prüfen, gegebenenfalls neu setzen und die API-Base-URL auf den korrekten Add-on-Endpunkt prüfen."
     }
   }
 }

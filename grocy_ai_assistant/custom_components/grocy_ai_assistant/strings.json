@@ -225,11 +225,15 @@
   "issues": {
     "restart_required": {
       "title": "Home Assistant restart required",
-      "description": "Grocy AI Assistant requires a Home Assistant restart for this config entry to apply compatibility changes."
+      "description": "Grocy AI Assistant requires a Home Assistant restart to apply compatibility changes for this config entry. Impact: synchronization and status updates may remain unreliable until restart. Next steps: restart Home Assistant completely, then verify the \"Status\" sensor."
     },
     "addon_unreachable": {
       "title": "Grocy AI Assistant add-on unreachable",
-      "description": "Grocy AI Assistant cannot currently reach the add-on endpoint for this config entry. Check network/add-on availability and integration connection settings."
+      "description": "The Grocy AI Assistant add-on endpoint is currently unreachable for this config entry. Impact: product analysis, barcode lookup, and dashboard data updates cannot run. Next steps: check add-on availability, verify network connectivity, and confirm the API base URL in integration options."
+    },
+    "invalid_auth": {
+      "title": "Invalid add-on authentication",
+      "description": "Grocy AI Assistant could not authenticate against the add-on. Impact: integration API calls are rejected. Next steps: verify the API key in integration options, update it if needed, and confirm the API base URL points to the correct add-on endpoint."
     }
   }
 }
