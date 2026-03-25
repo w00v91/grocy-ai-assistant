@@ -6,7 +6,9 @@
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.41` erhöht.
 
 ## 2026-03-25 (Version 8.0.40)
-
+- Fix (Optionen/Runtime-Quellen): Wenn sowohl `/data/options.yaml` als auch `/data/options.json` vorhanden sind, verwendet der Loader jetzt den **zuletzt geänderten** Runtime-Stand statt YAML starr zu priorisieren. Damit werden aktuelle Optionen wie `cloud_ai.generate_missing_product_images_on_startup` zuverlässig erkannt.
+- Fix (Settings-Cache): Der Cache-Token berücksichtigt jetzt alle vorhandenen Optionsquellen gemeinsam, damit Änderungen an YAML **und** JSON sicher eine Settings-Neuladung auslösen.
+- Added (Tests/Optionen): Regressionstest prüft, dass bei gleichzeitiger YAML/JSON-Präsenz die neuere Datei gewinnt.
 - Fix (Rezeptvorschläge/Fehlerbehandlung): Timeouts bzw. Verbindungsfehler beim Ollama-Request in `generate_recipe_suggestions` führen nicht mehr zu einem API-500, sondern werden geloggt und auf lokale Rezept-Fallbacks zurückgeführt.
 - Fix (Rezeptvorschläge/Robustheit): Ungültige oder nicht parsebare KI-Antworten bei Rezeptvorschlägen werden jetzt defensiv abgefangen, damit der Dashboard-Request stabil bleibt.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.40` erhöht.

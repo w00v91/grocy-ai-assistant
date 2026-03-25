@@ -173,14 +173,30 @@ def _wrap_saved_options_if_needed(
 
 
 def load_addon_options() -> dict[str, Any]:
+    runtime_candidates: list[tuple[int, int, dict[str, Any]]] = []
+
     if ADDON_OPTIONS_YAML_PATH.exists():
-        return _normalize_option_layout(_load_yaml_file(ADDON_OPTIONS_YAML_PATH))
+        yaml_stat = ADDON_OPTIONS_YAML_PATH.stat()
+        runtime_candidates.append(
+            (
+                yaml_stat.st_mtime_ns,
+                0,
+                _normalize_option_layout(_load_yaml_file(ADDON_OPTIONS_YAML_PATH)),
+            )
+        )
 
     if LEGACY_ADDON_OPTIONS_JSON_PATH.exists():
+        json_stat = LEGACY_ADDON_OPTIONS_JSON_PATH.stat()
         payload = json.loads(LEGACY_ADDON_OPTIONS_JSON_PATH.read_text(encoding="utf-8"))
         if not isinstance(payload, dict):
             raise ValueError("options.json enthält kein Objekt")
-        return _normalize_option_layout(payload)
+        runtime_candidates.append(
+            (json_stat.st_mtime_ns, 1, _normalize_option_layout(payload))
+        )
+
+    if runtime_candidates:
+        runtime_candidates.sort(key=lambda item: (item[0], item[1]), reverse=True)
+        return runtime_candidates[0][2]
 
     if REPOSITORY_CONFIG_YAML_PATH.exists():
         payload = _load_yaml_file(REPOSITORY_CONFIG_YAML_PATH)

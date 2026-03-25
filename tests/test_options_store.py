@@ -67,6 +67,35 @@ options:
     }
 
 
+def test_load_addon_options_uses_newest_runtime_file_when_yaml_and_json_exist(
+    tmp_path, monkeypatch
+):
+    yaml_path = tmp_path / "options.yaml"
+    json_path = tmp_path / "options.json"
+
+    monkeypatch.setattr(options_store, "ADDON_OPTIONS_YAML_PATH", yaml_path)
+    monkeypatch.setattr(options_store, "LEGACY_ADDON_OPTIONS_JSON_PATH", json_path)
+    monkeypatch.setattr(
+        options_store, "REPOSITORY_CONFIG_YAML_PATH", tmp_path / "config.yaml"
+    )
+
+    yaml_path.write_text(
+        """options:
+  cloud_ai:
+    generate_missing_product_images_on_startup: false
+""",
+        encoding="utf-8",
+    )
+    json_path.write_text(
+        '{"cloud_ai":{"generate_missing_product_images_on_startup": true}}',
+        encoding="utf-8",
+    )
+
+    assert options_store.load_addon_options() == {
+        "generate_missing_product_images_on_startup": True
+    }
+
+
 def test_save_addon_options_writes_grouped_yaml_layout(tmp_path, monkeypatch):
     yaml_path = tmp_path / "options.yaml"
     monkeypatch.setattr(options_store, "ADDON_OPTIONS_YAML_PATH", yaml_path)
