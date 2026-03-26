@@ -1195,6 +1195,7 @@ select:focus-visible {
 
 .recipes-primary-actions {
   margin-top: var(--panel-compact-gap);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .expiring-search-controls {
