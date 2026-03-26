@@ -25,7 +25,7 @@ const TAB_ICONS = Object.freeze({
 });
 const DEFAULT_POLLING_INTERVAL_SECONDS = 5;
 const DEFAULT_POLLING_INTERVAL_MS = DEFAULT_POLLING_INTERVAL_SECONDS * 1000;
-const DEFAULT_INTEGRATION_VERSION = '8.0.51';
+const DEFAULT_INTEGRATION_VERSION = '8.0.52';
 const GROCY_RECIPE_DISPLAY_LIMIT = 3;
 const AI_RECIPE_DISPLAY_LIMIT = 3;
 const TAB_VIEW_STATE = Object.freeze({
@@ -885,8 +885,10 @@ class GrocyAITopbar extends HTMLElement {
               >
                 ${renderHaIcon('mdi:menu')}
               </button>
-              ${renderHaIcon(model.panelIcon || PANEL_ICON, 'topbar-title-icon')}
-              <h1>${PANEL_TITLE}</h1>
+              <div class="topbar-heading-row">
+                ${renderHaIcon(model.panelIcon || PANEL_ICON, 'topbar-title-icon')}
+                <h1>${PANEL_TITLE}</h1>
+              </div>
             </div>
           </div>
           <div class="topbar-meta">

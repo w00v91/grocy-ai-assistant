@@ -74,15 +74,19 @@
 }
 
 .topbar-brand,
-.topbar-title-row {
+.topbar-title-row,
+.topbar-heading-row {
   display: grid;
   gap: var(--panel-compact-gap);
 }
 
 .topbar-title-row {
+  min-width: 0;
+}
+
+.topbar-heading-row {
   grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
-  min-width: 0;
 }
 
 .topbar-menu-button {
