@@ -1,3 +1,21 @@
+## 2026-03-26 (Version 8.0.44)
+
+- Fix (Grocy-Bildupload/Dateiname): Produktbild-Upload kodiert den Dateinamen für `PUT /api/files/productpictures/{filename}` jetzt wieder explizit als Base64, damit Grocy-Setups mit codiertem Pfadformat den Upload akzeptieren.
+- Changed (Tests/Grocy): Unit-Tests prüfen den Base64-kodierten Upload-Pfad und weiterhin das direkte Fehler-Propagieren ohne Fallback-Kette.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.44` erhöht.
+
+## 2026-03-25 (Version 8.0.43)
+
+- Fix (Grocy-Bildupload/API-Route): Produktbild-Upload nutzt jetzt wieder ausschließlich den direkten API-Endpunkt `PUT /api/files/productpictures/{filename}` (abgeleitet aus `grocy_base_url`) statt Upload-Fallback-Ketten über alternative Routen/Methoden.
+- Changed (Tests/Grocy): Upload-Tests auf den festen API-Aufruf ohne Methoden-/Dateinamen-Fallback angepasst; Fehlerstatus beim Upload werden wieder direkt propagiert.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.43` erhöht.
+
+## 2026-03-25 (Version 8.0.42)
+
+- Fix (Grocy-Bildupload): `attach_product_picture` behandelt jetzt `405 Method Not Allowed` beim `PUT`-Upload als Fallback-Fall und versucht anschließend zusätzliche Upload-Varianten statt hart abzubrechen.
+- Added (Tests/Grocy): Unit-Test ergänzt, der den `405`-Fall auf `PUT` abdeckt und den erfolgreichen Fallback über `POST` absichert.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.42` erhöht.
+
 ## 2026-03-25 (Version 8.0.41)
 
 - Fix (Rezeptvorschläge/API-Latenz): Für KI-Rezeptvorschläge gilt jetzt ein eigener Timeout-Deckel von 20 Sekunden pro KI-Aufruf, auch wenn der globale Ollama-Timeout höher konfiguriert ist.

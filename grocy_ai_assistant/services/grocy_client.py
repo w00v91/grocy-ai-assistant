@@ -576,6 +576,7 @@ class GrocyClient:
 
     def attach_product_picture(self, product_id: int, image_path: str) -> str:
         file_name = Path(image_path).name
+        encoded_file_name = b64encode(file_name.encode("utf-8")).decode("ascii")
         image_bytes = Path(image_path).read_bytes()
 
         upload_headers = {
@@ -584,46 +585,14 @@ class GrocyClient:
             "Accept": "*/*",
         }
 
-        encoded_file_name = b64encode(file_name.encode("utf-8")).decode("ascii")
-        candidate_file_names = [file_name]
-        if encoded_file_name != file_name:
-            candidate_file_names.append(encoded_file_name)
-
-        stripped_base_url = self.settings.grocy_base_url.rstrip("/")
-        upload_base_url = (
-            stripped_base_url[:-4]
-            if stripped_base_url.endswith("/api")
-            else stripped_base_url
+        upload_url = f"{self.settings.grocy_base_url.rstrip('/')}/files/productpictures/{encoded_file_name}"
+        upload_response = requests.put(
+            upload_url,
+            headers=upload_headers,
+            data=image_bytes,
+            timeout=60,
         )
-
-        upload_urls: list[str] = []
-        for upload_file_name in candidate_file_names:
-            upload_url = f"{upload_base_url}/files/productpictures/{upload_file_name}"
-            if upload_url not in upload_urls:
-                upload_urls.append(upload_url)
-
-        for index, upload_url in enumerate(upload_urls):
-            try:
-                upload_response = requests.put(
-                    upload_url,
-                    headers=upload_headers,
-                    data=image_bytes,
-                    timeout=60,
-                )
-                upload_response.raise_for_status()
-                break
-            except HTTPError as error:
-                status_code = (
-                    error.response.status_code if error.response is not None else None
-                )
-                should_retry = index < len(upload_urls) - 1 and status_code == 404
-                if not should_retry:
-                    raise
-                logger.warning(
-                    "Produktbild-Upload über PUT %s fehlgeschlagen (%s), versuche Fallback-Dateiname",
-                    upload_url,
-                    status_code,
-                )
+        upload_response.raise_for_status()
 
         update_response = requests.put(
             f"{self.settings.grocy_base_url}/objects/products/{product_id}",
