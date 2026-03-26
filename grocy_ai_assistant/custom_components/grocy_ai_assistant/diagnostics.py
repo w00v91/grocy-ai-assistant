@@ -57,7 +57,9 @@ def _coordinator_diagnostics(coordinator: Any) -> dict[str, Any]:
 
     return {
         "last_update_success": bool(getattr(coordinator, "last_update_success", False)),
-        "last_exception": _to_serializable(getattr(coordinator, "last_exception", None)),
+        "last_exception": _to_serializable(
+            getattr(coordinator, "last_exception", None)
+        ),
         "data": redact_sensitive_data(raw_data),
     }
 

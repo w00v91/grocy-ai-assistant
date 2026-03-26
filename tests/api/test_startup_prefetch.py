@@ -1,5 +1,7 @@
 import json
 
+import time
+
 from fastapi.testclient import TestClient
 
 import grocy_ai_assistant.api.main as api_main
@@ -53,7 +55,7 @@ def test_startup_prefetch_waits_five_seconds(monkeypatch):
 
     app = api_main.create_app()
     with TestClient(app):
-        pass
+        time.sleep(0.05)
 
     assert calls[0] == 5
     assert "prefetch" in calls
@@ -117,7 +119,7 @@ def test_startup_prefetch_reloads_settings_after_start_delay(monkeypatch):
 
     app = api_main.create_app()
     with TestClient(app):
-        pass
+        time.sleep(0.05)
 
     assert observed_generate_flags == [True]
 
