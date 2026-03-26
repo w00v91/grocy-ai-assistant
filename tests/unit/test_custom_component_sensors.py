@@ -359,8 +359,10 @@ def test_all_sensor_types_share_the_entry_device_info():
 
     expected = {
         "identifiers": {("grocy_ai_assistant", "entry-1")},
-        "name": "Grocy AI Assistant",
-        "manufacturer": "Eigene Integration",
+        "name": "Grocy AI Assistant Add-on",
+        "manufacturer": "Grocy AI Assistant",
+        "model": "Grocy AI Assistant Add-on",
+        "model_id": "grocy_ai_assistant_addon",
     }
 
     assert response_sensor.device_info == expected

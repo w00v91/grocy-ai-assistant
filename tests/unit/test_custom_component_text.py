@@ -104,8 +104,10 @@ def test_text_entity_registers_on_entry_device():
 
     assert entity.device_info == {
         "identifiers": {("grocy_ai_assistant", "entry-1")},
-        "name": "Grocy AI Assistant",
-        "manufacturer": "Eigene Integration",
+        "name": "Grocy AI Assistant Add-on",
+        "manufacturer": "Grocy AI Assistant",
+        "model": "Grocy AI Assistant Add-on",
+        "model_id": "grocy_ai_assistant_addon",
     }
 
 
@@ -114,6 +116,31 @@ def test_text_entity_uses_translated_entity_name():
 
     assert entity._attr_translation_key == "product_input"
     assert entity._attr_has_entity_name is True
+
+
+def test_text_entity_device_info_includes_addon_version_and_configuration_url():
+    entity = text_module.GrocyProductInput(_FakeEntry())
+    entity.hass = types.SimpleNamespace(
+        data={
+            "grocy_ai_assistant": {
+                "entry-1": {
+                    "config": {"api_base_url": "http://addon.local:8000"},
+                    "coordinators": {
+                        "status": types.SimpleNamespace(
+                            data={
+                                "status": {
+                                    "attributes": {"addon_version": "8.0.50"}
+                                }
+                            }
+                        )
+                    },
+                }
+            }
+        }
+    )
+
+    assert entity.device_info["sw_version"] == "8.0.50"
+    assert entity.device_info["configuration_url"] == "http://addon.local:8000"
 
 
 def test_text_entity_reads_runtime_value_from_hass_data():

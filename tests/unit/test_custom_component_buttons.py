@@ -10,6 +10,9 @@ PACKAGE_PATH = ROOT / "grocy_ai_assistant" / "custom_components" / "grocy_ai_ass
 
 
 class _FakeButtonEntity:
+    def __init__(self, *args, **kwargs):
+        self.hass = None
+
     @property
     def translation_key(self):
         return getattr(self, "_attr_translation_key", None)
@@ -112,6 +115,8 @@ def test_buttons_register_on_same_device_as_response_sensor():
 
     assert button.device_info == {
         "identifiers": {("grocy_ai_assistant", "entry-1")},
-        "name": "Grocy AI Assistant",
-        "manufacturer": "Eigene Integration",
+        "name": "Grocy AI Assistant Add-on",
+        "manufacturer": "Grocy AI Assistant",
+        "model": "Grocy AI Assistant Add-on",
+        "model_id": "grocy_ai_assistant_addon",
     }

@@ -69,4 +69,4 @@ class GrocyProductInput(RestoreEntity, TextEntity):
 
     @property
     def device_info(self):
-        return build_device_info(self._entry.entry_id)
+        return build_device_info(self._entry.entry_id, getattr(self, "hass", None))
