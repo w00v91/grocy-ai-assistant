@@ -1,3 +1,8 @@
+## 2026-03-26 (Version 8.0.52)
+
+- Changed (Home-Assistant-Integration/Panel/Topbar): Das Kühlschrank-Icon in der Topbar wurde unter den Sidebar-Button verschoben und steht jetzt in einer eigenen Zeile direkt vor der Überschrift `Grocy AI`.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.52` erhöht.
+
 ## 2026-03-26 (Version 8.0.51)
 - Changed (Home-Assistant-Integration/DeviceInfo): Das gemeinsame `DeviceInfo` beschreibt das repräsentierte Gerät jetzt als **Add-on-Device** (`Grocy AI Assistant Add-on`) mit aussagekräftigem `manufacturer`, `model` und stabilem `model_id`.
 - Changed (Home-Assistant-Integration/DeviceInfo/Version): `sw_version` wird jetzt dynamisch aus dem Status-Coordinator (`addon_version`) übernommen, sobald diese Information verfügbar ist.
