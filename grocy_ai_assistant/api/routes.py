@@ -83,6 +83,9 @@ LAST_SCAN_RESULT: dict[str, Any] = {
     "updated_at": "",
     "result": None,
 }
+SEARCH_GUARD_LOCK = threading.Lock()
+SEARCH_REQUESTS_IN_FLIGHT: dict[str, float] = {}
+SEARCH_GUARD_STALE_SECONDS = 120.0
 
 
 def _call_homeassistant_service(
@@ -132,6 +135,53 @@ def _call_homeassistant_service(
         errors.append(f"Service-Aufruf {domain}.{service} fehlgeschlagen")
 
     return False, " | ".join(errors), last_status_code
+
+
+def _build_dashboard_search_guard_key(
+    request: Request,
+    *,
+    product_name: str,
+    amount: float,
+    best_before_date: str,
+    force_create: bool,
+) -> str:
+    client_host = request.client.host if request.client else "unknown"
+    normalized_name = _normalize_new_product_name(product_name).lower()
+    normalized_amount = f"{float(amount):.6f}"
+    normalized_best_before_date = str(best_before_date or "").strip()
+    return "|".join(
+        [
+            client_host,
+            normalized_name,
+            normalized_amount,
+            normalized_best_before_date,
+            "force" if force_create else "regular",
+        ]
+    )
+
+
+def _begin_dashboard_search_guard(guard_key: str) -> bool:
+    now = time.monotonic()
+    cutoff = now - SEARCH_GUARD_STALE_SECONDS
+    with SEARCH_GUARD_LOCK:
+        stale_keys = [
+            key
+            for key, started_at in SEARCH_REQUESTS_IN_FLIGHT.items()
+            if started_at < cutoff
+        ]
+        for key in stale_keys:
+            SEARCH_REQUESTS_IN_FLIGHT.pop(key, None)
+
+        if guard_key in SEARCH_REQUESTS_IN_FLIGHT:
+            return False
+
+        SEARCH_REQUESTS_IN_FLIGHT[guard_key] = now
+        return True
+
+
+def _end_dashboard_search_guard(guard_key: str) -> None:
+    with SEARCH_GUARD_LOCK:
+        SEARCH_REQUESTS_IN_FLIGHT.pop(guard_key, None)
 
 
 def _build_homeassistant_auth_headers() -> list[dict[str, str]]:
@@ -1720,6 +1770,22 @@ def dashboard_search(
         raise HTTPException(status_code=400, detail="Bitte Produktname eingeben")
 
     amount = parsed_amount if parsed_amount is not None else payload.amount
+    guard_key = _build_dashboard_search_guard_key(
+        request,
+        product_name=product_name,
+        amount=amount,
+        best_before_date=payload.best_before_date,
+        force_create=payload.force_create,
+    )
+    if not _begin_dashboard_search_guard(guard_key):
+        return DashboardSearchResponse(
+            success=False,
+            action="search_in_flight",
+            message=(
+                "Eine identische Produktsuche läuft bereits. "
+                "Bitte kurz warten und dann erneut versuchen."
+            ),
+        )
 
     detector = IngredientDetector(settings)
     grocy_client = GrocyClient(settings)
@@ -1801,6 +1867,8 @@ def dashboard_search(
             exc=error,
         )
         raise HTTPException(status_code=500, detail=str(error)) from error
+    finally:
+        _end_dashboard_search_guard(guard_key)
 
 
 @router.post("/api/v1/grocy/sync", response_model=DashboardSearchResponse)

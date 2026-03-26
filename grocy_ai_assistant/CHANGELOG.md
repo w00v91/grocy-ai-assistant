@@ -1,3 +1,9 @@
+## 2026-03-26 (Version 8.0.48)
+
+- Added (Dashboard/API/Extraschutz): `POST /api/dashboard/search` hat jetzt serverseitig einen In-Flight-Guard pro Client + Suchparameter, damit identische Parallel-Requests während einer laufenden Verarbeitung sofort abgefangen werden.
+- Added (Tests/API): Regressionstest ergänzt, der den neuen `search_in_flight`-Pfad für parallele Doppelauslösung absichert.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.48` erhöht.
+
 ## 2026-03-26 (Version 8.0.47)
 
 - Fix (Dashboard/Produktsuche): Mehrfaches Auslösen von `POST /api/dashboard/search` während einer laufenden Anfrage wird im Add-on-Dashboard jetzt blockiert, sodass ein laufender Submit nicht parallel erneut gestartet wird.

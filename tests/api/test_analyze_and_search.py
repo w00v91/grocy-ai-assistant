@@ -84,6 +84,31 @@ def test_dashboard_search_uses_amount_prefix_from_name(client, monkeypatch):
     assert calls == [(7, 2, "")]
 
 
+def test_dashboard_search_rejects_parallel_duplicate_requests(client, monkeypatch):
+    class FakeGrocyClient:
+        def __init__(self, settings):
+            self.settings = settings
+
+    class FakeDetector:
+        def __init__(self, settings):
+            self.settings = settings
+
+    monkeypatch.setattr(routes, "GrocyClient", FakeGrocyClient)
+    monkeypatch.setattr(routes, "IngredientDetector", FakeDetector)
+    monkeypatch.setattr(routes, "_begin_dashboard_search_guard", lambda _key: False)
+
+    response = client.post(
+        "/api/dashboard/search",
+        headers={"Authorization": "Bearer test-api-key"},
+        json={"name": "Milch"},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["success"] is False
+    assert payload["action"] == "search_in_flight"
+
+
 def test_dashboard_search_reconciles_existing_product_amount_when_backend_adds_only_one(
     client, monkeypatch
 ):
