@@ -1,4 +1,3 @@
-from base64 import b64encode
 from datetime import datetime, timedelta
 
 import pytest
@@ -398,8 +397,6 @@ def test_clear_shopping_list_deletes_all_items(monkeypatch):
     ]
 
 
-
-
 def test_search_products_by_partial_name_supports_two_letter_queries(monkeypatch):
     def fake_get(*args, **kwargs):
         return FakeResponse(
@@ -426,6 +423,7 @@ def test_search_products_by_partial_name_supports_two_letter_queries(monkeypatch
     result = client.search_products_by_partial_name("ei")
 
     assert [product["name"] for product in result] == ["Ei", "Eis"]
+
 
 def test_search_products_by_partial_name_returns_all_variants(monkeypatch):
     def fake_get(*args, **kwargs):
@@ -2093,7 +2091,7 @@ def test_attach_product_picture_uploads_file_and_updates_product(monkeypatch, tm
 
     assert result == "my_product.png"
     assert calls[0][0] == "PUT"
-    assert calls[0][1] == "http://grocy.local/files/productpictures/my_product.png"
+    assert calls[0][1] == "http://grocy.local/api/files/productpictures/my_product.png"
     assert calls[0][2]["Accept"] == "*/*"
     assert calls[0][2]["GROCY-API-KEY"] == "g"
     assert calls[0][3] == b"img"
@@ -2101,7 +2099,7 @@ def test_attach_product_picture_uploads_file_and_updates_product(monkeypatch, tm
     assert calls[1][4] == {"picture_file_name": "my_product.png"}
 
 
-def test_attach_product_picture_retries_with_base64_filename(monkeypatch, tmp_path):
+def test_attach_product_picture_raises_upload_errors(monkeypatch, tmp_path):
     calls = []
 
     class FakeResponse:
@@ -2117,14 +2115,10 @@ def test_attach_product_picture_retries_with_base64_filename(monkeypatch, tmp_pa
     image_path = tmp_path / "my_product.png"
     image_path.write_bytes(b"img")
 
-    encoded_file_name = b64encode(image_path.name.encode("utf-8")).decode("ascii")
-
     def fake_put(url, headers=None, data=None, json=None, timeout=None):
         calls.append(("PUT", url, headers, data, json))
         if "/files/productpictures/" in url:
-            if url.endswith(f"/productpictures/{encoded_file_name}"):
-                return FakeResponse(status_code=200)
-            return FakeResponse(status_code=404)
+            return FakeResponse(status_code=405)
         return FakeResponse(status_code=200)
 
     monkeypatch.setattr(
@@ -2141,14 +2135,12 @@ def test_attach_product_picture_retries_with_base64_filename(monkeypatch, tmp_pa
         )
     )
 
-    result = client.attach_product_picture(10, str(image_path))
+    with pytest.raises(requests.HTTPError):
+        client.attach_product_picture(10, str(image_path))
 
-    assert result == "my_product.png"
-    upload_urls = [call[1] for call in calls if "/files/productpictures/" in call[1]]
-    assert (
-        f"http://grocy.local/files/productpictures/{encoded_file_name}" in upload_urls
-    )
-    assert calls[-1][1] == "http://grocy.local/api/objects/products/10"
+    assert len(calls) == 1
+    assert calls[0][0] == "PUT"
+    assert calls[0][1] == "http://grocy.local/api/files/productpictures/my_product.png"
 
 
 def test_create_product_retries_with_sanitized_payload_on_400(monkeypatch):
