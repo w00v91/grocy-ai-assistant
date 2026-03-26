@@ -276,6 +276,9 @@ export function createShoppingSearchController({
     invalidateVariantRequests();
 
     const currentState = getState();
+    if (currentState.isSubmitting) {
+      return { ok: false, payload: null };
+    }
     const { productName, amountFromName } = parseAmountPrefixedSearch(currentState.query);
     const normalizedProductName = productName.trim();
     const normalizedAmountOverride = Number(options.amount);

@@ -3067,6 +3067,7 @@ class GrocyAIDashboardPanel extends HTMLElement {
     this._initialDataLoadStarted = false;
     this._apiBasePathPromise = null;
     this._startupBannerLogged = false;
+    this._eventsBound = false;
     this._scrollLockState = null;
     this._shellLayoutObserver = null;
     this._handleWindowResize = () => this._syncShellLayoutMetrics();
@@ -3236,6 +3237,7 @@ class GrocyAIDashboardPanel extends HTMLElement {
   }
 
   _bindEvents() {
+    if (this._eventsBound) return;
     const root = this.shadowRoot;
     if (!root) return;
 
@@ -3294,6 +3296,7 @@ class GrocyAIDashboardPanel extends HTMLElement {
     root.addEventListener('storage-close-delete', () => this._closeStorageDelete());
     root.addEventListener('storage-confirm-delete', () => this._confirmStorageDelete());
     root.addEventListener('open-legacy-dashboard', (event) => this._openLegacyDashboard(event.detail?.tab));
+    this._eventsBound = true;
   }
 
   _toggleSidebar() {
