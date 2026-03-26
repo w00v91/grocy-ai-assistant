@@ -2097,14 +2097,10 @@ class GrocyAIScannerBridge extends HTMLElement {
           <button class="shopping-modal-close" type="button" data-action="shopping-close-scanner" aria-label="Scanner schließen">×</button>
           <div class="scanner-modal-header">
             <div>
-              <p class="eyebrow">Nativer Scanner</p>
-              <h3>Kamera, Barcode und Bildanalyse</h3>
+              <p class="eyebrow">Scanner</p>
+              <h3>Barcode und Bildanalyse</h3>
             </div>
-            <span class="migration-chip">Kein Legacy-iframe mehr</span>
           </div>
-          <p class="description">
-            Barcodes werden direkt im nativen Panel erkannt. Falls kein Barcode gefunden wird, kann derselbe Kamera-Frame über die Bildanalyse an <code>POST /api/v1/scan/image</code> übergeben werden.
-          </p>
           <div class="scanner-controls-grid">
             <label>
               <span class="muted">Kamera</span>
