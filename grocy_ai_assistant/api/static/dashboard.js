@@ -75,6 +75,7 @@ const dashboardStore = createDashboardStore({
   scannerRotationDegrees: 0,
   scannerResultPayload: null,
   scannerCreateInFlight: false,
+  shoppingSearchSubmitInFlight: false,
 });
 const dashboardState = dashboardStore.state;
 const HA_THEME_MESSAGE_TYPE = 'grocy-ai-assistant:ha-theme-sync';
@@ -1761,53 +1762,66 @@ async function clearShoppingList() {
 }
 
 async function searchProduct(options = {}) {
-  return withBusyState(async () => {
-  const rawName = document.getElementById('name').value;
-  const status = getShoppingStatusElement();
-  status?.classList.add('search-status-badge');
-  const key = ensureApiKey();
-  const { productName, amountFromName } = parseAmountPrefixedSearch(rawName);
-  const amount = amountFromName ?? getShoppingAmount();
-  const bestBeforeDate = getShoppingBestBeforeDate();
-
-  if (!key) {
-    status.textContent = 'Kein API-Key angegeben.';
-    return;
-  }
-  if (!productName) {
-    status.textContent = 'Bitte Produktname eingeben.';
-    return;
-  }
-  if (productName.trim().length < MIN_PRODUCT_SEARCH_LENGTH) {
-    status.textContent = 'Bitte mindestens 2 Buchstaben für die Produktsuche eingeben.';
-    return;
-  }
-
-  const forceCreate = options.forceCreate === true;
-  status.textContent = forceCreate ? 'Lege Produkt direkt an...' : 'Prüfe Produkt...';
-  try {
-    const { response, payload } = await dashboardApi.searchProduct({
-      name: productName,
-      amount,
-      best_before_date: bestBeforeDate,
-      force_create: forceCreate,
-    });
-    status.textContent = payload.message || getErrorMessage(payload, 'Unbekannte Antwort');
-
-    if (response.ok) {
-      const variants = payload.variants || [];
-      if (payload.action === 'variant_selection_required' && variants.length) {
-        renderVariants(variants, { amount });
-        return;
-      }
-
-      clearVariantResults();
-      await loadShoppingList();
+  if (dashboardState.shoppingSearchSubmitInFlight) {
+    const status = getShoppingStatusElement();
+    status?.classList.add('search-status-badge');
+    if (status && !status.textContent) {
+      status.textContent = 'Produktanfrage läuft bereits...';
     }
-  } catch (_) {
-    status.textContent = 'Produkt konnte nicht geprüft werden (Netzwerk-/Ingress-Fehler).';
+    return;
   }
 
+  dashboardState.shoppingSearchSubmitInFlight = true;
+  return withBusyState(async () => {
+  try {
+    const rawName = document.getElementById('name').value;
+    const status = getShoppingStatusElement();
+    status?.classList.add('search-status-badge');
+    const key = ensureApiKey();
+    const { productName, amountFromName } = parseAmountPrefixedSearch(rawName);
+    const amount = amountFromName ?? getShoppingAmount();
+    const bestBeforeDate = getShoppingBestBeforeDate();
+
+    if (!key) {
+      status.textContent = 'Kein API-Key angegeben.';
+      return;
+    }
+    if (!productName) {
+      status.textContent = 'Bitte Produktname eingeben.';
+      return;
+    }
+    if (productName.trim().length < MIN_PRODUCT_SEARCH_LENGTH) {
+      status.textContent = 'Bitte mindestens 2 Buchstaben für die Produktsuche eingeben.';
+      return;
+    }
+
+    const forceCreate = options.forceCreate === true;
+    status.textContent = forceCreate ? 'Lege Produkt direkt an...' : 'Prüfe Produkt...';
+    try {
+      const { response, payload } = await dashboardApi.searchProduct({
+        name: productName,
+        amount,
+        best_before_date: bestBeforeDate,
+        force_create: forceCreate,
+      });
+      status.textContent = payload.message || getErrorMessage(payload, 'Unbekannte Antwort');
+
+      if (response.ok) {
+        const variants = payload.variants || [];
+        if (payload.action === 'variant_selection_required' && variants.length) {
+          renderVariants(variants, { amount });
+          return;
+        }
+
+        clearVariantResults();
+        await loadShoppingList();
+      }
+    } catch (_) {
+      status.textContent = 'Produkt konnte nicht geprüft werden (Netzwerk-/Ingress-Fehler).';
+    }
+  } finally {
+    dashboardState.shoppingSearchSubmitInFlight = false;
+  }
   });
 }
 

@@ -1,5 +1,13 @@
+## 2026-03-26 (Version 8.0.48)
+
+- Added (Dashboard/API/Extraschutz): `POST /api/dashboard/search` hat jetzt serverseitig einen In-Flight-Guard pro Client + Suchparameter, damit identische Parallel-Requests während einer laufenden Verarbeitung sofort abgefangen werden.
+- Added (Tests/API): Regressionstest ergänzt, der den neuen `search_in_flight`-Pfad für parallele Doppelauslösung absichert.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.48` erhöht.
+
 ## 2026-03-26 (Version 8.0.47)
 
+- Fix (Dashboard/Produktsuche): Mehrfaches Auslösen von `POST /api/dashboard/search` während einer laufenden Anfrage wird im Add-on-Dashboard jetzt blockiert, sodass ein laufender Submit nicht parallel erneut gestartet wird.
+- Fix (Grocy-Produktherstellung): Wenn Grocy bei der Produkterstellung mit `400 Bad Request` antwortet (z. B. durch parallele Wiederholungen), wird nun ein bereits vorhandenes Produkt mit gleichem Namen wiederverwendet statt mit `500` abzubrechen.
 - Fix (Home-Assistant-Integration/Panel/Auth): Der native Dashboard-API-Client unterstützt jetzt asynchrone Auth-Header-Auflösung, sodass Home-Assistant-Access-Tokens aus Promise-basierten `getAccessToken()`-Quellen korrekt verwendet werden und Proxy-Requests nicht mehr mit `401 Unauthorized` fehlschlagen.
 - Added (Tests/Frontend): Regressionstest ergänzt, der asynchrone `getAuthHeaders` im Dashboard-API-Client absichert.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.47` erhöht.
