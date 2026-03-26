@@ -1,3 +1,8 @@
+## 2026-03-26 (Version 8.0.46)
+
+- Added (Home-Assistant-Integration/Panel/Navigation): Im nativen Dashboard-Topbar gibt es jetzt einen Sidebar-Button (Hamburger-Menü), der die Home-Assistant-Sidebar direkt aus dem Panel heraus öffnet.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.46` erhöht.
+
 ## 2026-03-26 (Version 8.0.45)
 
 - Changed (Home-Assistant-Integration/Panel/Rezepte): Die Buttons `Rezept hinzufügen` und `Rezepte laden` im Rezepte-Tab werden jetzt in einer gemeinsamen Zeile mit jeweils 50% Breite dargestellt.

@@ -85,6 +85,28 @@
   min-width: 0;
 }
 
+.topbar-menu-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  border: 1px solid var(--panel-border-color);
+  background: var(--secondary-background-color);
+  color: var(--primary-text-color);
+  cursor: pointer;
+  padding: 0;
+}
+
+.topbar-menu-button ha-icon {
+  --mdc-icon-size: 22px;
+}
+
+.topbar-menu-button:hover {
+  background: color-mix(in srgb, var(--secondary-background-color) 80%, var(--primary-color));
+}
+
 .topbar-title-icon {
   --mdc-icon-size: 28px;
   color: var(--primary-color);
