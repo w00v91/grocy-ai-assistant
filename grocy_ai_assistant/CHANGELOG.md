@@ -1,3 +1,9 @@
+## 2026-03-26 (Version 8.0.44)
+
+- Fix (Grocy-Bildupload/Dateiname): Produktbild-Upload kodiert den Dateinamen für `PUT /api/files/productpictures/{filename}` jetzt wieder explizit als Base64, damit Grocy-Setups mit codiertem Pfadformat den Upload akzeptieren.
+- Changed (Tests/Grocy): Unit-Tests prüfen den Base64-kodierten Upload-Pfad und weiterhin das direkte Fehler-Propagieren ohne Fallback-Kette.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.44` erhöht.
+
 ## 2026-03-25 (Version 8.0.43)
 
 - Fix (Grocy-Bildupload/API-Route): Produktbild-Upload nutzt jetzt wieder ausschließlich den direkten API-Endpunkt `PUT /api/files/productpictures/{filename}` (abgeleitet aus `grocy_base_url`) statt Upload-Fallback-Ketten über alternative Routen/Methoden.

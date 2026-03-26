@@ -2088,10 +2088,14 @@ def test_attach_product_picture_uploads_file_and_updates_product(monkeypatch, tm
     )
 
     result = client.attach_product_picture(10, str(image_path))
+    encoded_file_name = b64encode(image_path.name.encode("utf-8")).decode("ascii")
 
     assert result == "my_product.png"
     assert calls[0][0] == "PUT"
-    assert calls[0][1] == "http://grocy.local/api/files/productpictures/my_product.png"
+    assert (
+        calls[0][1]
+        == f"http://grocy.local/api/files/productpictures/{encoded_file_name}"
+    )
     assert calls[0][2]["Accept"] == "*/*"
     assert calls[0][2]["GROCY-API-KEY"] == "g"
     assert calls[0][3] == b"img"
@@ -2137,10 +2141,14 @@ def test_attach_product_picture_raises_upload_errors(monkeypatch, tmp_path):
 
     with pytest.raises(requests.HTTPError):
         client.attach_product_picture(10, str(image_path))
+    encoded_file_name = b64encode(image_path.name.encode("utf-8")).decode("ascii")
 
     assert len(calls) == 1
     assert calls[0][0] == "PUT"
-    assert calls[0][1] == "http://grocy.local/api/files/productpictures/my_product.png"
+    assert (
+        calls[0][1]
+        == f"http://grocy.local/api/files/productpictures/{encoded_file_name}"
+    )
 
 
 def test_create_product_retries_with_sanitized_payload_on_400(monkeypatch):

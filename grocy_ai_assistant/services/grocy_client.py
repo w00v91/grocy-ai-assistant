@@ -576,6 +576,7 @@ class GrocyClient:
 
     def attach_product_picture(self, product_id: int, image_path: str) -> str:
         file_name = Path(image_path).name
+        encoded_file_name = b64encode(file_name.encode("utf-8")).decode("ascii")
         image_bytes = Path(image_path).read_bytes()
 
         upload_headers = {
@@ -584,7 +585,7 @@ class GrocyClient:
             "Accept": "*/*",
         }
 
-        upload_url = f"{self.settings.grocy_base_url.rstrip('/')}/files/productpictures/{file_name}"
+        upload_url = f"{self.settings.grocy_base_url.rstrip('/')}/files/productpictures/{encoded_file_name}"
         upload_response = requests.put(
             upload_url,
             headers=upload_headers,
