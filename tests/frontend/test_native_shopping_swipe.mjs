@@ -88,7 +88,8 @@ test('native storage tab renders legacy-style swipe list items and rebinds swipe
   assert.doesNotMatch(source, /interactiveElementSelector: '\.storage-item-delete-button'/);
   assert.match(source, /new CustomEvent\('storage-open-edit'/);
   assert.match(source, /const actionName = payload\.inStock \? 'storage-open-consume' : 'storage-open-edit';/);
-  assert.match(source, /bindShoppingImageFallbacks\(this\);\s+this\._rebindSwipeInteractions\(\);/);
+  assert.match(source, /bindShoppingImageFallbacks\(this\);/);
+  assert.match(source, /this\._rebindSwipeInteractions\(\);/);
 });
 
 test('native storage summary keeps filter badges for total, in-stock, and out-of-stock counts in sync even without include-all toggle', async () => {

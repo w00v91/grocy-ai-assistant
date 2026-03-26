@@ -1,3 +1,16 @@
+## 2026-03-26 (Version 8.0.51)
+
+- Fix (Frontend/Tests): `test_native_shopping_swipe.mjs` prüft Storage-Swipe-Rebind jetzt robust über getrennte Assertions statt eine starre Direkt-Sequenz zu erwarten.
+- Fix (Frontend/Shopping-Suche): `_createVariantCard` hat jetzt einen defensiven DOM-Fallback für Test-/Runtime-Umgebungen ohne `template.content`, inklusive funktionalem Select-Button mit `data-*`-Attributen.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.51` erhöht.
+
+## 2026-03-26 (Version 8.0.50)
+
+- Added (Qualitätssicherung): Vollständigen Projekt-Check ausgeführt (`pytest`, `ruff check .`, `black --check .`, `node --test tests/frontend/*.mjs`) und Ergebnisse dokumentiert.
+- Added (Dokumentation): Neues QA-Audit-Dokument `docs/qa_audit_2026-03-26.md` ergänzt, inklusive konkreter Vorschläge für README-/Markdown-Updates.
+- Changed (Dokumentation): Versionsstände in `README.md` auf den aktuellen, synchronen Projektstand angehoben.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.50` erhöht.
+
 ## 2026-03-26 (Version 8.0.49)
 
 - Changed (KI/Rezeptvorschläge/Prompt): Der Prompt für `generate_recipe_suggestions` enthält jetzt harte, maschinenlesbare Regeln (`MUST`/`MUST NOT`) inkl. striktem JSON-Array-Format und Schema mit optionalem Feld `invalid_reason`.

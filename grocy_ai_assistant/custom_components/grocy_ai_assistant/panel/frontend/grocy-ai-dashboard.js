@@ -25,7 +25,7 @@ const TAB_ICONS = Object.freeze({
 });
 const DEFAULT_POLLING_INTERVAL_SECONDS = 5;
 const DEFAULT_POLLING_INTERVAL_MS = DEFAULT_POLLING_INTERVAL_SECONDS * 1000;
-const DEFAULT_INTEGRATION_VERSION = '8.0.49';
+const DEFAULT_INTEGRATION_VERSION = '8.0.51';
 const GROCY_RECIPE_DISPLAY_LIMIT = 3;
 const AI_RECIPE_DISPLAY_LIMIT = 3;
 const TAB_VIEW_STATE = Object.freeze({
@@ -1142,14 +1142,41 @@ class GrocyAIShoppingSearchBar extends HTMLElement {
       resolveImageUrl: this._viewModel?.resolveImageUrl,
     }).trim();
     const template = document.createElement('template');
-    template.innerHTML = markup;
-    const article = template.content.firstElementChild;
+    if (typeof template.innerHTML === 'string') {
+      template.innerHTML = markup;
+    }
+    const article = template.content?.firstElementChild || null;
     const button = article?.querySelector('.variant-card__button');
 
-    if (!article || !button) {
-      return document.createElement('article');
+    if (article && button) {
+      return article;
     }
-    return article;
+
+    const amountValue = String(parsedAmount || variant?.amount || variant?.default_amount || '1');
+    const variantName = String(variant?.product_name || variant?.name || 'Unbekanntes Produkt');
+    const variantSource = String(variant?.source || 'grocy');
+    const productId = String(variant?.product_id ?? variant?.id ?? '');
+
+    const fallbackArticle = document.createElement('article');
+    fallbackArticle.className = 'shopping-card shopping-card--variant variant-card variant-card--action';
+    fallbackArticle.setAttribute('role', 'listitem');
+
+    const fallbackButton = document.createElement('button');
+    fallbackButton.className = 'shopping-card__button variant-card__button';
+    fallbackButton.type = 'button';
+    fallbackButton.setAttribute('data-action', 'shopping-select-variant');
+    fallbackButton.setAttribute('data-product-id', productId);
+    fallbackButton.setAttribute('data-product-name', variantName);
+    fallbackButton.setAttribute('data-product-source', variantSource);
+    fallbackButton.setAttribute('data-amount', amountValue);
+
+    const fallbackTitle = document.createElement('strong');
+    fallbackTitle.className = 'shopping-card__title';
+    fallbackTitle.textContent = variantName;
+
+    fallbackButton.append(fallbackTitle);
+    fallbackArticle.append(fallbackButton);
+    return fallbackArticle;
   }
 
   _renderVariantGrid(model, variants) {
