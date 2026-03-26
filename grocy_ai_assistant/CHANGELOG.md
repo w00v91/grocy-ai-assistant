@@ -1,3 +1,9 @@
+## 2026-03-26 (Version 8.0.47)
+
+- Fix (Home-Assistant-Integration/Panel/Auth): Der native Dashboard-API-Client unterstützt jetzt asynchrone Auth-Header-Auflösung, sodass Home-Assistant-Access-Tokens aus Promise-basierten `getAccessToken()`-Quellen korrekt verwendet werden und Proxy-Requests nicht mehr mit `401 Unauthorized` fehlschlagen.
+- Added (Tests/Frontend): Regressionstest ergänzt, der asynchrone `getAuthHeaders` im Dashboard-API-Client absichert.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.47` erhöht.
+
 ## 2026-03-26 (Version 8.0.46)
 
 - Added (Home-Assistant-Integration/Panel/Navigation): Im nativen Dashboard-Topbar gibt es jetzt einen Sidebar-Button (Hamburger-Menü), der die Home-Assistant-Sidebar direkt aus dem Panel heraus öffnet.
