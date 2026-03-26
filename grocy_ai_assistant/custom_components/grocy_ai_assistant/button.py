@@ -39,7 +39,7 @@ class _BaseAddonButton(ButtonEntity):
 
     @property
     def device_info(self):
-        return build_device_info(self._entry.entry_id)
+        return build_device_info(self._entry.entry_id, getattr(self, "hass", None))
 
 
 class GrocyAICatalogRebuildButton(_BaseAddonButton):
