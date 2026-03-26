@@ -1,3 +1,9 @@
+## 2026-03-26 (Version 8.0.49)
+
+- Fix (Home-Assistant-Integration/Panel/Shopping): Die Shopping-Suche bricht jetzt sofort ab, wenn bereits ein Submit läuft (`isSubmitting`), damit „Neu anlegen“-Klicks keine parallelen `searchProduct`-Requests mehr starten.
+- Fix (Home-Assistant-Integration/Panel/Event-Binding): Dashboard-Root-Events werden im nativen Panel nur noch einmal gebunden, sodass Re-Mounts keine mehrfachen Listener und damit keine doppelten Request-Auslöser erzeugen.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.49` erhöht.
+
 ## 2026-03-26 (Version 8.0.48)
 
 - Added (Dashboard/API/Extraschutz): `POST /api/dashboard/search` hat jetzt serverseitig einen In-Flight-Guard pro Client + Suchparameter, damit identische Parallel-Requests während einer laufenden Verarbeitung sofort abgefangen werden.

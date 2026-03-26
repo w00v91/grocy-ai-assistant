@@ -25,7 +25,7 @@ const TAB_ICONS = Object.freeze({
 });
 const DEFAULT_POLLING_INTERVAL_SECONDS = 5;
 const DEFAULT_POLLING_INTERVAL_MS = DEFAULT_POLLING_INTERVAL_SECONDS * 1000;
-const DEFAULT_INTEGRATION_VERSION = '8.0.48';
+const DEFAULT_INTEGRATION_VERSION = '8.0.49';
 const GROCY_RECIPE_DISPLAY_LIMIT = 3;
 const AI_RECIPE_DISPLAY_LIMIT = 3;
 const TAB_VIEW_STATE = Object.freeze({
@@ -3067,6 +3067,7 @@ class GrocyAIDashboardPanel extends HTMLElement {
     this._initialDataLoadStarted = false;
     this._apiBasePathPromise = null;
     this._startupBannerLogged = false;
+    this._eventsBound = false;
     this._scrollLockState = null;
     this._shellLayoutObserver = null;
     this._handleWindowResize = () => this._syncShellLayoutMetrics();
@@ -3236,6 +3237,7 @@ class GrocyAIDashboardPanel extends HTMLElement {
   }
 
   _bindEvents() {
+    if (this._eventsBound) return;
     const root = this.shadowRoot;
     if (!root) return;
 
@@ -3294,6 +3296,7 @@ class GrocyAIDashboardPanel extends HTMLElement {
     root.addEventListener('storage-close-delete', () => this._closeStorageDelete());
     root.addEventListener('storage-confirm-delete', () => this._confirmStorageDelete());
     root.addEventListener('open-legacy-dashboard', (event) => this._openLegacyDashboard(event.detail?.tab));
+    this._eventsBound = true;
   }
 
   _toggleSidebar() {
