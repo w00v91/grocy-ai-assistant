@@ -113,12 +113,6 @@ tap_action:
   navigation_path: /grocy-ai?tab=storage
 ```
 
-```yaml
-type: markdown
-content: >
-  [Grocy AI Benachrichtigungen](/grocy-ai?tab=notifications)
-```
-
 ### Deep Links für Tabs
 
 Falls du direkt in einen Bereich springen möchtest, unterstützt das native Panel mehrere URL-Formate:
@@ -126,13 +120,13 @@ Falls du direkt in einen Bereich springen möchtest, unterstützt das native Pan
 - `/grocy-ai` oder `/grocy-ai?tab=shopping` → Einkauf
 - `/grocy-ai?tab=recipes`, `/grocy-ai#tab=recipes` oder `/grocy-ai/recipes` → Rezepte
 - `/grocy-ai?tab=storage`, `/grocy-ai#tab=storage` oder `/grocy-ai/storage` → Lager
-- `/grocy-ai?tab=notifications`, `/grocy-ai#tab=notifications` oder `/grocy-ai/notifications` → Benachrichtigungen
 
 Für Home-Assistant-Buttons und `navigate`-Aktionen ist `?tab=...` die empfohlene Variante.
+Hinweis: `tab=notifications` wird im nativen Panel nicht mehr als eigener Bereich unterstützt und fällt auf `shopping` zurück.
 
 ### Schnellaktionen in der nativen UI
 
-Die native Oberfläche unterstützt weiterhin Deep Links auf **Einkauf**, **Rezepte**, **Lager** und **Benachrichtigungen** über den Panel-Pfad `/grocy-ai`.
+Die native Oberfläche unterstützt Deep Links auf **Einkauf**, **Rezepte** und **Lager** über den Panel-Pfad `/grocy-ai`.
 
 ## API-Typen im Add-on
 

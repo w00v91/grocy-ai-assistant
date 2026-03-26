@@ -247,11 +247,11 @@ Der native Panel-Container wertet Tabs jetzt direkt aus der URL aus. Unterstütz
 - `/grocy-ai?tab=shopping`
 - `/grocy-ai?tab=recipes`
 - `/grocy-ai?tab=storage`
-- `/grocy-ai?tab=notifications`
 - `/grocy-ai#tab=recipes`
 - `/grocy-ai/recipes`
 
 Die Query-Variante (`?tab=...`) ist für Home-Assistant-Navigation in der Regel die robusteste Form.
+Hinweis: `tab=notifications` wird im nativen Panel nicht mehr separat unterstützt und fällt auf `shopping` zurück.
 
 ## Kopplung Add-on ↔ Integration
 

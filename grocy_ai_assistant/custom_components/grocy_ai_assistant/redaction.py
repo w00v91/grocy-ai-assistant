@@ -28,8 +28,7 @@ def redact_sensitive_data(value: Any) -> Any:
                 continue
             if normalized_key in {"headers", "_headers"} and isinstance(item, Mapping):
                 redacted[key_name] = {
-                    str(header_key): _MASK
-                    for header_key in item.keys()
+                    str(header_key): _MASK for header_key in item.keys()
                 }
                 continue
             redacted[key_name] = redact_sensitive_data(item)
