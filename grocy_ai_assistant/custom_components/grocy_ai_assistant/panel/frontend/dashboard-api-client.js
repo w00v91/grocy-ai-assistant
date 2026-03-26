@@ -12,10 +12,10 @@ async function parseJsonSafe(response) {
   }
 }
 
-function resolveRequestHeaders(options = {}, getAuthHeaders) {
-  const authHeaders = typeof getAuthHeaders === 'function' ? (getAuthHeaders() || {}) : {};
+async function resolveRequestHeaders(options = {}, getAuthHeaders) {
+  const authHeaders = typeof getAuthHeaders === 'function' ? await getAuthHeaders() : {};
   return {
-    ...authHeaders,
+    ...(authHeaders || {}),
     ...(options.headers || {}),
   };
 }
@@ -33,9 +33,10 @@ export function createDashboardApiClient({ apiBasePath = '', ingressPrefix = '',
   }
 
   async function request(path, options = {}) {
+    const headers = await resolveRequestHeaders(options, getAuthHeaders);
     const response = await fetch(buildUrl(path), {
       ...options,
-      headers: resolveRequestHeaders(options, getAuthHeaders),
+      headers,
       credentials: 'same-origin',
     });
     const payload = await parseJsonSafe(response);
