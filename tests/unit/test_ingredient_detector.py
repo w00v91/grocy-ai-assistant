@@ -47,12 +47,14 @@ def test_generate_recipe_suggestions_normalizes_preparation_fields(monkeypatch):
             "reason": "passt",
             "preparation": "Gemüse kochen",
             "ingredients": [],
+            "invalid_reason": "",
         },
         {
             "title": "Salat",
             "reason": "frisch",
             "preparation": "Mischen",
             "ingredients": [],
+            "invalid_reason": "",
         },
     ]
 
@@ -86,6 +88,7 @@ def test_generate_recipe_suggestions_decodes_escaped_newlines(monkeypatch):
             "reason": "Resteverwertung\nmit Bestand",
             "preparation": "Schritt 1\nSchritt 2",
             "ingredients": [],
+            "invalid_reason": "",
         }
     ]
 
@@ -123,6 +126,7 @@ def test_generate_recipe_suggestions_extracts_embedded_recipe_sections(monkeypat
             "reason": "Leichtes Rezept, das mit den vorhandenen Zutaten startet.",
             "preparation": "Apfel schneiden und mit Nüssen vermischen.",
             "ingredients": [],
+            "invalid_reason": "",
         }
     ]
 
@@ -156,6 +160,7 @@ def test_generate_recipe_suggestions_accepts_single_object_payload(monkeypatch):
             "reason": "passt",
             "preparation": "Toast rösten",
             "ingredients": [],
+            "invalid_reason": "",
         }
     ]
 
@@ -189,6 +194,7 @@ def test_generate_recipe_suggestions_normalizes_ingredients_list(monkeypatch):
             "reason": "passt",
             "preparation": "Kochen",
             "ingredients": ["2 Karotten", "1 Dose Kokosmilch"],
+            "invalid_reason": "",
         }
     ]
 
@@ -222,6 +228,7 @@ def test_generate_recipe_suggestions_strips_html_from_fields(monkeypatch):
             "reason": "passt\ngut",
             "preparation": "Kochen",
             "ingredients": ["2 Karotten"],
+            "invalid_reason": "",
         }
     ]
 
@@ -259,6 +266,7 @@ def test_generate_recipe_suggestions_extracts_embedded_ingredients_sections(
             "reason": "Schnell gemacht",
             "preparation": "Alles anbraten.",
             "ingredients": ["2 Karotten", "1 Zucchini"],
+            "invalid_reason": "",
         }
     ]
 
