@@ -210,14 +210,25 @@ class IngredientDetector:
         Erstelle Rezeptvorschläge basierend auf diesen verfügbaren Zutaten: {ingredients}.
         Bereits in Grocy vorhandene Rezepte (nicht erneut vorschlagen): {existing}.
 
-        Gib NUR ein JSON-Array mit maximal 5 Einträgen zurück.
-        Jeder Eintrag hat exakt diese Struktur:
-        {{
-          "title": "Rezeptname",
-          "reason": "Warum passt es zu den ausgewählten Zutaten",
-          "preparation": "Kurze Zubereitungsbeschreibung in 2-4 Sätzen",
-          "ingredients": ["Zutat mit Menge, z.B. 2 Tomaten", "..."]
-        }}
+        HARTE REGELN (MUST / MUST NOT):
+        1) OUTPUT MUST be valid JSON and MUST be a JSON array with max 5 items.
+        2) Jedes Rezeptobjekt MUST exakt diese Felder enthalten:
+           {{
+             "title": "Rezeptname",
+             "reason": "Warum passt es zu den ausgewählten Zutaten",
+             "preparation": "Kurze Zubereitungsbeschreibung in 2-4 Sätzen",
+             "ingredients": ["Zutat mit Menge, z.B. 2 Tomaten", "..."],
+             "invalid_reason": ""
+           }}
+        3) "ingredients" MUST be a subset of den verfügbaren Zutaten ({ingredients}) plus klare Basiszutaten
+           (Wasser, Salz, Pfeffer, Öl). Keine weiteren neuen Lebensmittel ergänzen.
+        4) Non-Food Kategorien MUST NOT vorkommen (z. B. Hygieneprodukte, Papierwaren,
+           Reinigungsmittel, Haustierbedarf).
+        5) Wenn unsicher, ob ein Vorschlag ein echtes Lebensmittelrezept ist: Rezept MUST verworfen werden
+           statt zu raten ("when unsure: discard, do not guess").
+        6) Bereits vorhandene Rezepte ({existing}) MUST NOT erneut vorgeschlagen werden.
+        7) Falls ein Eintrag ungültig wäre, setze "invalid_reason" auf einen kurzen Grund;
+           sonst "invalid_reason": "".
 
         Antworte NUR mit dem JSON-Array, kein Text davor oder danach.
         """
@@ -375,6 +386,7 @@ class IngredientDetector:
                         "reason": reason,
                         "preparation": preparation,
                         "ingredients": ingredients_list,
+                        "invalid_reason": _normalize_text(item.get("invalid_reason")),
                     }
                 )
             return normalized

@@ -1,3 +1,10 @@
+## 2026-03-26 (Version 8.0.49)
+
+- Changed (KI/Rezeptvorschläge/Prompt): Der Prompt für `generate_recipe_suggestions` enthält jetzt harte, maschinenlesbare Regeln (`MUST`/`MUST NOT`) inkl. striktem JSON-Array-Format und Schema mit optionalem Feld `invalid_reason`.
+- Changed (KI/Rezeptvorschläge/Sicherheit): Prompt-Regeln verbieten jetzt explizit Non-Food-Kategorien (u. a. Hygiene, Papierwaren, Reinigungsmittel, Haustierbedarf) und erzwingen „wenn unsicher: verwerfen statt raten“.
+- Changed (KI/Rezeptvorschläge/Normalisierung): `invalid_reason` wird aus KI-Antworten jetzt normalisiert und in die Ergebnisobjekte übernommen.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.49` erhöht.
+
 ## 2026-03-26 (Version 8.0.48)
 
 - Added (Dashboard/API/Extraschutz): `POST /api/dashboard/search` hat jetzt serverseitig einen In-Flight-Guard pro Client + Suchparameter, damit identische Parallel-Requests während einer laufenden Verarbeitung sofort abgefangen werden.
