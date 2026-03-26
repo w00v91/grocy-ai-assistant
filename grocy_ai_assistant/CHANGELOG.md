@@ -1,3 +1,8 @@
+## 2026-03-26 (Version 8.0.45)
+
+- Changed (Home-Assistant-Integration/Panel/Rezepte): Die Buttons `Rezept hinzufügen` und `Rezepte laden` im Rezepte-Tab werden jetzt in einer gemeinsamen Zeile mit jeweils 50% Breite dargestellt.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.45` erhöht.
+
 ## 2026-03-26 (Version 8.0.44)
 
 - Fix (Grocy-Bildupload/Dateiname): Produktbild-Upload kodiert den Dateinamen für `PUT /api/files/productpictures/{filename}` jetzt wieder explizit als Base64, damit Grocy-Setups mit codiertem Pfadformat den Upload akzeptieren.
