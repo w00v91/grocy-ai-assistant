@@ -3,6 +3,12 @@
 - Changed (KI/Rezeptvorschläge/Prompt): Der Prompt für `generate_recipe_suggestions` enthält jetzt harte, maschinenlesbare Regeln (`MUST`/`MUST NOT`) inkl. striktem JSON-Array-Format und Schema mit optionalem Feld `invalid_reason`.
 - Changed (KI/Rezeptvorschläge/Sicherheit): Prompt-Regeln verbieten jetzt explizit Non-Food-Kategorien (u. a. Hygiene, Papierwaren, Reinigungsmittel, Haustierbedarf) und erzwingen „wenn unsicher: verwerfen statt raten“.
 - Changed (KI/Rezeptvorschläge/Normalisierung): `invalid_reason` wird aus KI-Antworten jetzt normalisiert und in die Ergebnisobjekte übernommen.
+- Fix (Home-Assistant-Integration/Panel/Shopping): Die Shopping-Suche bricht jetzt sofort ab, wenn bereits ein Submit läuft (`isSubmitting`), damit „Neu anlegen“-Klicks keine parallelen `searchProduct`-Requests mehr starten.
+- Fix (Home-Assistant-Integration/Panel/Event-Binding): Dashboard-Root-Events werden im nativen Panel nur noch einmal gebunden, sodass Re-Mounts keine mehrfachen Listener und damit keine doppelten Request-Auslöser erzeugen.
+- Fix (Tests/Grocy): Fehlender `b64encode`-Import in den Produkbild-Upload-Tests ergänzt, damit Ruff/Pytest wieder konsistent laufen.
+- Fix (Tests/Startup): Startup-Prefetch-Regressionstest wartet kurz innerhalb der TestClient-Laufzeit, damit der geplante Hintergrundtask deterministisch ausgeführt wird.
+- Changed (Tests/Add-on-Konfiguration): Versionsassertion in `test_addon_config_yaml.py` auf robustes Semver-Format umgestellt statt statischer Legacy-Version.
+- Changed (Dokumentation): README und `DOCS.md` aktualisiert; veraltete native `notifications`-Tab-Deep-Links entfernt und durch Hinweis auf Fallback zu `shopping` ersetzt.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.49` erhöht.
 
 ## 2026-03-26 (Version 8.0.48)

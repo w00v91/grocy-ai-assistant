@@ -1,3 +1,4 @@
+from base64 import b64encode
 from datetime import datetime, timedelta
 
 import pytest
