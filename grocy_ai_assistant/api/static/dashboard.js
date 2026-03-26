@@ -1805,6 +1805,7 @@ async function searchProduct(options = {}) {
         force_create: forceCreate,
       });
       status.textContent = payload.message || getErrorMessage(payload, 'Unbekannte Antwort');
+      dashboardState.shoppingSearchSubmitInFlight = false;
 
       if (response.ok) {
         const variants = payload.variants || [];
