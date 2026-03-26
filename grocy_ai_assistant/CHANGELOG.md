@@ -1,6 +1,8 @@
 ## 2026-03-26 (Version 8.0.45)
 
 - Changed (Home-Assistant-Integration/Panel/Rezepte): Die Buttons `Rezept hinzufügen` und `Rezepte laden` im Rezepte-Tab werden jetzt in einer gemeinsamen Zeile mit jeweils 50% Breite dargestellt.
+- Changed (Home-Assistant-Integration/Panel/Scanner): Das Scanner-Popup zeigt jetzt die Eyebrow `Scanner`, den Titel `Barcode und Bildanalyse` sowie keinen Legacy-Migrations-Badge und keinen Beschreibungstext mehr.
+- Changed (Home-Assistant-Integration/Panel/Scanner/Mobile): Die Auswahlfelder für `Kamera` und `Rotation` bleiben jetzt auch auf mobilen Viewports nebeneinander angeordnet.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.45` erhöht.
 
 ## 2026-03-26 (Version 8.0.44)
