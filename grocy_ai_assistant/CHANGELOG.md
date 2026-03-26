@@ -1,9 +1,17 @@
-## 2026-03-26 (Version 8.0.50)
-
+## 2026-03-26 (Version 8.0.51)
 - Changed (Home-Assistant-Integration/DeviceInfo): Das gemeinsame `DeviceInfo` beschreibt das repräsentierte Gerät jetzt als **Add-on-Device** (`Grocy AI Assistant Add-on`) mit aussagekräftigem `manufacturer`, `model` und stabilem `model_id`.
 - Changed (Home-Assistant-Integration/DeviceInfo/Version): `sw_version` wird jetzt dynamisch aus dem Status-Coordinator (`addon_version`) übernommen, sobald diese Information verfügbar ist.
 - Changed (Home-Assistant-Integration/DeviceInfo/Config): `configuration_url` wird jetzt – wenn vorhanden – aus der konfigurierten API-Basis-URL des Entries gesetzt.
 - Changed (Tests): Unit-Tests für Button- und Text-Entities auf das angereicherte Device-Metadatenmodell aktualisiert.
+- Fix (Frontend/Tests): `test_native_shopping_swipe.mjs` prüft Storage-Swipe-Rebind jetzt robust über getrennte Assertions statt eine starre Direkt-Sequenz zu erwarten.
+- Fix (Frontend/Shopping-Suche): `_createVariantCard` hat jetzt einen defensiven DOM-Fallback für Test-/Runtime-Umgebungen ohne `template.content`, inklusive funktionalem Select-Button mit `data-*`-Attributen.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.51` erhöht.
+
+## 2026-03-26 (Version 8.0.50)
+
+- Added (Qualitätssicherung): Vollständigen Projekt-Check ausgeführt (`pytest`, `ruff check .`, `black --check .`, `node --test tests/frontend/*.mjs`) und Ergebnisse dokumentiert.
+- Added (Dokumentation): Neues QA-Audit-Dokument `docs/qa_audit_2026-03-26.md` ergänzt, inklusive konkreter Vorschläge für README-/Markdown-Updates.
+- Changed (Dokumentation): Versionsstände in `README.md` auf den aktuellen, synchronen Projektstand angehoben.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.50` erhöht.
 
 ## 2026-03-26 (Version 8.0.49)

@@ -312,9 +312,9 @@ Zusätzlich nutzt die Integration eine Konstante in `const.py`, die synchron zur
 
 Aktueller Stand:
 
-- **Add-on (`grocy_ai_assistant/config.yaml`):** `8.0.30`
-- **Integration (`grocy_ai_assistant/custom_components/grocy_ai_assistant/manifest.json`):** `8.0.30`
-- **Integrationskonstante (`grocy_ai_assistant/custom_components/grocy_ai_assistant/const.py`):** `8.0.30`
+- **Add-on (`grocy_ai_assistant/config.yaml`):** `8.0.51`
+- **Integration (`grocy_ai_assistant/custom_components/grocy_ai_assistant/manifest.json`):** `8.0.51`
+- **Integrationskonstante (`grocy_ai_assistant/custom_components/grocy_ai_assistant/const.py`):** `8.0.51`
 
 ### Maintainer-Workflow
 
