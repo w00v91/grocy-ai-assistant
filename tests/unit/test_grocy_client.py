@@ -1,4 +1,3 @@
-from base64 import b64encode
 from datetime import datetime, timedelta
 
 import pytest
@@ -2092,7 +2091,7 @@ def test_attach_product_picture_uploads_file_and_updates_product(monkeypatch, tm
 
     assert result == "my_product.png"
     assert calls[0][0] == "PUT"
-    assert calls[0][1] == "http://grocy.local/files/productpictures/my_product.png"
+    assert calls[0][1] == "http://grocy.local/api/files/productpictures/my_product.png"
     assert calls[0][2]["Accept"] == "*/*"
     assert calls[0][2]["GROCY-API-KEY"] == "g"
     assert calls[0][3] == b"img"
@@ -2100,57 +2099,7 @@ def test_attach_product_picture_uploads_file_and_updates_product(monkeypatch, tm
     assert calls[1][4] == {"picture_file_name": "my_product.png"}
 
 
-def test_attach_product_picture_retries_with_base64_filename(monkeypatch, tmp_path):
-    calls = []
-
-    class FakeResponse:
-        def __init__(self, status_code=200):
-            self.status_code = status_code
-
-        def raise_for_status(self):
-            if self.status_code >= 400:
-                error = requests.HTTPError(f"{self.status_code} error")
-                error.response = self
-                raise error
-
-    image_path = tmp_path / "my_product.png"
-    image_path.write_bytes(b"img")
-
-    encoded_file_name = b64encode(image_path.name.encode("utf-8")).decode("ascii")
-
-    def fake_put(url, headers=None, data=None, json=None, timeout=None):
-        calls.append(("PUT", url, headers, data, json))
-        if "/files/productpictures/" in url:
-            if url.endswith(f"/productpictures/{encoded_file_name}"):
-                return FakeResponse(status_code=200)
-            return FakeResponse(status_code=404)
-        return FakeResponse(status_code=200)
-
-    monkeypatch.setattr(
-        "grocy_ai_assistant.services.grocy_client.requests.put", fake_put
-    )
-
-    client = GrocyClient(
-        Settings(
-            api_key="x",
-            addon_version="a",
-            required_integration_version="1",
-            grocy_api_key="g",
-            grocy_base_url="http://grocy.local/api",
-        )
-    )
-
-    result = client.attach_product_picture(10, str(image_path))
-
-    assert result == "my_product.png"
-    upload_urls = [call[1] for call in calls if "/files/productpictures/" in call[1]]
-    assert (
-        f"http://grocy.local/files/productpictures/{encoded_file_name}" in upload_urls
-    )
-    assert calls[-1][1] == "http://grocy.local/api/objects/products/10"
-
-
-def test_attach_product_picture_retries_with_post_on_405(monkeypatch, tmp_path):
+def test_attach_product_picture_raises_upload_errors(monkeypatch, tmp_path):
     calls = []
 
     class FakeResponse:
@@ -2172,17 +2121,8 @@ def test_attach_product_picture_retries_with_post_on_405(monkeypatch, tmp_path):
             return FakeResponse(status_code=405)
         return FakeResponse(status_code=200)
 
-    def fake_post(url, headers=None, data=None, json=None, timeout=None):
-        calls.append(("POST", url, headers, data, json))
-        if "/files/productpictures/" in url:
-            return FakeResponse(status_code=200)
-        return FakeResponse(status_code=200)
-
     monkeypatch.setattr(
         "grocy_ai_assistant.services.grocy_client.requests.put", fake_put
-    )
-    monkeypatch.setattr(
-        "grocy_ai_assistant.services.grocy_client.requests.post", fake_post
     )
 
     client = GrocyClient(
@@ -2195,15 +2135,12 @@ def test_attach_product_picture_retries_with_post_on_405(monkeypatch, tmp_path):
         )
     )
 
-    result = client.attach_product_picture(10, str(image_path))
+    with pytest.raises(requests.HTTPError):
+        client.attach_product_picture(10, str(image_path))
 
-    assert result == "my_product.png"
+    assert len(calls) == 1
     assert calls[0][0] == "PUT"
-    assert calls[0][1] == "http://grocy.local/files/productpictures/my_product.png"
-    assert calls[1][0] == "PUT"
-    assert calls[2][0] == "POST"
-    assert calls[2][1] == "http://grocy.local/files/productpictures/my_product.png"
-    assert calls[-1][1] == "http://grocy.local/api/objects/products/10"
+    assert calls[0][1] == "http://grocy.local/api/files/productpictures/my_product.png"
 
 
 def test_create_product_retries_with_sanitized_payload_on_400(monkeypatch):

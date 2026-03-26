@@ -1,3 +1,9 @@
+## 2026-03-25 (Version 8.0.43)
+
+- Fix (Grocy-Bildupload/API-Route): Produktbild-Upload nutzt jetzt wieder ausschließlich den direkten API-Endpunkt `PUT /api/files/productpictures/{filename}` (abgeleitet aus `grocy_base_url`) statt Upload-Fallback-Ketten über alternative Routen/Methoden.
+- Changed (Tests/Grocy): Upload-Tests auf den festen API-Aufruf ohne Methoden-/Dateinamen-Fallback angepasst; Fehlerstatus beim Upload werden wieder direkt propagiert.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.43` erhöht.
+
 ## 2026-03-25 (Version 8.0.42)
 
 - Fix (Grocy-Bildupload): `attach_product_picture` behandelt jetzt `405 Method Not Allowed` beim `PUT`-Upload als Fallback-Fall und versucht anschließend zusätzliche Upload-Varianten statt hart abzubrechen.
