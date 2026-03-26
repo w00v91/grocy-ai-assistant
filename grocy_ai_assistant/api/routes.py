@@ -885,7 +885,37 @@ def _create_and_add_product_to_shopping_list(
         for key, value in product_data.items()
         if key not in {"calories", "carbohydrates", "fat", "protein", "sugar"}
     }
-    created_object_id = grocy_client.create_product(product_payload)
+    created_object_id: int | None = None
+    created_new_product = False
+    try:
+        created_object_id = grocy_client.create_product(product_payload)
+        created_new_product = True
+    except requests.HTTPError as error:
+        if getattr(error.response, "status_code", None) != 400:
+            raise
+
+        existing_product = grocy_client.find_product_by_name(
+            str(product_payload.get("name") or product_name)
+        )
+        if not existing_product:
+            raise
+
+        existing_product_id = _safe_int(existing_product.get("id"))
+        if existing_product_id is None:
+            raise
+
+        created_object_id = existing_product_id
+        logger.info(
+            "Produktanlage für '%s' lieferte 400, vorhandenes Produkt %s wird wiederverwendet.",
+            product_payload.get("name") or product_name,
+            created_object_id,
+        )
+
+    if created_object_id is None:
+        raise HTTPException(
+            status_code=500, detail="Produkt konnte nicht erstellt werden."
+        )
+
     grocy_client.update_product_nutrition(
         product_id=created_object_id,
         calories=product_data.get("calories"),
@@ -915,13 +945,14 @@ def _create_and_add_product_to_shopping_list(
                 error,
             )
 
-    _generate_and_attach_product_picture(
-        product_name=product_name,
-        product_id=created_object_id,
-        detector=detector,
-        grocy_client=grocy_client,
-        settings=settings,
-    )
+    if created_new_product:
+        _generate_and_attach_product_picture(
+            product_name=product_name,
+            product_id=created_object_id,
+            detector=detector,
+            grocy_client=grocy_client,
+            settings=settings,
+        )
     resolved_best_before_date = _resolve_best_before_date_for_product(
         grocy_client,
         product_id=created_object_id,

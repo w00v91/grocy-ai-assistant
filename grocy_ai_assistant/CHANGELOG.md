@@ -1,3 +1,9 @@
+## 2026-03-26 (Version 8.0.47)
+
+- Fix (Dashboard/Produktsuche): Mehrfaches Auslösen von `POST /api/dashboard/search` während einer laufenden Anfrage wird im Add-on-Dashboard jetzt blockiert, sodass ein laufender Submit nicht parallel erneut gestartet wird.
+- Fix (Grocy-Produktherstellung): Wenn Grocy bei der Produkterstellung mit `400 Bad Request` antwortet (z. B. durch parallele Wiederholungen), wird nun ein bereits vorhandenes Produkt mit gleichem Namen wiederverwendet statt mit `500` abzubrechen.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.47` erhöht.
+
 ## 2026-03-26 (Version 8.0.46)
 
 - Added (Home-Assistant-Integration/Panel/Navigation): Im nativen Dashboard-Topbar gibt es jetzt einen Sidebar-Button (Hamburger-Menü), der die Home-Assistant-Sidebar direkt aus dem Panel heraus öffnet.
