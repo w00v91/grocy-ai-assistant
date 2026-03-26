@@ -2,6 +2,10 @@
 
 - Fix (Home-Assistant-Integration/Panel/Shopping): Die Shopping-Suche bricht jetzt sofort ab, wenn bereits ein Submit läuft (`isSubmitting`), damit „Neu anlegen“-Klicks keine parallelen `searchProduct`-Requests mehr starten.
 - Fix (Home-Assistant-Integration/Panel/Event-Binding): Dashboard-Root-Events werden im nativen Panel nur noch einmal gebunden, sodass Re-Mounts keine mehrfachen Listener und damit keine doppelten Request-Auslöser erzeugen.
+- Fix (Tests/Grocy): Fehlender `b64encode`-Import in den Produkbild-Upload-Tests ergänzt, damit Ruff/Pytest wieder konsistent laufen.
+- Fix (Tests/Startup): Startup-Prefetch-Regressionstest wartet kurz innerhalb der TestClient-Laufzeit, damit der geplante Hintergrundtask deterministisch ausgeführt wird.
+- Changed (Tests/Add-on-Konfiguration): Versionsassertion in `test_addon_config_yaml.py` auf robustes Semver-Format umgestellt statt statischer Legacy-Version.
+- Changed (Dokumentation): README und `DOCS.md` aktualisiert; veraltete native `notifications`-Tab-Deep-Links entfernt und durch Hinweis auf Fallback zu `shopping` ersetzt.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.49` erhöht.
 
 ## 2026-03-26 (Version 8.0.48)
