@@ -4615,7 +4615,7 @@ class GrocyAIDashboardPanel extends HTMLElement {
     return value * 1000;
   }
 
-  _getHomeAssistantAccessToken() {
+  async _getHomeAssistantAccessToken() {
     const candidates = [
       this._hass?.auth?.data?.accessToken,
       this._hass?.auth?.data?.access_token,
@@ -4630,25 +4630,28 @@ class GrocyAIDashboardPanel extends HTMLElement {
     ];
 
     for (const candidate of candidates) {
-      if (candidate && typeof candidate.then === 'function') continue;
-      const normalized = String(candidate || '').trim();
+      const resolved = candidate && typeof candidate.then === 'function'
+        ? await candidate
+        : candidate;
+      const normalized = String(resolved || '').trim();
       if (normalized) return normalized;
     }
 
     return '';
   }
 
-  _getHomeAssistantAuthHeaders() {
-    const accessToken = this._getHomeAssistantAccessToken();
+  async _getHomeAssistantAuthHeaders() {
+    const accessToken = await this._getHomeAssistantAccessToken();
     return accessToken ? { Authorization: `Bearer ${accessToken}` } : {};
   }
 
   async _loadAuthenticatedPanelImage(url, { signal } = {}) {
+    const authHeaders = await this._getHomeAssistantAuthHeaders();
     const response = await fetch(String(url || ''), {
       credentials: 'same-origin',
       headers: {
         Accept: 'image/*',
-        ...this._getHomeAssistantAuthHeaders(),
+        ...authHeaders,
       },
       signal,
     });

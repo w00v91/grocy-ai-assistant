@@ -30,6 +30,31 @@ test('dashboard api client forwards Home Assistant auth headers to proxy request
   delete globalThis.fetch;
 });
 
+test('dashboard api client awaits async Home Assistant auth headers', async () => {
+  const calls = [];
+  globalThis.fetch = async (url, options = {}) => {
+    calls.push({ url, options });
+    return {
+      ok: true,
+      async json() {
+        return [];
+      },
+    };
+  };
+
+  const client = createDashboardApiClient({
+    apiBasePath: '/api/grocy_ai_assistant/dashboard-proxy',
+    getAuthHeaders: async () => ({ Authorization: 'Bearer async-ha-access-token' }),
+  });
+
+  await client.fetchShoppingList();
+
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].options.headers.Authorization, 'Bearer async-ha-access-token');
+
+  delete globalThis.fetch;
+});
+
 test('dashboard api client keeps explicit request headers while adding auth headers', async () => {
   const calls = [];
   globalThis.fetch = async (url, options = {}) => {
