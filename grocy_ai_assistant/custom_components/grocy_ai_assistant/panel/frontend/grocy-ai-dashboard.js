@@ -25,7 +25,7 @@ const TAB_ICONS = Object.freeze({
 });
 const DEFAULT_POLLING_INTERVAL_SECONDS = 5;
 const DEFAULT_POLLING_INTERVAL_MS = DEFAULT_POLLING_INTERVAL_SECONDS * 1000;
-const DEFAULT_INTEGRATION_VERSION = '8.0.41';
+const DEFAULT_INTEGRATION_VERSION = '8.0.46';
 const GROCY_RECIPE_DISPLAY_LIMIT = 3;
 const AI_RECIPE_DISPLAY_LIMIT = 3;
 const TAB_VIEW_STATE = Object.freeze({
@@ -876,6 +876,15 @@ class GrocyAITopbar extends HTMLElement {
           <div class="topbar-brand">
             <p class="eyebrow">Grocy AI Assistant</p>
             <div class="topbar-title-row">
+              <button
+                type="button"
+                class="icon-button topbar-menu-button"
+                data-action="toggle-sidebar"
+                aria-label="Home Assistant Sidebar öffnen"
+                title="Sidebar öffnen"
+              >
+                ${renderHaIcon('mdi:menu')}
+              </button>
               ${renderHaIcon(model.panelIcon || PANEL_ICON, 'topbar-title-icon')}
               <h1>${PANEL_TITLE}</h1>
             </div>
@@ -3231,6 +3240,7 @@ class GrocyAIDashboardPanel extends HTMLElement {
     if (!root) return;
 
     root.addEventListener('tab-change', (event) => this._switchTab(event.detail.tab));
+    root.addEventListener('toggle-sidebar', () => this._toggleSidebar());
     root.addEventListener('shopping-query-change', (event) => this._updateShoppingQuery(event.detail.query));
     root.addEventListener('shopping-clear-query', () => this._clearShoppingQuery());
     root.addEventListener('shopping-submit-query', () => this._submitShoppingQuery());
@@ -3284,6 +3294,10 @@ class GrocyAIDashboardPanel extends HTMLElement {
     root.addEventListener('storage-close-delete', () => this._closeStorageDelete());
     root.addEventListener('storage-confirm-delete', () => this._confirmStorageDelete());
     root.addEventListener('open-legacy-dashboard', (event) => this._openLegacyDashboard(event.detail?.tab));
+  }
+
+  _toggleSidebar() {
+    this.dispatchEvent(new Event('hass-toggle-menu', { bubbles: true, composed: true }));
   }
 
   _renderState(state) {
