@@ -1,3 +1,9 @@
+## 2026-03-27 (Version 8.0.55)
+
+- Changed (Home-Assistant-Integration/Panel/Topbar): Das Kühlschrank-Icon wurde in der Topbar an den Anfang der Eyebrow verschoben.
+- Changed (Home-Assistant-Integration/Panel/Topbar): Das Hamburger-Menü steht jetzt direkt vor der Überschrift `Grocy AI` (an der bisherigen Icon-Position).
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.55` erhöht.
+
 ## 2026-03-26 (Version 8.0.54)
 
 - Fix (Home-Assistant-Integration/Panel/Rezepte): Die primären Buttons `Rezept hinzufügen` und `Rezepte laden` werden in der nativen Rezept-Ansicht jetzt explizit als einzeiliges Grid gerendert.

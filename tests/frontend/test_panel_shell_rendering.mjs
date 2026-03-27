@@ -50,7 +50,7 @@ test('topbar markup no longer renders panel URL hints, quicklink pills, or nativ
   );
 
   assert.match(topbarSection, /<header class=\"topbar\">/);
-  assert.match(topbarSection, /renderHaIcon\(model\.panelIcon \|\| PANEL_ICON, 'topbar-title-icon'\)/);
+  assert.match(topbarSection, /renderHaIcon\(model\.panelIcon \|\| PANEL_ICON, 'topbar-eyebrow-icon'\)/);
   assert.doesNotMatch(topbarSection, /topbar-path-hint/);
   assert.doesNotMatch(topbarSection, /topbar-quicklinks/);
   assert.doesNotMatch(topbarSection, /quicklink-button/);

@@ -111,8 +111,8 @@
   background: color-mix(in srgb, var(--secondary-background-color) 80%, var(--primary-color));
 }
 
-.topbar-title-icon {
-  --mdc-icon-size: 28px;
+.topbar-eyebrow-icon {
+  --mdc-icon-size: 16px;
   color: var(--primary-color);
 }
 
@@ -160,6 +160,9 @@
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
 }
 
 h1,

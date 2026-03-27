@@ -874,19 +874,18 @@ class GrocyAITopbar extends HTMLElement {
       <header class="topbar">
         <div class="topbar-content">
           <div class="topbar-brand">
-            <p class="eyebrow">Grocy AI Assistant</p>
+            <p class="eyebrow">${renderHaIcon(model.panelIcon || PANEL_ICON, 'topbar-eyebrow-icon')}Grocy AI Assistant</p>
             <div class="topbar-title-row">
-              <button
-                type="button"
-                class="icon-button topbar-menu-button"
-                data-action="toggle-sidebar"
-                aria-label="Home Assistant Sidebar öffnen"
-                title="Sidebar öffnen"
-              >
-                ${renderHaIcon('mdi:menu')}
-              </button>
               <div class="topbar-heading-row">
-                ${renderHaIcon(model.panelIcon || PANEL_ICON, 'topbar-title-icon')}
+                <button
+                  type="button"
+                  class="icon-button topbar-menu-button"
+                  data-action="toggle-sidebar"
+                  aria-label="Home Assistant Sidebar öffnen"
+                  title="Sidebar öffnen"
+                >
+                  ${renderHaIcon('mdi:menu')}
+                </button>
                 <h1>${PANEL_TITLE}</h1>
               </div>
             </div>
