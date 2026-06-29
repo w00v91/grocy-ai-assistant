@@ -27,6 +27,68 @@ class IngredientDetector:
     def _ollama_timeout_seconds(self) -> int:
         return max(5, min(300, int(self.settings.ollama_timeout_seconds)))
 
+    def _ollama_text_enabled(self) -> bool:
+        return bool(
+            self.settings.ollama_enabled
+            and self.settings.ollama_text_generation_enabled
+        )
+
+    def _ollama_image_enabled(self) -> bool:
+        return bool(
+            self.settings.ollama_enabled
+            and self.settings.ollama_image_generation_enabled
+        )
+
+    def _cloud_text_enabled(self) -> bool:
+        return bool(
+            self.settings.cloud_ai_enabled
+            and self.settings.cloud_ai_text_generation_enabled
+            and self.settings.openai_api_key
+        )
+
+    def _request_text_json(
+        self, prompt: str, *, timeout_seconds: int | None = None
+    ) -> Any:
+        request_timeout = (
+            timeout_seconds
+            if timeout_seconds is not None and timeout_seconds > 0
+            else self._ollama_timeout_seconds()
+        )
+        if self._ollama_text_enabled():
+            payload = {
+                "model": self.settings.ollama_model,
+                "prompt": prompt,
+                "stream": False,
+                "format": "json",
+            }
+            response = requests.post(
+                self.settings.ollama_url,
+                json=payload,
+                timeout=request_timeout,
+            )
+            response.raise_for_status()
+            return json.loads(response.json().get("response"))
+
+        if self._cloud_text_enabled():
+            response = requests.post(
+                "https://api.openai.com/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {self.settings.openai_api_key}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": self.settings.openai_text_model,
+                    "messages": [{"role": "user", "content": prompt}],
+                },
+                timeout=request_timeout,
+            )
+            response.raise_for_status()
+            choices = response.json().get("choices") or []
+            message = choices[0].get("message", {}) if choices else {}
+            return json.loads(message.get("content") or "{}")
+
+        raise RuntimeError("Keine Text-KI aktiviert")
+
     @staticmethod
     def _grocy_context(locations: list[Dict[str, Any]] | None = None) -> Dict[str, str]:
         location_labels = [
@@ -64,7 +126,7 @@ class IngredientDetector:
         product_name: str,
         locations: list[Dict[str, Any]] | None = None,
     ) -> Dict[str, Any]:
-        if not self.settings.ollama_enabled:
+        if not (self._ollama_text_enabled() or self._cloud_text_enabled()):
             return self._fallback_product_analysis(product_name)
 
         context = self._grocy_context(locations)
@@ -87,24 +149,10 @@ class IngredientDetector:
         Antworte NUR mit dem JSON, kein Text davor oder danach.
         """
 
-        ollama_payload = {
-            "model": self.settings.ollama_model,
-            "prompt": prompt,
-            "stream": False,
-            "format": "json",
-        }
-
         try:
-            response = requests.post(
-                self.settings.ollama_url,
-                json=ollama_payload,
-                timeout=self._ollama_timeout_seconds(),
-            )
-            response.raise_for_status()
-            raw_answer = response.json().get("response")
+            parsed = self._request_text_json(prompt)
             if self.settings.debug_mode:
-                logger.info("KI-Antwort analyze_product_name: %s", raw_answer)
-            parsed = json.loads(raw_answer)
+                logger.info("KI-Antwort analyze_product_name: %s", parsed)
         except (requests.RequestException, ValueError, TypeError) as error:
             logger.warning(
                 "KI-Produktanalyse konnte nicht geladen werden (Netzwerk/Timeout/Antwort): %s",
@@ -151,7 +199,7 @@ class IngredientDetector:
         }
 
     def suggest_similar_products(self, product_name: str) -> list[Dict[str, Any]]:
-        if not self.settings.ollama_enabled:
+        if not (self._ollama_text_enabled() or self._cloud_text_enabled()):
             return []
 
         prompt = f"""
@@ -174,23 +222,9 @@ class IngredientDetector:
         - Kein Text außerhalb von JSON
         """
 
-        ollama_payload = {
-            "model": self.settings.ollama_model,
-            "prompt": prompt,
-            "stream": False,
-            "format": "json",
-        }
-
-        response = requests.post(
-            self.settings.ollama_url,
-            json=ollama_payload,
-            timeout=self._ollama_timeout_seconds(),
-        )
-        response.raise_for_status()
-        raw_answer = response.json().get("response")
+        parsed = self._request_text_json(prompt)
         if self.settings.debug_mode:
-            logger.info("KI-Antwort suggest_similar_products: %s", raw_answer)
-        parsed = json.loads(raw_answer)
+            logger.info("KI-Antwort suggest_similar_products: %s", parsed)
 
         if not isinstance(parsed, list):
             return []
@@ -218,7 +252,7 @@ class IngredientDetector:
         *,
         timeout_seconds: int | None = None,
     ) -> list[Dict[str, Any]]:
-        if not self.settings.ollama_enabled:
+        if not (self._ollama_text_enabled() or self._cloud_text_enabled()):
             return []
 
         ingredients = ", ".join(selected_products)
@@ -253,28 +287,10 @@ class IngredientDetector:
         Antworte NUR mit dem JSON-Array, kein Text davor oder danach.
         """
 
-        ollama_payload = {
-            "model": self.settings.ollama_model,
-            "prompt": prompt,
-            "stream": False,
-            "format": "json",
-        }
-        request_timeout = (
-            timeout_seconds
-            if timeout_seconds is not None and timeout_seconds > 0
-            else self._ollama_timeout_seconds()
-        )
         try:
-            response = requests.post(
-                self.settings.ollama_url,
-                json=ollama_payload,
-                timeout=request_timeout,
-            )
-            response.raise_for_status()
-            raw_answer = response.json().get("response")
+            parsed = self._request_text_json(prompt, timeout_seconds=timeout_seconds)
             if self.settings.debug_mode:
-                logger.info("KI-Antwort generate_recipe_suggestions: %s", raw_answer)
-            parsed = json.loads(raw_answer)
+                logger.info("KI-Antwort generate_recipe_suggestions: %s", parsed)
         except requests.RequestException as error:
             logger.warning(
                 "KI-Rezeptvorschläge konnten nicht geladen werden (Netzwerk/Timeout): %s",
@@ -415,7 +431,7 @@ class IngredientDetector:
     def detect_product_from_image(
         self, image_base64: str, *, timeout_seconds: int = 90
     ) -> Dict[str, str]:
-        if not self.settings.ollama_enabled:
+        if not self._ollama_image_enabled():
             return {"product_name": "", "brand": "", "hint": ""}
 
         min_confidence = max(
@@ -460,7 +476,9 @@ class IngredientDetector:
         }
 
     def generate_product_image(self, product_name: str) -> str:
-        if not self.settings.image_generation_enabled:
+        if not (
+            self.settings.cloud_ai_enabled and self.settings.image_generation_enabled
+        ):
             return ""
 
         if not self.settings.openai_api_key:

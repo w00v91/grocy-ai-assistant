@@ -23,6 +23,8 @@ _GROUPED_OPTION_KEYS = {
     ),
     "ollama": (
         "ollama_enabled",
+        "ollama_text_generation_enabled",
+        "ollama_image_generation_enabled",
         "ollama_url",
         "ollama_model",
         "ollama_llava_model",
@@ -35,9 +37,12 @@ _GROUPED_OPTION_KEYS = {
         "scanner_llava_timeout_seconds",
     ),
     "cloud_ai": (
+        "cloud_ai_enabled",
         "image_generation_enabled",
+        "cloud_ai_text_generation_enabled",
         "openai_api_key",
         "openai_image_model",
+        "openai_text_model",
         "generate_missing_product_images_on_startup",
     ),
 }

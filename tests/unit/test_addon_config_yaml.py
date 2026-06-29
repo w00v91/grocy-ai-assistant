@@ -26,10 +26,15 @@ def test_addon_config_yaml_contains_global_notification_toggle():
 def test_addon_config_yaml_contains_grouped_image_generation_options():
     config = _load_config()
 
+    assert config["options"]["cloud_ai"]["cloud_ai_enabled"] is False
+    assert config["schema"]["cloud_ai"]["cloud_ai_enabled"] == "bool"
     assert config["options"]["cloud_ai"]["image_generation_enabled"] is False
     assert config["schema"]["cloud_ai"]["image_generation_enabled"] == "bool"
+    assert config["options"]["cloud_ai"]["cloud_ai_text_generation_enabled"] is False
+    assert config["schema"]["cloud_ai"]["cloud_ai_text_generation_enabled"] == "bool"
     assert config["schema"]["cloud_ai"]["openai_api_key"] == "password"
     assert config["options"]["cloud_ai"]["openai_image_model"] == "gpt-image-1"
+    assert config["options"]["cloud_ai"]["openai_text_model"] == "gpt-4o-mini"
 
 
 def test_addon_config_yaml_contains_grouped_startup_batch_image_option():
