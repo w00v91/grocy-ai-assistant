@@ -18,10 +18,12 @@ INTEGRATION_MANIFEST_PATH = (
     / "grocy_ai_assistant"
     / "manifest.json"
 )
-RECOMMENDED_OLLAMA_ADDON_URL = "http://76e18fb5_ollama:11434/api/generate"
-LEGACY_HOMEASSISTANT_OLLAMA_URLS = {
+RECOMMENDED_OLLAMA_ADDON_URL = "http://76e18fb5-ollama:11434/api/generate"
+LEGACY_OLLAMA_URLS = {
     "http://homeassistant.local:11434/api/generate",
     "http://homeassistant.local:11434/api/generate/",
+    "http://76e18fb5_ollama:11434/api/generate",
+    "http://76e18fb5_ollama:11434/api/generate/",
 }
 
 
@@ -67,7 +69,7 @@ class Settings(BaseModel):
     @classmethod
     def _normalize_legacy_ollama_url(cls, value: str) -> str:
         normalized_value = str(value or "").strip()
-        if normalized_value in LEGACY_HOMEASSISTANT_OLLAMA_URLS:
+        if normalized_value in LEGACY_OLLAMA_URLS:
             logger.warning(
                 "Legacy Ollama URL %s wird durch die interne Add-on-URL %s ersetzt",
                 normalized_value,

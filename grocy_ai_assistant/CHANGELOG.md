@@ -1,6 +1,12 @@
+## 2026-06-29 (Version 8.0.58)
+
+- Fix (Home-Assistant/Ollama): Die interne Standard-Ollama-URL verwendet jetzt den vom Ollama-Add-on dokumentierten Hostnamen `76e18fb5-ollama` statt der zuvor angenommenen Underscore-Variante.
+- Fix (Konfiguration): Sowohl alte `homeassistant.local:11434`-Werte als auch die kurzzeitig dokumentierte Underscore-Variante werden beim Laden auf `http://76e18fb5-ollama:11434/api/generate` normalisiert.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.58` erhöht.
+
 ## 2026-06-29 (Version 8.0.57)
 
-- Fix (Home-Assistant/Ollama): Die Standard-Ollama-URL zeigt jetzt auf den internen Ollama-Add-on-Host `76e18fb5_ollama`, da `homeassistant.local:11434` nach aktuellen Home-Assistant-Updates nicht mehr zuverlässig zum Ollama-Add-on routet.
+- Fix (Home-Assistant/Ollama): Die Standard-Ollama-URL zeigt jetzt auf den internen Ollama-Add-on-Host `76e18fb5-ollama`, da `homeassistant.local:11434` nach aktuellen Home-Assistant-Updates nicht mehr zuverlässig zum Ollama-Add-on routet.
 - Fix (Konfiguration): Legacy-Standardwerte mit `http://homeassistant.local:11434/api/generate` werden beim Laden automatisch auf die interne Add-on-URL normalisiert.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.57` erhöht.
 
