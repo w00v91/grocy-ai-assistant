@@ -1,3 +1,8 @@
+## 2026-06-29 (Version 8.0.56)
+
+- Fix (Dashboard/Produktsuche): Fehlerhafte oder nicht erreichbare Ollama-Produktanalysen liefern jetzt eine sichere Standardanalyse, damit `POST /api/dashboard/search` neue Produkte weiter anlegen kann statt mit `500` abzubrechen.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.56` erhöht.
+
 ## 2026-03-27 (Version 8.0.55)
 
 - Changed (Home-Assistant-Integration/Panel/Topbar): Das Kühlschrank-Icon wurde in der Topbar an den Anfang der Eyebrow verschoben.

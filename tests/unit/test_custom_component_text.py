@@ -127,11 +127,7 @@ def test_text_entity_device_info_includes_addon_version_and_configuration_url():
                     "config": {"api_base_url": "http://addon.local:8000"},
                     "coordinators": {
                         "status": types.SimpleNamespace(
-                            data={
-                                "status": {
-                                    "attributes": {"addon_version": "8.0.50"}
-                                }
-                            }
+                            data={"status": {"attributes": {"addon_version": "8.0.50"}}}
                         )
                     },
                 }
