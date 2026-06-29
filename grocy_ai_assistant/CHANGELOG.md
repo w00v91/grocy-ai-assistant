@@ -1,3 +1,9 @@
+## 2026-06-29 (Version 8.0.62)
+
+- Added (Lager/Auto-Cleanup): Neue Add-on-Optionen `auto_cleanup_enabled` und `auto_cleanup_months` entfernen überfällige Nicht-Konserven aus dem Lager.
+- Added (Dashboard/Lager): Lagerprodukte zeigen einen Auto-Cleanup-Infobadge und das Dashboard bietet eine manuelle Auto-Cleanup-Aktion.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.62` erhöht.
+
 ## 2026-06-29 (Version 8.0.61)
 
 - Added (Konfiguration/KI): Separate Schalter für Ollama-Texterstellung, Ollama-Bildabfragen, Cloud-AI global und Cloud-AI-Texterstellung inklusive OpenAI-Textmodell.

@@ -161,6 +161,12 @@ export function createDashboardApiClient({ apiBasePath = '', ingressPrefix = '',
       const path = params.size ? `/api/dashboard/stock-products?${params.toString()}` : '/api/dashboard/stock-products';
       return request(path, { headers: getAuthHeaders() });
     },
+    runAutoCleanup() {
+      return request('/api/dashboard/stock-products/auto-cleanup', {
+        method: 'POST',
+        headers: typeof getAuthHeaders === 'function' ? getAuthHeaders() : {},
+      });
+    },
     consumeStockProduct(stockId, { amount = 1, productId = null } = {}) {
       const suffix = Number.isFinite(Number(productId)) && Number(productId) > 0
         ? `?product_id=${encodeURIComponent(productId)}`

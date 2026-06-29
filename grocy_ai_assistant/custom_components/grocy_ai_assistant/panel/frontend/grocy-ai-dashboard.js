@@ -25,7 +25,7 @@ const TAB_ICONS = Object.freeze({
 });
 const DEFAULT_POLLING_INTERVAL_SECONDS = 5;
 const DEFAULT_POLLING_INTERVAL_MS = DEFAULT_POLLING_INTERVAL_SECONDS * 1000;
-const DEFAULT_INTEGRATION_VERSION = '8.0.61';
+const DEFAULT_INTEGRATION_VERSION = '8.0.62';
 const GROCY_RECIPE_DISPLAY_LIMIT = 3;
 const AI_RECIPE_DISPLAY_LIMIT = 3;
 const TAB_VIEW_STATE = Object.freeze({
@@ -437,6 +437,7 @@ function renderStorageProductCard(item, options = {}) {
     `Menge ${amountLabel}`,
     item?.location_name ? `Lagerort ${item.location_name}` : '',
     item?.in_stock ? 'Im Bestand' : 'Nicht im Bestand',
+    item?.auto_cleanup_due ? (item.auto_cleanup_badge || 'Auto-Cleanup fällig') : '',
   ].filter(Boolean);
 
   return `
@@ -614,6 +615,7 @@ function buildStorageTabMarkup(model = {}) {
               <span class="migration-chip">${escapeHtml(`${model.summary.totalCount} Produkte`)}</span>
               <span class="migration-chip">${escapeHtml(`${model.summary.inStockCount} Produkte auf Lager`)}</span>
               <span class="migration-chip">${escapeHtml(`${model.summary.outOfStockCount} Produkte nicht auf Lager`)}</span>
+              <span class="migration-chip">${escapeHtml(`${model.summary.cleanupDueCount || 0} Auto-Cleanup fällig`)}</span>
             </div>
           </div>
         </section>
@@ -625,6 +627,7 @@ function buildStorageTabMarkup(model = {}) {
       titleTag: 'h2',
       actions: [
         { label: 'Aktualisieren', className: 'primary-button', dataset: { action: 'storage-refresh' } },
+        { label: 'Auto-Cleanup starten', className: 'danger-button', dataset: { action: 'storage-auto-cleanup' } },
       ],
       body: listMarkup,
     })}
@@ -799,6 +802,7 @@ function createInitialState() {
         totalCount: 0,
         inStockCount: 0,
         outOfStockCount: 0,
+        cleanupDueCount: 0,
       },
       locations: [],
       filter: '',
@@ -3310,6 +3314,7 @@ class GrocyAIDashboardPanel extends HTMLElement {
     root.addEventListener('recipes-submit-create-ai', () => this._submitRecipeCreateAiPrompt());
     root.addEventListener('recipes-submit-create-manual', () => this._submitRecipeCreateManual());
     root.addEventListener('storage-refresh', () => this._loadStorageProducts());
+    root.addEventListener('storage-auto-cleanup', () => this._runStorageAutoCleanup());
     root.addEventListener('storage-filter-change', (event) => this._updateStorageFilter(event.detail?.value));
     root.addEventListener('storage-toggle-include-all', (event) => this._updateStorageIncludeAllProducts(event.detail?.checked));
     root.addEventListener('storage-open-edit', (event) => this._openStorageEdit(event.detail?.itemId));
@@ -3942,6 +3947,7 @@ class GrocyAIDashboardPanel extends HTMLElement {
       totalCount: normalizedVisibleItems.length,
       inStockCount: normalizedVisibleItems.filter((item) => item?.in_stock).length,
       outOfStockCount: normalizedVisibleItems.filter((item) => !item?.in_stock).length,
+      cleanupDueCount: normalizedVisibleItems.filter((item) => item?.auto_cleanup_due).length,
     };
 
     const { response, payload } = await api.fetchStockProducts({
@@ -3958,6 +3964,7 @@ class GrocyAIDashboardPanel extends HTMLElement {
       totalCount: allItems.length,
       inStockCount,
       outOfStockCount: allItems.length - inStockCount,
+      cleanupDueCount: allItems.filter((item) => item?.auto_cleanup_due).length,
     };
   }
 
@@ -4013,6 +4020,21 @@ class GrocyAIDashboardPanel extends HTMLElement {
     }, {
       onError: (message) => {
         this._updateStorageState({ loading: false });
+        this._setTabStatus('storage', `Fehler: ${message}`, { state: TAB_VIEW_STATE.ERROR, error: message, syncTopbar: false });
+      },
+    });
+  }
+
+  async _runStorageAutoCleanup() {
+    await this._runRequest(async () => {
+      const api = await this._getDashboardApiOrThrow();
+      this._updateStorageState({ status: 'Auto-Cleanup läuft…' });
+      const { response, payload } = await api.runAutoCleanup();
+      if (!response.ok) throw new Error(getErrorMessage(payload, 'Auto-Cleanup konnte nicht ausgeführt werden.'));
+      this._updateStorageState({ status: payload.message || 'Auto-Cleanup abgeschlossen.' });
+      await this._loadStorageProducts({ silent: true });
+    }, {
+      onError: (message) => {
         this._setTabStatus('storage', `Fehler: ${message}`, { state: TAB_VIEW_STATE.ERROR, error: message, syncTopbar: false });
       },
     });

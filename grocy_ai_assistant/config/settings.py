@@ -78,6 +78,8 @@ class Settings(BaseModel):
     openai_text_model: str = "gpt-4o-mini"
     debug_mode: bool = False
     notification_global_enabled: bool = True
+    auto_cleanup_enabled: bool = False
+    auto_cleanup_months: int = 6
     grocy_base_url: str = "http://homeassistant.local:9192/api"
     grocy_api_key: str = ""
     stable_diffusion_url: str = "http://172.17.0.1:7860/sdapi/v1/txt2img"
