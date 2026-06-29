@@ -27,6 +27,46 @@ class IngredientDetector:
     def _ollama_timeout_seconds(self) -> int:
         return max(5, min(300, int(self.settings.ollama_timeout_seconds)))
 
+    def _request_ollama_json(
+        self,
+        *,
+        payload: dict[str, Any],
+        context: str,
+    ) -> dict[str, Any] | list[Any] | None:
+        try:
+            response = requests.post(
+                self.settings.ollama_url,
+                json=payload,
+                timeout=self._ollama_timeout_seconds(),
+            )
+            response.raise_for_status()
+            response_payload = response.json()
+        except (requests.RequestException, ValueError, TypeError) as error:
+            logger.warning("%s konnte nicht geladen werden: %s", context, error)
+            return None
+
+        if not isinstance(response_payload, dict):
+            logger.warning("%s lieferte kein JSON-Objekt", context)
+            return None
+
+        return response_payload
+
+    @staticmethod
+    def _default_product_analysis(product_name: str) -> Dict[str, Any]:
+        return {
+            "name": product_name,
+            "description": "",
+            "location_id": 1,
+            "qu_id_purchase": 1,
+            "qu_id_stock": 1,
+            "calories": 0,
+            "carbohydrates": 0,
+            "fat": 0,
+            "protein": 0,
+            "sugar": 0,
+            "default_best_before_days": 0,
+        }
+
     @staticmethod
     def _grocy_context(locations: list[Dict[str, Any]] | None = None) -> Dict[str, str]:
         location_labels = [
@@ -75,16 +115,24 @@ class IngredientDetector:
             "format": "json",
         }
 
-        response = requests.post(
-            self.settings.ollama_url,
-            json=ollama_payload,
-            timeout=self._ollama_timeout_seconds(),
+        response_payload = self._request_ollama_json(
+            payload=ollama_payload,
+            context="KI-Analyse für Produktnamen",
         )
-        response.raise_for_status()
-        raw_answer = response.json().get("response")
+        if not response_payload:
+            return self._default_product_analysis(product_name)
+
+        raw_answer = response_payload.get("response")
         if self.settings.debug_mode:
             logger.info("KI-Antwort analyze_product_name: %s", raw_answer)
-        parsed = json.loads(raw_answer)
+        try:
+            parsed = json.loads(raw_answer)
+        except (TypeError, ValueError, json.JSONDecodeError) as error:
+            logger.warning(
+                "KI-Analyse für Produktnamen konnte nicht geparst werden, nutze Fallbackwerte: %s",
+                error,
+            )
+            return self._default_product_analysis(product_name)
 
         def _as_number(value: Any) -> float:
             if value is None:
@@ -99,19 +147,7 @@ class IngredientDetector:
             return int(number) if number.is_integer() else number
 
         if not isinstance(parsed, dict):
-            return {
-                "name": product_name,
-                "description": "",
-                "location_id": 1,
-                "qu_id_purchase": 1,
-                "qu_id_stock": 1,
-                "calories": 0,
-                "carbohydrates": 0,
-                "fat": 0,
-                "protein": 0,
-                "sugar": 0,
-                "default_best_before_days": 0,
-            }
+            return self._default_product_analysis(product_name)
 
         carbs_candidate = (
             parsed.get("carbohydrates")
@@ -164,16 +200,24 @@ class IngredientDetector:
             "format": "json",
         }
 
-        response = requests.post(
-            self.settings.ollama_url,
-            json=ollama_payload,
-            timeout=self._ollama_timeout_seconds(),
+        response_payload = self._request_ollama_json(
+            payload=ollama_payload,
+            context="KI-Vorschläge für ähnliche Produkte",
         )
-        response.raise_for_status()
-        raw_answer = response.json().get("response")
+        if not response_payload:
+            return []
+
+        raw_answer = response_payload.get("response")
         if self.settings.debug_mode:
             logger.info("KI-Antwort suggest_similar_products: %s", raw_answer)
-        parsed = json.loads(raw_answer)
+        try:
+            parsed = json.loads(raw_answer)
+        except (TypeError, ValueError, json.JSONDecodeError) as error:
+            logger.warning(
+                "KI-Vorschläge für ähnliche Produkte konnten nicht geparst werden, nutze leere Liste: %s",
+                error,
+            )
+            return []
 
         if not isinstance(parsed, list):
             return []
@@ -412,13 +456,22 @@ class IngredientDetector:
             "images": [image_base64],
         }
 
-        response = requests.post(
-            self.settings.ollama_url,
-            json=ollama_payload,
-            timeout=max(10, min(120, int(timeout_seconds))),
-        )
-        response.raise_for_status()
-        raw_answer = response.json().get("response")
+        try:
+            response = requests.post(
+                self.settings.ollama_url,
+                json=ollama_payload,
+                timeout=max(10, min(120, int(timeout_seconds))),
+            )
+            response.raise_for_status()
+            response_payload = response.json()
+        except (requests.RequestException, ValueError, TypeError) as error:
+            logger.warning("KI-Bilderkennung konnte nicht geladen werden: %s", error)
+            return {"product_name": "", "brand": "", "hint": ""}
+
+        if not isinstance(response_payload, dict):
+            return {"product_name": "", "brand": "", "hint": ""}
+
+        raw_answer = response_payload.get("response")
         if self.settings.debug_mode:
             logger.info("KI-Antwort detect_product_from_image: %s", raw_answer)
 

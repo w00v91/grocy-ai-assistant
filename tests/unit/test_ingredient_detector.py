@@ -650,3 +650,46 @@ def test_analyze_product_name_maps_default_best_before_days(monkeypatch):
     result = detector.analyze_product_name("Joghurt")
 
     assert result["default_best_before_days"] == 7
+
+
+def test_analyze_product_name_falls_back_when_ollama_returns_error(monkeypatch):
+    class FakeErrorResponse:
+        status_code = 500
+
+        def raise_for_status(self):
+            raise requests.HTTPError("500 Server Error", response=self)
+
+        def json(self):
+            return {"error": "boom"}
+
+    def fake_post(*args, **kwargs):
+        return FakeErrorResponse()
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.ai.ingredient_detector.requests.post", fake_post
+    )
+
+    detector = IngredientDetector(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+        )
+    )
+
+    result = detector.analyze_product_name("Tomate")
+
+    assert result == {
+        "name": "Tomate",
+        "description": "",
+        "location_id": 1,
+        "qu_id_purchase": 1,
+        "qu_id_stock": 1,
+        "calories": 0,
+        "carbohydrates": 0,
+        "fat": 0,
+        "protein": 0,
+        "sugar": 0,
+        "default_best_before_days": 0,
+    }

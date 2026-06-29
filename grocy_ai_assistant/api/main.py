@@ -34,6 +34,11 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 INITIAL_INFO_SYNC_STATE_PATH = Path("/tmp/grocy-initial-info-sync-state.json")
+NOISY_REQUEST_LOG_PATHS = {
+    "/api/v1/shopping-list",
+    "/api/v1/stock",
+    "/api/v1/recipes",
+}
 
 
 def _as_float_or_none(value: object) -> float | None:
@@ -555,8 +560,11 @@ def create_app() -> FastAPI:
     @app_instance.middleware("http")
     async def log_request_info(request: Request, call_next):
         is_status_check = request.method == "GET" and request.url.path == "/api/status"
+        suppress_request_log = (
+            request.method == "GET" and request.url.path in NOISY_REQUEST_LOG_PATHS
+        )
         start_time = time.perf_counter()
-        if not is_status_check:
+        if not is_status_check and not suppress_request_log:
             logger.info(
                 "Anfrage erhalten: method=%s path=%s query=%s client=%s",
                 request.method,
@@ -567,7 +575,7 @@ def create_app() -> FastAPI:
 
         response = await call_next(request)
 
-        if not is_status_check:
+        if not is_status_check and not suppress_request_log:
             duration_ms = (time.perf_counter() - start_time) * 1000
             logger.info(
                 "Antwort gesendet: method=%s path=%s status=%s dauer_ms=%.1f",

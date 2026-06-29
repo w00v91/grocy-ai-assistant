@@ -1,3 +1,9 @@
+## 2026-06-29 (Version 8.0.56)
+
+- Fix (Dashboard/Produktsuche): Wenn Ollama mit einem HTTP-Fehler antwortet, bricht `POST /api/dashboard/search` nicht mehr mit 500 ab. Stattdessen wird ein robuster Fallback für die Produktanlage verwendet.
+- Changed (Logging): Die wiederkehrenden GET-Requests auf `stock`, `shopping-list` und `recipes` werden im Standard-Request-Log nicht mehr einzeln protokolliert.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.56` erhöht.
+
 ## 2026-03-27 (Version 8.0.55)
 
 - Changed (Home-Assistant-Integration/Panel/Topbar): Das Kühlschrank-Icon wurde in der Topbar an den Anfang der Eyebrow verschoben.
