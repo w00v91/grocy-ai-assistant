@@ -57,6 +57,8 @@ class Settings(BaseModel):
         _default_required_integration_version(),
     )
     ollama_url: str = Field(default_factory=_default_ollama_url)
+
+    ollama_enabled: bool = True
     ollama_model: str = "llama3"
     ollama_llava_model: str = "llava"
     ollama_timeout_seconds: int = 60

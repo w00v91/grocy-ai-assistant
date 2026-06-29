@@ -16,6 +16,9 @@ configuration:
       name: "Grocy base URL"
       description: "Base URL of the Grocy API, e.g. http://homeassistant.local:9192/api."
   ollama:
+    ollama_enabled:
+      name: "Ollama enabled"
+      description: "Enables local Ollama requests for product analysis, recipe suggestions, and scanner image detection."
     ollama_url:
       name: "Generate endpoint"
       description: "URL of the Ollama generate endpoint for AI requests."

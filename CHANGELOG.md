@@ -1,5 +1,33 @@
 # CHANGELOG HISTORY FILE
 
+## 2026-06-29 (Version 8.0.60)
+
+- Fix (Home-Assistant-Integration/Panel/Shopping): Dashboard-Root-Events werden jetzt tatsächlich nur einmal gebunden. Dadurch löst ein einzelner Klick auf `Produkt prüfen` nur noch einen Submit aus und vorhandene Produkte werden nicht doppelt zur Einkaufsliste hinzugefügt.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.60` erhöht.
+
+## 2026-06-29 (Version 8.0.59)
+
+- Added (Konfiguration/Ollama): Neue Option `ollama_enabled`, um lokale Ollama-Abfragen komplett zu deaktivieren und Setups nur mit Cloud-Funktionen oder ganz ohne Ollama zu betreiben.
+- Fix (Konfiguration/Ollama): Die Ollama-URL bleibt wieder vollständig frei einstellbar; automatische Umschreibungen konfigurierter URLs wurden entfernt.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.59` erhöht.
+
+## 2026-06-29 (Version 8.0.58)
+
+- Fix (Home-Assistant/Ollama): Die interne Standard-Ollama-URL verwendet jetzt den vom Ollama-Add-on dokumentierten Hostnamen `76e18fb5-ollama` statt der zuvor angenommenen Underscore-Variante.
+- Fix (Konfiguration): Sowohl alte `homeassistant.local:11434`-Werte als auch die kurzzeitig dokumentierte Underscore-Variante werden beim Laden auf `http://76e18fb5-ollama:11434/api/generate` normalisiert.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.58` erhöht.
+
+## 2026-06-29 (Version 8.0.57)
+
+- Fix (Home-Assistant/Ollama): Die Standard-Ollama-URL zeigt jetzt auf den internen Ollama-Add-on-Host `76e18fb5-ollama`, da `homeassistant.local:11434` nach aktuellen Home-Assistant-Updates nicht mehr zuverlässig zum Ollama-Add-on routet.
+- Fix (Konfiguration): Legacy-Standardwerte mit `http://homeassistant.local:11434/api/generate` werden beim Laden automatisch auf die interne Add-on-URL normalisiert.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.57` erhöht.
+
+## 2026-06-29 (Version 8.0.56)
+
+- Fix (Dashboard/Produktsuche): Fehlerhafte oder nicht erreichbare Ollama-Produktanalysen liefern jetzt eine sichere Standardanalyse, damit `POST /api/dashboard/search` neue Produkte weiter anlegen kann statt mit `500` abzubrechen.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.56` erhöht.
+
 ## 2026-03-26 (Version 8.0.54)
 - Fix (Home-Assistant-Integration/Panel/Rezepte): Die primären Buttons `Rezept hinzufügen` und `Rezepte laden` werden in der nativen Rezept-Ansicht jetzt explizit als einzeiliges Grid gerendert.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.54` erhöht.

@@ -45,7 +45,8 @@ grocy:
   grocy_api_key: "DEIN_GROCY_KEY"
   grocy_base_url: "http://homeassistant.local:9192/api"
 ollama:
-  ollama_url: "http://76e18fb5_ollama:11434/api/generate"
+  ollama_enabled: true
+  ollama_url: "http://homeassistant.local:11434/api/generate"
   ollama_model: "llama3"
   ollama_llava_model: "llava"
   initial_info_sync: false
@@ -70,6 +71,7 @@ debug_mode: false
 | `notification_global_enabled` | Aktiviert oder deaktiviert Benachrichtigungen global. |
 | `grocy.grocy_api_key` | API-Schlüssel deiner Grocy-Instanz. |
 | `grocy.grocy_base_url` | Basis-URL deiner Grocy-API. |
+| `ollama.ollama_enabled` | Aktiviert/deaktiviert lokale Ollama-Abfragen. |
 | `ollama.ollama_url` | URL zum Ollama-Generate-Endpunkt. |
 | `ollama.ollama_model` | Standardmodell für textbasierte Analysen. |
 | `ollama.ollama_llava_model` | Vision-Modell für bildbasierte Analysen. |

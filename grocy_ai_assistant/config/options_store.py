@@ -22,6 +22,7 @@ _GROUPED_OPTION_KEYS = {
         "grocy_base_url",
     ),
     "ollama": (
+        "ollama_enabled",
         "ollama_url",
         "ollama_model",
         "ollama_llava_model",
