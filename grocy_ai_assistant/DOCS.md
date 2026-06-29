@@ -46,6 +46,8 @@ grocy:
   grocy_base_url: "http://homeassistant.local:9192/api"
 ollama:
   ollama_enabled: true
+  ollama_text_generation_enabled: true
+  ollama_image_generation_enabled: true
   ollama_url: "http://homeassistant.local:11434/api/generate"
   ollama_model: "llama3"
   ollama_llava_model: "llava"
@@ -55,9 +57,12 @@ scanner:
   scanner_llava_min_confidence: 75
   scanner_llava_timeout_seconds: 45
 cloud_ai:
+  cloud_ai_enabled: false
   image_generation_enabled: false
+  cloud_ai_text_generation_enabled: false
   openai_api_key: "DEIN_OPENAI_KEY"
   openai_image_model: "gpt-image-1"
+  openai_text_model: "gpt-4o-mini"
   generate_missing_product_images_on_startup: false
 debug_mode: false
 ```
@@ -71,7 +76,9 @@ debug_mode: false
 | `notification_global_enabled` | Aktiviert oder deaktiviert Benachrichtigungen global. |
 | `grocy.grocy_api_key` | API-Schlüssel deiner Grocy-Instanz. |
 | `grocy.grocy_base_url` | Basis-URL deiner Grocy-API. |
-| `ollama.ollama_enabled` | Aktiviert/deaktiviert lokale Ollama-Abfragen. |
+| `ollama.ollama_enabled` | Aktiviert/deaktiviert lokale Ollama-Abfragen grundsätzlich. |
+| `ollama.ollama_text_generation_enabled` | Aktiviert/deaktiviert Ollama-Texterstellung für Produktanalyse, Vorschläge und Rezepte. |
+| `ollama.ollama_image_generation_enabled` | Aktiviert/deaktiviert Ollama/LLaVA-Bildabfragen für Scanner-Bilderkennung. |
 | `ollama.ollama_url` | URL zum Ollama-Generate-Endpunkt. |
 | `ollama.ollama_model` | Standardmodell für textbasierte Analysen. |
 | `ollama.ollama_llava_model` | Vision-Modell für bildbasierte Analysen. |
@@ -79,9 +86,12 @@ debug_mode: false
 | `scanner.scanner_barcode_fallback_seconds` | Zeit bis zur Barcode-Fallback-Logik. |
 | `scanner.scanner_llava_min_confidence` | Mindest-Konfidenz für Scanner-Ergebnisse in Prozent. |
 | `scanner.scanner_llava_timeout_seconds` | Maximale Wartezeit für LLaVA-Anfragen. |
+| `cloud_ai.cloud_ai_enabled` | Aktiviert/deaktiviert Cloud-AI-Funktionen grundsätzlich. |
 | `cloud_ai.image_generation_enabled` | Aktiviert die KI-Bildgenerierung für fehlende Produktbilder. |
+| `cloud_ai.cloud_ai_text_generation_enabled` | Aktiviert/deaktiviert Cloud-AI-Texterstellung analog zu Ollama. |
 | `cloud_ai.openai_api_key` | OpenAI-API-Key für die Bildgenerierung. |
 | `cloud_ai.openai_image_model` | OpenAI-Modell für die Bildgenerierung, z. B. `gpt-image-1`. |
+| `cloud_ai.openai_text_model` | OpenAI-Modell für Cloud-AI-Texterstellung, z. B. `gpt-4o-mini`. |
 | `cloud_ai.generate_missing_product_images_on_startup` | Erzeugt fehlende Produktbilder einmalig beim nächsten Start. |
 | `debug_mode` | Aktiviert ausführliche Debug-Logs. |
 

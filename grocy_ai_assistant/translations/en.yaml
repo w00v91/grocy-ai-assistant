@@ -18,7 +18,13 @@ configuration:
   ollama:
     ollama_enabled:
       name: "Ollama enabled"
-      description: "Enables local Ollama requests for product analysis, recipe suggestions, and scanner image detection."
+      description: "Enables local Ollama requests globally."
+    ollama_text_generation_enabled:
+      name: "Ollama text generation enabled"
+      description: "Enables local Ollama text requests for product analysis, suggestions, and recipes."
+    ollama_image_generation_enabled:
+      name: "Ollama image detection enabled"
+      description: "Enables local Ollama/LLaVA image requests for scanner image detection."
     ollama_url:
       name: "Generate endpoint"
       description: "URL of the Ollama generate endpoint for AI requests."
@@ -42,15 +48,24 @@ configuration:
       name: "LLaVA timeout (sec)"
       description: "Maximum wait time in seconds for LLaVA scanner requests."
   cloud_ai:
+    cloud_ai_enabled:
+      name: "Cloud AI enabled"
+      description: "Enables Cloud AI features globally."
     image_generation_enabled:
-      name: "Image generation enabled"
-      description: "Enables AI-based generation of missing product images."
+      name: "Cloud image generation enabled"
+      description: "Enables AI-based generation of missing product images through Cloud AI."
+    cloud_ai_text_generation_enabled:
+      name: "Cloud AI text generation enabled"
+      description: "Enables Cloud AI text requests for product analysis, suggestions, and recipes when Ollama text is disabled."
     openai_api_key:
       name: "OpenAI API key"
       description: "OpenAI API key used for image generation."
     openai_image_model:
       name: "OpenAI image model"
       description: "OpenAI model name used for image generation (e.g. gpt-image-1)."
+    openai_text_model:
+      name: "OpenAI text model"
+      description: "OpenAI model name used for Cloud AI text generation (e.g. gpt-4o-mini)."
     generate_missing_product_images_on_startup:
       name: "Generate missing images on startup"
       description: "Automatically generates missing product images when the add-on starts."

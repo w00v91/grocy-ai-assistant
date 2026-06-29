@@ -18,7 +18,13 @@ configuration:
   ollama:
     ollama_enabled:
       name: "Ollama aktiv"
-      description: "Aktiviert lokale Ollama-Abfragen für Produktanalyse, Rezeptvorschläge und Scanner-Bilderkennung."
+      description: "Aktiviert lokale Ollama-Abfragen grundsätzlich."
+    ollama_text_generation_enabled:
+      name: "Ollama Texterstellung aktiv"
+      description: "Aktiviert lokale Ollama-Textabfragen für Produktanalyse, Vorschläge und Rezepte."
+    ollama_image_generation_enabled:
+      name: "Ollama Bilderkennung aktiv"
+      description: "Aktiviert lokale Ollama/LLaVA-Bildabfragen für Scanner-Bilderkennung."
     ollama_url:
       name: "Generate-Endpoint"
       description: "URL zum Ollama-Generate-Endpunkt für KI-Anfragen."
@@ -42,15 +48,24 @@ configuration:
       name: "LLaVA Timeout (Sek.)"
       description: "Maximale Wartezeit in Sekunden für LLaVA-Scanneranfragen."
   cloud_ai:
+    cloud_ai_enabled:
+      name: "Cloud AI aktiv"
+      description: "Aktiviert Cloud-AI-Funktionen grundsätzlich."
     image_generation_enabled:
-      name: "Bildgenerierung aktiv"
-      description: "Aktiviert die KI-gestützte Generierung fehlender Produktbilder."
+      name: "Cloud-Bildgenerierung aktiv"
+      description: "Aktiviert die KI-gestützte Generierung fehlender Produktbilder über Cloud AI."
+    cloud_ai_text_generation_enabled:
+      name: "Cloud AI Texterstellung aktiv"
+      description: "Aktiviert Cloud-AI-Textabfragen für Produktanalyse, Vorschläge und Rezepte, wenn Ollama-Text deaktiviert ist."
     openai_api_key:
       name: "OpenAI API-Key"
       description: "OpenAI API-Schlüssel für die Bildgenerierung."
     openai_image_model:
       name: "OpenAI Bildmodell"
       description: "OpenAI-Modellname für die Bildgenerierung (z. B. gpt-image-1)."
+    openai_text_model:
+      name: "OpenAI Textmodell"
+      description: "OpenAI-Modellname für Cloud-AI-Texterstellung (z. B. gpt-4o-mini)."
     generate_missing_product_images_on_startup:
       name: "Fehlende Bilder beim Start erzeugen"
       description: "Erzeugt beim Add-on-Start automatisch fehlende Produktbilder."

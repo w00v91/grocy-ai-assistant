@@ -719,3 +719,75 @@ def test_analyze_product_name_maps_default_best_before_days(monkeypatch):
     result = detector.analyze_product_name("Joghurt")
 
     assert result["default_best_before_days"] == 7
+
+
+def test_analyze_product_name_uses_cloud_text_when_ollama_text_disabled(monkeypatch):
+    captured = {}
+
+    def fake_post(url, headers=None, json=None, timeout=None):
+        captured["url"] = url
+        captured["headers"] = headers
+        captured["json"] = json
+        return FakeResponse(
+            {
+                "choices": [
+                    {
+                        "message": {
+                            "content": '{"name":"Hafermilch","description":"Pflanzendrink","location_id":2}'
+                        }
+                    }
+                ]
+            }
+        )
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.ai.ingredient_detector.requests.post", fake_post
+    )
+
+    detector = IngredientDetector(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+            ollama_text_generation_enabled=False,
+            cloud_ai_enabled=True,
+            cloud_ai_text_generation_enabled=True,
+            openai_api_key="sk-test",
+            openai_text_model="gpt-test",
+        )
+    )
+
+    result = detector.analyze_product_name("Hafermilch")
+
+    assert captured["url"] == "https://api.openai.com/v1/chat/completions"
+    assert captured["headers"]["Authorization"] == "Bearer sk-test"
+    assert captured["json"]["model"] == "gpt-test"
+    assert result["name"] == "Hafermilch"
+    assert result["description"] == "Pflanzendrink"
+    assert result["location_id"] == 2
+
+
+def test_ollama_image_generation_switch_disables_image_detection(monkeypatch):
+    def fake_post(*args, **kwargs):
+        raise AssertionError("Ollama image endpoint should not be called when disabled")
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.ai.ingredient_detector.requests.post", fake_post
+    )
+
+    detector = IngredientDetector(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+            ollama_image_generation_enabled=False,
+        )
+    )
+
+    assert detector.detect_product_from_image("img") == {
+        "product_name": "",
+        "brand": "",
+        "hint": "",
+    }

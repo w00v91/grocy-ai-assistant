@@ -59,6 +59,8 @@ class Settings(BaseModel):
     ollama_url: str = Field(default_factory=_default_ollama_url)
 
     ollama_enabled: bool = True
+    ollama_text_generation_enabled: bool = True
+    ollama_image_generation_enabled: bool = True
     ollama_model: str = "llama3"
     ollama_llava_model: str = "llava"
     ollama_timeout_seconds: int = 60
@@ -66,11 +68,14 @@ class Settings(BaseModel):
     scanner_llava_min_confidence: int = 75
     scanner_llava_timeout_seconds: int = 45
     dashboard_polling_interval_seconds: int = 5
+    cloud_ai_enabled: bool = True
     image_generation_enabled: bool = False
+    cloud_ai_text_generation_enabled: bool = False
     generate_missing_product_images_on_startup: bool = False
     initial_info_sync: bool = False
     openai_api_key: str = ""
     openai_image_model: str = "gpt-image-1"
+    openai_text_model: str = "gpt-4o-mini"
     debug_mode: bool = False
     notification_global_enabled: bool = True
     grocy_base_url: str = "http://homeassistant.local:9192/api"

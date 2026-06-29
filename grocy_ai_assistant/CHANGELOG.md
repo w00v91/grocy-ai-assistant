@@ -1,7 +1,8 @@
-## 2026-06-29 (Version 8.0.60)
+## 2026-06-29 (Version 8.0.61)
 
+- Added (Konfiguration/KI): Separate Schalter für Ollama-Texterstellung, Ollama-Bildabfragen, Cloud-AI global und Cloud-AI-Texterstellung inklusive OpenAI-Textmodell.
 - Fix (Home-Assistant-Integration/Panel/Shopping): Dashboard-Root-Events werden jetzt tatsächlich nur einmal gebunden. Dadurch löst ein einzelner Klick auf `Produkt prüfen` nur noch einen Submit aus und vorhandene Produkte werden nicht doppelt zur Einkaufsliste hinzugefügt.
-- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.60` erhöht.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.61` erhöht.
 
 ## 2026-06-29 (Version 8.0.59)
 
