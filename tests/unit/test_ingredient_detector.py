@@ -589,6 +589,34 @@ def test_analyze_product_name_returns_extended_nutrition_values(monkeypatch):
     assert result["default_best_before_days"] == 0
 
 
+def test_analyze_product_name_returns_fallback_when_ollama_disabled(monkeypatch):
+    def fake_post(*args, **kwargs):
+        raise AssertionError("Ollama should not be called when disabled")
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.ai.ingredient_detector.requests.post", fake_post
+    )
+
+    detector = IngredientDetector(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+            ollama_enabled=False,
+        )
+    )
+
+    assert detector.analyze_product_name("Hafermilch")["name"] == "Hafermilch"
+    assert detector.suggest_similar_products("Hafer") == []
+    assert detector.generate_recipe_suggestions(["Hafermilch"], []) == []
+    assert detector.detect_product_from_image("abc") == {
+        "product_name": "",
+        "brand": "",
+        "hint": "",
+    }
+
+
 def test_analyze_product_name_returns_fallback_on_ollama_http_error(monkeypatch):
     class ErrorResponse:
         def raise_for_status(self):

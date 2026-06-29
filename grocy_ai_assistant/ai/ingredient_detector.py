@@ -64,6 +64,9 @@ class IngredientDetector:
         product_name: str,
         locations: list[Dict[str, Any]] | None = None,
     ) -> Dict[str, Any]:
+        if not self.settings.ollama_enabled:
+            return self._fallback_product_analysis(product_name)
+
         context = self._grocy_context(locations)
         prompt = f"""
         Analysiere das Produkt '{product_name}'.
@@ -148,6 +151,9 @@ class IngredientDetector:
         }
 
     def suggest_similar_products(self, product_name: str) -> list[Dict[str, Any]]:
+        if not self.settings.ollama_enabled:
+            return []
+
         prompt = f"""
         Der Nutzer hat nach '{product_name}' gesucht.
         Das ist vermutlich kein vollständiger Produktname.
@@ -212,6 +218,9 @@ class IngredientDetector:
         *,
         timeout_seconds: int | None = None,
     ) -> list[Dict[str, Any]]:
+        if not self.settings.ollama_enabled:
+            return []
+
         ingredients = ", ".join(selected_products)
         existing = (
             ", ".join(existing_recipe_titles) if existing_recipe_titles else "keine"
@@ -406,6 +415,9 @@ class IngredientDetector:
     def detect_product_from_image(
         self, image_base64: str, *, timeout_seconds: int = 90
     ) -> Dict[str, str]:
+        if not self.settings.ollama_enabled:
+            return {"product_name": "", "brand": "", "hint": ""}
+
         min_confidence = max(
             1, min(100, int(self.settings.scanner_llava_min_confidence))
         )
