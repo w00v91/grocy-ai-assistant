@@ -589,6 +589,47 @@ def test_analyze_product_name_returns_extended_nutrition_values(monkeypatch):
     assert result["default_best_before_days"] == 0
 
 
+def test_analyze_product_name_returns_fallback_on_ollama_http_error(monkeypatch):
+    class ErrorResponse:
+        def raise_for_status(self):
+            raise requests.HTTPError("500 Server Error")
+
+        def json(self):
+            return {}
+
+    def fake_post(*args, **kwargs):
+        return ErrorResponse()
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.ai.ingredient_detector.requests.post", fake_post
+    )
+
+    detector = IngredientDetector(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+        )
+    )
+
+    result = detector.analyze_product_name("Hafermilch")
+
+    assert result == {
+        "name": "Hafermilch",
+        "description": "",
+        "location_id": 1,
+        "qu_id_purchase": 1,
+        "qu_id_stock": 1,
+        "calories": 0,
+        "carbohydrates": 0,
+        "fat": 0,
+        "protein": 0,
+        "sugar": 0,
+        "default_best_before_days": 0,
+    }
+
+
 def test_analyze_product_name_maps_carbs_alias(monkeypatch):
     def fake_post(*args, **kwargs):
         return FakeResponse(

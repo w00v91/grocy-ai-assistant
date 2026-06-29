@@ -43,6 +43,22 @@ class IngredientDetector:
             "units": "1: Stueck, 2: Packung, 3: Gramm, 4: Kilogramm",
         }
 
+    @staticmethod
+    def _fallback_product_analysis(product_name: str) -> Dict[str, Any]:
+        return {
+            "name": product_name,
+            "description": "",
+            "location_id": 1,
+            "qu_id_purchase": 1,
+            "qu_id_stock": 1,
+            "calories": 0,
+            "carbohydrates": 0,
+            "fat": 0,
+            "protein": 0,
+            "sugar": 0,
+            "default_best_before_days": 0,
+        }
+
     def analyze_product_name(
         self,
         product_name: str,
@@ -75,16 +91,23 @@ class IngredientDetector:
             "format": "json",
         }
 
-        response = requests.post(
-            self.settings.ollama_url,
-            json=ollama_payload,
-            timeout=self._ollama_timeout_seconds(),
-        )
-        response.raise_for_status()
-        raw_answer = response.json().get("response")
-        if self.settings.debug_mode:
-            logger.info("KI-Antwort analyze_product_name: %s", raw_answer)
-        parsed = json.loads(raw_answer)
+        try:
+            response = requests.post(
+                self.settings.ollama_url,
+                json=ollama_payload,
+                timeout=self._ollama_timeout_seconds(),
+            )
+            response.raise_for_status()
+            raw_answer = response.json().get("response")
+            if self.settings.debug_mode:
+                logger.info("KI-Antwort analyze_product_name: %s", raw_answer)
+            parsed = json.loads(raw_answer)
+        except (requests.RequestException, ValueError, TypeError) as error:
+            logger.warning(
+                "KI-Produktanalyse konnte nicht geladen werden (Netzwerk/Timeout/Antwort): %s",
+                error,
+            )
+            return self._fallback_product_analysis(product_name)
 
         def _as_number(value: Any) -> float:
             if value is None:
@@ -99,19 +122,7 @@ class IngredientDetector:
             return int(number) if number.is_integer() else number
 
         if not isinstance(parsed, dict):
-            return {
-                "name": product_name,
-                "description": "",
-                "location_id": 1,
-                "qu_id_purchase": 1,
-                "qu_id_stock": 1,
-                "calories": 0,
-                "carbohydrates": 0,
-                "fat": 0,
-                "protein": 0,
-                "sugar": 0,
-                "default_best_before_days": 0,
-            }
+            return self._fallback_product_analysis(product_name)
 
         carbs_candidate = (
             parsed.get("carbohydrates")

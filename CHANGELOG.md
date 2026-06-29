@@ -1,5 +1,10 @@
 # CHANGELOG HISTORY FILE
 
+## 2026-06-29 (Version 8.0.56)
+
+- Fix (Dashboard/Produktsuche): Fehlerhafte oder nicht erreichbare Ollama-Produktanalysen liefern jetzt eine sichere Standardanalyse, damit `POST /api/dashboard/search` neue Produkte weiter anlegen kann statt mit `500` abzubrechen.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.56` erhöht.
+
 ## 2026-03-26 (Version 8.0.54)
 - Fix (Home-Assistant-Integration/Panel/Rezepte): Die primären Buttons `Rezept hinzufügen` und `Rezepte laden` werden in der nativen Rezept-Ansicht jetzt explizit als einzeiliges Grid gerendert.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.54` erhöht.
