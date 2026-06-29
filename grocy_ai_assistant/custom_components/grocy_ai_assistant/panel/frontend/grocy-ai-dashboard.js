@@ -25,7 +25,7 @@ const TAB_ICONS = Object.freeze({
 });
 const DEFAULT_POLLING_INTERVAL_SECONDS = 5;
 const DEFAULT_POLLING_INTERVAL_MS = DEFAULT_POLLING_INTERVAL_SECONDS * 1000;
-const DEFAULT_INTEGRATION_VERSION = '8.0.59';
+const DEFAULT_INTEGRATION_VERSION = '8.0.60';
 const GROCY_RECIPE_DISPLAY_LIMIT = 3;
 const AI_RECIPE_DISPLAY_LIMIT = 3;
 const TAB_VIEW_STATE = Object.freeze({
@@ -3268,6 +3268,7 @@ class GrocyAIDashboardPanel extends HTMLElement {
     if (this._eventsBound) return;
     const root = this.shadowRoot;
     if (!root) return;
+    this._eventsBound = true;
 
     root.addEventListener('tab-change', (event) => this._switchTab(event.detail.tab));
     root.addEventListener('toggle-sidebar', () => this._toggleSidebar());
