@@ -2867,3 +2867,31 @@ def test_dashboard_update_stock_product_updates_location_and_best_before(
     assert called["product_location"] == (10, 7)
     assert called["stock_update"] == (99, 5, "2026-03-25", 7)
     assert called["nutrition"] == (10, None, None, None, None, None)
+
+
+def test_dashboard_auto_cleanup_stock_products_runs_client_cleanup(client, monkeypatch):
+    called = {}
+
+    def fake_cleanup(self):
+        called["cleanup"] = True
+        return {
+            "enabled": True,
+            "months": 3,
+            "cutoff_date": "2026-03-31",
+            "removed_count": 2,
+            "removed": [],
+        }
+
+    monkeypatch.setattr(
+        routes.GrocyClient, "cleanup_expired_non_canned_stock", fake_cleanup
+    )
+
+    response = client.post(
+        "/api/dashboard/stock-products/auto-cleanup",
+        headers={"Authorization": "Bearer test-api-key"},
+    )
+
+    assert response.status_code == 200
+    assert called["cleanup"] is True
+    assert response.json()["removed_count"] == 2
+    assert "2 Bestandseinträge" in response.json()["message"]

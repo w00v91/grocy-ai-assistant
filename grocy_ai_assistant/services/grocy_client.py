@@ -827,6 +827,65 @@ class GrocyClient:
             if location.get("id") is not None
         ]
 
+    @staticmethod
+    def _parse_stock_date(value: Any) -> datetime | None:
+        normalized = str(value or "").strip()
+        if not normalized:
+            return None
+        match = re.match(r"^(\d{4}-\d{2}-\d{2})", normalized)
+        if not match:
+            return None
+        try:
+            return datetime.strptime(match.group(1), "%Y-%m-%d")
+        except ValueError:
+            return None
+
+    @staticmethod
+    def _is_canned_product_name(value: str) -> bool:
+        normalized = f" {str(value or '').casefold()} "
+        canned_keywords = (
+            "konserve",
+            "konserven",
+            "dose",
+            "dosen",
+            "glas",
+            "eingemacht",
+            "haltbar",
+            "canned",
+            "can ",
+            "tin ",
+        )
+        return any(keyword in normalized for keyword in canned_keywords)
+
+    def _auto_cleanup_cutoff_date(self) -> datetime:
+        months = max(int(getattr(self.settings, "auto_cleanup_months", 6) or 6), 1)
+        return datetime.now().replace(
+            hour=0, minute=0, second=0, microsecond=0
+        ) - timedelta(days=months * 30)
+
+    def _build_auto_cleanup_metadata(
+        self,
+        item: Dict[str, Any],
+        cutoff_date: datetime | None = None,
+    ) -> Dict[str, Any]:
+        if not getattr(self.settings, "auto_cleanup_enabled", False):
+            return {}
+
+        cutoff = cutoff_date or self._auto_cleanup_cutoff_date()
+        reference_date = self._parse_stock_date(
+            item.get("best_before_date") or item.get("best_before_date_calculated")
+        )
+        product_name = str(item.get("name") or item.get("product_name") or "")
+        is_canned = self._is_canned_product_name(product_name)
+        due = bool(reference_date and reference_date <= cutoff and not is_canned)
+        return {
+            "auto_cleanup_due": due,
+            "auto_cleanup_badge": "Auto-Cleanup fällig" if due else "",
+            "auto_cleanup_reference_date": (
+                reference_date.strftime("%Y-%m-%d") if reference_date else ""
+            ),
+        }
+
     def get_stock_entries(
         self, location_ids: list[int] | None = None
     ) -> list[Dict[str, Any]]:
@@ -980,6 +1039,7 @@ class GrocyClient:
                 "protein": str(product.get("protein") or ""),
                 "sugar": str(product.get("sugar") or ""),
             }
+            item.update(self._build_auto_cleanup_metadata(item))
             stock_id = self._safe_int(entry.get("stock_id") or entry.get("id"))
             if stock_id is not None:
                 item["stock_id"] = stock_id
@@ -1025,32 +1085,32 @@ class GrocyClient:
                 if allowed_locations and location_id not in allowed_locations:
                     continue
 
-                stock_products.append(
-                    {
-                        "id": product_id,
-                        "stock_id": None,
-                        "in_stock": False,
-                        "name": product.get("name") or "Unbekanntes Produkt",
-                        "picture_url": str(
-                            product.get("picture_url")
-                            or product.get("picture_file_name")
-                            or ""
-                        ),
-                        "location_id": location_id,
-                        "location_name": (
-                            locations.get(location_id, "")
-                            if location_id is not None
-                            else ""
-                        ),
-                        "amount": "0",
-                        "best_before_date": "",
-                        "calories": str(product.get("calories") or ""),
-                        "carbs": str(product.get("carbohydrates") or ""),
-                        "fat": str(product.get("fat") or ""),
-                        "protein": str(product.get("protein") or ""),
-                        "sugar": str(product.get("sugar") or ""),
-                    }
-                )
+                item = {
+                    "id": product_id,
+                    "stock_id": None,
+                    "in_stock": False,
+                    "name": product.get("name") or "Unbekanntes Produkt",
+                    "picture_url": str(
+                        product.get("picture_url")
+                        or product.get("picture_file_name")
+                        or ""
+                    ),
+                    "location_id": location_id,
+                    "location_name": (
+                        locations.get(location_id, "")
+                        if location_id is not None
+                        else ""
+                    ),
+                    "amount": "0",
+                    "best_before_date": "",
+                    "calories": str(product.get("calories") or ""),
+                    "carbs": str(product.get("carbohydrates") or ""),
+                    "fat": str(product.get("fat") or ""),
+                    "protein": str(product.get("protein") or ""),
+                    "sugar": str(product.get("sugar") or ""),
+                }
+                item.update(self._build_auto_cleanup_metadata(item))
+                stock_products.append(item)
 
         filtered_products = stock_products
         normalized_query = search_query.strip().casefold()
@@ -1064,6 +1124,40 @@ class GrocyClient:
 
         filtered_products.sort(key=lambda item: str(item.get("name") or "").casefold())
         return filtered_products
+
+    def cleanup_expired_non_canned_stock(self) -> Dict[str, Any]:
+        if not getattr(self.settings, "auto_cleanup_enabled", False):
+            return {"enabled": False, "removed_count": 0, "removed": []}
+
+        cutoff = self._auto_cleanup_cutoff_date()
+        candidates = []
+        for item in self.get_storage_products(include_all_products=False):
+            metadata = self._build_auto_cleanup_metadata(item, cutoff)
+            stock_id = self._safe_int(item.get("stock_id"))
+            if metadata["auto_cleanup_due"] and stock_id is not None:
+                candidates.append({**item, **metadata, "stock_id": stock_id})
+
+        removed = []
+        for item in candidates:
+            self.delete_stock_entry(int(item["stock_id"]))
+            removed.append(
+                {
+                    "stock_id": item.get("stock_id"),
+                    "product_id": item.get("id"),
+                    "name": item.get("name"),
+                    "reference_date": item.get("auto_cleanup_reference_date"),
+                }
+            )
+
+        return {
+            "enabled": True,
+            "months": max(
+                int(getattr(self.settings, "auto_cleanup_months", 6) or 6), 1
+            ),
+            "cutoff_date": cutoff.strftime("%Y-%m-%d"),
+            "removed_count": len(removed),
+            "removed": removed,
+        }
 
     def consume_stock_product(
         self,

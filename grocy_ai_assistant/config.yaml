@@ -1,5 +1,5 @@
 name: Grocy AI Assistant
-version: 8.0.61
+version: 8.0.62
 slug: grocy_ai_assistant
 dependencies:
 - a0d49513_grocy
@@ -49,6 +49,8 @@ options:
     openai_text_model: gpt-4o-mini
     generate_missing_product_images_on_startup: false
   debug_mode: false
+  auto_cleanup_enabled: false
+  auto_cleanup_months: 6
 schema:
   api_key: str
   notification_global_enabled: bool
@@ -78,3 +80,5 @@ schema:
     openai_text_model: str
     generate_missing_product_images_on_startup: bool
   debug_mode: bool
+  auto_cleanup_enabled: bool
+  auto_cleanup_months: int(1,120)

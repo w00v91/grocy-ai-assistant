@@ -2214,6 +2214,7 @@ async function fetchStorageSummaryCounts({ query = '', visibleItems = [] } = {})
     totalCount: normalizedVisibleItems.length,
     inStockCount: normalizedVisibleItems.filter((item) => item?.in_stock).length,
     outOfStockCount: normalizedVisibleItems.filter((item) => !item?.in_stock).length,
+    cleanupDueCount: normalizedVisibleItems.filter((item) => item?.auto_cleanup_due).length,
   };
 
   try {
@@ -2228,6 +2229,7 @@ async function fetchStorageSummaryCounts({ query = '', visibleItems = [] } = {})
       totalCount: allItems.length,
       inStockCount,
       outOfStockCount: allItems.length - inStockCount,
+      cleanupDueCount: allItems.filter((item) => item?.auto_cleanup_due).length,
     };
   } catch (error) {
     return fallbackSummary;
@@ -2269,6 +2271,7 @@ function renderStorageProducts() {
           <div class="storage-item-badges">
             <span class="badge">Menge: ${escapeHtml(formatBadgeValue(item.amount, '0'))}</span>
             <span class="badge">MHD: ${escapeHtml(formatBadgeValue(item.best_before_date, '-'))}</span>
+            ${item.auto_cleanup_due ? `<span class="badge">${escapeHtml(item.auto_cleanup_badge || 'Auto-Cleanup fällig')}</span>` : ''}
           </div>
           <div class="storage-item-info muted">${escapeHtml(item.in_stock ? 'Im Bestand' : 'Nicht im Bestand')}</div>
         </div>
@@ -2329,6 +2332,7 @@ async function loadStorageProducts() {
           totalCount: dashboardState.storageProductsCache.length,
           inStockCount: dashboardState.storageProductsCache.filter((item) => item.in_stock).length,
           outOfStockCount: dashboardState.storageProductsCache.filter((item) => !item.in_stock).length,
+          cleanupDueCount: dashboardState.storageProductsCache.filter((item) => item.auto_cleanup_due).length,
         }
         : await fetchStorageSummaryCounts({
           query: filterValue,
@@ -2377,6 +2381,19 @@ function startStorageAutoRefresh() {
   dashboardState.storageRefreshTimer = setInterval(() => {
     refreshStorageInBackground();
   }, shoppingListRefreshMs);
+}
+
+async function runStorageAutoCleanup() {
+  const status = getStorageStatusElement();
+  if (status) status.textContent = 'Auto-Cleanup läuft…';
+  try {
+    const { response, payload } = await dashboardApi.runAutoCleanup();
+    if (!response.ok) throw new Error(getErrorMessage(payload, 'Auto-Cleanup konnte nicht ausgeführt werden.'));
+    if (status) status.textContent = payload.message || 'Auto-Cleanup abgeschlossen.';
+    await loadStorageProducts();
+  } catch (error) {
+    if (status) status.textContent = `Fehler: ${error.message}`;
+  }
 }
 
 async function consumeStorageProduct(stockId) {
@@ -3599,6 +3616,7 @@ Object.assign(window, {
   loadRecipeSuggestions,
   loadShoppingList,
   loadStorageProducts,
+  runStorageAutoCleanup,
   onScannerCameraChange,
   onScannerRotationChange,
   openNotificationRuleModal,

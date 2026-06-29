@@ -2459,6 +2459,43 @@ def dashboard_delete_product_picture(
         raise HTTPException(status_code=500, detail=str(error)) from error
 
 
+@router.post("/api/dashboard/stock-products/auto-cleanup")
+def dashboard_auto_cleanup_stock_products(
+    request: Request,
+    _: None = Depends(require_auth),
+    settings: Settings = Depends(get_settings),
+):
+    if not settings.grocy_api_key:
+        raise HTTPException(
+            status_code=500, detail="grocy_api_key fehlt in Add-on Optionen"
+        )
+
+    try:
+        grocy_client = GrocyClient(settings)
+        result = grocy_client.cleanup_expired_non_canned_stock()
+        if not result.get("enabled"):
+            return {
+                **result,
+                "success": True,
+                "message": "Auto-Cleanup ist deaktiviert.",
+            }
+        removed_count = int(result.get("removed_count") or 0)
+        return {
+            **result,
+            "success": True,
+            "message": f"Auto-Cleanup abgeschlossen: {removed_count} Bestandseinträge entfernt.",
+        }
+    except Exception as error:
+        log_api_error(
+            logger,
+            request=request,
+            status_code=500,
+            message=str(error),
+            exc=error,
+        )
+        raise HTTPException(status_code=500, detail=str(error)) from error
+
+
 @router.post("/api/dashboard/stock-products/{stock_id}/consume")
 def dashboard_consume_stock_product(
     stock_id: int,

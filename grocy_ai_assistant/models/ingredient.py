@@ -109,6 +109,9 @@ class StockProductResponse(BaseModel):
     fat: str = ""
     protein: str = ""
     sugar: str = ""
+    auto_cleanup_due: bool = False
+    auto_cleanup_badge: str = ""
+    auto_cleanup_reference_date: str = ""
 
 
 class StockProductConsumeRequest(BaseModel):

@@ -15,6 +15,8 @@ _TOP_LEVEL_OPTION_KEYS = (
     "notification_global_enabled",
     "dashboard_polling_interval_seconds",
     "debug_mode",
+    "auto_cleanup_enabled",
+    "auto_cleanup_months",
 )
 _GROUPED_OPTION_KEYS = {
     "grocy": (
