@@ -1,5 +1,16 @@
 # CHANGELOG HISTORY FILE
 
+## 2026-06-29 (Version 8.0.57)
+
+- Fix (Home-Assistant/Ollama): Die Standard-Ollama-URL zeigt jetzt auf den internen Ollama-Add-on-Host `76e18fb5_ollama`, da `homeassistant.local:11434` nach aktuellen Home-Assistant-Updates nicht mehr zuverlässig zum Ollama-Add-on routet.
+- Fix (Konfiguration): Legacy-Standardwerte mit `http://homeassistant.local:11434/api/generate` werden beim Laden automatisch auf die interne Add-on-URL normalisiert.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.57` erhöht.
+
+## 2026-06-29 (Version 8.0.56)
+
+- Fix (Dashboard/Produktsuche): Fehlerhafte oder nicht erreichbare Ollama-Produktanalysen liefern jetzt eine sichere Standardanalyse, damit `POST /api/dashboard/search` neue Produkte weiter anlegen kann statt mit `500` abzubrechen.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.56` erhöht.
+
 ## 2026-03-26 (Version 8.0.54)
 - Fix (Home-Assistant-Integration/Panel/Rezepte): Die primären Buttons `Rezept hinzufügen` und `Rezepte laden` werden in der nativen Rezept-Ansicht jetzt explizit als einzeiliges Grid gerendert.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.54` erhöht.

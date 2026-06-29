@@ -4,7 +4,7 @@ import os
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from grocy_ai_assistant.config import options_store
 from grocy_ai_assistant.config.options_store import parse_simple_yaml
@@ -18,6 +18,11 @@ INTEGRATION_MANIFEST_PATH = (
     / "grocy_ai_assistant"
     / "manifest.json"
 )
+RECOMMENDED_OLLAMA_ADDON_URL = "http://76e18fb5_ollama:11434/api/generate"
+LEGACY_HOMEASSISTANT_OLLAMA_URLS = {
+    "http://homeassistant.local:11434/api/generate",
+    "http://homeassistant.local:11434/api/generate/",
+}
 
 
 def _load_version_from_metadata(path: Path) -> str | None:
@@ -46,7 +51,7 @@ def _default_ollama_url() -> str:
     configured_ollama_url = os.getenv("GROCY_AI_OLLAMA_URL") or os.getenv("OLLAMA_URL")
     if configured_ollama_url:
         return configured_ollama_url
-    return "http://host.docker.internal:11434/api/generate"
+    return RECOMMENDED_OLLAMA_ADDON_URL
 
 
 class Settings(BaseModel):
@@ -57,6 +62,20 @@ class Settings(BaseModel):
         _default_required_integration_version(),
     )
     ollama_url: str = Field(default_factory=_default_ollama_url)
+
+    @field_validator("ollama_url")
+    @classmethod
+    def _normalize_legacy_ollama_url(cls, value: str) -> str:
+        normalized_value = str(value or "").strip()
+        if normalized_value in LEGACY_HOMEASSISTANT_OLLAMA_URLS:
+            logger.warning(
+                "Legacy Ollama URL %s wird durch die interne Add-on-URL %s ersetzt",
+                normalized_value,
+                RECOMMENDED_OLLAMA_ADDON_URL,
+            )
+            return RECOMMENDED_OLLAMA_ADDON_URL
+        return normalized_value or RECOMMENDED_OLLAMA_ADDON_URL
+
     ollama_model: str = "llama3"
     ollama_llava_model: str = "llava"
     ollama_timeout_seconds: int = 60

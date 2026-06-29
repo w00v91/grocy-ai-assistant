@@ -54,6 +54,4 @@ def build_device_info(entry_id: str, hass: Any | None = None) -> DeviceInfo:
         payload["sw_version"] = addon_version
     if configuration_url := _get_configuration_url(hass, entry_id):
         payload["configuration_url"] = configuration_url
-    return DeviceInfo(
-        **payload
-    )
+    return DeviceInfo(**payload)
