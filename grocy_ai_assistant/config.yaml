@@ -1,5 +1,5 @@
 name: Grocy AI Assistant
-version: 8.0.58
+version: 8.0.59
 slug: grocy_ai_assistant
 dependencies:
 - a0d49513_grocy
@@ -28,7 +28,8 @@ options:
     grocy_api_key: DEIN_GROCY_KEY
     grocy_base_url: http://homeassistant.local:9192/api
   ollama:
-    ollama_url: http://76e18fb5-ollama:11434/api/generate
+    ollama_enabled: true
+    ollama_url: http://homeassistant.local:11434/api/generate
     ollama_model: llama3
     ollama_llava_model: llava
     ollama_timeout_seconds: 60
@@ -51,6 +52,7 @@ schema:
     grocy_api_key: str
     grocy_base_url: str
   ollama:
+    ollama_enabled: bool
     ollama_url: str
     ollama_model: str
     ollama_llava_model: str

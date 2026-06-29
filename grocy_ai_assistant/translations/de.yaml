@@ -16,6 +16,9 @@ configuration:
       name: "Grocy Basis-URL"
       description: "Basis-URL der Grocy-API, z. B. http://homeassistant.local:9192/api."
   ollama:
+    ollama_enabled:
+      name: "Ollama aktiv"
+      description: "Aktiviert lokale Ollama-Abfragen für Produktanalyse, Rezeptvorschläge und Scanner-Bilderkennung."
     ollama_url:
       name: "Generate-Endpoint"
       description: "URL zum Ollama-Generate-Endpunkt für KI-Anfragen."

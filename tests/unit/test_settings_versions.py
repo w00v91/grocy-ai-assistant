@@ -34,35 +34,14 @@ def test_default_ollama_url_falls_back_to_generic_env(monkeypatch):
     assert settings._default_ollama_url() == "http://generic-ollama:11434/api/generate"
 
 
-def test_default_ollama_url_uses_addon_host_fallback(monkeypatch):
+def test_default_ollama_url_uses_docker_host_fallback(monkeypatch):
     monkeypatch.delenv("GROCY_AI_OLLAMA_URL", raising=False)
     monkeypatch.delenv("OLLAMA_URL", raising=False)
 
-    assert settings._default_ollama_url() == "http://76e18fb5-ollama:11434/api/generate"
-
-
-def test_settings_normalizes_legacy_homeassistant_ollama_url():
-    configured = settings.Settings(
-        api_key="x",
-        addon_version="a",
-        required_integration_version="1",
-        grocy_api_key="g",
-        ollama_url="http://homeassistant.local:11434/api/generate",
+    assert (
+        settings._default_ollama_url()
+        == "http://host.docker.internal:11434/api/generate"
     )
-
-    assert configured.ollama_url == "http://76e18fb5-ollama:11434/api/generate"
-
-
-def test_settings_normalizes_temporary_underscore_ollama_url():
-    configured = settings.Settings(
-        api_key="x",
-        addon_version="a",
-        required_integration_version="1",
-        grocy_api_key="g",
-        ollama_url="http://76e18fb5_ollama:11434/api/generate",
-    )
-
-    assert configured.ollama_url == "http://76e18fb5-ollama:11434/api/generate"
 
 
 def test_get_settings_reloads_nested_grouped_options_when_yaml_changes(

@@ -1,3 +1,9 @@
+## 2026-06-29 (Version 8.0.59)
+
+- Added (Konfiguration/Ollama): Neue Option `ollama_enabled`, um lokale Ollama-Abfragen komplett zu deaktivieren und Setups nur mit Cloud-Funktionen oder ganz ohne Ollama zu betreiben.
+- Fix (Konfiguration/Ollama): Die Ollama-URL bleibt wieder vollständig frei einstellbar; automatische Umschreibungen konfigurierter URLs wurden entfernt.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.59` erhöht.
+
 ## 2026-06-29 (Version 8.0.58)
 
 - Fix (Home-Assistant/Ollama): Die interne Standard-Ollama-URL verwendet jetzt den vom Ollama-Add-on dokumentierten Hostnamen `76e18fb5-ollama` statt der zuvor angenommenen Underscore-Variante.
