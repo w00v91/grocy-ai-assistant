@@ -184,7 +184,7 @@ test('storage tab keeps product filter and include-all toggle in one control row
   assert.match(cssSource, /\.storage-summary \{[\s\S]*?display: flex;[\s\S]*?flex-wrap: wrap;[\s\S]*?justify-content: flex-start;/);
 });
 
-test('shopping tab keeps the scanner trigger in the same mobile header row as the title', async () => {
+test('bottom tab bar exposes the barcode scanner shortcut outside the shopping header', async () => {
   const source = await fs.readFile(dashboardPath, 'utf8');
   const cssSource = await fs.readFile(dashboardCssPath, 'utf8');
 
@@ -193,10 +193,11 @@ test('shopping tab keeps the scanner trigger in the same mobile header row as th
   assert.match(source, /heroEyebrow\.className = 'eyebrow';/);
   assert.match(source, /heroEyebrow\.textContent = 'Einkauf';/);
   assert.match(source, /heroCopy\.append\(heroEyebrow, heroTitle\);/);
-  assert.match(source, /scannerButton\.innerHTML = renderHaIcon\('mdi:barcode-scan', 'scanner-popup-button__icon'\);/);
+  assert.doesNotMatch(source, /scannerButton\.className = 'scanner-popup-button';/);
+  assert.match(source, /scannerButton\.className = 'tab-button tab-button--scanner';/);
+  assert.match(source, /scannerButton\.dataset\.action = 'shopping-open-scanner';/);
+  assert.match(source, /renderHaIcon\('mdi:barcode-scan', 'tab-button__icon'\)/);
   assert.match(cssSource, /\.shopping-hero-card__header \{[\s\S]*?align-items: center;[\s\S]*?margin-bottom: var\(--panel-stack-gap\);/);
-  assert.match(cssSource, /\.shopping-hero-card__header \.scanner-popup-button \{[\s\S]*?margin-left: auto;/);
-  assert.match(cssSource, /\.scanner-popup-button__icon \{[\s\S]*?--mdc-icon-size: 24px;/);
   assert.match(cssSource, /@media \(max-width: 800px\) \{[\s\S]*?\.shopping-hero-card__header \{[\s\S]*?flex-direction: row;[\s\S]*?align-items: center;/);
 });
 
@@ -381,14 +382,12 @@ test('mobile panel CSS keeps native dashboard copy readable and avoids cramped t
 });
 
 
-test('bottom tab bar stays centered and matches the desktop shell width before becoming compact pill navigation on mobile', async () => {
+test('bottom tab bar spans the full viewport and remains compact on mobile', async () => {
   const source = await fs.readFile(dashboardCssPath, 'utf8');
 
-  assert.match(source, /--dashboard-shell-center-x: 50vw;/);
-  assert.match(source, /--dashboard-shell-fixed-width: min\(var\(--dashboard-shell-max-width\), calc\(100vw - 48px\)\);/);
-  assert.match(source, /\.bottom-tabbar \{[\s\S]*?left: var\(--dashboard-shell-center-x\);[\s\S]*?transform: translateX\(-50%\);[\s\S]*?justify-content: center;[\s\S]*?width: min\(var\(--dashboard-shell-fixed-width\), calc\(100vw - 48px\)\);/);
+  assert.match(source, /\.bottom-tabbar \{[\s\S]*?left: 0;[\s\S]*?right: 0;[\s\S]*?bottom: 0;[\s\S]*?transform: none;[\s\S]*?justify-content: stretch;[\s\S]*?width: 100vw;/);
   assert.match(source, /\.tab-button:hover,\s*\.tab-button:focus-visible \{[\s\S]*?transform: none;/);
-  assert.match(source, /@media \(max-width: 800px\) \{[\s\S]*?\.bottom-tabbar \{[\s\S]*?left: var\(--dashboard-shell-center-x\);[\s\S]*?flex-wrap: nowrap;[\s\S]*?width: fit-content;[\s\S]*?max-width: min\(var\(--dashboard-shell-fixed-width\), calc\(100vw - 32px\)\);[\s\S]*?border-radius: 999px;[\s\S]*?overflow-x: auto;/);
-  assert.match(source, /@media \(max-width: 800px\) \{[\s\S]*?\.tab-button \{[\s\S]*?flex: 0 0 auto;[\s\S]*?white-space: nowrap;/);
+  assert.match(source, /@media \(max-width: 800px\) \{[\s\S]*?\.bottom-tabbar \{[\s\S]*?left: 0;[\s\S]*?right: 0;[\s\S]*?flex-wrap: nowrap;[\s\S]*?width: 100vw;[\s\S]*?max-width: none;[\s\S]*?overflow-x: auto;/);
+  assert.match(source, /@media \(max-width: 800px\) \{[\s\S]*?\.tab-button \{[\s\S]*?flex: 1 1 0;[\s\S]*?white-space: nowrap;/);
   assert.match(source, /@media \(max-width: 800px\) \{[\s\S]*?\.tab-button__meta \{[\s\S]*?display: none;/);
 });

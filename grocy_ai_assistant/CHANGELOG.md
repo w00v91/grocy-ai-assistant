@@ -1,3 +1,9 @@
+## 2026-07-04 (Version 8.0.63)
+
+- Changed (Home-Assistant-Integration/Panel/Mobile): Die Bottom-Bar nutzt auf Smartphones die volle Bildschirmbreite und enthält jetzt den Barcode-Scanner als direkten Schnellzugriff.
+- Changed (Home-Assistant-Integration/Panel/Shopping): Die leere Produktsuche ist kompakter und verzichtet ohne aktive Suche auf den zusätzlichen Such-Shell-Rahmen.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.63` erhöht.
+
 ## 2026-06-29 (Version 8.0.62)
 
 - Added (Lager/Auto-Cleanup): Neue Add-on-Optionen `auto_cleanup_enabled` und `auto_cleanup_months` entfernen überfällige Nicht-Konserven aus dem Lager.

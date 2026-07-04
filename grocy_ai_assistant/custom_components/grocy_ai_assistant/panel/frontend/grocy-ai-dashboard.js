@@ -25,7 +25,7 @@ const TAB_ICONS = Object.freeze({
 });
 const DEFAULT_POLLING_INTERVAL_SECONDS = 5;
 const DEFAULT_POLLING_INTERVAL_MS = DEFAULT_POLLING_INTERVAL_SECONDS * 1000;
-const DEFAULT_INTEGRATION_VERSION = '8.0.62';
+const DEFAULT_INTEGRATION_VERSION = '8.0.63';
 const GROCY_RECIPE_DISPLAY_LIMIT = 3;
 const AI_RECIPE_DISPLAY_LIMIT = 3;
 const TAB_VIEW_STATE = Object.freeze({
@@ -913,6 +913,16 @@ class GrocyAITabNav extends HTMLElement {
 
   connectedCallback() {
     this.addEventListener('click', (event) => {
+      const actionTarget = event.target.closest('[data-action]');
+      if (actionTarget) {
+        this.dispatchEvent(new CustomEvent(actionTarget.dataset.action, {
+          bubbles: true,
+          composed: true,
+          detail: { ...actionTarget.dataset },
+        }));
+        return;
+      }
+
       const button = event.target.closest('[data-tab]');
       if (!button) return;
       this.dispatchEvent(new CustomEvent('tab-change', {
@@ -944,6 +954,17 @@ class GrocyAITabNav extends HTMLElement {
     nav.setAttribute('role', 'tablist');
 
     const buttons = new Map();
+    const scannerButton = document.createElement('button');
+    scannerButton.type = 'button';
+    scannerButton.className = 'tab-button tab-button--scanner';
+    scannerButton.dataset.action = 'shopping-open-scanner';
+    scannerButton.setAttribute('aria-label', 'Barcode-Scanner öffnen');
+    scannerButton.innerHTML = `
+      ${renderHaIcon('mdi:barcode-scan', 'tab-button__icon')}
+      <span class="tab-button__label">Scan</span>
+    `;
+    nav.append(scannerButton);
+
     TAB_ORDER.forEach((tab) => {
       const button = document.createElement('button');
       button.type = 'button';
@@ -1046,6 +1067,7 @@ class GrocyAIShoppingSearchBar extends HTMLElement {
     title.textContent = 'Produkt suchen oder Variante wählen';
     headerCopy.append(eyebrow, title);
     const stateChip = document.createElement('span');
+    stateChip.setAttribute('aria-hidden', 'true');
     header.append(headerCopy, stateChip);
 
     const form = document.createElement('form');
@@ -1327,14 +1349,8 @@ class GrocyAIShoppingTab extends HTMLElement {
     heroEyebrow.textContent = 'Einkauf';
     const heroTitle = document.createElement('h2');
     heroTitle.textContent = 'Grocy AI Suche';
-    const scannerButton = document.createElement('button');
-    scannerButton.className = 'scanner-popup-button';
-    scannerButton.type = 'button';
-    scannerButton.dataset.action = 'shopping-open-scanner';
-    scannerButton.setAttribute('aria-label', 'Barcode-Scanner öffnen');
-    scannerButton.innerHTML = renderHaIcon('mdi:barcode-scan', 'scanner-popup-button__icon');
     heroCopy.append(heroEyebrow, heroTitle);
-    heroHeader.append(heroCopy, scannerButton);
+    heroHeader.append(heroCopy);
     const searchBar = document.createElement('grocy-ai-shopping-search-bar');
     heroCard.append(heroHeader, searchBar);
 
