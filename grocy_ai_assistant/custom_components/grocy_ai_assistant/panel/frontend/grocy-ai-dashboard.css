@@ -350,6 +350,23 @@ grocy-ai-tab-nav {
   background: color-mix(in srgb, var(--panel-card-background) 94%, var(--primary-background-color));
 }
 
+.shopping-search-shell--empty {
+  gap: var(--panel-stack-gap);
+  padding: 0;
+  border-color: transparent;
+  background: transparent;
+}
+
+.shopping-search-shell--empty .shopping-search-shell__header {
+  display: block;
+}
+
+.shopping-search-shell--empty .shopping-search-shell__title,
+.shopping-search-shell--empty .search-state-chip,
+.shopping-search-shell--empty .search-helper-text {
+  display: none;
+}
+
 .shopping-search-shell__header {
   display: flex;
   align-items: center;
@@ -1588,16 +1605,16 @@ select:focus-visible {
   }
 
   .bottom-tabbar {
-    left: var(--dashboard-shell-center-x);
-    right: auto;
-    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
-    transform: translateX(-50%);
-    justify-content: center;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    transform: none;
+    justify-content: stretch;
     flex-wrap: nowrap;
-    width: fit-content;
-    max-width: min(var(--dashboard-shell-fixed-width), calc(100vw - 32px));
-    padding: var(--panel-compact-gap);
-    border-radius: 999px;
+    width: 100vw;
+    max-width: none;
+    padding: var(--panel-compact-gap) max(var(--panel-compact-gap), env(safe-area-inset-left, 0px)) calc(var(--panel-compact-gap) + env(safe-area-inset-bottom, 0px)) max(var(--panel-compact-gap), env(safe-area-inset-right, 0px));
+    border-radius: calc(var(--panel-radius) + var(--panel-compact-gap)) calc(var(--panel-radius) + var(--panel-compact-gap)) 0 0;
     overflow-x: auto;
     overscroll-behavior-x: contain;
     scrollbar-width: none;
@@ -1608,9 +1625,9 @@ select:focus-visible {
   }
 
   .tab-button {
-    flex: 0 0 auto;
+    flex: 1 1 0;
     gap: var(--panel-compact-gap);
-    padding: var(--panel-compact-gap) 14px;
+    padding: var(--panel-compact-gap) 10px;
     white-space: nowrap;
   }
 
