@@ -1,3 +1,9 @@
+## 2026-07-08 (Version 8.0.70)
+
+- Fix (Home-Assistant-Integration/Panel/Shopping): Der Dashboard-Submit-Pfad ignoriert doppelte Submit-Events jetzt direkt, solange bereits eine Produktsuche läuft, und behält den bestehenden Status ohne neue Topbar-Fehlermeldung bei.
+- Added (Tests/Frontend): Regressionstest simuliert zwei schnelle `shopping-submit-query`-Events und prüft einen einzelnen API-Call ohne Fehlermeldung.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.70` erhöht.
+
 ## 2026-07-08 (Version 8.0.69)
 
 - Changed (Home-Assistant-Integration/Panel/Shopping): Lokale doppelte Produktsuchen melden jetzt explizit, dass die Anfrage noch verarbeitet wird, und setzen `lastBlockedReason=local_in_flight` zur Diagnose.
