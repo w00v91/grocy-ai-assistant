@@ -25,7 +25,7 @@ const TAB_ICONS = Object.freeze({
 });
 const DEFAULT_POLLING_INTERVAL_SECONDS = 5;
 const DEFAULT_POLLING_INTERVAL_MS = DEFAULT_POLLING_INTERVAL_SECONDS * 1000;
-const DEFAULT_INTEGRATION_VERSION = '8.0.65';
+const DEFAULT_INTEGRATION_VERSION = '8.0.66';
 const GROCY_RECIPE_DISPLAY_LIMIT = 3;
 const AI_RECIPE_DISPLAY_LIMIT = 3;
 const TAB_VIEW_STATE = Object.freeze({
@@ -3592,9 +3592,17 @@ class GrocyAIDashboardPanel extends HTMLElement {
     }
   }
 
+  _hasActiveShoppingSearchMessage(searchState = this._shoppingSearch?.getState?.() || {}) {
+    if (searchState.errorMessage) return true;
+    if (searchState.isSubmitting || searchState.isLoadingVariants) return true;
+    if (searchState.flowState === SEARCH_FLOW_STATES.SUBMITTING) return true;
+    if (searchState.flowState === SEARCH_FLOW_STATES.LOADING_VARIANTS) return true;
+    return String(searchState.statusMessage || '').includes('identische Produktsuche läuft bereits');
+  }
+
   _resolveActiveTabStatus(state, searchState) {
-    if (state.pendingRequests > 0 && searchState.flowState === SEARCH_FLOW_STATES.SUBMITTING) {
-      return searchState.statusMessage;
+    if (state.activeTab === 'shopping' && this._hasActiveShoppingSearchMessage(searchState)) {
+      return searchState.errorMessage || searchState.statusMessage || state.shopping.status;
     }
 
     if (state.activeTab === 'shopping') return state.shopping.status;
@@ -4337,8 +4345,9 @@ class GrocyAIDashboardPanel extends HTMLElement {
   }
 
   async _loadShoppingList(options = {}) {
-    this._updateShoppingState({ listLoading: !options.silent, status: options.silent ? this._store.getState().shopping.status : 'Lade Einkaufsliste…' });
-    if (!options.silent) {
+    const silent = options.silent === true;
+    this._updateShoppingState({ listLoading: !silent, status: silent ? this._store.getState().shopping.status : 'Lade Einkaufsliste…' });
+    if (!silent) {
       this._updateTabViewState('shopping', { loading: true, error: '' });
     }
     await this._runRequest(async () => {
@@ -4362,9 +4371,14 @@ class GrocyAIDashboardPanel extends HTMLElement {
       this._syncShoppingPolling();
     }, {
       onError: (message) => {
-        this._updateShoppingState({ listLoading: false, status: `Fehler: ${message}` });
+        const hasActiveSearchMessage = this._hasActiveShoppingSearchMessage();
+        this._updateShoppingState({
+          listLoading: false,
+          ...(silent && hasActiveSearchMessage ? {} : { status: `Fehler: ${message}` }),
+        });
         this._updateTabViewState('shopping', { loading: false, error: message });
       },
+      suppressTopbarError: silent && this._hasActiveShoppingSearchMessage(),
     });
   }
 
@@ -4752,13 +4766,15 @@ class GrocyAIDashboardPanel extends HTMLElement {
     window.location.assign(url.toString());
   }
 
-  async _runRequest(callback, { onError } = {}) {
+  async _runRequest(callback, { onError, suppressTopbarError = false } = {}) {
     this._store.update((state) => ({ ...state, pendingRequests: state.pendingRequests + 1 }));
     try {
       await callback();
     } catch (error) {
       onError?.(error.message);
-      this._store.patch({ topbarStatus: `Fehler: ${error.message}` });
+      if (!suppressTopbarError) {
+        this._store.patch({ topbarStatus: `Fehler: ${error.message}` });
+      }
     } finally {
       this._store.update((state) => ({ ...state, pendingRequests: Math.max(0, state.pendingRequests - 1) }));
     }
