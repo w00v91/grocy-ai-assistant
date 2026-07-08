@@ -211,3 +211,38 @@ test('enter submit wins over a still-loading variant request', async () => {
   assert.equal(controller.getState().flowState, SEARCH_FLOW_STATES.SUCCESS);
   assert.equal(controller.getState().statusMessage, 'Produkt verarbeitet.');
 });
+
+test('returns local in-flight status for duplicate direct product searches', async () => {
+  const searchDeferred = createDeferred();
+  const submitted = [];
+  const { controller } = createController({
+    apiOverrides: {
+      searchProduct: (payload) => {
+        submitted.push(payload);
+        return searchDeferred.promise;
+      },
+    },
+  });
+
+  controller.actions.setQuery('2 Milch');
+
+  const firstSearch = controller.actions.searchProduct();
+  const secondSearch = controller.actions.searchProduct();
+
+  assert.equal(submitted.length, 1);
+  assert.deepEqual(await secondSearch, {
+    ok: false,
+    payload: { action: 'search_in_flight' },
+  });
+  assert.equal(controller.getState().statusMessage, 'Produktanfrage läuft bereits...');
+
+  searchDeferred.resolve({
+    response: { ok: true },
+    payload: { message: 'Produkt verarbeitet.' },
+  });
+
+  assert.deepEqual(await firstSearch, {
+    ok: true,
+    payload: { message: 'Produkt verarbeitet.' },
+  });
+});
