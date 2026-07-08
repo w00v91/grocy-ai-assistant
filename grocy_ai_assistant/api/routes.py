@@ -87,7 +87,7 @@ LAST_SCAN_RESULT: dict[str, Any] = {
 }
 SEARCH_GUARD_LOCK = threading.Lock()
 SEARCH_REQUESTS_IN_FLIGHT: dict[str, float] = {}
-SEARCH_GUARD_STALE_SECONDS = 120.0
+SEARCH_GUARD_STALE_SECONDS = 45.0
 
 
 def _call_homeassistant_service(
@@ -162,9 +162,17 @@ def _build_dashboard_search_guard_key(
     )
 
 
-def _begin_dashboard_search_guard(guard_key: str) -> tuple[bool, dict[str, float]]:
+def _dashboard_search_guard_stale_seconds(settings: Settings | None = None) -> float:
+    if settings is None:
+        return SEARCH_GUARD_STALE_SECONDS
+    return float(max(5, min(300, int(settings.dashboard_search_guard_stale_seconds))))
+
+
+def _begin_dashboard_search_guard(
+    guard_key: str, *, stale_seconds: float = SEARCH_GUARD_STALE_SECONDS
+) -> tuple[bool, dict[str, float]]:
     now = time.monotonic()
-    cutoff = now - SEARCH_GUARD_STALE_SECONDS
+    cutoff = now - stale_seconds
     with SEARCH_GUARD_LOCK:
         stale_keys = [
             key
@@ -176,13 +184,15 @@ def _begin_dashboard_search_guard(guard_key: str) -> tuple[bool, dict[str, float
 
         existing_started_at = SEARCH_REQUESTS_IN_FLIGHT.get(guard_key)
         if existing_started_at is not None:
+            age_seconds = max(0.0, now - existing_started_at)
             return False, {
                 "started_at": existing_started_at,
-                "age_seconds": max(0.0, now - existing_started_at),
+                "age_seconds": age_seconds,
+                "retry_after_seconds": max(1.0, stale_seconds - age_seconds),
             }
 
         SEARCH_REQUESTS_IN_FLIGHT[guard_key] = now
-        return True, {"started_at": now, "age_seconds": 0.0}
+        return True, {"started_at": now, "age_seconds": 0.0, "retry_after_seconds": 0.0}
 
 
 def _end_dashboard_search_guard(guard_key: str) -> None:
@@ -1720,7 +1730,10 @@ def dashboard_search(
         best_before_date=payload.best_before_date,
         force_create=payload.force_create,
     )
-    guard_started, guard_info = _begin_dashboard_search_guard(guard_key)
+    guard_stale_seconds = _dashboard_search_guard_stale_seconds(settings)
+    guard_started, guard_info = _begin_dashboard_search_guard(
+        guard_key, stale_seconds=guard_stale_seconds
+    )
     if not guard_started:
         client_host = request.client.host if request.client else "unknown"
         logger.info(
@@ -1733,12 +1746,18 @@ def dashboard_search(
             client_host,
             guard_info.get("age_seconds", 0.0),
         )
+        retry_after_seconds = int(
+            max(1, round(guard_info.get("retry_after_seconds", 1.0)))
+        )
         raise HTTPException(
             status_code=409,
-            detail=(
-                "Eine identische Produktsuche läuft bereits. "
-                "Bitte kurz warten und dann erneut versuchen."
-            ),
+            detail={
+                "message": (
+                    "Eine identische Produktsuche läuft bereits. "
+                    "Bitte kurz warten und dann erneut versuchen."
+                ),
+                "details": [{"retry_after_seconds": retry_after_seconds}],
+            },
         )
 
     detector = IngredientDetector(settings)

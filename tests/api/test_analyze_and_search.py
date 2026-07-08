@@ -34,6 +34,44 @@ def test_analyze_product_returns_detector_payload(client, monkeypatch):
     assert response.json()["product_data"]["name"] == "Haferflocken"
 
 
+def test_dashboard_search_guard_removes_stale_entry(monkeypatch):
+    monotonic_values = iter([100.0])
+    monkeypatch.setattr(routes.time, "monotonic", lambda: next(monotonic_values))
+    routes.SEARCH_REQUESTS_IN_FLIGHT.clear()
+    routes.SEARCH_REQUESTS_IN_FLIGHT["old"] = 10.0
+
+    try:
+        started, guard_info = routes._begin_dashboard_search_guard(
+            "new", stale_seconds=45.0
+        )
+
+        assert started is True
+        assert guard_info["age_seconds"] == 0.0
+        assert "old" not in routes.SEARCH_REQUESTS_IN_FLIGHT
+        assert routes.SEARCH_REQUESTS_IN_FLIGHT["new"] == 100.0
+    finally:
+        routes.SEARCH_REQUESTS_IN_FLIGHT.clear()
+
+
+def test_dashboard_search_guard_fresh_entry_blocks_with_retry_hint(monkeypatch):
+    monotonic_values = iter([120.0])
+    monkeypatch.setattr(routes.time, "monotonic", lambda: next(monotonic_values))
+    routes.SEARCH_REQUESTS_IN_FLIGHT.clear()
+    routes.SEARCH_REQUESTS_IN_FLIGHT["same"] = 100.0
+
+    try:
+        started, guard_info = routes._begin_dashboard_search_guard(
+            "same", stale_seconds=45.0
+        )
+
+        assert started is False
+        assert guard_info["age_seconds"] == 20.0
+        assert guard_info["retry_after_seconds"] == 25.0
+        assert routes.SEARCH_REQUESTS_IN_FLIGHT["same"] == 100.0
+    finally:
+        routes.SEARCH_REQUESTS_IN_FLIGHT.clear()
+
+
 def test_dashboard_search_reuses_existing_product(client, monkeypatch):
     calls = []
 
@@ -102,7 +140,10 @@ def test_dashboard_search_rejects_parallel_duplicate_requests(client, monkeypatc
     monkeypatch.setattr(
         routes,
         "_begin_dashboard_search_guard",
-        lambda _key: (False, {"started_at": 100.0, "age_seconds": 12.5}),
+        lambda _key, **_kwargs: (
+            False,
+            {"started_at": 100.0, "age_seconds": 12.5, "retry_after_seconds": 33.0},
+        ),
     )
 
     response = client.post(
@@ -116,6 +157,7 @@ def test_dashboard_search_rejects_parallel_duplicate_requests(client, monkeypatc
     assert payload["success"] is False
     assert "identische Produktsuche läuft bereits" in payload["error"]["message"]
     assert payload["error"]["code"] == "conflict"
+    assert payload["error"]["details"] == [{"retry_after_seconds": 33}]
 
 
 def test_dashboard_search_logs_diagnostics_for_parallel_duplicate_requests(
@@ -134,7 +176,10 @@ def test_dashboard_search_logs_diagnostics_for_parallel_duplicate_requests(
     monkeypatch.setattr(
         routes,
         "_begin_dashboard_search_guard",
-        lambda _key: (False, {"started_at": 100.0, "age_seconds": 12.5}),
+        lambda _key, **_kwargs: (
+            False,
+            {"started_at": 100.0, "age_seconds": 12.5, "retry_after_seconds": 33.0},
+        ),
     )
 
     with caplog.at_level(logging.INFO, logger=routes.logger.name):

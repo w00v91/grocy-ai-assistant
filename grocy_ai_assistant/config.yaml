@@ -1,5 +1,5 @@
 name: Grocy AI Assistant
-version: 8.0.70
+version: 8.0.71
 slug: grocy_ai_assistant
 dependencies:
 - a0d49513_grocy
@@ -24,6 +24,7 @@ options:
   api_key: grocy-ai-assistant-C1LEbzNYdlsu_QGGLZYT-AAjBdsA66af
   notification_global_enabled: true
   dashboard_polling_interval_seconds: 5
+  dashboard_search_guard_stale_seconds: 45
   grocy:
     grocy_api_key: DEIN_GROCY_KEY
     grocy_base_url: http://homeassistant.local:9192/api
@@ -55,6 +56,7 @@ schema:
   api_key: str
   notification_global_enabled: bool
   dashboard_polling_interval_seconds: int(1,60)
+  dashboard_search_guard_stale_seconds: int(5,300)
   grocy:
     grocy_api_key: str
     grocy_base_url: str

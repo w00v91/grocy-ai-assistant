@@ -1,3 +1,9 @@
+## 2026-07-08 (Version 8.0.71)
+
+- Fix (Dashboard-Suche): In-Flight-Guard nutzt jetzt einen konfigurierbaren, kürzeren Stale-Timeout und liefert bei blockierten Duplikatsuchen einen sicheren Retry-Hinweis zurück.
+- Added (Tests/API): Regressionstests prüfen, dass alte Guard-Einträge entfernt werden und frische Einträge weiterhin HTTP 409 inklusive Retry-Hinweis auslösen.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.71` erhöht.
+
 ## 2026-07-08 (Version 8.0.70)
 
 - Fix (Home-Assistant-Integration/Panel/Shopping): Der Dashboard-Submit-Pfad ignoriert doppelte Submit-Events jetzt direkt, solange bereits eine Produktsuche läuft, und behält den bestehenden Status ohne neue Topbar-Fehlermeldung bei.

@@ -2679,3 +2679,4 @@
 
 - Doku: README vollständig strukturell überarbeitet (Zielbild, Architektur, Konfiguration, API-Endpunkte, Entwicklungsabläufe).
 - Doku: `README.md` um Verweis auf die Architektur-Dokumentation und präzisen Architekturtest-Pfad erweitert.
+- Fix (Dashboard-Suche): In-Flight-Guard nutzt jetzt einen konfigurierbaren, kürzeren Stale-Timeout und liefert bei blockierten Duplikatsuchen einen sicheren Retry-Hinweis zurück.
