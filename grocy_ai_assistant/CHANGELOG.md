@@ -1,3 +1,8 @@
+## 2026-07-08 (Version 8.0.65)
+
+- Fix (KI-Auswahl/Produktsuche): Textanalysen prüfen jetzt zuerst die aktivierten Optionen und bevorzugen bei eingeschalteter Cloud-AI-Textgenerierung die Cloud-AI; Ollama wird nur noch als Fallback genutzt, wenn Cloud-AI nicht verfügbar ist oder fehlschlägt.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.65` erhöht.
+
 ## 2026-07-04 (Version 8.0.64)
 
 - Fix (Home-Assistant-Integration/Panel/Desktop): Die Bottom-Bar ist auf Desktop-Breite wieder am Dashboard-Shell ausgerichtet und überdeckt nicht mehr die Home-Assistant-Sidebar.
