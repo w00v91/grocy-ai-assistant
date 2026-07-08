@@ -301,3 +301,64 @@ test('returns local in-flight status for duplicate direct product searches', asy
     payload: { message: 'Produkt verarbeitet.' },
   });
 });
+
+test('selectVariant marks AI suggestions as product creation while submitting', async () => {
+  const searchDeferred = createDeferred();
+  const { controller } = createController({
+    apiOverrides: {
+      searchProduct: () => searchDeferred.promise,
+    },
+  });
+
+  controller.actions.setQuery('Hafermilch');
+  const selection = controller.actions.selectVariant({
+    productId: '',
+    productName: 'Haferdrink',
+    amount: 1,
+    source: 'ai',
+  });
+
+  assert.equal(controller.getState().flowState, SEARCH_FLOW_STATES.SUBMITTING);
+  assert.equal(controller.getState().statusMessage, 'Lege neues Produkt aus Vorschlag an…');
+
+  searchDeferred.resolve({
+    response: { ok: true },
+    payload: { message: 'Produkt hinzugefügt.' },
+  });
+
+  assert.equal((await selection).ok, true);
+});
+
+test('selectVariant maps input suggestion backend conflicts to product creation wording', async () => {
+  const { controller } = createController({
+    apiOverrides: {
+      searchProduct: async () => ({
+        response: { ok: false, status: 409 },
+        payload: {
+          detail: {
+            message: 'Diese Produktanlage läuft bereits. Bitte kurz warten und dann erneut versuchen.',
+          },
+        },
+      }),
+    },
+  });
+
+  controller.actions.setQuery('Wachteleier');
+  const result = await controller.actions.selectVariant({
+    productId: '',
+    productName: 'Wachteleier',
+    amount: 1,
+    productSource: 'input',
+  });
+
+  assert.equal(result.ok, false);
+  assert.equal(controller.getState().flowState, SEARCH_FLOW_STATES.ERROR);
+  assert.equal(
+    controller.getState().statusMessage,
+    'Diese Produktanlage läuft bereits. Bitte kurz warten und dann erneut versuchen.',
+  );
+  assert.equal(
+    controller.getState().errorMessage,
+    'Diese Produktanlage läuft bereits. Bitte kurz warten und dann erneut versuchen.',
+  );
+});

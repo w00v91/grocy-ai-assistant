@@ -1,3 +1,10 @@
+## 2026-07-08 (Version 8.0.72)
+
+- Changed (Home-Assistant-Integration/Panel/Shopping): AI- und Input-Vorschläge zeigen beim Übernehmen jetzt explizit die Produktanlage aus einem Vorschlag statt einer generischen Produktsuche an.
+- Fix (Home-Assistant-Integration/Panel/Shopping): HTTP-409-Konflikte in diesem Vorschlagspfad werden als bereits laufende Produktanlage gemeldet.
+- Added (Tests/Frontend): Regressionstests prüfen die Produktanlage-Statusmeldung und den 409-Konflikttext für AI-/Input-Varianten.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.72` erhöht.
+
 ## 2026-07-08 (Version 8.0.71)
 
 - Fix (Dashboard-Suche): In-Flight-Guard nutzt jetzt einen konfigurierbaren, kürzeren Stale-Timeout und liefert bei blockierten Duplikatsuchen einen sicheren Retry-Hinweis zurück.
