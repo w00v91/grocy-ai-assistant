@@ -1,3 +1,10 @@
+## 2026-07-08 (Version 8.0.67)
+
+- Fix (Security/Config): `api_key` hat keinen produktiven Standard-Fallback mehr und lehnt leere, Platzhalter- oder bekannte Default-Werte beim Laden der Settings ab.
+- Changed (Dokumentation/Add-on): Beispiel- und Add-on-Optionen verwenden keine bekannten API-Key-Platzhalter mehr.
+- Added (Tests/Config): Regressionstests stellen sicher, dass bekannte Default-Keys nicht akzeptiert werden.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.67` erhöht.
+
 ## 2026-07-08 (Version 8.0.66)
 
 - Added (Tests/Dashboard): `POST /api/dashboard/search` ist jetzt gegen Ollama-Timeouts abgesichert und prüft die sichere Standardanalyse inklusive Freigabe des In-Flight-Guards.

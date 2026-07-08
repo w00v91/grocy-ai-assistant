@@ -2,6 +2,9 @@ from collections import Counter
 import json
 import re
 
+import pytest
+from pydantic import ValidationError
+
 from grocy_ai_assistant.config import options_store, settings
 
 
@@ -44,6 +47,25 @@ def test_default_ollama_url_uses_docker_host_fallback(monkeypatch):
     )
 
 
+@pytest.mark.parametrize("api_key", ["", "   ", "standard_passwort", "DEIN_KI_KEY"])
+def test_settings_rejects_missing_placeholder_or_known_default_api_key(api_key):
+    with pytest.raises(ValidationError):
+        settings.Settings(api_key=api_key)
+
+
+def test_settings_accepts_unique_api_key_and_strips_whitespace():
+    configured_settings = settings.Settings(api_key="  unique-secret-value  ")
+
+    assert configured_settings.api_key == "unique-secret-value"
+
+
+def test_settings_generates_non_default_api_key_when_missing():
+    configured_settings = settings.Settings()
+
+    assert configured_settings.api_key
+    assert configured_settings.api_key.lower() not in settings.KNOWN_INSECURE_API_KEYS
+
+
 def test_get_settings_reloads_nested_grouped_options_when_yaml_changes(
     tmp_path, monkeypatch
 ):
@@ -53,6 +75,7 @@ def test_get_settings_reloads_nested_grouped_options_when_yaml_changes(
     options_path.write_text(
         """grocy:
   grocy_api_key: first-key
+api_key: unique-secret-value
 """,
         encoding="utf-8",
     )
@@ -70,6 +93,7 @@ def test_get_settings_reloads_nested_grouped_options_when_yaml_changes(
     options_path.write_text(
         """grocy:
   grocy_api_key: second-key
+api_key: unique-secret-value
 cloud_ai:
   image_generation_enabled: true
 """,
