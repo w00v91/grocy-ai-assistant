@@ -1,3 +1,9 @@
+## 2026-07-08 (Version 8.0.66)
+
+- Fix (Home-Assistant-Integration/Panel/Shopping): Doppelte laufende Produktsuchen werden im Such-Controller jetzt als Fehlerstatus angezeigt, ohne die Einkaufsliste neu zu laden.
+- Added (Tests/Frontend): Frontend-Test für `search_in_flight`-Antworten der Produktsuche ergänzt.
+- Changed (Versioning): Versionsstand der Integration auf `8.0.66` erhöht.
+
 ## 2026-07-08 (Version 8.0.65)
 
 - Fix (Home-Assistant-Integration/Panel/Desktop): Die Bottom-Bar ist auf Desktop jetzt im Dashboard-Fluss verankert statt viewport-fixed, damit sie keine Home-Assistant-Elemente oder Inhalte überdeckt.
