@@ -1,3 +1,4 @@
+import logging
 import requests
 import threading
 
@@ -98,7 +99,11 @@ def test_dashboard_search_rejects_parallel_duplicate_requests(client, monkeypatc
 
     monkeypatch.setattr(routes, "GrocyClient", FakeGrocyClient)
     monkeypatch.setattr(routes, "IngredientDetector", FakeDetector)
-    monkeypatch.setattr(routes, "_begin_dashboard_search_guard", lambda _key: False)
+    monkeypatch.setattr(
+        routes,
+        "_begin_dashboard_search_guard",
+        lambda _key: (False, {"started_at": 100.0, "age_seconds": 12.5}),
+    )
 
     response = client.post(
         "/api/dashboard/search",
@@ -111,6 +116,48 @@ def test_dashboard_search_rejects_parallel_duplicate_requests(client, monkeypatc
     assert payload["success"] is False
     assert "identische Produktsuche läuft bereits" in payload["error"]["message"]
     assert payload["error"]["code"] == "conflict"
+
+
+def test_dashboard_search_logs_diagnostics_for_parallel_duplicate_requests(
+    client, monkeypatch, caplog
+):
+    class FakeGrocyClient:
+        def __init__(self, settings):
+            self.settings = settings
+
+    class FakeDetector:
+        def __init__(self, settings):
+            self.settings = settings
+
+    monkeypatch.setattr(routes, "GrocyClient", FakeGrocyClient)
+    monkeypatch.setattr(routes, "IngredientDetector", FakeDetector)
+    monkeypatch.setattr(
+        routes,
+        "_begin_dashboard_search_guard",
+        lambda _key: (False, {"started_at": 100.0, "age_seconds": 12.5}),
+    )
+
+    with caplog.at_level(logging.INFO, logger=routes.logger.name):
+        response = client.post(
+            "/api/dashboard/search",
+            headers={"Authorization": "Bearer test-api-key"},
+            json={"name": "  Milch  ", "amount": 2.5, "force_create": True},
+        )
+
+    assert response.status_code == 409
+    diagnostic_records = [
+        record
+        for record in caplog.records
+        if "identical request is already in flight" in record.getMessage()
+    ]
+    assert diagnostic_records
+    diagnostic_message = diagnostic_records[0].getMessage()
+    assert "product_name='Milch'" in diagnostic_message
+    assert "amount=2.5" in diagnostic_message
+    assert "force_create=True" in diagnostic_message
+    assert "client_host=testclient" in diagnostic_message
+    assert "existing_guard_age_seconds=12.500" in diagnostic_message
+    assert "test-api-key" not in diagnostic_message
 
 
 def test_dashboard_search_guard_releases_after_running_duplicate_search(

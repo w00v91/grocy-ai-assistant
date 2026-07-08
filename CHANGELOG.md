@@ -1,3 +1,9 @@
+## 2026-07-08 (Version 8.0.68)
+
+- Changed (API/Dashboard): Der serverseitige In-Flight-Guard liefert jetzt Diagnosedaten zum bestehenden Suchlauf und protokolliert 409-Konflikte ohne API-Key- oder Secret-Werte.
+- Added (Tests/API): Regressionstest prüft das Diagnose-Log bei parallelen identischen Dashboard-Produktsuchen.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.68` erhöht.
+
 ## 2026-07-08 (Version 8.0.67)
 
 - Fixed (API/Dashboard): Unerreichbarer Dashboard-Return bleibt entfernt; Ruff-Prüfung bestätigt den statischen Zustand.
