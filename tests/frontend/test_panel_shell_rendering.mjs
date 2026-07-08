@@ -101,7 +101,8 @@ test('shopping tab and search bar keep their stable DOM shells instead of replac
   );
 
   assert.match(shoppingTabSection, /class GrocyAIShoppingTab extends HTMLElement/);
-  assert.match(shoppingTabSection, /heroCard\.append\(heroHeader, searchBar\);/);
+  assert.match(shoppingTabSection, /const searchBar = document\.createElement\('grocy-ai-shopping-search-bar'\);/);
+  assert.match(shoppingTabSection, /root\.append\(searchBar, listSection\);/);
   assert.doesNotMatch(
     shoppingTabSection,
     /_render\(\) \{[\s\S]*?this\.innerHTML\s*=/,
@@ -184,21 +185,17 @@ test('storage tab keeps product filter and include-all toggle in one control row
   assert.match(cssSource, /\.storage-summary \{[\s\S]*?display: flex;[\s\S]*?flex-wrap: wrap;[\s\S]*?justify-content: flex-start;/);
 });
 
-test('bottom tab bar exposes the barcode scanner shortcut outside the shopping header', async () => {
+test('shopping tab starts directly with product search and keeps scanner shortcut in the bottom bar', async () => {
   const source = await fs.readFile(dashboardPath, 'utf8');
-  const cssSource = await fs.readFile(dashboardCssPath, 'utf8');
 
-  assert.match(source, /heroHeader\.className = 'section-header shopping-hero-card__header';/);
-  assert.match(source, /heroCopy\.className = 'section-header__copy';/);
-  assert.match(source, /heroEyebrow\.className = 'eyebrow';/);
-  assert.match(source, /heroEyebrow\.textContent = 'Einkauf';/);
-  assert.match(source, /heroCopy\.append\(heroEyebrow, heroTitle\);/);
+  assert.doesNotMatch(source, /heroEyebrow\.textContent = 'Einkauf';/);
+  assert.doesNotMatch(source, /heroTitle\.textContent = 'Grocy AI Suche';/);
+  assert.match(source, /const searchBar = document\.createElement\('grocy-ai-shopping-search-bar'\);/);
+  assert.match(source, /root\.append\(searchBar, listSection\);/);
   assert.doesNotMatch(source, /scannerButton\.className = 'scanner-popup-button';/);
   assert.match(source, /scannerButton\.className = 'tab-button tab-button--scanner';/);
   assert.match(source, /scannerButton\.dataset\.action = 'shopping-open-scanner';/);
   assert.match(source, /renderHaIcon\('mdi:barcode-scan', 'tab-button__icon'\)/);
-  assert.match(cssSource, /\.shopping-hero-card__header \{[\s\S]*?align-items: center;[\s\S]*?margin-bottom: var\(--panel-stack-gap\);/);
-  assert.match(cssSource, /@media \(max-width: 800px\) \{[\s\S]*?\.shopping-hero-card__header \{[\s\S]*?flex-direction: row;[\s\S]*?align-items: center;/);
 });
 
 test('recipes, storage, and modal renders restore focused form controls after rerenders', async () => {
@@ -378,14 +375,13 @@ test('mobile panel CSS keeps native dashboard copy readable and avoids cramped t
   assert.match(shoppingSource, /@media \(max-width: 640px\) \{[\s\S]*?\.shopping-card__title \{[\s\S]*?font-size: 1\.02rem;/);
   assert.match(shoppingSource, /@media \(max-width: 640px\) \{[\s\S]*?\.shopping-card__note,[\s\S]*?\.shopping-card__detail-line,[\s\S]*?\.shopping-card__context-item \{[\s\S]*?font-size: 0\.88rem;[\s\S]*?line-height: 1\.45;/);
   assert.match(shoppingSource, /@media \(max-width: 640px\) \{[\s\S]*?\.shopping-badge,[\s\S]*?\.shopping-status-chip \{[\s\S]*?font-size: 0\.78rem;/);
-  assert.match(shoppingSource, /@media \(max-width: 640px\) \{[\s\S]*?\.shopping-card__header,[\s\S]*?\.shopping-card__footer,[\s\S]*?\.shopping-card__context-item \{[\s\S]*?flex-wrap: wrap;/);
 });
 
 
-test('bottom tab bar spans the full viewport and remains compact on mobile', async () => {
+test('bottom tab bar matches desktop shell width and spans the viewport only on mobile', async () => {
   const source = await fs.readFile(dashboardCssPath, 'utf8');
 
-  assert.match(source, /\.bottom-tabbar \{[\s\S]*?left: 0;[\s\S]*?right: 0;[\s\S]*?bottom: 0;[\s\S]*?transform: none;[\s\S]*?justify-content: stretch;[\s\S]*?width: 100vw;/);
+  assert.match(source, /\.bottom-tabbar \{[\s\S]*?left: var\(--dashboard-shell-center-x\);[\s\S]*?right: auto;[\s\S]*?transform: translateX\(-50%\);[\s\S]*?justify-content: center;[\s\S]*?width: min\(var\(--dashboard-shell-fixed-width\), calc\(100vw - 48px\)\);/);
   assert.match(source, /\.tab-button:hover,\s*\.tab-button:focus-visible \{[\s\S]*?transform: none;/);
   assert.match(source, /@media \(max-width: 800px\) \{[\s\S]*?\.bottom-tabbar \{[\s\S]*?left: 0;[\s\S]*?right: 0;[\s\S]*?flex-wrap: nowrap;[\s\S]*?width: 100vw;[\s\S]*?max-width: none;[\s\S]*?overflow-x: auto;/);
   assert.match(source, /@media \(max-width: 800px\) \{[\s\S]*?\.tab-button \{[\s\S]*?flex: 1 1 0;[\s\S]*?white-space: nowrap;/);

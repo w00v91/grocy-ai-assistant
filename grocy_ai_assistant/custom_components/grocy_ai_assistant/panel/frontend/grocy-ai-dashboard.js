@@ -25,7 +25,7 @@ const TAB_ICONS = Object.freeze({
 });
 const DEFAULT_POLLING_INTERVAL_SECONDS = 5;
 const DEFAULT_POLLING_INTERVAL_MS = DEFAULT_POLLING_INTERVAL_SECONDS * 1000;
-const DEFAULT_INTEGRATION_VERSION = '8.0.63';
+const DEFAULT_INTEGRATION_VERSION = '8.0.64';
 const GROCY_RECIPE_DISPLAY_LIMIT = 3;
 const AI_RECIPE_DISPLAY_LIMIT = 3;
 const TAB_VIEW_STATE = Object.freeze({
@@ -1338,21 +1338,7 @@ class GrocyAIShoppingTab extends HTMLElement {
     root.setAttribute('role', 'tabpanel');
     root.setAttribute('aria-labelledby', getTabButtonId('shopping'));
 
-    const heroCard = document.createElement('section');
-    heroCard.className = 'card hero-card shopping-hero-card';
-    const heroHeader = document.createElement('div');
-    heroHeader.className = 'section-header shopping-hero-card__header';
-    const heroCopy = document.createElement('div');
-    heroCopy.className = 'section-header__copy';
-    const heroEyebrow = document.createElement('p');
-    heroEyebrow.className = 'eyebrow';
-    heroEyebrow.textContent = 'Einkauf';
-    const heroTitle = document.createElement('h2');
-    heroTitle.textContent = 'Grocy AI Suche';
-    heroCopy.append(heroEyebrow, heroTitle);
-    heroHeader.append(heroCopy);
     const searchBar = document.createElement('grocy-ai-shopping-search-bar');
-    heroCard.append(heroHeader, searchBar);
 
     const listSection = document.createElement('section');
     listSection.className = 'card shopping-list-section';
@@ -1387,7 +1373,7 @@ class GrocyAIShoppingTab extends HTMLElement {
     buttonRow.append(completeAllButton, clearAllButton);
 
     listSection.append(listHeader, list, buttonRow);
-    root.append(heroCard, listSection);
+    root.append(searchBar, listSection);
     this.replaceChildren(root);
 
     this._elements = {
