@@ -1114,6 +1114,94 @@ def test_add_missing_recipe_products_adds_to_shopping_list(client, monkeypatch):
     assert captured == [(1, 1), (2, 1)]
 
 
+def test_add_existing_product_reconciles_new_shopping_list_amount(client, monkeypatch):
+    updates = []
+
+    class FakeGrocyClient:
+        def __init__(self, settings):
+            self.shopping_list_calls = 0
+
+        def get_shopping_list(self):
+            self.shopping_list_calls += 1
+            if self.shopping_list_calls == 1:
+                return []
+            return [{"id": 21, "product_id": 7, "amount": "1"}]
+
+        def resolve_best_before_date(
+            self, product_id, best_before_date="", default_best_before_days=None
+        ):
+            return best_before_date
+
+        def add_product_to_shopping_list(
+            self, product_id, amount=1, best_before_date=""
+        ):
+            assert product_id == 7
+            assert amount == 3
+            assert best_before_date == "2026-07-31"
+
+        def update_shopping_list_item_amount(self, shopping_list_id, amount):
+            updates.append((shopping_list_id, amount))
+
+    monkeypatch.setattr(routes, "GrocyClient", FakeGrocyClient)
+
+    response = client.post(
+        "/api/dashboard/add-existing-product",
+        headers={"Authorization": "Bearer test-api-key"},
+        json={
+            "product_id": 7,
+            "product_name": "Milch",
+            "amount": 3,
+            "best_before_date": "2026-07-31",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["action"] == "existing_added"
+    assert updates == [(21, "3")]
+
+
+def test_add_existing_product_reconciles_existing_shopping_list_amount(
+    client, monkeypatch
+):
+    updates = []
+
+    class FakeGrocyClient:
+        def __init__(self, settings):
+            self.shopping_list_calls = 0
+
+        def get_shopping_list(self):
+            self.shopping_list_calls += 1
+            if self.shopping_list_calls == 1:
+                return [{"id": 21, "product_id": 7, "amount": "2"}]
+            return [{"id": 21, "product_id": 7, "amount": "3"}]
+
+        def resolve_best_before_date(
+            self, product_id, best_before_date="", default_best_before_days=None
+        ):
+            return best_before_date
+
+        def add_product_to_shopping_list(
+            self, product_id, amount=1, best_before_date=""
+        ):
+            assert product_id == 7
+            assert amount == 4
+
+        def update_shopping_list_item_amount(self, shopping_list_id, amount):
+            updates.append((shopping_list_id, amount))
+
+    monkeypatch.setattr(routes, "GrocyClient", FakeGrocyClient)
+
+    response = client.post(
+        "/api/dashboard/add-existing-product",
+        headers={"Authorization": "Bearer test-api-key"},
+        json={"product_id": 7, "product_name": "4 Milch", "amount": 1},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["action"] == "existing_added"
+    assert updates == [(21, "6")]
+
+
 def test_dashboard_contains_recipe_section(client):
     response = client.get("/")
 

@@ -1,3 +1,9 @@
+## 2026-07-08 (Version 8.0.67)
+
+- Fix (Dashboard/API/Produktsuche): `dashboard_add_existing_product()` nutzt die zentrale Einkaufslisten-Mengenabstimmung jetzt ohne duplizierten lokalen Korrekturblock.
+- Added (Tests/API): Regressionstests prüfen, dass vorhandene Produkte neue und bestehende Einkaufslistenpositionen mit korrigierten Mengen aktualisieren.
+- Changed (Versioning): Versionsstand der Integration auf `8.0.67` erhöht.
+
 ## 2026-07-08 (Version 8.0.66)
 
 - Added (Tests/Dashboard): `POST /api/dashboard/search` ist jetzt gegen Ollama-Timeouts abgesichert und prüft die sichere Standardanalyse inklusive Freigabe des In-Flight-Guards.
