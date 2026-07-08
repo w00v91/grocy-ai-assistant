@@ -1,6 +1,9 @@
 ## 2026-07-08 (Version 8.0.65)
 
 - Fix (KI-Auswahl/Produktsuche): Textanalysen prüfen jetzt zuerst die aktivierten Optionen und bevorzugen bei eingeschalteter Cloud-AI-Textgenerierung die Cloud-AI; Ollama wird nur noch als Fallback genutzt, wenn Cloud-AI nicht verfügbar ist oder fehlschlägt.
+- Fix (Home-Assistant-Integration/Panel/Desktop): Die Bottom-Bar ist auf Desktop jetzt im Dashboard-Fluss verankert statt viewport-fixed, damit sie keine Home-Assistant-Elemente oder Inhalte überdeckt.
+- Fix (Home-Assistant-Integration/Panel/Mobile): Swipe-Aktionsflächen der Einkaufslisten-Einträge sind im Ruhezustand vollständig unsichtbar, damit keine grünen oder roten Kanten mehr an Kartenenden durchscheinen.
+- Changed (Home-Assistant-Integration/Sensoren): Die Sensoranzeigen für Einkaufsliste, Lagerprodukte und bald ablaufende Produkte verwenden jetzt Produktnamen mit dem Suffix `Produkte`.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.65` erhöht.
 
 ## 2026-07-04 (Version 8.0.64)
