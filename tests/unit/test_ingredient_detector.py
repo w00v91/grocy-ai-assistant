@@ -768,6 +768,93 @@ def test_analyze_product_name_uses_cloud_text_when_ollama_text_disabled(monkeypa
     assert result["location_id"] == 2
 
 
+def test_analyze_product_name_prefers_cloud_text_when_cloud_and_ollama_enabled(
+    monkeypatch,
+):
+    calls = []
+
+    def fake_post(url, headers=None, json=None, timeout=None):
+        calls.append({"url": url, "headers": headers, "json": json})
+        return FakeResponse(
+            {
+                "choices": [
+                    {
+                        "message": {
+                            "content": '{"name":"Entkalker","description":"Cloud-Beschreibung","location_id":2}'
+                        }
+                    }
+                ]
+            }
+        )
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.ai.ingredient_detector.requests.post", fake_post
+    )
+
+    detector = IngredientDetector(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+            ollama_enabled=True,
+            ollama_text_generation_enabled=True,
+            cloud_ai_enabled=True,
+            cloud_ai_text_generation_enabled=True,
+            openai_api_key="sk-test",
+            openai_text_model="gpt-test",
+        )
+    )
+
+    result = detector.analyze_product_name("Entkalker")
+
+    assert len(calls) == 1
+    assert calls[0]["url"] == "https://api.openai.com/v1/chat/completions"
+    assert calls[0]["json"]["model"] == "gpt-test"
+    assert result["description"] == "Cloud-Beschreibung"
+
+
+def test_analyze_product_name_falls_back_to_ollama_when_cloud_text_fails(monkeypatch):
+    calls = []
+
+    def fake_post(url, headers=None, json=None, timeout=None):
+        calls.append(url)
+        if url == "https://api.openai.com/v1/chat/completions":
+            raise requests.Timeout("cloud timeout")
+        return FakeResponse(
+            {
+                "response": '{"name":"Entkalker","description":"Ollama-Beschreibung","location_id":3}'
+            }
+        )
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.ai.ingredient_detector.requests.post", fake_post
+    )
+
+    detector = IngredientDetector(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+            ollama_enabled=True,
+            ollama_text_generation_enabled=True,
+            cloud_ai_enabled=True,
+            cloud_ai_text_generation_enabled=True,
+            openai_api_key="sk-test",
+        )
+    )
+
+    result = detector.analyze_product_name("Entkalker")
+
+    assert calls == [
+        "https://api.openai.com/v1/chat/completions",
+        detector.settings.ollama_url,
+    ]
+    assert result["description"] == "Ollama-Beschreibung"
+    assert result["location_id"] == 3
+
+
 def test_ollama_image_generation_switch_disables_image_detection(monkeypatch):
     def fake_post(*args, **kwargs):
         raise AssertionError("Ollama image endpoint should not be called when disabled")
