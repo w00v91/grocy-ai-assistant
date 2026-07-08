@@ -287,6 +287,7 @@ export function createShoppingSearchController({
       ? normalizedAmountOverride
       : ((amountFromName ?? Number(getDefaultAmount())) || 1);
     const forceCreate = options.forceCreate === true;
+    const isSuggestedCreationPath = options.suggestedCreation === true;
     const bestBeforeDate = String(options.bestBeforeDate ?? getBestBeforeDate() ?? '').trim();
     const nextKey = JSON.stringify([
       normalizedProductName.toLowerCase(),
@@ -317,7 +318,9 @@ export function createShoppingSearchController({
     }
 
     if (activeSearchKey === nextKey) {
-      const inFlightMessage = 'Diese Produktanfrage wird gerade noch verarbeitet…';
+      const inFlightMessage = isSuggestedCreationPath
+        ? 'Diese Produktanlage wird gerade noch verarbeitet…'
+        : 'Diese Produktanfrage wird gerade noch verarbeitet…';
       if (typeof globalThis.console?.debug === 'function') {
         globalThis.console.debug('Shopping search blocked: local request still in flight.', {
           reason: 'local_in_flight',
@@ -334,7 +337,13 @@ export function createShoppingSearchController({
         errorMessage: '',
         lastBlockedReason: 'local_in_flight',
       });
-      return { ok: false, payload: { action: 'search_in_flight', reason: 'local_in_flight' } };
+      return {
+        ok: false,
+        payload: {
+          action: isSuggestedCreationPath ? 'product_creation_in_flight' : 'search_in_flight',
+          reason: 'local_in_flight',
+        },
+      };
     }
     activeSearchKey = nextKey;
 
@@ -342,7 +351,9 @@ export function createShoppingSearchController({
       parsedAmount: amountFromName,
       isSubmitting: true,
       flowState: SEARCH_FLOW_STATES.SUBMITTING,
-      statusMessage: forceCreate ? 'Füge Produkt hinzu…' : 'Prüfe Produkt…',
+      statusMessage: isSuggestedCreationPath
+        ? 'Lege neues Produkt aus Vorschlag an…'
+        : (forceCreate ? 'Füge Produkt hinzu…' : 'Prüfe Produkt…'),
       errorMessage: '',
       lastBlockedReason: null,
     });
@@ -356,11 +367,16 @@ export function createShoppingSearchController({
       });
 
       if (!response.ok) {
+        if (isSuggestedCreationPath && response.status === 409) {
+          throw new Error('Diese Produktanlage läuft bereits. Bitte kurz warten und dann erneut versuchen.');
+        }
         throw new Error(getErrorMessage(payload, 'Produkt konnte nicht geprüft werden.'));
       }
 
       if (payload?.success === false || payload?.action === 'search_in_flight') {
-        const inFlightMessage = payload?.message || 'Eine identische Produktsuche läuft bereits.';
+        const inFlightMessage = payload?.message || (isSuggestedCreationPath
+          ? 'Diese Produktanlage läuft bereits.'
+          : 'Eine identische Produktsuche läuft bereits.');
         setState({
           isSubmitting: false,
           isLoadingVariants: false,
@@ -402,7 +418,9 @@ export function createShoppingSearchController({
         isSubmitting: false,
         isLoadingVariants: false,
         flowState: SEARCH_FLOW_STATES.ERROR,
-        statusMessage: 'Produkt konnte nicht geprüft werden.',
+        statusMessage: isSuggestedCreationPath && error.message.includes('Produktanlage')
+          ? error.message
+          : 'Produkt konnte nicht geprüft werden.',
         errorMessage: error.message,
       });
       return { ok: false, payload: null };
@@ -520,12 +538,19 @@ export function createShoppingSearchController({
     const { amountFromName } = parseAmountPrefixedSearch(getState().query);
     const explicitAmount = amountFromName ?? null;
     if (normalizedSource === 'input') {
-      return searchSuggestedProduct(productName, { forceCreate: true, amount: explicitAmount });
+      return searchSuggestedProduct(productName, {
+        forceCreate: true,
+        amount: explicitAmount,
+        suggestedCreation: true,
+      });
     }
 
     const numericProductId = Number(productId);
     if (!Number.isFinite(numericProductId) || !productId || normalizedSource === 'ai') {
-      return searchSuggestedProduct(productName, { amount: explicitAmount });
+      return searchSuggestedProduct(productName, {
+        amount: explicitAmount,
+        suggestedCreation: true,
+      });
     }
 
     return confirmVariant(numericProductId, productName, amount);

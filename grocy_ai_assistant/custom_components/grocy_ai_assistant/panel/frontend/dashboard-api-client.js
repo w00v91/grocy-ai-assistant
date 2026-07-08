@@ -1,6 +1,7 @@
 export function getErrorMessage(payload, fallbackMessage) {
   if (payload && payload.error && payload.error.message) return payload.error.message;
-  if (payload && payload.detail) return payload.detail;
+  if (payload && payload.detail?.message) return payload.detail.message;
+  if (payload && typeof payload.detail === 'string') return payload.detail;
   return fallbackMessage;
 }
 
