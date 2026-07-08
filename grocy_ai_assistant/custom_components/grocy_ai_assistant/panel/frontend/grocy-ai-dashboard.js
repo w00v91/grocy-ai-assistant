@@ -1338,6 +1338,18 @@ class GrocyAIShoppingTab extends HTMLElement {
     root.setAttribute('role', 'tabpanel');
     root.setAttribute('aria-labelledby', getTabButtonId('shopping'));
 
+    const hero = document.createElement('section');
+    hero.className = 'card shopping-hero';
+    const heroCopy = document.createElement('div');
+    heroCopy.className = 'section-header__copy';
+    const heroEyebrow = document.createElement('p');
+    heroEyebrow.className = 'eyebrow';
+    heroEyebrow.textContent = 'Einkauf';
+    const heroTitle = document.createElement('h2');
+    heroTitle.textContent = 'Produktsuche';
+    heroCopy.append(heroEyebrow, heroTitle);
+    hero.append(heroCopy);
+
     const searchBar = document.createElement('grocy-ai-shopping-search-bar');
 
     const listSection = document.createElement('section');
@@ -1373,7 +1385,7 @@ class GrocyAIShoppingTab extends HTMLElement {
     buttonRow.append(completeAllButton, clearAllButton);
 
     listSection.append(listHeader, list, buttonRow);
-    root.append(searchBar, listSection);
+    root.append(hero, searchBar, listSection);
     this.replaceChildren(root);
 
     this._elements = {

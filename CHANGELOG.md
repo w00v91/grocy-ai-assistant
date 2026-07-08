@@ -1,5 +1,7 @@
 ## 2026-07-08 (Version 8.0.67)
 
+- Fix (Dashboard/API/Produktsuche): `dashboard_add_existing_product()` nutzt die zentrale Einkaufslisten-Mengenabstimmung jetzt ohne duplizierten lokalen Korrekturblock.
+- Added (Tests/API): Regressionstests prüfen, dass vorhandene Produkte neue und bestehende Einkaufslistenpositionen mit korrigierten Mengen aktualisieren.
 - Fix (API/Fehlerbehandlung): Interne Grocy-IO-, Home-Assistant- und Datei/KI-Hilfsabläufe fangen jetzt spezifische Exceptions statt generischer `Exception`-Blöcke ab.
 - Changed (Versioning): Versionsstand der Integration auf `8.0.67` erhöht.
 - Fix (Security/Config): `api_key` hat keinen produktiven Standard-Fallback mehr und lehnt leere, Platzhalter- oder bekannte Default-Werte beim Laden der Settings ab.
