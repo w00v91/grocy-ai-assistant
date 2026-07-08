@@ -26,6 +26,10 @@ const nativeDashboardCssPath = path.resolve(
   __dirname,
   '../../grocy_ai_assistant/custom_components/grocy_ai_assistant/panel/frontend/grocy-ai-dashboard.css',
 );
+const legacyDashboardCssPath = path.resolve(
+  __dirname,
+  '../../grocy_ai_assistant/api/static/dashboard.css',
+);
 
 test('shared swipe helper exports reusable binding utilities', () => {
   assert.equal(typeof bindSwipeInteractions, 'function');
@@ -132,6 +136,21 @@ test('shared shopping card CSS keeps legacy swipe cards in their horizontal layo
   assert.match(source, /\.shopping-card--variant\.variant-card \.shopping-card__surface \{\s+grid-template-columns: minmax\(0, 1fr\);/);
   assert.doesNotMatch(source, /\n\.variant-card \.shopping-card__body \{/);
   assert.match(source, /@media \(max-width: 640px\) \{[\s\S]*?\.shopping-card__body--swipe \{\s+grid-template-columns: minmax\(0, 1fr\);[\s\S]*?\.shopping-item-card--legacy \.shopping-card__surface \{\s+grid-template-columns: auto minmax\(0, 1fr\);[\s\S]*?\.shopping-item-card--legacy \.shopping-card__body--swipe \{\s+grid-template-columns: minmax\(0, 1fr\) auto;[\s\S]*?\.shopping-item-card--legacy \.shopping-card__aside,[\s\S]*?justify-items: end;/);
+});
+
+
+test('swipe action backgrounds stay hidden until an item is dragged', async () => {
+  const [nativeSource, legacySource] = await Promise.all([
+    fs.readFile(nativeDashboardCssPath, 'utf8'),
+    fs.readFile(legacyDashboardCssPath, 'utf8'),
+  ]);
+
+  for (const source of [nativeSource, legacySource]) {
+    assert.match(source, /\.swipe-item-action \{[\s\S]*?inset-block: 1px;[\s\S]*?border-radius: inherit;/);
+    assert.match(source, /\.swipe-item-action-left \{[\s\S]*?opacity: var\(--swipe-progress-right\);/);
+    assert.match(source, /\.swipe-item-action-right \{[\s\S]*?opacity: var\(--swipe-progress-left\);/);
+    assert.doesNotMatch(source, /opacity: calc\(0\.4 \+ \(var\(--swipe-progress-(?:left|right)\) \* 0\.7\)\);/);
+  }
 });
 
 test('tab button CSS keeps mobile labels vertically centered beside the icon', async () => {
