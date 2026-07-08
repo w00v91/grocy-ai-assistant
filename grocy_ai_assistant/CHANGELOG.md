@@ -1,3 +1,8 @@
+## 2026-07-08 (Version 8.0.67)
+
+- Fix (API/Fehlerbehandlung): Interne Grocy-IO-, Home-Assistant- und Datei/KI-Hilfsabläufe fangen jetzt spezifische Exceptions statt generischer `Exception`-Blöcke ab.
+- Changed (Versioning): Versionsstand der Integration auf `8.0.67` erhöht.
+
 ## 2026-07-08 (Version 8.0.66)
 
 - Added (Tests/Dashboard): `POST /api/dashboard/search` ist jetzt gegen Ollama-Timeouts abgesichert und prüft die sichere Standardanalyse inklusive Freigabe des In-Flight-Guards.
