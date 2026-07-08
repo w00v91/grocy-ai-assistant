@@ -329,6 +329,18 @@ export function createShoppingSearchController({
         throw new Error(getErrorMessage(payload, 'Produkt konnte nicht geprüft werden.'));
       }
 
+      if (payload?.success === false || payload?.action === 'search_in_flight') {
+        const inFlightMessage = payload?.message || 'Eine identische Produktsuche läuft bereits.';
+        setState({
+          isSubmitting: false,
+          isLoadingVariants: false,
+          flowState: SEARCH_FLOW_STATES.ERROR,
+          statusMessage: inFlightMessage,
+          errorMessage: inFlightMessage,
+        });
+        return { ok: false, payload };
+      }
+
       const variants = Array.isArray(payload?.variants) ? payload.variants : [];
       const statusMessage = payload?.message || (variants.length ? 'Varianten gefunden.' : 'Produkt verarbeitet.');
       if (payload?.action === 'variant_selection_required' && variants.length) {
