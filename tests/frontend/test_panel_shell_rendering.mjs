@@ -242,7 +242,7 @@ test('native panel locks background scrolling while any modal is open', async ()
   assert.match(cssSource, /:host\(\[data-modal-open="true"\]\),[\s\S]*?\.page-shell--modal-open \{[\s\S]*?overflow: hidden;/);
   assert.match(cssSource, /:host\(\[data-modal-open="true"\]\) \.bottom-tabbar \{[\s\S]*?opacity: 0;[\s\S]*?visibility: hidden;[\s\S]*?pointer-events: none;/);
   assert.match(cssSource, /\.shopping-modal \{[\s\S]*?z-index: 60;[\s\S]*?overscroll-behavior: contain;/);
-  assert.match(cssSource, /\.bottom-tabbar \{[\s\S]*?z-index: 40;[\s\S]*?transition: opacity 0\.18s ease, visibility 0\.18s ease;/);
+  assert.match(cssSource, /\.bottom-tabbar \{[\s\S]*?z-index: 20;[\s\S]*?transition: opacity 0\.18s ease, visibility 0\.18s ease;/);
   assert.match(cssSource, /\.shopping-modal-content \{[\s\S]*?overflow: auto;[\s\S]*?overscroll-behavior: contain;[\s\S]*?-webkit-overflow-scrolling: touch;/);
 });
 
@@ -378,12 +378,12 @@ test('mobile panel CSS keeps native dashboard copy readable and avoids cramped t
 });
 
 
-test('bottom tab bar matches desktop shell width and spans the viewport only on mobile', async () => {
+test('bottom tab bar stays in desktop flow and spans the viewport only on mobile', async () => {
   const source = await fs.readFile(dashboardCssPath, 'utf8');
 
-  assert.match(source, /\.bottom-tabbar \{[\s\S]*?left: var\(--dashboard-shell-center-x\);[\s\S]*?right: auto;[\s\S]*?transform: translateX\(-50%\);[\s\S]*?justify-content: center;[\s\S]*?width: min\(var\(--dashboard-shell-fixed-width\), calc\(100vw - 48px\)\);/);
+  assert.match(source, /\.bottom-tabbar \{[\s\S]*?position: sticky;[\s\S]*?left: auto;[\s\S]*?right: auto;[\s\S]*?transform: none;[\s\S]*?justify-content: center;[\s\S]*?width: 100%;[\s\S]*?max-width: var\(--dashboard-shell-fixed-width\);/);
   assert.match(source, /\.tab-button:hover,\s*\.tab-button:focus-visible \{[\s\S]*?transform: none;/);
-  assert.match(source, /@media \(max-width: 800px\) \{[\s\S]*?\.bottom-tabbar \{[\s\S]*?left: 0;[\s\S]*?right: 0;[\s\S]*?flex-wrap: nowrap;[\s\S]*?width: 100vw;[\s\S]*?max-width: none;[\s\S]*?overflow-x: auto;/);
+  assert.match(source, /@media \(max-width: 800px\) \{[\s\S]*?\.bottom-tabbar \{[\s\S]*?position: fixed;[\s\S]*?left: 0;[\s\S]*?right: 0;[\s\S]*?flex-wrap: nowrap;[\s\S]*?width: 100vw;[\s\S]*?max-width: none;[\s\S]*?overflow-x: auto;/);
   assert.match(source, /@media \(max-width: 800px\) \{[\s\S]*?\.tab-button \{[\s\S]*?flex: 1 1 0;[\s\S]*?white-space: nowrap;/);
   assert.match(source, /@media \(max-width: 800px\) \{[\s\S]*?\.tab-button__meta \{[\s\S]*?display: none;/);
 });

@@ -54,38 +54,56 @@ class IngredientDetector:
             if timeout_seconds is not None and timeout_seconds > 0
             else self._ollama_timeout_seconds()
         )
-        if self._ollama_text_enabled():
-            payload = {
-                "model": self.settings.ollama_model,
-                "prompt": prompt,
-                "stream": False,
-                "format": "json",
-            }
-            response = requests.post(
-                self.settings.ollama_url,
-                json=payload,
-                timeout=request_timeout,
-            )
-            response.raise_for_status()
-            return json.loads(response.json().get("response"))
-
+        providers = []
         if self._cloud_text_enabled():
-            response = requests.post(
-                "https://api.openai.com/v1/chat/completions",
-                headers={
-                    "Authorization": f"Bearer {self.settings.openai_api_key}",
-                    "Content-Type": "application/json",
-                },
-                json={
-                    "model": self.settings.openai_text_model,
-                    "messages": [{"role": "user", "content": prompt}],
-                },
-                timeout=request_timeout,
-            )
-            response.raise_for_status()
-            choices = response.json().get("choices") or []
-            message = choices[0].get("message", {}) if choices else {}
-            return json.loads(message.get("content") or "{}")
+            providers.append("cloud")
+        if self._ollama_text_enabled():
+            providers.append("ollama")
+
+        last_error: Exception | None = None
+        for provider in providers:
+            try:
+                if provider == "cloud":
+                    response = requests.post(
+                        "https://api.openai.com/v1/chat/completions",
+                        headers={
+                            "Authorization": f"Bearer {self.settings.openai_api_key}",
+                            "Content-Type": "application/json",
+                        },
+                        json={
+                            "model": self.settings.openai_text_model,
+                            "messages": [{"role": "user", "content": prompt}],
+                        },
+                        timeout=request_timeout,
+                    )
+                    response.raise_for_status()
+                    choices = response.json().get("choices") or []
+                    message = choices[0].get("message", {}) if choices else {}
+                    return json.loads(message.get("content") or "{}")
+
+                payload = {
+                    "model": self.settings.ollama_model,
+                    "prompt": prompt,
+                    "stream": False,
+                    "format": "json",
+                }
+                response = requests.post(
+                    self.settings.ollama_url,
+                    json=payload,
+                    timeout=request_timeout,
+                )
+                response.raise_for_status()
+                return json.loads(response.json().get("response"))
+            except (requests.RequestException, ValueError, TypeError) as error:
+                last_error = error
+                logger.warning(
+                    "Text-KI-Anbieter %s konnte nicht verwendet werden, versuche Fallback falls konfiguriert: %s",
+                    provider,
+                    error,
+                )
+
+        if last_error is not None:
+            raise last_error
 
         raise RuntimeError("Keine Text-KI aktiviert")
 
