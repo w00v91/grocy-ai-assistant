@@ -16,7 +16,7 @@ function getMinimumSearchLengthMessage(length) {
 }
 
 const rootElement = document.documentElement;
-const configuredApiKey = rootElement.dataset.configuredApiKey || '';
+const DASHBOARD_API_KEY_STORAGE_KEY = 'grocy_ai_assistant.dashboard.api_key';
 const apiBasePath = rootElement.dataset.apiBasePath || '';
 const dashboardPollingIntervalSeconds = Number.parseInt(rootElement.dataset.dashboardPollingIntervalSeconds || '5', 10);
 const haThemeSource = rootElement.dataset.themeSource || 'home-assistant-parent';
@@ -25,13 +25,23 @@ const haThemeVarNames = (rootElement.dataset.haThemeVars || '')
   .split(',')
   .map((name) => name.trim())
   .filter(Boolean);
-let apiKey = configuredApiKey || '';
+function readStoredApiKey() {
+  try {
+    return window.sessionStorage?.getItem(DASHBOARD_API_KEY_STORAGE_KEY)
+      || window.localStorage?.getItem(DASHBOARD_API_KEY_STORAGE_KEY)
+      || '';
+  } catch (_) {
+    return '';
+  }
+}
+
+let apiKey = readStoredApiKey();
 const ingressPrefixMatch = window.location.pathname.match(/^\/api\/hassio_ingress\/[^\/]+/);
 const ingressPrefix = ingressPrefixMatch ? ingressPrefixMatch[0] : '';
 const dashboardApi = createDashboardApiClient({
   apiBasePath,
   ingressPrefix,
-  getApiKey: () => apiKey,
+  getAuthHeaders: () => (apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
 });
 const dashboardStore = createDashboardStore({
   pendingRequests: 0,
@@ -926,8 +936,14 @@ function observeHomeAssistantTheme() {
   });
 }
 
+function isHomeAssistantIngressContext() {
+  return Boolean(apiBasePath || ingressPrefix);
+}
+
 function ensureApiKey() {
-  return apiKey;
+  if (isHomeAssistantIngressContext()) return true;
+  apiKey = apiKey || readStoredApiKey();
+  return Boolean(apiKey);
 }
 
 function toImageSource(url, options = {}) {
@@ -1070,7 +1086,7 @@ async function loadShoppingList(options = {}) {
   const status = getShoppingStatusElement();
   status?.classList.add('search-status-badge');
   if (!key) {
-    status.textContent = 'Kein API-Key angegeben.';
+    status.textContent = 'Keine Dashboard-Authentifizierung verfügbar.';
     return;
   }
 
@@ -1355,7 +1371,7 @@ async function confirmVariant(productId, productName, amountOverride = null) {
   status?.classList.add('search-status-badge');
 
   if (!key) {
-    status.textContent = 'Kein API-Key angegeben.';
+    status.textContent = 'Keine Dashboard-Authentifizierung verfügbar.';
     return;
   }
 
@@ -1416,7 +1432,7 @@ async function removeShoppingItem(shoppingListId) {
   const status = getShoppingStatusElement();
   status?.classList.add('search-status-badge');
   if (!key) {
-    status.textContent = 'Kein API-Key angegeben.';
+    status.textContent = 'Keine Dashboard-Authentifizierung verfügbar.';
     return;
   }
 
@@ -1434,7 +1450,7 @@ async function purchaseShoppingItem(shoppingListId) {
   const status = getShoppingStatusElement();
   status?.classList.add('search-status-badge');
   if (!key) {
-    status.textContent = 'Kein API-Key angegeben.';
+    status.textContent = 'Keine Dashboard-Authentifizierung verfügbar.';
     return;
   }
 
@@ -1504,7 +1520,7 @@ async function saveShoppingNote(shoppingListId, note) {
   status?.classList.add('search-status-badge');
 
   if (!key) {
-    status.textContent = 'Kein API-Key angegeben.';
+    status.textContent = 'Keine Dashboard-Authentifizierung verfügbar.';
     return false;
   }
   if (!shoppingListId) {
@@ -1536,7 +1552,7 @@ async function saveShoppingAmount(shoppingListId, amount) {
   status?.classList.add('search-status-badge');
 
   if (!key) {
-    status.textContent = 'Kein API-Key angegeben.';
+    status.textContent = 'Keine Dashboard-Authentifizierung verfügbar.';
     return false;
   }
   if (!shoppingListId) {
@@ -1607,7 +1623,7 @@ async function saveMhdPickerDate() {
   const bestBeforeDate = String(input?.value || '').trim();
 
   if (!key) {
-    status.textContent = 'Kein API-Key angegeben.';
+    status.textContent = 'Keine Dashboard-Authentifizierung verfügbar.';
     return;
   }
   if (!dashboardState.activeMhdShoppingListId) {
@@ -1644,7 +1660,7 @@ async function resetMhdPickerDate() {
   status?.classList.add('search-status-badge');
 
   if (!key) {
-    status.textContent = 'Kein API-Key angegeben.';
+    status.textContent = 'Keine Dashboard-Authentifizierung verfügbar.';
     return;
   }
   if (!dashboardState.activeMhdShoppingListId) {
@@ -1713,7 +1729,7 @@ async function completeShoppingList() {
   const status = getShoppingStatusElement();
   status?.classList.add('search-status-badge');
   if (!key) {
-    status.textContent = 'Kein API-Key angegeben.';
+    status.textContent = 'Keine Dashboard-Authentifizierung verfügbar.';
     return;
   }
 
@@ -1740,7 +1756,7 @@ async function clearShoppingList() {
   const status = getShoppingStatusElement();
   status?.classList.add('search-status-badge');
   if (!key) {
-    status.textContent = 'Kein API-Key angegeben.';
+    status.textContent = 'Keine Dashboard-Authentifizierung verfügbar.';
     return;
   }
 
@@ -1783,7 +1799,7 @@ async function searchProduct(options = {}) {
     const bestBeforeDate = getShoppingBestBeforeDate();
 
     if (!key) {
-      status.textContent = 'Kein API-Key angegeben.';
+      status.textContent = 'Keine Dashboard-Authentifizierung verfügbar.';
       return;
     }
     if (!productName) {
@@ -2307,7 +2323,7 @@ async function loadStorageProducts() {
     const key = ensureApiKey();
     const status = getStorageStatusElement();
     if (!key) {
-      status.textContent = 'Kein API-Key angegeben.';
+      status.textContent = 'Keine Dashboard-Authentifizierung verfügbar.';
       return;
     }
 
@@ -2595,7 +2611,7 @@ async function loadRecipeSuggestions(options = {}) {
   const key = ensureApiKey();
   const status = getRecipeStatusElement();
   if (!key) {
-    status.textContent = 'Kein API-Key angegeben.';
+    status.textContent = 'Keine Dashboard-Authentifizierung verfügbar.';
     return;
   }
 
@@ -2975,7 +2991,7 @@ async function createProductFromScannerResult() {
   const payload = dashboardState.scannerResultPayload;
 
   if (!key) {
-    status.textContent = 'Kein API-Key angegeben.';
+    status.textContent = 'Keine Dashboard-Authentifizierung verfügbar.';
     return;
   }
 
@@ -3060,7 +3076,7 @@ async function queryLlavaWithCurrentFrame(reason = 'manual') {
   const key = ensureApiKey();
   const status = getScannerStatusElement();
   if (!key) {
-    status.textContent = 'Kein API-Key angegeben.';
+    status.textContent = 'Keine Dashboard-Authentifizierung verfügbar.';
     return;
   }
 
@@ -3210,7 +3226,7 @@ async function lookupBarcode(barcode) {
   const key = ensureApiKey();
   const status = getScannerStatusElement();
   if (!key) {
-    status.textContent = 'Kein API-Key angegeben.';
+    status.textContent = 'Keine Dashboard-Authentifizierung verfügbar.';
     return;
   }
 

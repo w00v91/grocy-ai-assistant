@@ -21,7 +21,7 @@ ingress_port: 8000
 homeassistant_api: true
 hassio_api: true
 options:
-  api_key: DEIN_KI_KEY
+  api_key: grocy-ai-assistant-C1LEbzNYdlsu_QGGLZYT-AAjBdsA66af
   notification_global_enabled: true
   dashboard_polling_interval_seconds: 5
   grocy:
