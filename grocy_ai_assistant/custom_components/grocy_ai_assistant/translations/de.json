@@ -71,13 +71,13 @@
         "name": "KI-Antwortzeit (Durchschnitt)"
       },
       "shopping_list_open_count": {
-        "name": "Offene Einkaufsliste-Einträge"
+        "name": "Einkaufsliste Produkte"
       },
       "stock_products_total_count": {
-        "name": "Lagerprodukte gesamt"
+        "name": "Lagerprodukte Produkte"
       },
       "stock_products_expiring_count": {
-        "name": "Bald ablaufende Lagerprodukte"
+        "name": "Bald ablaufende Produkte"
       },
       "recipe_suggestion_top_ai": {
         "name": "Top-KI-Rezeptvorschlag",
