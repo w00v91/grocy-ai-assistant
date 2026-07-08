@@ -1,3 +1,9 @@
+## 2026-07-08 (Version 8.0.66)
+
+- Fix (Dashboard/API/Produktsuche): Parallele identische Produktsuchen liefern jetzt einen strukturierten HTTP-409-Konflikt statt einer erfolgreichen Antwort mit `success=false`.
+- Added (Tests/API): Regressionstests prüfen den 409-Konflikttext und dass der serverseitige Such-Guard nach Abschluss der ursprünglichen Suche wieder freigegeben wird.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.66` erhöht.
+
 ## 2026-07-08 (Version 8.0.65)
 
 - Fix (Home-Assistant-Integration/Panel/Desktop): Die Bottom-Bar ist auf Desktop jetzt im Dashboard-Fluss verankert statt viewport-fixed, damit sie keine Home-Assistant-Elemente oder Inhalte überdeckt.
