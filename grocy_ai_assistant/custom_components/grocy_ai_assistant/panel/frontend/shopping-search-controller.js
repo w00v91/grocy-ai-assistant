@@ -69,6 +69,7 @@ function buildInitialState() {
     clearButtonVisible: false,
     variantsRequestToken: 0,
     variantDebounce: null,
+    lastBlockedReason: null,
   };
 }
 
@@ -125,6 +126,7 @@ export function createShoppingSearchController({
       flowState: nextFlowState,
       errorMessage: options.keepErrorMessage ? getState().errorMessage : '',
       statusMessage: nextStatusMessage,
+      lastBlockedReason: null,
     });
   }
 
@@ -152,6 +154,7 @@ export function createShoppingSearchController({
       errorMessage: '',
       clearButtonVisible: Boolean(effectiveQuery),
       variantsRequestToken: requestToken,
+      lastBlockedReason: null,
     });
   }
 
@@ -314,14 +317,24 @@ export function createShoppingSearchController({
     }
 
     if (activeSearchKey === nextKey) {
-      const inFlightMessage = 'Produktanfrage läuft bereits...';
+      const inFlightMessage = 'Diese Produktanfrage wird gerade noch verarbeitet…';
+      if (typeof globalThis.console?.debug === 'function') {
+        globalThis.console.debug('Shopping search blocked: local request still in flight.', {
+          reason: 'local_in_flight',
+          productName: normalizedProductName,
+          amount,
+          bestBeforeDate,
+          forceCreate,
+        });
+      }
       setState({
         isSubmitting: true,
         flowState: SEARCH_FLOW_STATES.SUBMITTING,
         statusMessage: inFlightMessage,
         errorMessage: '',
+        lastBlockedReason: 'local_in_flight',
       });
-      return { ok: false, payload: { action: 'search_in_flight' } };
+      return { ok: false, payload: { action: 'search_in_flight', reason: 'local_in_flight' } };
     }
     activeSearchKey = nextKey;
 
@@ -331,6 +344,7 @@ export function createShoppingSearchController({
       flowState: SEARCH_FLOW_STATES.SUBMITTING,
       statusMessage: forceCreate ? 'Füge Produkt hinzu…' : 'Prüfe Produkt…',
       errorMessage: '',
+      lastBlockedReason: null,
     });
 
     try {
@@ -353,6 +367,7 @@ export function createShoppingSearchController({
           flowState: SEARCH_FLOW_STATES.ERROR,
           statusMessage: inFlightMessage,
           errorMessage: inFlightMessage,
+          lastBlockedReason: 'backend_in_flight',
         });
         return { ok: false, payload };
       }
@@ -378,6 +393,7 @@ export function createShoppingSearchController({
         flowState: SEARCH_FLOW_STATES.SUCCESS,
         statusMessage,
         errorMessage: '',
+        lastBlockedReason: null,
       });
       await onShoppingListChanged();
       return { ok: true, payload };
@@ -427,6 +443,7 @@ export function createShoppingSearchController({
       flowState: SEARCH_FLOW_STATES.SUBMITTING,
       statusMessage: 'Füge Produkt hinzu…',
       errorMessage: '',
+      lastBlockedReason: null,
     });
 
     try {
@@ -462,6 +479,7 @@ export function createShoppingSearchController({
         flowState: SEARCH_FLOW_STATES.SUCCESS,
         statusMessage,
         errorMessage: '',
+        lastBlockedReason: null,
       });
       await onShoppingListChanged();
       return { ok: true, payload };
