@@ -1,3 +1,5 @@
+import requests
+
 from grocy_ai_assistant.api import routes
 
 
@@ -226,6 +228,85 @@ def test_dashboard_search_creates_new_product_when_missing(client, monkeypatch):
     assert calls["created"]["name"] == "Reis"
     assert calls["added"] == (42, 1, "")
     assert calls["nutrition"] == (42, 100, None, None, None, None)
+
+
+def test_dashboard_search_uses_detector_fallback_when_ollama_analysis_fails(
+    client, test_settings, monkeypatch
+):
+    test_settings.ollama_enabled = True
+    test_settings.ollama_text_generation_enabled = True
+    calls = {"created": None, "added": None, "nutrition": None}
+    routes.SEARCH_REQUESTS_IN_FLIGHT.clear()
+
+    def fail_text_request(self, prompt):
+        raise requests.Timeout("Ollama timed out")
+
+    class FakeGrocyClient:
+        def __init__(self, settings):
+            self.settings = settings
+
+        def find_product_by_name(self, name):
+            return None
+
+        def search_products_by_partial_name(self, query):
+            return []
+
+        def create_product(self, payload):
+            calls["created"] = payload
+            return 42
+
+        def update_product_nutrition(
+            self,
+            product_id,
+            calories=None,
+            carbs=None,
+            fat=None,
+            protein=None,
+            sugar=None,
+        ):
+            calls["nutrition"] = (product_id, calories, carbs, fat, protein, sugar)
+
+        def get_product_default_best_before_days(self, product_id):
+            return None
+
+        def set_product_default_best_before_days(
+            self, product_id, default_best_before_days
+        ):
+            return None
+
+        def add_product_to_shopping_list(self, product_id, amount, best_before_date=""):
+            calls["added"] = (product_id, amount, best_before_date)
+
+    monkeypatch.setattr(routes, "GrocyClient", FakeGrocyClient)
+    monkeypatch.setattr(
+        routes.IngredientDetector, "_request_text_json", fail_text_request
+    )
+    monkeypatch.setattr(
+        routes, "_generate_and_attach_product_picture", lambda **kwargs: None
+    )
+
+    response = client.post(
+        "/api/dashboard/search",
+        headers={"Authorization": "Bearer test-api-key"},
+        json={"name": "Timeoutprodukt"},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["success"] is True
+    assert payload["action"] == "created_and_added"
+    assert payload["product_id"] == 42
+    assert calls["created"] == {
+        "name": "Timeoutprodukt",
+        "description": "",
+        "location_id": 1,
+        "qu_id_purchase": 1,
+        "qu_id_stock": 1,
+        "default_best_before_days": 0,
+    }
+    assert calls["nutrition"] == (42, 0, 0, 0, 0, 0)
+    assert calls["added"] == (42, 1, "")
+    assert routes.SEARCH_REQUESTS_IN_FLIGHT == {}
 
 
 def test_dashboard_search_new_product_uses_userfield_nutrition_values(

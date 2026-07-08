@@ -1,3 +1,8 @@
+## 2026-07-08 (Version 8.0.66)
+
+- Added (Tests/Dashboard): `POST /api/dashboard/search` ist jetzt gegen Ollama-Timeouts abgesichert und prüft die sichere Standardanalyse inklusive Freigabe des In-Flight-Guards.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.66` erhöht.
+
 ## 2026-07-08 (Version 8.0.65)
 
 - Fix (Home-Assistant-Integration/Panel/Desktop): Die Bottom-Bar ist auf Desktop jetzt im Dashboard-Fluss verankert statt viewport-fixed, damit sie keine Home-Assistant-Elemente oder Inhalte überdeckt.
