@@ -14,6 +14,7 @@ _TOP_LEVEL_OPTION_KEYS = (
     "api_key",
     "notification_global_enabled",
     "dashboard_polling_interval_seconds",
+    "dashboard_search_guard_stale_seconds",
     "debug_mode",
     "auto_cleanup_enabled",
     "auto_cleanup_months",

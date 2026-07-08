@@ -79,6 +79,7 @@ class Settings(BaseModel):
     scanner_llava_min_confidence: int = 75
     scanner_llava_timeout_seconds: int = 45
     dashboard_polling_interval_seconds: int = 5
+    dashboard_search_guard_stale_seconds: int = 45
     cloud_ai_enabled: bool = True
     image_generation_enabled: bool = False
     cloud_ai_text_generation_enabled: bool = False

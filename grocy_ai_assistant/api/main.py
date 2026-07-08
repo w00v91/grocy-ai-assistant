@@ -504,10 +504,25 @@ def create_app() -> FastAPI:
     async def handle_http_exception(
         request: Request, exc: StarletteHTTPException
     ) -> JSONResponse:
+        detail = exc.detail
+        if isinstance(detail, dict):
+            message = str(detail.get("message") or detail)
+            details = (
+                detail.get("details")
+                if isinstance(detail.get("details"), list)
+                else None
+            )
+            code = detail.get("code") if isinstance(detail.get("code"), str) else None
+        else:
+            message = str(detail)
+            details = None
+            code = None
         return build_error_response(
             request,
             status_code=exc.status_code,
-            message=str(exc.detail),
+            message=message,
+            code=code,
+            details=details,
         )
 
     @app_instance.exception_handler(RequestValidationError)
