@@ -73,6 +73,8 @@ AMOUNT_PREFIX_PATTERN = re.compile(r"^\s*(\d+(?:[.,]\d+)?)\s+(.+)$")
 router = APIRouter()
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
 bearer_auth = HTTPBearer(auto_error=False)
+GROCY_IO_EXCEPTIONS = (requests.RequestException, ValueError, KeyError)
+AI_FILE_IO_EXCEPTIONS = (requests.RequestException, OSError, ValueError, KeyError)
 
 NOTIFICATION_STORAGE_PATH = Path("/data/notification_dashboard.json")
 
@@ -645,7 +647,7 @@ def _reconcile_shopping_list_amount_after_add(
             else grocy_client.get_shopping_list()
         )
         after_items = grocy_client.get_shopping_list()
-    except Exception:
+    except GROCY_IO_EXCEPTIONS:
         return
 
     normalized_product_id = _safe_int(product_id)
@@ -706,7 +708,7 @@ def _reconcile_shopping_list_amount_after_add(
             shopping_list_id=target_item_id,
             amount=normalized_amount,
         )
-    except Exception:
+    except GROCY_IO_EXCEPTIONS:
         return
 
 
@@ -860,7 +862,7 @@ def _generate_and_attach_product_picture(
         if not image_path:
             return
         grocy_client.attach_product_picture(product_id, image_path)
-    except Exception as error:
+    except AI_FILE_IO_EXCEPTIONS as error:
         logger.warning(
             "Produktbild konnte nicht automatisch erstellt/gespeichert werden (%s): %s",
             product_name,
@@ -871,7 +873,7 @@ def _generate_and_attach_product_picture(
 def _get_default_location_id(grocy_client: GrocyClient) -> int:
     try:
         locations = grocy_client.get_locations()
-    except Exception:
+    except GROCY_IO_EXCEPTIONS:
         locations = []
 
     for location in locations:
@@ -885,7 +887,7 @@ def _get_default_location_id(grocy_client: GrocyClient) -> int:
 def _get_default_quantity_unit_id(grocy_client: GrocyClient) -> int:
     try:
         quantity_units = grocy_client.get_quantity_units()
-    except Exception:
+    except GROCY_IO_EXCEPTIONS:
         quantity_units = {}
 
     for unit_id in quantity_units.keys():
@@ -987,7 +989,7 @@ def _create_and_add_product_to_shopping_list(
     if len(normalized_barcode) >= 8:
         try:
             grocy_client.set_product_barcode(created_object_id, normalized_barcode)
-        except Exception as error:
+        except GROCY_IO_EXCEPTIONS as error:
             logger.warning(
                 "Barcode %s konnte dem Produkt %s nicht zugewiesen werden: %s",
                 normalized_barcode,
