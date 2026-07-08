@@ -1,5 +1,6 @@
 ## 2026-07-08 (Version 8.0.66)
 
+- Added (Tests/Dashboard): `POST /api/dashboard/search` ist jetzt gegen Ollama-Timeouts abgesichert und prüft die sichere Standardanalyse inklusive Freigabe des In-Flight-Guards.
 - Fix (Home-Assistant-Integration/Panel/Shopping): Stille Einkaufslisten-Reload-Fehler überschreiben aktive Produktsuche-Hinweise wie „Eine identische Produktsuche läuft bereits...“ nicht mehr im sichtbaren Hilfetext oder in der Topbar.
 - Added (Tests/Frontend): Regressionstest für `search_in_flight` plus fehlgeschlagenen stillen Einkaufslisten-Reload ergänzt.
 - Fix (Home-Assistant-Integration/Panel/Shopping): Doppelte direkte Produktsuchen mit identischen Parametern werden während eines laufenden API-Aufrufs lokal abgefangen.
