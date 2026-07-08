@@ -290,6 +290,7 @@ class GrocyAIShoppingListOpenCountSensor(_CoordinatorAddonSensor):
         )
         self._attr_unique_id = f"{entry.entry_id}_shopping_list_open_count"
         self._attr_icon = "mdi:cart-outline"
+        self._attr_native_unit_of_measurement = "Produkte"
 
 
 class GrocyAIStockProductCountSensor(_CoordinatorAddonSensor):
@@ -303,6 +304,7 @@ class GrocyAIStockProductCountSensor(_CoordinatorAddonSensor):
         )
         self._attr_unique_id = f"{entry.entry_id}_stock_products_total_count"
         self._attr_icon = "mdi:fridge-outline"
+        self._attr_native_unit_of_measurement = "Produkte"
 
 
 class GrocyAIExpiringStockProductCountSensor(_CoordinatorAddonSensor):
@@ -316,6 +318,7 @@ class GrocyAIExpiringStockProductCountSensor(_CoordinatorAddonSensor):
         )
         self._attr_unique_id = f"{entry.entry_id}_stock_products_expiring_count"
         self._attr_icon = "mdi:calendar-alert-outline"
+        self._attr_native_unit_of_measurement = "Produkte"
 
 
 class _RecipeSuggestionSensor(_CoordinatorAddonSensor):

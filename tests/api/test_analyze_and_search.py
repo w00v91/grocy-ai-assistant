@@ -1,4 +1,5 @@
 import requests
+import threading
 
 from grocy_ai_assistant.api import routes
 
@@ -105,10 +106,82 @@ def test_dashboard_search_rejects_parallel_duplicate_requests(client, monkeypatc
         json={"name": "Milch"},
     )
 
-    assert response.status_code == 200
+    assert response.status_code == 409
     payload = response.json()
     assert payload["success"] is False
-    assert payload["action"] == "search_in_flight"
+    assert "identische Produktsuche läuft bereits" in payload["error"]["message"]
+    assert payload["error"]["code"] == "conflict"
+
+
+def test_dashboard_search_guard_releases_after_running_duplicate_search(
+    client, monkeypatch
+):
+    first_search_started = threading.Event()
+    finish_first_search = threading.Event()
+    first_search_completed = threading.Event()
+    calls = []
+
+    class FakeGrocyClient:
+        def __init__(self, settings):
+            self.settings = settings
+
+        def find_product_by_name(self, name):
+            calls.append(name)
+            if len(calls) == 1:
+                first_search_started.set()
+                assert finish_first_search.wait(timeout=5)
+            return {"id": 7}
+
+        def add_product_to_shopping_list(self, product_id, amount, best_before_date=""):
+            return None
+
+    monkeypatch.setattr(routes, "GrocyClient", FakeGrocyClient)
+    routes.SEARCH_REQUESTS_IN_FLIGHT.clear()
+
+    def run_first_search():
+        try:
+            response = client.post(
+                "/api/dashboard/search",
+                headers={"Authorization": "Bearer test-api-key"},
+                json={"name": "Milch"},
+            )
+            assert response.status_code == 200
+        finally:
+            first_search_completed.set()
+
+    search_thread = threading.Thread(target=run_first_search)
+    search_thread.start()
+    try:
+        assert first_search_started.wait(timeout=5)
+
+        duplicate_response = client.post(
+            "/api/dashboard/search",
+            headers={"Authorization": "Bearer test-api-key"},
+            json={"name": "Milch"},
+        )
+
+        assert duplicate_response.status_code == 409
+        assert (
+            "identische Produktsuche läuft bereits"
+            in duplicate_response.json()["error"]["message"]
+        )
+
+        finish_first_search.set()
+        search_thread.join(timeout=5)
+        assert first_search_completed.is_set()
+
+        released_guard_response = client.post(
+            "/api/dashboard/search",
+            headers={"Authorization": "Bearer test-api-key"},
+            json={"name": "Milch"},
+        )
+
+        assert released_guard_response.status_code == 200
+        assert released_guard_response.json()["action"] == "existing_added"
+    finally:
+        finish_first_search.set()
+        search_thread.join(timeout=5)
+        routes.SEARCH_REQUESTS_IN_FLIGHT.clear()
 
 
 def test_dashboard_search_reconciles_existing_product_amount_when_backend_adds_only_one(

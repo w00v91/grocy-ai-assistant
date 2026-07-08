@@ -174,6 +174,51 @@ test('ignores stale variant responses after the user keeps typing', async () => 
   assert.equal(controller.getState().flowState, SEARCH_FLOW_STATES.VARIANTS_READY);
 });
 
+
+test('searchProduct surfaces duplicate in-flight searches without refreshing the shopping list', async () => {
+  let shoppingListChanges = 0;
+  const duplicateMessage = 'Eine identische Produktsuche läuft bereits.';
+  const timerApi = createFakeTimerApi();
+  const controller = createShoppingSearchController({
+    api: {
+      searchVariants: async () => ({ response: { ok: true }, payload: [] }),
+      searchProduct: async () => ({
+        response: { ok: true },
+        payload: {
+          success: false,
+          action: 'search_in_flight',
+          message: duplicateMessage,
+        },
+      }),
+      addExistingProduct: async () => ({ response: { ok: true }, payload: { message: 'Produkt hinzugefügt.' } }),
+    },
+    debounceMs: 250,
+    timerApi,
+    getDefaultAmount: () => 1,
+    getBestBeforeDate: () => '',
+    onShoppingListChanged: async () => {
+      shoppingListChanges += 1;
+    },
+  });
+
+  controller.actions.setQuery('milch');
+  const result = await controller.actions.searchProduct();
+
+  const state = controller.getState();
+  assert.equal(result.ok, false);
+  assert.deepEqual(result.payload, {
+    success: false,
+    action: 'search_in_flight',
+    message: duplicateMessage,
+  });
+  assert.equal(shoppingListChanges, 0);
+  assert.equal(state.isSubmitting, false);
+  assert.equal(state.isLoadingVariants, false);
+  assert.equal(state.flowState, SEARCH_FLOW_STATES.ERROR);
+  assert.equal(state.statusMessage, duplicateMessage);
+  assert.equal(state.errorMessage, duplicateMessage);
+});
+
 test('enter submit wins over a still-loading variant request', async () => {
   const variantDeferred = createDeferred();
   const submitted = [];
@@ -210,4 +255,39 @@ test('enter submit wins over a still-loading variant request', async () => {
   assert.deepEqual(controller.getState().variants, []);
   assert.equal(controller.getState().flowState, SEARCH_FLOW_STATES.SUCCESS);
   assert.equal(controller.getState().statusMessage, 'Produkt verarbeitet.');
+});
+
+test('returns local in-flight status for duplicate direct product searches', async () => {
+  const searchDeferred = createDeferred();
+  const submitted = [];
+  const { controller } = createController({
+    apiOverrides: {
+      searchProduct: (payload) => {
+        submitted.push(payload);
+        return searchDeferred.promise;
+      },
+    },
+  });
+
+  controller.actions.setQuery('2 Milch');
+
+  const firstSearch = controller.actions.searchProduct();
+  const secondSearch = controller.actions.searchProduct();
+
+  assert.equal(submitted.length, 1);
+  assert.deepEqual(await secondSearch, {
+    ok: false,
+    payload: { action: 'search_in_flight' },
+  });
+  assert.equal(controller.getState().statusMessage, 'Produktanfrage läuft bereits...');
+
+  searchDeferred.resolve({
+    response: { ok: true },
+    payload: { message: 'Produkt verarbeitet.' },
+  });
+
+  assert.deepEqual(await firstSearch, {
+    ok: true,
+    payload: { message: 'Produkt verarbeitet.' },
+  });
 });
