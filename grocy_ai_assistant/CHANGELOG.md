@@ -1,11 +1,13 @@
 ## 2026-07-08 (Version 8.0.66)
 
-- Fix (Home-Assistant-Integration/Panel/Shopping): Doppelte laufende Produktsuchen werden im Such-Controller jetzt als Fehlerstatus angezeigt, ohne die Einkaufsliste neu zu laden.
-- Added (Tests/Frontend): Frontend-Test für `search_in_flight`-Antworten der Produktsuche ergänzt.
-- Changed (Versioning): Versionsstand der Integration auf `8.0.66` erhöht.
+- Fix (Home-Assistant-Integration/Sensoren): Einkaufsliste-, Lagerprodukte- und bald-ablaufende-Produkte-Sensoren behalten ihre Namen und verwenden jetzt stattdessen `Produkte` als Einheit.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.66` erhöht.
 
 ## 2026-07-08 (Version 8.0.65)
 
+- Fix (Home-Assistant-Integration/Panel/Shopping): Doppelte laufende Produktsuchen werden im Such-Controller jetzt als Fehlerstatus angezeigt, ohne die Einkaufsliste neu zu laden.
+- Added (Tests/Frontend): Frontend-Test für `search_in_flight`-Antworten der Produktsuche ergänzt.
+- Changed (Versioning): Versionsstand der Integration auf `8.0.66` erhöht.
 - Fix (KI-Auswahl/Produktsuche): Textanalysen prüfen jetzt zuerst die aktivierten Optionen und bevorzugen bei eingeschalteter Cloud-AI-Textgenerierung die Cloud-AI; Ollama wird nur noch als Fallback genutzt, wenn Cloud-AI nicht verfügbar ist oder fehlschlägt.
 - Fix (Home-Assistant-Integration/Panel/Desktop): Die Bottom-Bar ist auf Desktop jetzt im Dashboard-Fluss verankert statt viewport-fixed, damit sie keine Home-Assistant-Elemente oder Inhalte überdeckt.
 - Fix (Home-Assistant-Integration/Panel/Mobile): Swipe-Aktionsflächen der Einkaufslisten-Einträge sind im Ruhezustand vollständig unsichtbar, damit keine grünen oder roten Kanten mehr an Kartenenden durchscheinen.
