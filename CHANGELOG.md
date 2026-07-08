@@ -1,5 +1,6 @@
 ## 2026-07-08 (Version 8.0.67)
 
+- Fixed (API/Dashboard): Unerreichbarer Dashboard-Return bleibt entfernt; Ruff-Prüfung bestätigt den statischen Zustand.
 - Fix (Dashboard/API/Produktsuche): `dashboard_add_existing_product()` nutzt die zentrale Einkaufslisten-Mengenabstimmung jetzt ohne duplizierten lokalen Korrekturblock.
 - Added (Tests/API): Regressionstests prüfen, dass vorhandene Produkte neue und bestehende Einkaufslistenpositionen mit korrigierten Mengen aktualisieren.
 - Fix (API/Fehlerbehandlung): Interne Grocy-IO-, Home-Assistant- und Datei/KI-Hilfsabläufe fangen jetzt spezifische Exceptions statt generischer `Exception`-Blöcke ab.
