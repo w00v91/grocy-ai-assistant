@@ -1,10 +1,11 @@
 import json
 import logging
 import os
+import secrets
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from grocy_ai_assistant.config import options_store
 from grocy_ai_assistant.config.options_store import parse_simple_yaml
@@ -17,6 +18,12 @@ INTEGRATION_MANIFEST_PATH = (
     / "custom_components"
     / "grocy_ai_assistant"
     / "manifest.json"
+)
+KNOWN_INSECURE_API_KEYS = frozenset(
+    {
+        "standard_passwort",
+        "dein_ki_key",
+    }
 )
 
 
@@ -49,8 +56,12 @@ def _default_ollama_url() -> str:
     return "http://host.docker.internal:11434/api/generate"
 
 
+def _generate_default_api_key() -> str:
+    return f"grocy-ai-assistant-{secrets.token_urlsafe(24)}"
+
+
 class Settings(BaseModel):
-    api_key: str = "standard_passwort"
+    api_key: str = Field(default_factory=_generate_default_api_key)
     addon_version: str = os.getenv("GROCY_AI_ADDON_VERSION", _default_addon_version())
     required_integration_version: str = os.getenv(
         "GROCY_AI_REQUIRED_INTEGRATION_VERSION",
@@ -83,6 +94,22 @@ class Settings(BaseModel):
     grocy_base_url: str = "http://homeassistant.local:9192/api"
     grocy_api_key: str = ""
     stable_diffusion_url: str = "http://172.17.0.1:7860/sdapi/v1/txt2img"
+
+    @field_validator("api_key")
+    @classmethod
+    def _validate_api_key(cls, value: str) -> str:
+        normalized_value = value.strip()
+        if not normalized_value:
+            raise ValueError(
+                "api_key fehlt: Bitte in den Add-on-Optionen einen eindeutigen "
+                "Secret-Wert konfigurieren."
+            )
+        if normalized_value.lower() in KNOWN_INSECURE_API_KEYS:
+            raise ValueError(
+                "api_key verwendet einen bekannten unsicheren Standardwert. "
+                "Bitte einen eindeutigen Secret-Wert konfigurieren."
+            )
+        return normalized_value
 
 
 logger = logging.getLogger(__name__)

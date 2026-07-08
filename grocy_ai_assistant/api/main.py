@@ -7,6 +7,7 @@ from contextlib import asynccontextmanager
 from ipaddress import ip_address
 from pathlib import Path
 
+import requests
 import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
@@ -34,6 +35,13 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 INITIAL_INFO_SYNC_STATE_PATH = Path("/tmp/grocy-initial-info-sync-state.json")
+STARTUP_GROCY_IO_EXCEPTIONS = (requests.RequestException, ValueError, KeyError)
+STARTUP_AI_FILE_IO_EXCEPTIONS = (
+    requests.RequestException,
+    OSError,
+    ValueError,
+    KeyError,
+)
 
 
 def _as_float_or_none(value: object) -> float | None:
@@ -144,7 +152,7 @@ def _generate_missing_product_images_on_startup(
 
     try:
         products_without_picture = client.get_products_without_picture()
-    except Exception as error:
+    except STARTUP_GROCY_IO_EXCEPTIONS as error:
         logger.warning("Produkte ohne Bild konnten nicht geladen werden: %s", error)
         return {
             "status": "failed_products_fetch",
@@ -183,7 +191,7 @@ def _generate_missing_product_images_on_startup(
                 continue
             client.attach_product_picture(product_id, image_path)
             generated_count += 1
-        except Exception as error:
+        except STARTUP_AI_FILE_IO_EXCEPTIONS as error:
             logger.warning(
                 "Produktbild konnte im Startup-Batch nicht erstellt/gespeichert werden (%s): %s",
                 product_name,
@@ -212,7 +220,7 @@ def _run_initial_info_sync_on_startup(settings: Settings) -> None:
 
     try:
         products = client.get_products()
-    except Exception as error:
+    except STARTUP_GROCY_IO_EXCEPTIONS as error:
         logger.warning("Initialer Info-Sync konnte Produkte nicht laden: %s", error)
         return
 
@@ -272,7 +280,7 @@ def _run_initial_info_sync_on_startup(settings: Settings) -> None:
 
         try:
             nutrition = client.get_product_nutrition(product_id)
-        except Exception as error:
+        except STARTUP_GROCY_IO_EXCEPTIONS as error:
             logger.warning(
                 "Initialer Info-Sync: Nährwerte für Produkt %s konnten nicht geladen werden: %s",
                 product_id,
@@ -314,7 +322,7 @@ def _run_initial_info_sync_on_startup(settings: Settings) -> None:
 
         try:
             ai_data = detector.analyze_product_name(product_name)
-        except Exception as error:
+        except STARTUP_AI_FILE_IO_EXCEPTIONS as error:
             logger.warning(
                 "Initialer Info-Sync: KI-Analyse fehlgeschlagen für Produkt %s (%s): %s",
                 product_id,
@@ -371,7 +379,7 @@ def _run_initial_info_sync_on_startup(settings: Settings) -> None:
                 "signature": product_signature,
                 "missing_fields": False,
             }
-        except Exception as error:
+        except STARTUP_GROCY_IO_EXCEPTIONS as error:
             logger.warning(
                 "Initialer Info-Sync: Produkt %s konnte nicht aktualisiert werden: %s",
                 product_id,

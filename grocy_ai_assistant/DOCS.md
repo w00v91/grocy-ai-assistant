@@ -38,7 +38,7 @@ Für einen sinnvollen Betrieb solltest du folgende Informationen bereithalten:
 ### Minimalbeispiel
 
 ```yaml
-api_key: "DEIN_KI_KEY"
+api_key: "ERSETZE_DURCH_EINEN_EINDEUTIGEN_SECRET_WERT"
 notification_global_enabled: true
 dashboard_polling_interval_seconds: 5
 grocy:

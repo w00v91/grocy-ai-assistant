@@ -73,6 +73,8 @@ AMOUNT_PREFIX_PATTERN = re.compile(r"^\s*(\d+(?:[.,]\d+)?)\s+(.+)$")
 router = APIRouter()
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
 bearer_auth = HTTPBearer(auto_error=False)
+GROCY_IO_EXCEPTIONS = (requests.RequestException, ValueError, KeyError)
+AI_FILE_IO_EXCEPTIONS = (requests.RequestException, OSError, ValueError, KeyError)
 
 NOTIFICATION_STORAGE_PATH = Path("/data/notification_dashboard.json")
 
@@ -645,7 +647,7 @@ def _reconcile_shopping_list_amount_after_add(
             else grocy_client.get_shopping_list()
         )
         after_items = grocy_client.get_shopping_list()
-    except Exception:
+    except GROCY_IO_EXCEPTIONS:
         return
 
     normalized_product_id = _safe_int(product_id)
@@ -706,7 +708,7 @@ def _reconcile_shopping_list_amount_after_add(
             shopping_list_id=target_item_id,
             amount=normalized_amount,
         )
-    except Exception:
+    except GROCY_IO_EXCEPTIONS:
         return
 
 
@@ -860,7 +862,7 @@ def _generate_and_attach_product_picture(
         if not image_path:
             return
         grocy_client.attach_product_picture(product_id, image_path)
-    except Exception as error:
+    except AI_FILE_IO_EXCEPTIONS as error:
         logger.warning(
             "Produktbild konnte nicht automatisch erstellt/gespeichert werden (%s): %s",
             product_name,
@@ -871,7 +873,7 @@ def _generate_and_attach_product_picture(
 def _get_default_location_id(grocy_client: GrocyClient) -> int:
     try:
         locations = grocy_client.get_locations()
-    except Exception:
+    except GROCY_IO_EXCEPTIONS:
         locations = []
 
     for location in locations:
@@ -885,7 +887,7 @@ def _get_default_location_id(grocy_client: GrocyClient) -> int:
 def _get_default_quantity_unit_id(grocy_client: GrocyClient) -> int:
     try:
         quantity_units = grocy_client.get_quantity_units()
-    except Exception:
+    except GROCY_IO_EXCEPTIONS:
         quantity_units = {}
 
     for unit_id in quantity_units.keys():
@@ -987,7 +989,7 @@ def _create_and_add_product_to_shopping_list(
     if len(normalized_barcode) >= 8:
         try:
             grocy_client.set_product_barcode(created_object_id, normalized_barcode)
-        except Exception as error:
+        except GROCY_IO_EXCEPTIONS as error:
             logger.warning(
                 "Barcode %s konnte dem Produkt %s nicht zugewiesen werden: %s",
                 normalized_barcode,
@@ -1669,69 +1671,6 @@ def dashboard_add_existing_product(
             requested_amount=float(amount),
             before_items=before_items,
         )
-
-        after_items = (
-            grocy_client.get_shopping_list() if supports_amount_reconciliation else []
-        )
-
-        normalized_product_id = _safe_int(payload.product_id)
-
-        def _amount_by_item_id(items: list[dict]) -> dict[int, float]:
-            amounts: dict[int, float] = {}
-            for item in items:
-                if _safe_int(item.get("product_id")) != normalized_product_id:
-                    continue
-                item_id = _safe_int(item.get("id"))
-                if item_id is None:
-                    continue
-                parsed_item_amount = _parse_float_or_none(item.get("amount"))
-                amounts[item_id] = parsed_item_amount if parsed_item_amount else 0.0
-            return amounts
-
-        before_amounts = _amount_by_item_id(before_items)
-        after_amounts = _amount_by_item_id(after_items)
-
-        target_item_id: int | None = None
-        expected_amount: float | None = None
-
-        new_item_ids = [
-            item_id for item_id in after_amounts if item_id not in before_amounts
-        ]
-        if new_item_ids:
-            target_item_id = max(new_item_ids)
-            expected_amount = float(amount)
-        else:
-            shared_item_ids = [
-                item_id for item_id in after_amounts if item_id in before_amounts
-            ]
-            if shared_item_ids:
-                target_item_id = max(
-                    shared_item_ids,
-                    key=lambda item_id: abs(
-                        after_amounts.get(item_id, 0.0)
-                        - before_amounts.get(item_id, 0.0)
-                    ),
-                )
-                expected_amount = before_amounts.get(target_item_id, 0.0) + float(
-                    amount
-                )
-
-        if (
-            supports_amount_reconciliation
-            and target_item_id is not None
-            and expected_amount is not None
-        ):
-            current_amount = after_amounts.get(target_item_id)
-            if current_amount is None or abs(current_amount - expected_amount) > 1e-9:
-                normalized_amount = (
-                    str(int(expected_amount))
-                    if float(expected_amount).is_integer()
-                    else str(expected_amount)
-                )
-                grocy_client.update_shopping_list_item_amount(
-                    shopping_list_id=target_item_id,
-                    amount=normalized_amount,
-                )
 
         return DashboardSearchResponse(
             success=True,
@@ -3883,7 +3822,6 @@ def _render_dashboard(settings: Settings, request: Request):
         request,
         "dashboard.html",
         {
-            "configured_api_key": settings.api_key,
             "api_base_path": api_request_base_path,
             "static_base_path": static_base_path,
             "scanner_llava_fallback_seconds": settings.scanner_barcode_fallback_seconds,

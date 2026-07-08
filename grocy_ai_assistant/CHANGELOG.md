@@ -1,6 +1,15 @@
 ## 2026-07-08 (Version 8.0.67)
 
 - Fixed (API/Dashboard): Unerreichbarer Dashboard-Return bleibt entfernt; Ruff-Prüfung bestätigt den statischen Zustand.
+- Fix (Dashboard/API/Produktsuche): `dashboard_add_existing_product()` nutzt die zentrale Einkaufslisten-Mengenabstimmung jetzt ohne duplizierten lokalen Korrekturblock.
+- Added (Tests/API): Regressionstests prüfen, dass vorhandene Produkte neue und bestehende Einkaufslistenpositionen mit korrigierten Mengen aktualisieren.
+- Fix (API/Fehlerbehandlung): Interne Grocy-IO-, Home-Assistant- und Datei/KI-Hilfsabläufe fangen jetzt spezifische Exceptions statt generischer `Exception`-Blöcke ab.
+- Changed (Versioning): Versionsstand der Integration auf `8.0.67` erhöht.
+- Fix (Security/Config): `api_key` hat keinen produktiven Standard-Fallback mehr und lehnt leere, Platzhalter- oder bekannte Default-Werte beim Laden der Settings ab.
+- Changed (Dokumentation/Add-on): Beispiel- und Add-on-Optionen verwenden keine bekannten API-Key-Platzhalter mehr.
+- Added (Tests/Config): Regressionstests stellen sicher, dass bekannte Default-Keys nicht akzeptiert werden.
+- Security (Dashboard): Der konfigurierte API-Key wird nicht mehr in das Dashboard-HTML gerendert; stattdessen nutzt das statische Dashboard Ingress-/Same-Origin-Kontext oder einen expliziten Browser-Auth-Provider.
+- Added (Tests/API/Frontend): Regressionstests prüfen, dass der API-Key nicht im Dashboard-HTML erscheint und der statische API-Client keine HTML-eingebetteten Secrets benötigt.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.67` erhöht.
 
 ## 2026-07-08 (Version 8.0.66)
