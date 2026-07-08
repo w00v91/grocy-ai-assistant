@@ -162,7 +162,7 @@ def _build_dashboard_search_guard_key(
     )
 
 
-def _begin_dashboard_search_guard(guard_key: str) -> bool:
+def _begin_dashboard_search_guard(guard_key: str) -> tuple[bool, dict[str, float]]:
     now = time.monotonic()
     cutoff = now - SEARCH_GUARD_STALE_SECONDS
     with SEARCH_GUARD_LOCK:
@@ -174,11 +174,15 @@ def _begin_dashboard_search_guard(guard_key: str) -> bool:
         for key in stale_keys:
             SEARCH_REQUESTS_IN_FLIGHT.pop(key, None)
 
-        if guard_key in SEARCH_REQUESTS_IN_FLIGHT:
-            return False
+        existing_started_at = SEARCH_REQUESTS_IN_FLIGHT.get(guard_key)
+        if existing_started_at is not None:
+            return False, {
+                "started_at": existing_started_at,
+                "age_seconds": max(0.0, now - existing_started_at),
+            }
 
         SEARCH_REQUESTS_IN_FLIGHT[guard_key] = now
-        return True
+        return True, {"started_at": now, "age_seconds": 0.0}
 
 
 def _end_dashboard_search_guard(guard_key: str) -> None:
@@ -1716,7 +1720,19 @@ def dashboard_search(
         best_before_date=payload.best_before_date,
         force_create=payload.force_create,
     )
-    if not _begin_dashboard_search_guard(guard_key):
+    guard_started, guard_info = _begin_dashboard_search_guard(guard_key)
+    if not guard_started:
+        client_host = request.client.host if request.client else "unknown"
+        logger.info(
+            "Dashboard search rejected because an identical request is already in flight: "
+            "product_name=%r amount=%s force_create=%s client_host=%s "
+            "existing_guard_age_seconds=%.3f",
+            _normalize_new_product_name(product_name),
+            amount,
+            payload.force_create,
+            client_host,
+            guard_info.get("age_seconds", 0.0),
+        )
         raise HTTPException(
             status_code=409,
             detail=(
