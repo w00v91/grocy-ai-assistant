@@ -3885,7 +3885,6 @@ def _render_dashboard(settings: Settings, request: Request):
         request,
         "dashboard.html",
         {
-            "configured_api_key": settings.api_key,
             "api_base_path": api_request_base_path,
             "static_base_path": static_base_path,
             "scanner_llava_fallback_seconds": settings.scanner_barcode_fallback_seconds,

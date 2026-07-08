@@ -1058,17 +1058,17 @@ class GrocyAIShoppingSearchBar extends HTMLElement {
 
     const header = document.createElement('div');
     header.className = 'shopping-search-shell__header';
-    const headerCopy = document.createElement('div');
-    const eyebrow = document.createElement('p');
-    eyebrow.className = 'eyebrow';
-    eyebrow.textContent = 'Produktsuche';
-    const title = document.createElement('h3');
-    title.className = 'shopping-search-shell__title';
-    title.textContent = 'Produkt suchen oder Variante wählen';
-    headerCopy.append(eyebrow, title);
+    const heroCopy = document.createElement('div');
+    const heroEyebrow = document.createElement('p');
+    heroEyebrow.className = 'eyebrow';
+    heroEyebrow.textContent = 'Einkauf';
+    const heroTitle = document.createElement('h3');
+    heroTitle.className = 'shopping-search-shell__title';
+    heroTitle.textContent = 'Produkt suchen oder Variante wählen';
+    heroCopy.append(heroEyebrow, heroTitle);
     const stateChip = document.createElement('span');
     stateChip.setAttribute('aria-hidden', 'true');
-    header.append(headerCopy, stateChip);
+    header.append(heroCopy, stateChip);
 
     const form = document.createElement('form');
     form.className = 'search-row shopping-search-form';
