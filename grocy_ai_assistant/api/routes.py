@@ -1778,10 +1778,9 @@ def dashboard_search(
         force_create=payload.force_create,
     )
     if not _begin_dashboard_search_guard(guard_key):
-        return DashboardSearchResponse(
-            success=False,
-            action="search_in_flight",
-            message=(
+        raise HTTPException(
+            status_code=409,
+            detail=(
                 "Eine identische Produktsuche läuft bereits. "
                 "Bitte kurz warten und dann erneut versuchen."
             ),

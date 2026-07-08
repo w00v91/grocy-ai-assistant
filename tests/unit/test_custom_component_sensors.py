@@ -188,6 +188,22 @@ def test_shopping_list_sensor_reads_count_and_attributes_from_inventory_coordina
     assert sensor.extra_state_attributes["last_update_success"] is True
 
 
+def test_product_count_sensors_use_products_unit():
+    sensors = [
+        sensor_module.GrocyAIShoppingListOpenCountSensor(
+            _FakeEntry(), _FakeCoordinator()
+        ),
+        sensor_module.GrocyAIStockProductCountSensor(_FakeEntry(), _FakeCoordinator()),
+        sensor_module.GrocyAIExpiringStockProductCountSensor(
+            _FakeEntry(), _FakeCoordinator()
+        ),
+    ]
+
+    assert all(
+        sensor._attr_native_unit_of_measurement == "Produkte" for sensor in sensors
+    )
+
+
 def test_shopping_list_sensor_uses_coordinator_error_and_becomes_unavailable():
     sensor = sensor_module.GrocyAIShoppingListOpenCountSensor(
         _FakeEntry(),
