@@ -1,3 +1,9 @@
+## 2026-07-08 (Version 8.0.67)
+
+- Security (Dashboard): Der konfigurierte API-Key wird nicht mehr in das Dashboard-HTML gerendert; stattdessen nutzt das statische Dashboard Ingress-/Same-Origin-Kontext oder einen expliziten Browser-Auth-Provider.
+- Added (Tests/API/Frontend): Regressionstests prüfen, dass der API-Key nicht im Dashboard-HTML erscheint und der statische API-Client keine HTML-eingebetteten Secrets benötigt.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.67` erhöht.
+
 ## 2026-07-08 (Version 8.0.66)
 
 - Added (Tests/Dashboard): `POST /api/dashboard/search` ist jetzt gegen Ollama-Timeouts abgesichert und prüft die sichere Standardanalyse inklusive Freigabe des In-Flight-Guards.
