@@ -1,5 +1,7 @@
 ## 2026-07-08 (Version 8.0.67)
 
+- Fix (API/Fehlerbehandlung): Interne Grocy-IO-, Home-Assistant- und Datei/KI-Hilfsabläufe fangen jetzt spezifische Exceptions statt generischer `Exception`-Blöcke ab.
+- Changed (Versioning): Versionsstand der Integration auf `8.0.67` erhöht.
 - Fix (Security/Config): `api_key` hat keinen produktiven Standard-Fallback mehr und lehnt leere, Platzhalter- oder bekannte Default-Werte beim Laden der Settings ab.
 - Changed (Dokumentation/Add-on): Beispiel- und Add-on-Optionen verwenden keine bekannten API-Key-Platzhalter mehr.
 - Added (Tests/Config): Regressionstests stellen sicher, dass bekannte Default-Keys nicht akzeptiert werden.
