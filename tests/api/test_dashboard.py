@@ -53,11 +53,13 @@ def test_dashboard_exposes_home_assistant_theme_bridge_metadata(client):
     )
 
 
-def test_dashboard_prefills_configured_api_key(client):
+def test_dashboard_does_not_embed_configured_api_key(client):
     response = client.get("/")
 
     assert response.status_code == 200
-    assert 'data-configured-api-key="test-api-key"' in response.text
+    assert "test-api-key" not in response.text
+    assert "data-configured-api-key" not in response.text
+    assert "configured_api_key" not in response.text
     assert "prompt('Bitte API-Key eingeben:'" not in response.text
 
 
@@ -549,8 +551,8 @@ def test_dashboard_uses_relative_api_fallback_when_base_path_missing(client):
     assert api_client_response.status_code == 200
     assert "createDashboardApiClient" in static_response.text
     assert "function buildUrl(path)" in api_client_response.text
-    assert "return normalizedPath.replace(/^\\//, '');" in api_client_response.text
-    assert "fetch(buildUrl(path), options)" in api_client_response.text
+    assert "return normalizedPath;" in api_client_response.text
+    assert "fetch(buildUrl(path), {" in api_client_response.text
 
 
 def test_dashboard_detects_ingress_prefix_from_location(client):
@@ -566,8 +568,11 @@ def test_dashboard_detects_ingress_prefix_from_location(client):
         r"const ingressPrefixMatch = window.location.pathname.match(/^\/api\/hassio_ingress\/[^\/]+/);"
         in static_response.text
     )
-    assert "if (ingressPrefix) {" in api_client_response.text
-    assert "return `${ingressPrefix}${normalizedPath}`;" in api_client_response.text
+    assert "if (normalizedIngressPrefix)" in api_client_response.text
+    assert (
+        "return `${normalizedIngressPrefix}${normalizedPath}`;"
+        in api_client_response.text
+    )
 
 
 def test_dashboard_syncs_home_assistant_theme_instead_of_manual_darkmode_toggle(
