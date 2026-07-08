@@ -82,6 +82,7 @@ export function createShoppingSearchController({
 } = {}) {
   const store = createDashboardStore(buildInitialState());
   let currentApi = api;
+  let activeSearchKey = null;
 
   function getState() {
     return store.getState();
@@ -276,9 +277,6 @@ export function createShoppingSearchController({
     invalidateVariantRequests();
 
     const currentState = getState();
-    if (currentState.isSubmitting) {
-      return { ok: false, payload: null };
-    }
     const { productName, amountFromName } = parseAmountPrefixedSearch(currentState.query);
     const normalizedProductName = productName.trim();
     const normalizedAmountOverride = Number(options.amount);
@@ -287,6 +285,12 @@ export function createShoppingSearchController({
       : ((amountFromName ?? Number(getDefaultAmount())) || 1);
     const forceCreate = options.forceCreate === true;
     const bestBeforeDate = String(options.bestBeforeDate ?? getBestBeforeDate() ?? '').trim();
+    const nextKey = JSON.stringify([
+      normalizedProductName.toLowerCase(),
+      amount,
+      bestBeforeDate,
+      forceCreate,
+    ]);
 
     if (!normalizedProductName) {
       setState({
@@ -308,6 +312,18 @@ export function createShoppingSearchController({
       });
       return { ok: false, payload: null };
     }
+
+    if (activeSearchKey === nextKey) {
+      const inFlightMessage = 'Produktanfrage läuft bereits...';
+      setState({
+        isSubmitting: true,
+        flowState: SEARCH_FLOW_STATES.SUBMITTING,
+        statusMessage: inFlightMessage,
+        errorMessage: '',
+      });
+      return { ok: false, payload: { action: 'search_in_flight' } };
+    }
+    activeSearchKey = nextKey;
 
     setState({
       parsedAmount: amountFromName,
@@ -374,6 +390,10 @@ export function createShoppingSearchController({
         errorMessage: error.message,
       });
       return { ok: false, payload: null };
+    } finally {
+      if (activeSearchKey === nextKey) {
+        activeSearchKey = null;
+      }
     }
   }
 

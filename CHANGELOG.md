@@ -1,5 +1,6 @@
 ## 2026-07-08 (Version 8.0.66)
 
+- Fix (Home-Assistant-Integration/Panel/Shopping): Doppelte direkte Produktsuchen mit identischen Parametern werden während eines laufenden API-Aufrufs lokal abgefangen.
 - Fix (Dashboard/API/Produktsuche): Parallele identische Produktsuchen liefern jetzt einen strukturierten HTTP-409-Konflikt statt einer erfolgreichen Antwort mit `success=false`.
 - Added (Tests/API): Regressionstests prüfen den 409-Konflikttext und dass der serverseitige Such-Guard nach Abschluss der ursprünglichen Suche wieder freigegeben wird.
 - Fix (Home-Assistant-Integration/Sensoren): Einkaufsliste-, Lagerprodukte- und bald-ablaufende-Produkte-Sensoren behalten ihre Namen und verwenden jetzt stattdessen `Produkte` als Einheit.
