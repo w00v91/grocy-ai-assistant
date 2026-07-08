@@ -217,6 +217,7 @@ test('searchProduct surfaces duplicate in-flight searches without refreshing the
   assert.equal(state.flowState, SEARCH_FLOW_STATES.ERROR);
   assert.equal(state.statusMessage, duplicateMessage);
   assert.equal(state.errorMessage, duplicateMessage);
+  assert.equal(state.lastBlockedReason, 'backend_in_flight');
 });
 
 test('enter submit wins over a still-loading variant request', async () => {
@@ -260,6 +261,11 @@ test('enter submit wins over a still-loading variant request', async () => {
 test('returns local in-flight status for duplicate direct product searches', async () => {
   const searchDeferred = createDeferred();
   const submitted = [];
+  const debugMessages = [];
+  const originalDebug = globalThis.console.debug;
+  globalThis.console.debug = (...args) => {
+    debugMessages.push(args);
+  };
   const { controller } = createController({
     apiOverrides: {
       searchProduct: (payload) => {
@@ -277,9 +283,13 @@ test('returns local in-flight status for duplicate direct product searches', asy
   assert.equal(submitted.length, 1);
   assert.deepEqual(await secondSearch, {
     ok: false,
-    payload: { action: 'search_in_flight' },
+    payload: { action: 'search_in_flight', reason: 'local_in_flight' },
   });
-  assert.equal(controller.getState().statusMessage, 'Produktanfrage läuft bereits...');
+  assert.equal(controller.getState().statusMessage, 'Diese Produktanfrage wird gerade noch verarbeitet…');
+  assert.equal(controller.getState().lastBlockedReason, 'local_in_flight');
+  assert.equal(debugMessages.length, 1);
+  assert.equal(debugMessages[0][1].reason, 'local_in_flight');
+  globalThis.console.debug = originalDebug;
 
   searchDeferred.resolve({
     response: { ok: true },

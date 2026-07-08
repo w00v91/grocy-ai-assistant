@@ -1,3 +1,9 @@
+## 2026-07-08 (Version 8.0.69)
+
+- Changed (Home-Assistant-Integration/Panel/Shopping): Lokale doppelte Produktsuchen melden jetzt explizit, dass die Anfrage noch verarbeitet wird, und setzen `lastBlockedReason=local_in_flight` zur Diagnose.
+- Added (Tests/Frontend): Regressionstest prüft den internen Blockierungsgrund für lokal laufende doppelte Produktsuchen.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.69` erhöht.
+
 ## 2026-07-08 (Version 8.0.68)
 
 - Changed (API/Dashboard): Der serverseitige In-Flight-Guard liefert jetzt Diagnosedaten zum bestehenden Suchlauf und protokolliert 409-Konflikte ohne API-Key- oder Secret-Werte.
