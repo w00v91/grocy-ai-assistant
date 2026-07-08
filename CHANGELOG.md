@@ -1,3 +1,8 @@
+## 2026-07-08 (Version 8.0.65)
+
+- Fix (Home-Assistant-Integration/Panel/Mobile): Swipe-Aktionsflächen der Einkaufslisten-Einträge sind im Ruhezustand vollständig unsichtbar, damit keine grünen oder roten Kanten mehr an Kartenenden durchscheinen.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.65` erhöht.
+
 ## 2026-07-04 (Version 8.0.64)
 
 - Fix (Home-Assistant-Integration/Panel/Desktop): Die Bottom-Bar ist auf Desktop-Breite wieder am Dashboard-Shell ausgerichtet und überdeckt nicht mehr die Home-Assistant-Sidebar.

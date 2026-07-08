@@ -550,9 +550,9 @@ grocy-ai-tab-nav {
 
 .swipe-item-action {
   position: absolute;
-  top: 0;
-  bottom: 0;
+  inset-block: 1px;
   width: 138px;
+  border-radius: inherit;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -564,13 +564,13 @@ grocy-ai-tab-nav {
 .swipe-item-action-left {
   left: 0;
   background: linear-gradient(135deg, #0f8a43, #16a34a);
-  opacity: calc(0.4 + (var(--swipe-progress-right) * 0.7));
+  opacity: var(--swipe-progress-right);
 }
 
 .swipe-item-action-right {
   right: 0;
   background: linear-gradient(135deg, #ef4444, #b91c1c);
-  opacity: calc(0.4 + (var(--swipe-progress-left) * 0.7));
+  opacity: var(--swipe-progress-left);
 }
 
 .shopping-item.swipe-item .shopping-card,
