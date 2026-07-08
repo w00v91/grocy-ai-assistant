@@ -71,13 +71,13 @@
         "name": "AI response time (average)"
       },
       "shopping_list_open_count": {
-        "name": "Shopping list open entries"
+        "name": "Shopping list products"
       },
       "stock_products_total_count": {
-        "name": "Stock products total"
+        "name": "Stock products"
       },
       "stock_products_expiring_count": {
-        "name": "Stock products expiring soon"
+        "name": "Expiring products"
       },
       "recipe_suggestion_top_ai": {
         "name": "Top AI recipe suggestion",
