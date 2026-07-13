@@ -1,3 +1,10 @@
+## 2026-07-13 (Version 8.0.73)
+
+- Fix (Grocy/Produktanlage): Produkt-Payloads verwenden keine blinde Mengeneinheit `1` mehr, sondern normalisieren ungültige Einheiten auf eine tatsächlich vorhandene Grocy-Mengeneinheit.
+- Fix (Grocy/Produktanlage): Wenn Grocy keine gültige Mengeneinheit liefert, bricht die Produktanlage kontrolliert mit einer klaren deutschen Fehlermeldung ab.
+- Added (Tests/Grocy): Unit-Tests decken gültige, ungültige und fehlende Mengeneinheiten bei der Produktanlage ab.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.73` erhöht.
+
 ## 2026-07-08 (Version 8.0.72)
 
 - Changed (Home-Assistant-Integration/Panel/Shopping): AI- und Input-Vorschläge zeigen beim Übernehmen jetzt explizit die Produktanlage aus einem Vorschlag statt einer generischen Produktsuche an.
