@@ -25,7 +25,7 @@ const TAB_ICONS = Object.freeze({
 });
 const DEFAULT_POLLING_INTERVAL_SECONDS = 5;
 const DEFAULT_POLLING_INTERVAL_MS = DEFAULT_POLLING_INTERVAL_SECONDS * 1000;
-const DEFAULT_INTEGRATION_VERSION = '8.0.73';
+const DEFAULT_INTEGRATION_VERSION = '8.0.75';
 const GROCY_RECIPE_DISPLAY_LIMIT = 3;
 const AI_RECIPE_DISPLAY_LIMIT = 3;
 const TAB_VIEW_STATE = Object.freeze({
@@ -3768,6 +3768,7 @@ class GrocyAIDashboardPanel extends HTMLElement {
       const api = await this._getDashboardApiOrThrow();
       const recipeState = this._store.getState().recipes;
       const usePrefetchedCache = Boolean(options.usePrefetchedCache);
+      const forceRefresh = options.forceRefresh ?? !usePrefetchedCache;
       const selectedProductIds = usePrefetchedCache ? [] : recipeState.selectedProductIds;
       const selectedLocationIds = usePrefetchedCache ? [] : recipeState.selectedLocationIds;
       const soonExpiringOnly = Boolean(options.soonExpiringOnly);
@@ -3791,6 +3792,7 @@ class GrocyAIDashboardPanel extends HTMLElement {
         location_ids: selectedLocationIds,
         soon_expiring_only: soonExpiringOnly,
         expiring_within_days: expiringWithinDays,
+        force_refresh: forceRefresh,
       });
       if (!response.ok) throw new Error(getErrorMessage(payload, 'Rezeptvorschläge konnten nicht geladen werden.'));
 

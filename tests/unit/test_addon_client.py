@@ -144,6 +144,26 @@ def test_addon_client_ignores_loopback_base_url(monkeypatch):
     assert url == "http://local-grocy-ai-assistant:8000/api/v1/status"
 
 
+def test_addon_client_normalizes_legacy_underscore_internal_host(monkeypatch):
+    sessions = []
+
+    def fake_client_session(*, timeout):
+        session = FakeSession(timeout)
+        sessions.append(session)
+        return session
+
+    monkeypatch.setattr(
+        addon_client_module.aiohttp, "ClientSession", fake_client_session
+    )
+
+    client = AddonClient(base_url="http://grocy_ai_assistant:8000", api_key="secret")
+    asyncio.run(client.get_status())
+
+    assert (
+        sessions[0].calls[0][1] == "http://local-grocy-ai-assistant:8000/api/v1/status"
+    )
+
+
 def test_addon_client_falls_back_to_secondary_internal_host(monkeypatch):
     sessions = []
 
@@ -175,7 +195,6 @@ def test_addon_client_discovers_hashed_addon_hostname_via_supervisor(monkeypatch
             fail_urls={
                 "http://local-grocy-ai-assistant:8000/api/v1/status",
                 "http://grocy-ai-assistant:8000/api/v1/status",
-                "http://grocy_ai_assistant:8000/api/v1/status",
             },
             response_map={
                 "http://supervisor/addons": (

@@ -12,7 +12,6 @@ DEFAULT_ADDON_API_URL = "http://local-grocy-ai-assistant:8000"
 FALLBACK_ADDON_API_URLS = (
     DEFAULT_ADDON_API_URL,
     "http://grocy-ai-assistant:8000",
-    "http://grocy_ai_assistant:8000",
 )
 DEFAULT_SUPERVISOR_URL = "http://supervisor"
 _ADDON_URL_HINT = (
@@ -41,7 +40,14 @@ class AddonClient:
             return DEFAULT_ADDON_API_URL
         if AddonClient._is_loopback_url(normalized_base_url):
             return DEFAULT_ADDON_API_URL
+        if AddonClient._uses_legacy_underscore_host(normalized_base_url):
+            return DEFAULT_ADDON_API_URL
         return normalized_base_url
+
+    @staticmethod
+    def _uses_legacy_underscore_host(url: str) -> bool:
+        parsed_url = urlparse(url)
+        return (parsed_url.hostname or "").strip().casefold() == ADDON_SLUG
 
     @staticmethod
     def _is_loopback_url(url: str) -> bool:

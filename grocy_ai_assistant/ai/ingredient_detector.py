@@ -2,6 +2,7 @@ import base64
 import json
 import logging
 import re
+import time
 from pathlib import Path
 from typing import Any, Dict
 from uuid import uuid4
@@ -12,6 +13,37 @@ from grocy_ai_assistant.config.settings import Settings
 from grocy_ai_assistant.core.text_utils import html_to_plain_text
 
 logger = logging.getLogger(__name__)
+
+TEXT_PROVIDER_FAILURE_COOLDOWN_SECONDS = 300
+_TEXT_PROVIDER_FAILURE_UNTIL: dict[tuple[str, str], float] = {}
+
+
+def _provider_cooldown_key(provider: str, settings: Settings) -> tuple[str, str]:
+    if provider == "cloud":
+        return (provider, settings.openai_text_model)
+    return (provider, f"{settings.ollama_url}|{settings.ollama_model}")
+
+
+def _text_provider_available(
+    provider: str, settings: Settings, *, ignore_cooldown: bool = False
+) -> bool:
+    if ignore_cooldown:
+        return True
+    failure_until = _TEXT_PROVIDER_FAILURE_UNTIL.get(
+        _provider_cooldown_key(provider, settings), 0.0
+    )
+    return failure_until <= time.monotonic()
+
+
+def _remember_text_provider_failure(provider: str, settings: Settings) -> None:
+    _TEXT_PROVIDER_FAILURE_UNTIL[_provider_cooldown_key(provider, settings)] = (
+        time.monotonic() + TEXT_PROVIDER_FAILURE_COOLDOWN_SECONDS
+    )
+
+
+def _forget_text_provider_failure(provider: str, settings: Settings) -> None:
+    _TEXT_PROVIDER_FAILURE_UNTIL.pop(_provider_cooldown_key(provider, settings), None)
+
 
 IMAGE_PROMPT_TEMPLATE = (
     'Erstelle ein produktbild für "{product_name}".\n'
@@ -47,7 +79,11 @@ class IngredientDetector:
         )
 
     def _request_text_json(
-        self, prompt: str, *, timeout_seconds: int | None = None
+        self,
+        prompt: str,
+        *,
+        timeout_seconds: int | None = None,
+        ignore_provider_cooldown: bool = False,
     ) -> Any:
         request_timeout = (
             timeout_seconds
@@ -62,6 +98,15 @@ class IngredientDetector:
 
         last_error: Exception | None = None
         for provider in providers:
+            if not _text_provider_available(
+                provider, self.settings, ignore_cooldown=ignore_provider_cooldown
+            ):
+                logger.info(
+                    "Text-KI-Anbieter %s wird nach kürzlichem Verbindungsfehler vorübergehend übersprungen",
+                    provider,
+                )
+                continue
+
             try:
                 if provider == "cloud":
                     response = requests.post(
@@ -77,6 +122,7 @@ class IngredientDetector:
                         timeout=request_timeout,
                     )
                     response.raise_for_status()
+                    _forget_text_provider_failure(provider, self.settings)
                     choices = response.json().get("choices") or []
                     message = choices[0].get("message", {}) if choices else {}
                     return json.loads(message.get("content") or "{}")
@@ -93,8 +139,17 @@ class IngredientDetector:
                     timeout=request_timeout,
                 )
                 response.raise_for_status()
+                _forget_text_provider_failure(provider, self.settings)
                 return json.loads(response.json().get("response"))
-            except (requests.RequestException, ValueError, TypeError) as error:
+            except requests.RequestException as error:
+                last_error = error
+                _remember_text_provider_failure(provider, self.settings)
+                logger.warning(
+                    "Text-KI-Anbieter %s konnte nicht verwendet werden, versuche Fallback falls konfiguriert: %s",
+                    provider,
+                    error,
+                )
+            except (ValueError, TypeError) as error:
                 last_error = error
                 logger.warning(
                     "Text-KI-Anbieter %s konnte nicht verwendet werden, versuche Fallback falls konfiguriert: %s",
@@ -104,6 +159,9 @@ class IngredientDetector:
 
         if last_error is not None:
             raise last_error
+
+        if providers:
+            return []
 
         raise RuntimeError("Keine Text-KI aktiviert")
 
@@ -269,6 +327,7 @@ class IngredientDetector:
         existing_recipe_titles: list[str],
         *,
         timeout_seconds: int | None = None,
+        ignore_provider_cooldown: bool = False,
     ) -> list[Dict[str, Any]]:
         if not (self._ollama_text_enabled() or self._cloud_text_enabled()):
             return []
@@ -306,7 +365,11 @@ class IngredientDetector:
         """
 
         try:
-            parsed = self._request_text_json(prompt, timeout_seconds=timeout_seconds)
+            parsed = self._request_text_json(
+                prompt,
+                timeout_seconds=timeout_seconds,
+                ignore_provider_cooldown=ignore_provider_cooldown,
+            )
             if self.settings.debug_mode:
                 logger.info("KI-Antwort generate_recipe_suggestions: %s", parsed)
         except requests.RequestException as error:

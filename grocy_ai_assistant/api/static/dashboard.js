@@ -2616,6 +2616,7 @@ async function loadRecipeSuggestions(options = {}) {
   }
 
   const usePrefetchedCache = Boolean(options.usePrefetchedCache);
+  const forceRefresh = options.forceRefresh ?? !usePrefetchedCache;
   const selectedIds = usePrefetchedCache ? [] : getSelectedProductIds();
   recipeState.selectedProductIds = selectedIds;
   const selectedLocationIds = usePrefetchedCache ? [] : getSelectedLocationIds();
@@ -2639,6 +2640,7 @@ async function loadRecipeSuggestions(options = {}) {
       location_ids: selectedLocationIds,
       soon_expiring_only: soonExpiringOnly,
       expiring_within_days: expiringWithinDays,
+      force_refresh: forceRefresh,
     });
     if (!response.ok) {
       status.textContent = getErrorMessage(payload, 'Rezeptvorschläge konnten nicht geladen werden.');

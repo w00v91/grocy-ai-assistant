@@ -1,10 +1,21 @@
 from pathlib import Path
 import logging
 
+import pytest
 import requests
 
-from grocy_ai_assistant.ai.ingredient_detector import IngredientDetector
+from grocy_ai_assistant.ai.ingredient_detector import (
+    IngredientDetector,
+    _TEXT_PROVIDER_FAILURE_UNTIL,
+)
 from grocy_ai_assistant.config.settings import Settings
+
+
+@pytest.fixture(autouse=True)
+def clear_text_provider_failure_cooldown():
+    _TEXT_PROVIDER_FAILURE_UNTIL.clear()
+    yield
+    _TEXT_PROVIDER_FAILURE_UNTIL.clear()
 
 
 class FakeResponse:
@@ -323,6 +334,40 @@ def test_generate_recipe_suggestions_returns_empty_on_request_timeout(
 
     assert result == []
     assert "KI-Rezeptvorschläge konnten nicht geladen werden" in caplog.text
+
+
+def test_generate_recipe_suggestions_skips_recently_failed_ollama_provider(
+    monkeypatch, caplog
+):
+    calls = {"count": 0}
+
+    def fake_post(*args, **kwargs):
+        calls["count"] += 1
+        raise requests.exceptions.ReadTimeout("timed out")
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.ai.ingredient_detector.requests.post", fake_post
+    )
+
+    settings = Settings(
+        api_key="x",
+        addon_version="a",
+        required_integration_version="1",
+        grocy_api_key="g",
+    )
+
+    with caplog.at_level(logging.INFO):
+        assert (
+            IngredientDetector(settings).generate_recipe_suggestions(["Tomate"], [])
+            == []
+        )
+        assert (
+            IngredientDetector(settings).generate_recipe_suggestions(["Tomate"], [])
+            == []
+        )
+
+    assert calls["count"] == 1
+    assert "vorübergehend übersprungen" in caplog.text
 
 
 def test_generate_recipe_suggestions_uses_explicit_timeout_override(monkeypatch):
