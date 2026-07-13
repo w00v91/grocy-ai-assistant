@@ -2288,8 +2288,109 @@ def test_create_product_normalizes_invalid_ids_before_first_request(monkeypatch)
             "location_id": 1,
             "qu_id_purchase": 1,
             "qu_id_stock": 1,
+            "qu_factor_purchase_to_stock": 1,
         }
     ]
+
+
+def test_normalize_product_payload_ids_keeps_valid_quantity_unit_ids(monkeypatch):
+    def fake_get(url, *args, **kwargs):
+        if url.endswith("/objects/locations"):
+            return FakeResponse([{"id": 1, "name": "Kuehlschrank"}])
+        if url.endswith("/objects/quantity_units"):
+            return FakeResponse(
+                [{"id": 2, "name": "Stueck"}, {"id": 5, "name": "Packung"}]
+            )
+        raise AssertionError(f"Unexpected url: {url}")
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.services.grocy_client.requests.get", fake_get
+    )
+
+    client = GrocyClient(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+        )
+    )
+
+    normalized_payload = client._normalize_product_payload_ids(
+        {
+            "name": "Oliven",
+            "location_id": 1,
+            "qu_id_purchase": 5,
+            "qu_id_stock": 2,
+            "qu_factor_purchase_to_stock": 3,
+        }
+    )
+
+    assert normalized_payload["qu_id_purchase"] == 5
+    assert normalized_payload["qu_id_stock"] == 2
+    assert normalized_payload["qu_factor_purchase_to_stock"] == 3
+
+
+def test_normalize_product_payload_ids_replaces_invalid_units_with_existing_unit(
+    monkeypatch,
+):
+    def fake_get(url, *args, **kwargs):
+        if url.endswith("/objects/locations"):
+            return FakeResponse([{"id": 1, "name": "Kuehlschrank"}])
+        if url.endswith("/objects/quantity_units"):
+            return FakeResponse([{"id": 7, "name": "Packung"}])
+        raise AssertionError(f"Unexpected url: {url}")
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.services.grocy_client.requests.get", fake_get
+    )
+
+    client = GrocyClient(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+        )
+    )
+
+    normalized_payload = client._normalize_product_payload_ids(
+        {
+            "name": "Oliven",
+            "location_id": 1,
+            "qu_id_purchase": 999,
+            "qu_id_stock": 998,
+        }
+    )
+
+    assert normalized_payload["qu_id_purchase"] == 7
+    assert normalized_payload["qu_id_stock"] == 7
+    assert normalized_payload["qu_factor_purchase_to_stock"] == 1
+
+
+def test_normalize_product_payload_ids_raises_without_quantity_units(monkeypatch):
+    def fake_get(url, *args, **kwargs):
+        if url.endswith("/objects/locations"):
+            return FakeResponse([{"id": 1, "name": "Kuehlschrank"}])
+        if url.endswith("/objects/quantity_units"):
+            return FakeResponse([])
+        raise AssertionError(f"Unexpected url: {url}")
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.services.grocy_client.requests.get", fake_get
+    )
+
+    client = GrocyClient(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+        )
+    )
+
+    with pytest.raises(RuntimeError, match="Keine Grocy-Mengeneinheit gefunden"):
+        client._normalize_product_payload_ids({"name": "Oliven"})
 
 
 def test_create_product_keeps_valid_ids_in_retry_payload(monkeypatch):
@@ -2422,6 +2523,7 @@ def test_create_product_does_not_retry_without_unknown_column_error(monkeypatch)
             "location_id": 1,
             "qu_id_purchase": 1,
             "qu_id_stock": 1,
+            "qu_factor_purchase_to_stock": 1,
         }
     ]
 

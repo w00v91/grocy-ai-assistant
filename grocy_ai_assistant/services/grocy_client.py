@@ -533,7 +533,12 @@ class GrocyClient:
         }
         valid_unit_ids.discard(None)
 
-        fallback_unit_id = next(iter(valid_unit_ids), 1)
+        if not valid_unit_ids:
+            raise RuntimeError(
+                "Keine Grocy-Mengeneinheit gefunden; Produkt kann nicht sicher angelegt werden"
+            )
+
+        fallback_unit_id = min(valid_unit_ids)
         fallback_location_id = next(iter(valid_location_ids), 1)
 
         normalized_payload = dict(product_payload)
@@ -553,6 +558,13 @@ class GrocyClient:
             qu_id_purchase
             if qu_id_purchase in valid_unit_ids
             else normalized_payload["qu_id_stock"]
+        )
+
+        qu_factor_purchase_to_stock = product_payload.get("qu_factor_purchase_to_stock")
+        normalized_payload["qu_factor_purchase_to_stock"] = (
+            qu_factor_purchase_to_stock
+            if qu_factor_purchase_to_stock not in (None, "")
+            else 1
         )
 
         return normalized_payload
