@@ -1,3 +1,16 @@
+## 2026-07-13 (Version 8.0.75)
+
+- Fix (Home-Assistant-Integration/API): Die veraltete interne Add-on-URL `grocy_ai_assistant:8000` wird jetzt auf den gültigen Bindestrich-Host normalisiert und nicht mehr als Fallback versucht, damit DNS-Timeouts die Coordinator-Abfragen nicht blockieren.
+- Fix (Rezepte/Dashboard): Manuelles Laden von Rezeptvorschlägen umgeht den Rezeptcache und erzwingt eine frische KI-Generierung inklusive erneuter Anbieterprüfung.
+- Added (Tests): Regressionstests decken die Legacy-Host-Normalisierung und das Cache-Bypass-Verhalten beim manuellen Rezept-Refresh ab.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.75` erhöht.
+
+## 2026-07-13 (Version 8.0.74)
+
+- Fix (KI/Ollama): Nach einem Text-KI-Verbindungsfehler wird derselbe Anbieter kurzzeitig übersprungen, damit Startup-Prefetch, Sensoren und Dashboard-Reloads keine wiederholten Ollama-Timeouts gegen `homeassistant.local:11434` auslösen.
+- Added (Tests/KI): Regressionstest stellt sicher, dass ein kürzlich fehlgeschlagener Ollama-Textanbieter nicht sofort erneut angefragt wird.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.74` erhöht.
+
 ## 2026-07-13 (Version 8.0.73)
 
 - Fix (Grocy/Produktanlage): Produkt-Payloads verwenden keine blinde Mengeneinheit `1` mehr, sondern normalisieren ungültige Einheiten auf eine tatsächlich vorhandene Grocy-Mengeneinheit.

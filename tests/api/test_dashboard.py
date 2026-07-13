@@ -772,6 +772,7 @@ def test_recipe_suggestions_prioritize_grocy_then_ai(client, monkeypatch):
 
 
 def test_recipe_suggestions_cap_ai_timeout(client, monkeypatch):
+    client.app.state.recipe_suggestion_cache = {}
     captured_timeout = {"value": None}
 
     def fake_get_stock_products(self):
@@ -785,7 +786,11 @@ def test_recipe_suggestions_cap_ai_timeout(client, monkeypatch):
             self.settings = settings
 
         def generate_recipe_suggestions(
-            self, selected_products, existing_recipe_titles, timeout_seconds=None
+            self,
+            selected_products,
+            existing_recipe_titles,
+            timeout_seconds=None,
+            ignore_provider_cooldown=False,
         ):
             captured_timeout["value"] = timeout_seconds
             return []
@@ -1928,6 +1933,78 @@ def test_recipe_suggestions_uses_prefetched_cache_when_stock_unchanged(
     payload = response.json()
     assert payload["selected_products"] == ["Tomate"]
     assert payload["grocy_recipes"][0]["title"] == "Tomaten Pasta"
+
+
+def test_recipe_suggestions_force_refresh_bypasses_prefetched_cache(
+    client, monkeypatch
+):
+    call_count = {"detector": 0}
+
+    def fake_get_stock_products(self, location_ids=None):
+        return [
+            {"id": 1, "name": "Tomate", "location_name": "Kühlschrank", "amount": "2"}
+        ]
+
+    def fake_get_recipes(self):
+        return []
+
+    class FakeDetector:
+        def __init__(self, settings):
+            self.settings = settings
+
+        def generate_recipe_suggestions(
+            self,
+            selected_products,
+            existing_recipe_titles,
+            timeout_seconds=None,
+            ignore_provider_cooldown=False,
+        ):
+            call_count["detector"] += 1
+            assert ignore_provider_cooldown is True
+            if call_count["detector"] > 1:
+                return []
+            return [
+                {
+                    "title": "Frische Tomatensuppe",
+                    "reason": "Manuell neu geladen",
+                }
+            ]
+
+    monkeypatch.setattr(
+        routes.GrocyClient, "get_stock_products", fake_get_stock_products
+    )
+    monkeypatch.setattr(routes.GrocyClient, "get_recipes", fake_get_recipes)
+    monkeypatch.setattr(routes, "IngredientDetector", FakeDetector)
+
+    client.app.state.recipe_suggestion_cache = {
+        "location_ids": [],
+        "stock_signature": routes._build_stock_signature(fake_get_stock_products(None)),
+        "response": {
+            "selected_products": ["Tomate"],
+            "grocy_recipes": [],
+            "ai_recipes": [
+                {
+                    "title": "Alter Cache",
+                    "source": "ai",
+                    "reason": "Cache",
+                    "preparation": "",
+                    "ingredients": [],
+                    "picture_url": "",
+                    "missing_products": [],
+                }
+            ],
+        },
+    }
+
+    response = client.post(
+        "/api/dashboard/recipe-suggestions",
+        headers={"Authorization": "Bearer test-api-key"},
+        json={"product_ids": [], "location_ids": [], "force_refresh": True},
+    )
+
+    assert response.status_code == 200
+    assert call_count["detector"] >= 1
+    assert response.json()["ai_recipes"][0]["title"] == "Frische Tomatensuppe"
 
 
 def test_recipe_suggestions_caches_soon_expiring_requests(client, monkeypatch):

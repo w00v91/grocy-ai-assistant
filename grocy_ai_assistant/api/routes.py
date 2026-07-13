@@ -1107,6 +1107,8 @@ def _generate_recipe_suggestions(
     selected_ids: set[int],
     grocy_client: GrocyClient,
     settings: Settings,
+    *,
+    force_refresh: bool = False,
 ) -> RecipeSuggestionResponse:
     if not selected_ids:
         selected_products = [product.get("name", "") for product in stock_products]
@@ -1211,6 +1213,7 @@ def _generate_recipe_suggestions(
                 selected_products,
                 known_recipe_titles,
                 timeout_seconds=recipe_ai_timeout_seconds,
+                ignore_provider_cooldown=force_refresh,
             )
         except TypeError:
             ai_raw = detector.generate_recipe_suggestions(
@@ -1568,6 +1571,7 @@ def recipes_v1(
         location_ids=_parse_csv_int_values(location_ids),
         soon_expiring_only=soon_expiring_only,
         expiring_within_days=expiring_within_days,
+        force_refresh=False,
     )
     return dashboard_recipe_suggestions(payload, request, None, settings)
 
@@ -2879,10 +2883,14 @@ def dashboard_recipe_suggestions(
             soon_expiring_only=payload.soon_expiring_only,
             expiring_within_days=payload.expiring_within_days,
         )
-        cached_payload = _get_cached_recipe_suggestion_response(
-            cache,
-            stock_signature=stock_signature,
-            cache_key=cache_key,
+        cached_payload = (
+            None
+            if payload.force_refresh
+            else _get_cached_recipe_suggestion_response(
+                cache,
+                stock_signature=stock_signature,
+                cache_key=cache_key,
+            )
         )
         if cached_payload:
             logger.info(
@@ -2896,6 +2904,7 @@ def dashboard_recipe_suggestions(
             selected_ids=selected_ids,
             grocy_client=grocy_client,
             settings=settings,
+            force_refresh=payload.force_refresh,
         )
 
         if cache is not None:
