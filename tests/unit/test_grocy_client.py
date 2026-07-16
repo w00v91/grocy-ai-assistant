@@ -2767,3 +2767,116 @@ def test_resolve_best_before_date_uses_default_days_from_product(monkeypatch):
 
     expected = (datetime.now().date() + timedelta(days=5)).isoformat()
     assert client.resolve_best_before_date(product_id=12) == expected
+
+
+def test_cleanup_expired_non_canned_stock_consumes_expired_amount(monkeypatch):
+    client = GrocyClient(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+            auto_cleanup_enabled=True,
+            auto_cleanup_months=1,
+        )
+    )
+    consumed = []
+
+    monkeypatch.setattr(
+        client,
+        "get_storage_products",
+        lambda include_all_products=False: [
+            {
+                "id": "10",
+                "stock_id": "77",
+                "name": "Joghurt",
+                "amount": "1,5",
+                "best_before_date": "2020-01-01",
+            }
+        ],
+    )
+    monkeypatch.setattr(
+        client,
+        "consume_stock_product",
+        lambda product_id, amount=1, stock_id=None: consumed.append(
+            {"product_id": product_id, "amount": amount, "stock_id": stock_id}
+        ),
+    )
+    monkeypatch.setattr(
+        client,
+        "delete_stock_entry",
+        lambda stock_id: pytest.fail("delete_stock_entry must not be used"),
+    )
+
+    result = client.cleanup_expired_non_canned_stock()
+
+    assert consumed == [{"product_id": 10, "amount": 1.5, "stock_id": 77}]
+    assert result["consumed_count"] == 1
+    assert result["removed_count"] == 1
+    assert result["consumed"][0]["amount"] == 1.5
+
+
+def test_cleanup_expired_non_canned_stock_skips_incomplete_or_empty_amounts(
+    monkeypatch,
+):
+    client = GrocyClient(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+            auto_cleanup_enabled=True,
+            auto_cleanup_months=1,
+        )
+    )
+    consumed = []
+
+    monkeypatch.setattr(
+        client,
+        "get_storage_products",
+        lambda include_all_products=False: [
+            {
+                "id": "10",
+                "stock_id": "77",
+                "name": "Joghurt",
+                "amount": "0",
+                "best_before_date": "2020-01-01",
+            },
+            {
+                "id": "11",
+                "stock_id": "",
+                "name": "Quark",
+                "amount": "2",
+                "best_before_date": "2020-01-01",
+            },
+            {
+                "id": "",
+                "stock_id": "79",
+                "name": "Milch",
+                "amount": "2",
+                "best_before_date": "2020-01-01",
+            },
+            {
+                "id": "12",
+                "stock_id": "80",
+                "name": "Sahne",
+                "amount": "abc",
+                "best_before_date": "2020-01-01",
+            },
+        ],
+    )
+    monkeypatch.setattr(
+        client,
+        "consume_stock_product",
+        lambda product_id, amount=1, stock_id=None: consumed.append(product_id),
+    )
+    monkeypatch.setattr(
+        client,
+        "delete_stock_entry",
+        lambda stock_id: pytest.fail("delete_stock_entry must not be used"),
+    )
+
+    result = client.cleanup_expired_non_canned_stock()
+
+    assert consumed == []
+    assert result["consumed_count"] == 0

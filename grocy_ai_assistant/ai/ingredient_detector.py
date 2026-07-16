@@ -4,7 +4,7 @@ import logging
 import re
 import time
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Callable, Dict
 from uuid import uuid4
 
 import requests
@@ -65,7 +65,7 @@ class IngredientDetector:
             and self.settings.ollama_text_generation_enabled
         )
 
-    def _ollama_image_enabled(self) -> bool:
+    def _ollama_image_analysis_enabled(self) -> bool:
         return bool(
             self.settings.ollama_enabled
             and self.settings.ollama_image_generation_enabled
@@ -77,6 +77,40 @@ class IngredientDetector:
             and self.settings.cloud_ai_text_generation_enabled
             and str(self.settings.openai_api_key or "").strip()
         )
+
+    def _cloud_image_analysis_enabled(self) -> bool:
+        return bool(
+            self.settings.cloud_ai_enabled
+            and self.settings.cloud_ai_text_generation_enabled
+            and self.settings.openai_api_key
+        )
+
+    def _cloud_image_generation_enabled(self) -> bool:
+        return bool(
+            self.settings.cloud_ai_enabled
+            and self.settings.image_generation_enabled
+            and self.settings.openai_api_key
+        )
+
+    def _provider_order(self, capability: str) -> list[str]:
+        checks: dict[str, dict[str, Callable[[], bool]]] = {
+            "text_analysis": {
+                "cloud": self._cloud_text_enabled,
+                "ollama": self._ollama_text_enabled,
+            },
+            "image_analysis": {
+                "cloud": self._cloud_image_analysis_enabled,
+                "ollama": self._ollama_image_analysis_enabled,
+            },
+            "image_generation": {
+                "cloud": self._cloud_image_generation_enabled,
+            },
+        }
+        return [
+            provider
+            for provider, enabled in checks.get(capability, {}).items()
+            if enabled()
+        ]
 
     def _request_text_json(
         self,
@@ -90,11 +124,7 @@ class IngredientDetector:
             if timeout_seconds is not None and timeout_seconds > 0
             else self._ollama_timeout_seconds()
         )
-        providers = []
-        if self._cloud_text_enabled():
-            providers.append("cloud")
-        if self._ollama_text_enabled():
-            providers.append("ollama")
+        providers = self._provider_order("text_analysis")
 
         last_error: Exception | None = None
         for provider in providers:
@@ -202,7 +232,7 @@ class IngredientDetector:
         product_name: str,
         locations: list[Dict[str, Any]] | None = None,
     ) -> Dict[str, Any]:
-        if not (self._ollama_text_enabled() or self._cloud_text_enabled()):
+        if not self._provider_order("text_analysis"):
             return self._fallback_product_analysis(product_name)
 
         context = self._grocy_context(locations)
@@ -275,7 +305,7 @@ class IngredientDetector:
         }
 
     def suggest_similar_products(self, product_name: str) -> list[Dict[str, Any]]:
-        if not (self._ollama_text_enabled() or self._cloud_text_enabled()):
+        if not self._provider_order("text_analysis"):
             return []
 
         prompt = f"""
@@ -329,7 +359,7 @@ class IngredientDetector:
         timeout_seconds: int | None = None,
         ignore_provider_cooldown: bool = False,
     ) -> list[Dict[str, Any]]:
-        if not (self._ollama_text_enabled() or self._cloud_text_enabled()):
+        if not self._provider_order("text_analysis"):
             return []
 
         ingredients = ", ".join(selected_products)
@@ -509,11 +539,26 @@ class IngredientDetector:
             return normalized
         return []
 
+    @staticmethod
+    def _empty_image_detection() -> Dict[str, str]:
+        return {"product_name": "", "brand": "", "hint": ""}
+
+    @staticmethod
+    def _normalize_image_detection(parsed: Any) -> Dict[str, str]:
+        if not isinstance(parsed, dict):
+            return IngredientDetector._empty_image_detection()
+        return {
+            "product_name": str(parsed.get("product_name") or "").strip(),
+            "brand": str(parsed.get("brand") or "").strip(),
+            "hint": str(parsed.get("hint") or "").strip(),
+        }
+
     def detect_product_from_image(
         self, image_base64: str, *, timeout_seconds: int = 90
     ) -> Dict[str, str]:
-        if not self._ollama_image_enabled():
-            return {"product_name": "", "brand": "", "hint": ""}
+        providers = self._provider_order("image_analysis")
+        if not providers:
+            return self._empty_image_detection()
 
         min_confidence = max(
             1, min(100, int(self.settings.scanner_llava_min_confidence))
@@ -524,48 +569,85 @@ class IngredientDetector:
             "als JSON mit den Feldern product_name, brand und hint. "
             "Antworte ansonsten mit NULL"
         )
-        ollama_payload = {
-            "model": self.settings.ollama_llava_model,
-            "prompt": prompt,
-            "stream": False,
-            "format": "json",
-            "images": [image_base64],
-        }
 
-        response = requests.post(
-            self.settings.ollama_url,
-            json=ollama_payload,
-            timeout=max(10, min(120, int(timeout_seconds))),
-        )
-        response.raise_for_status()
-        raw_answer = response.json().get("response")
-        if self.settings.debug_mode:
-            logger.info("KI-Antwort detect_product_from_image: %s", raw_answer)
+        last_error: Exception | None = None
+        for provider in providers:
+            try:
+                if provider == "cloud":
+                    response = requests.post(
+                        "https://api.openai.com/v1/chat/completions",
+                        headers={
+                            "Authorization": f"Bearer {self.settings.openai_api_key}",
+                            "Content-Type": "application/json",
+                        },
+                        json={
+                            "model": self.settings.openai_text_model,
+                            "messages": [
+                                {
+                                    "role": "user",
+                                    "content": [
+                                        {"type": "text", "text": prompt},
+                                        {
+                                            "type": "image_url",
+                                            "image_url": {
+                                                "url": f"data:image/jpeg;base64,{image_base64}"
+                                            },
+                                        },
+                                    ],
+                                }
+                            ],
+                        },
+                        timeout=max(10, min(120, int(timeout_seconds))),
+                    )
+                    response.raise_for_status()
+                    choices = response.json().get("choices") or []
+                    message = choices[0].get("message", {}) if choices else {}
+                    raw_answer = message.get("content") or "{}"
+                else:
+                    response = requests.post(
+                        self.settings.ollama_url,
+                        json={
+                            "model": self.settings.ollama_llava_model,
+                            "prompt": prompt,
+                            "stream": False,
+                            "format": "json",
+                            "images": [image_base64],
+                        },
+                        timeout=max(10, min(120, int(timeout_seconds))),
+                    )
+                    response.raise_for_status()
+                    raw_answer = response.json().get("response")
 
-        try:
-            parsed = json.loads(raw_answer or "{}")
-        except json.JSONDecodeError:
-            return {"product_name": "", "brand": "", "hint": ""}
+                if self.settings.debug_mode:
+                    logger.info(
+                        "KI-Antwort detect_product_from_image (%s): %s",
+                        provider,
+                        raw_answer,
+                    )
+                return self._normalize_image_detection(json.loads(raw_answer or "{}"))
+            except (requests.RequestException, ValueError, TypeError) as error:
+                last_error = error
+                logger.warning(
+                    "Bildanalyse-Anbieter %s konnte nicht verwendet werden, versuche Fallback falls konfiguriert: %s",
+                    provider,
+                    error,
+                )
 
-        if not isinstance(parsed, dict):
-            return {"product_name": "", "brand": "", "hint": ""}
-
-        return {
-            "product_name": str(parsed.get("product_name") or "").strip(),
-            "brand": str(parsed.get("brand") or "").strip(),
-            "hint": str(parsed.get("hint") or "").strip(),
-        }
+        if last_error is not None:
+            logger.warning(
+                "Keine KI-Bildanalyse verfuegbar, nutze rudimentaeren Fallback"
+            )
+        return self._empty_image_detection()
 
     def generate_product_image(self, product_name: str) -> str:
-        if not (
-            self.settings.cloud_ai_enabled and self.settings.image_generation_enabled
-        ):
-            return ""
-
-        if not self.settings.openai_api_key:
-            logger.warning(
-                "Bildgenerierung aktiv, aber openai_api_key fehlt in den Add-on Optionen"
-            )
+        if not self._provider_order("image_generation"):
+            if (
+                self.settings.cloud_ai_enabled
+                and self.settings.image_generation_enabled
+            ):
+                logger.warning(
+                    "Bildgenerierung aktiv, aber openai_api_key fehlt in den Add-on Optionen"
+                )
             return ""
 
         prompt = IMAGE_PROMPT_TEMPLATE.format(product_name=product_name)

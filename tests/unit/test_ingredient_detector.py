@@ -454,6 +454,92 @@ def test_detect_product_from_image_returns_empty_on_null_response(monkeypatch):
     assert result == {"product_name": "", "brand": "", "hint": ""}
 
 
+def test_detect_product_from_image_prefers_cloud_image_analysis(monkeypatch):
+    calls = []
+
+    def fake_post(url, headers=None, json=None, timeout=None):
+        calls.append({"url": url, "headers": headers, "json": json})
+        return FakeResponse(
+            {
+                "choices": [
+                    {
+                        "message": {
+                            "content": '{"product_name":"Cloud Milch","brand":"Bio","hint":"1L"}'
+                        }
+                    }
+                ]
+            }
+        )
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.ai.ingredient_detector.requests.post", fake_post
+    )
+
+    detector = IngredientDetector(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+            ollama_enabled=True,
+            ollama_image_generation_enabled=True,
+            cloud_ai_enabled=True,
+            cloud_ai_text_generation_enabled=True,
+            openai_api_key="sk-test",
+            openai_text_model="gpt-vision-test",
+        )
+    )
+
+    result = detector.detect_product_from_image("img")
+
+    assert len(calls) == 1
+    assert calls[0]["url"] == "https://api.openai.com/v1/chat/completions"
+    assert calls[0]["headers"]["Authorization"] == "Bearer sk-test"
+    assert calls[0]["json"]["model"] == "gpt-vision-test"
+    assert calls[0]["json"]["messages"][0]["content"][1]["image_url"]["url"] == (
+        "data:image/jpeg;base64,img"
+    )
+    assert result == {"product_name": "Cloud Milch", "brand": "Bio", "hint": "1L"}
+
+
+def test_detect_product_from_image_falls_back_to_llava_when_cloud_fails(monkeypatch):
+    calls = []
+
+    def fake_post(url, headers=None, json=None, timeout=None):
+        calls.append(url)
+        if url == "https://api.openai.com/v1/chat/completions":
+            raise requests.Timeout("cloud timeout")
+        return FakeResponse(
+            {"response": '{"product_name":"LLaVA Milch","brand":"Bio","hint":"1L"}'}
+        )
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.ai.ingredient_detector.requests.post", fake_post
+    )
+
+    detector = IngredientDetector(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+            ollama_enabled=True,
+            ollama_image_generation_enabled=True,
+            cloud_ai_enabled=True,
+            cloud_ai_text_generation_enabled=True,
+            openai_api_key="sk-test",
+        )
+    )
+
+    result = detector.detect_product_from_image("img")
+
+    assert calls == [
+        "https://api.openai.com/v1/chat/completions",
+        detector.settings.ollama_url,
+    ]
+    assert result == {"product_name": "LLaVA Milch", "brand": "Bio", "hint": "1L"}
+
+
 def test_generate_product_image_uses_openai_images_api(monkeypatch, tmp_path):
     captured = {}
 

@@ -3061,7 +3061,9 @@ def test_dashboard_auto_cleanup_stock_products_runs_client_cleanup(client, monke
             "months": 3,
             "cutoff_date": "2026-03-31",
             "removed_count": 2,
+            "consumed_count": 2,
             "removed": [],
+            "consumed": [],
         }
 
     monkeypatch.setattr(
@@ -3076,4 +3078,5 @@ def test_dashboard_auto_cleanup_stock_products_runs_client_cleanup(client, monke
     assert response.status_code == 200
     assert called["cleanup"] is True
     assert response.json()["removed_count"] == 2
-    assert "2 Bestandseinträge" in response.json()["message"]
+    assert response.json()["consumed_count"] == 2
+    assert "2 abgelaufene Mengen verbraucht" in response.json()["message"]
