@@ -1,3 +1,8 @@
+## 2026-07-16 (Version 8.0.77)
+
+- Changed (KI-Provider): Zentrale Provider-Entscheidung fuer Textanalyse, Bildanalyse und Bildgenerierung eingefuehrt; Cloud wird je Faehigkeit bevorzugt, Ollama/LLaVA dient nur als Bildanalyse-Fallback und rudimentaere Fallbacks bleiben erhalten.
+- Changed (Versioning): Versionsstaende fuer Add-on und Integration auf `8.0.77` erhoeht.
+
 ## 2026-07-16 (Version 8.0.76)
 
 - Added (Dashboard/Lager): Standortfilter für die native Home-Assistant-Storage-UI und die Legacy-Static-UI ergänzt.
