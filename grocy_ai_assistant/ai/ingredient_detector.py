@@ -78,6 +78,13 @@ class IngredientDetector:
             and self.settings.openai_api_key
         )
 
+    def _cloud_image_analysis_enabled(self) -> bool:
+        return bool(
+            self.settings.cloud_ai_enabled
+            and self.settings.cloud_ai_image_analysis_enabled
+            and self.settings.openai_api_key
+        )
+
     def _request_text_json(
         self,
         prompt: str,
@@ -509,24 +516,74 @@ class IngredientDetector:
             return normalized
         return []
 
-    def detect_product_from_image(
-        self, image_base64: str, *, timeout_seconds: int = 90
-    ) -> Dict[str, str]:
-        if not self._ollama_image_enabled():
-            return {"product_name": "", "brand": "", "hint": ""}
+    @staticmethod
+    def _empty_image_analysis() -> Dict[str, str]:
+        return {"product_name": "", "brand": "", "hint": ""}
 
+    @staticmethod
+    def _normalize_image_analysis(parsed: Any) -> Dict[str, str]:
+        if not isinstance(parsed, dict):
+            return IngredientDetector._empty_image_analysis()
+        return {
+            "product_name": str(parsed.get("product_name") or "").strip(),
+            "brand": str(parsed.get("brand") or "").strip(),
+            "hint": str(parsed.get("hint") or "").strip(),
+        }
+
+    def _image_analysis_prompt(self) -> str:
         min_confidence = max(
             1, min(100, int(self.settings.scanner_llava_min_confidence))
         )
-        prompt = (
+        return (
             "Erkenne das Hauptprodukt auf dem Bild. "
             f"Antworte NUR wenn du dir zu mindestens {min_confidence} prozent sicher bist "
             "als JSON mit den Feldern product_name, brand und hint. "
             "Antworte ansonsten mit NULL"
         )
+
+    def _detect_product_from_image_cloud(
+        self, image_base64: str, *, timeout_seconds: int
+    ) -> Dict[str, str]:
+        response = requests.post(
+            "https://api.openai.com/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {self.settings.openai_api_key}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": self.settings.openai_text_model,
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": self._image_analysis_prompt()},
+                            {
+                                "type": "image_url",
+                                "image_url": {
+                                    "url": f"data:image/jpeg;base64,{image_base64}"
+                                },
+                            },
+                        ],
+                    }
+                ],
+                "response_format": {"type": "json_object"},
+            },
+            timeout=max(10, min(120, int(timeout_seconds))),
+        )
+        response.raise_for_status()
+        choices = response.json().get("choices") or []
+        message = choices[0].get("message", {}) if choices else {}
+        raw_answer = message.get("content") or "{}"
+        if self.settings.debug_mode:
+            logger.info("Cloud-KI-Antwort detect_product_from_image: %s", raw_answer)
+        return self._normalize_image_analysis(json.loads(raw_answer))
+
+    def _detect_product_from_image_ollama(
+        self, image_base64: str, *, timeout_seconds: int
+    ) -> Dict[str, str]:
         ollama_payload = {
             "model": self.settings.ollama_llava_model,
-            "prompt": prompt,
+            "prompt": self._image_analysis_prompt(),
             "stream": False,
             "format": "json",
             "images": [image_base64],
@@ -541,20 +598,31 @@ class IngredientDetector:
         raw_answer = response.json().get("response")
         if self.settings.debug_mode:
             logger.info("KI-Antwort detect_product_from_image: %s", raw_answer)
+        return self._normalize_image_analysis(json.loads(raw_answer or "{}"))
+
+    def detect_product_from_image(
+        self, image_base64: str, *, timeout_seconds: int = 90
+    ) -> Dict[str, str]:
+        if self._cloud_image_analysis_enabled():
+            try:
+                return self._detect_product_from_image_cloud(
+                    image_base64, timeout_seconds=timeout_seconds
+                )
+            except (requests.RequestException, ValueError, TypeError) as error:
+                logger.warning(
+                    "Cloud-Bildanalyse konnte nicht verwendet werden, versuche LLaVA-Fallback falls konfiguriert: %s",
+                    error,
+                )
+
+        if not self._ollama_image_enabled():
+            return self._empty_image_analysis()
 
         try:
-            parsed = json.loads(raw_answer or "{}")
+            return self._detect_product_from_image_ollama(
+                image_base64, timeout_seconds=timeout_seconds
+            )
         except json.JSONDecodeError:
-            return {"product_name": "", "brand": "", "hint": ""}
-
-        if not isinstance(parsed, dict):
-            return {"product_name": "", "brand": "", "hint": ""}
-
-        return {
-            "product_name": str(parsed.get("product_name") or "").strip(),
-            "brand": str(parsed.get("brand") or "").strip(),
-            "hint": str(parsed.get("hint") or "").strip(),
-        }
+            return self._empty_image_analysis()
 
     def generate_product_image(self, product_name: str) -> str:
         if not (

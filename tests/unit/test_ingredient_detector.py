@@ -453,6 +453,150 @@ def test_detect_product_from_image_returns_empty_on_null_response(monkeypatch):
     assert result == {"product_name": "", "brand": "", "hint": ""}
 
 
+def test_detect_product_from_image_prefers_successful_cloud_analysis(monkeypatch):
+    calls = []
+
+    def fake_post(url, *args, **kwargs):
+        calls.append(url)
+        assert url == "https://api.openai.com/v1/chat/completions"
+        return FakeResponse(
+            {
+                "choices": [
+                    {
+                        "message": {
+                            "content": '{"product_name":"Joghurt","brand":"Biohof","hint":"Becher"}'
+                        }
+                    }
+                ]
+            }
+        )
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.ai.ingredient_detector.requests.post", fake_post
+    )
+    detector = IngredientDetector(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+            cloud_ai_enabled=True,
+            cloud_ai_image_analysis_enabled=True,
+            openai_api_key="sk-test",
+            ollama_enabled=True,
+            ollama_image_generation_enabled=True,
+        )
+    )
+
+    assert detector.detect_product_from_image("img") == {
+        "product_name": "Joghurt",
+        "brand": "Biohof",
+        "hint": "Becher",
+    }
+    assert calls == ["https://api.openai.com/v1/chat/completions"]
+
+
+def test_detect_product_from_image_falls_back_to_llava_after_cloud_error(monkeypatch):
+    calls = []
+
+    def fake_post(url, *args, **kwargs):
+        calls.append(url)
+        if url == "https://api.openai.com/v1/chat/completions":
+            raise requests.Timeout("cloud timeout")
+        return FakeResponse(
+            {"response": '{"product_name":"Milch","brand":"Molkerei","hint":"1L"}'}
+        )
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.ai.ingredient_detector.requests.post", fake_post
+    )
+    detector = IngredientDetector(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+            cloud_ai_enabled=True,
+            cloud_ai_image_analysis_enabled=True,
+            openai_api_key="sk-test",
+            ollama_enabled=True,
+            ollama_image_generation_enabled=True,
+        )
+    )
+
+    assert detector.detect_product_from_image("img") == {
+        "product_name": "Milch",
+        "brand": "Molkerei",
+        "hint": "1L",
+    }
+    assert calls == [
+        "https://api.openai.com/v1/chat/completions",
+        detector.settings.ollama_url,
+    ]
+
+
+def test_detect_product_from_image_uses_llava_when_cloud_disabled(monkeypatch):
+    calls = []
+
+    def fake_post(url, *args, **kwargs):
+        calls.append(url)
+        return FakeResponse(
+            {"response": '{"product_name":"Brot","brand":"Baecker","hint":"Laib"}'}
+        )
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.ai.ingredient_detector.requests.post", fake_post
+    )
+    detector = IngredientDetector(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+            cloud_ai_enabled=False,
+            cloud_ai_image_analysis_enabled=True,
+            ollama_enabled=True,
+            ollama_image_generation_enabled=True,
+        )
+    )
+
+    assert detector.detect_product_from_image("img") == {
+        "product_name": "Brot",
+        "brand": "Baecker",
+        "hint": "Laib",
+    }
+    assert calls == [detector.settings.ollama_url]
+
+
+def test_detect_product_from_image_returns_empty_when_cloud_and_llava_disabled(
+    monkeypatch,
+):
+    def fake_post(*args, **kwargs):
+        raise AssertionError("No image analysis provider should be called")
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.ai.ingredient_detector.requests.post", fake_post
+    )
+    detector = IngredientDetector(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+            cloud_ai_enabled=False,
+            cloud_ai_image_analysis_enabled=False,
+            ollama_enabled=True,
+            ollama_image_generation_enabled=False,
+        )
+    )
+
+    assert detector.detect_product_from_image("img") == {
+        "product_name": "",
+        "brand": "",
+        "hint": "",
+    }
+
+
 def test_generate_product_image_uses_openai_images_api(monkeypatch, tmp_path):
     captured = {}
 

@@ -1,5 +1,5 @@
 name: Grocy AI Assistant
-version: 8.0.76
+version: 8.0.77
 slug: grocy_ai_assistant
 dependencies:
 - a0d49513_grocy
@@ -45,6 +45,7 @@ options:
     cloud_ai_enabled: false
     image_generation_enabled: false
     cloud_ai_text_generation_enabled: false
+    cloud_ai_image_analysis_enabled: false
     openai_api_key: DEIN_OPENAI_KEY
     openai_image_model: gpt-image-1
     openai_text_model: gpt-4o-mini
@@ -77,6 +78,7 @@ schema:
     cloud_ai_enabled: bool
     image_generation_enabled: bool
     cloud_ai_text_generation_enabled: bool
+    cloud_ai_image_analysis_enabled: bool
     openai_api_key: password
     openai_image_model: str
     openai_text_model: str

@@ -1,3 +1,10 @@
+## 2026-07-16 (Version 8.0.77)
+
+- Added (KI/Scanner): Cloud-Bildanalyse kann Scannerbilder zuerst auswerten und fällt bei Fehlern auf lokales Ollama/LLaVA zurück.
+- Changed (Config): `cloud_ai_image_analysis_enabled` trennt Cloud-Bilderkennung von Bildgenerierung; `ollama_image_generation_enabled` bleibt rückwärtskompatibel als LLaVA-Schalter dokumentiert.
+- Added (Tests/KI): Regressionstests decken Cloud-Erfolg, Cloud-Fehler mit LLaVA-Fallback, lokale LLaVA-Auswertung und leeren Fallback ohne Anbieter ab.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.77` erhöht.
+
 ## 2026-07-16 (Version 8.0.76)
 
 - Added (Dashboard/Lager): Standortfilter für die native Home-Assistant-Storage-UI und die Legacy-Static-UI ergänzt.

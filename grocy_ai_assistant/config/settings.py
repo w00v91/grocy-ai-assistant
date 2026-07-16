@@ -83,6 +83,7 @@ class Settings(BaseModel):
     cloud_ai_enabled: bool = True
     image_generation_enabled: bool = False
     cloud_ai_text_generation_enabled: bool = False
+    cloud_ai_image_analysis_enabled: bool = False
     generate_missing_product_images_on_startup: bool = False
     initial_info_sync: bool = False
     openai_api_key: str = ""

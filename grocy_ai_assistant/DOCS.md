@@ -60,6 +60,7 @@ cloud_ai:
   cloud_ai_enabled: false
   image_generation_enabled: false
   cloud_ai_text_generation_enabled: false
+  cloud_ai_image_analysis_enabled: false
   openai_api_key: "DEIN_OPENAI_KEY"
   openai_image_model: "gpt-image-1"
   openai_text_model: "gpt-4o-mini"
@@ -89,6 +90,7 @@ debug_mode: false
 | `cloud_ai.cloud_ai_enabled` | Aktiviert/deaktiviert Cloud-AI-Funktionen grundsätzlich. |
 | `cloud_ai.image_generation_enabled` | Aktiviert die KI-Bildgenerierung für fehlende Produktbilder. |
 | `cloud_ai.cloud_ai_text_generation_enabled` | Aktiviert/deaktiviert Cloud-AI-Texterstellung analog zu Ollama. |
+| `cloud_ai.cloud_ai_image_analysis_enabled` | Aktiviert/deaktiviert Cloud-AI-Bildanalyse als bevorzugte Scanner-Bilderkennung vor dem lokalen Ollama/LLaVA-Fallback. |
 | `cloud_ai.openai_api_key` | OpenAI-API-Key für die Bildgenerierung. |
 | `cloud_ai.openai_image_model` | OpenAI-Modell für die Bildgenerierung, z. B. `gpt-image-1`. |
 | `cloud_ai.openai_text_model` | OpenAI-Modell für Cloud-AI-Texterstellung, z. B. `gpt-4o-mini`. |

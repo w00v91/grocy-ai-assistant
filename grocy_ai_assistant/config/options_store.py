@@ -43,6 +43,7 @@ _GROUPED_OPTION_KEYS = {
         "cloud_ai_enabled",
         "image_generation_enabled",
         "cloud_ai_text_generation_enabled",
+        "cloud_ai_image_analysis_enabled",
         "openai_api_key",
         "openai_image_model",
         "openai_text_model",
