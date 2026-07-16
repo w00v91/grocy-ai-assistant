@@ -1,5 +1,9 @@
 ## 2026-07-16 (Version 8.0.77)
 
+- Fix (API/Initial-Sync): Initialer Info-Sync analysiert nur noch Produkte mit fehlenden Nährwerten oder fehlenden Standard-MHD-Tagen, übernimmt ausschließlich neue positive Werte und schützt vorhandene sinnvolle Werte vor Überschreiben.
+- Fix (API/Initial-Sync): Delta-Zustand merkt auch unveränderte Produkte mit weiterhin fehlenden Feldern, damit erfolglose oder KI-lose Starts nicht bei jedem Neustart erneut analysiert werden.
+- Added (Tests/API): Regressionstests decken Ergänzung fehlender Daten, Überspringen vollständiger Produkte, Cloud-zu-Ollama-Fallback und inaktive KI ohne falsche Werte ab.
+- Changed (Versioning): Versionsstand des Add-ons auf `8.0.77` erhöht.
 - Fix (Dashboard/Produktanlage): Produktbild-Erzeugung läuft nach Produktanlage und Einkaufslisten-Update im Hintergrund, damit Produktsuchen nicht mehr auf langsame Bildgenerierung warten.
 - Fix (Dashboard/Produktbilder): Hintergrund-Bildjobs verwenden einen eigenen Deduplication-Key pro Produkt und überspringen doppelte Bildjobs still statt die Produktsuche mit 409 zu blockieren.
 - Added (Tests/API): Regressionstests decken nicht-blockierende Bildgenerierung, parallele Produktsuchen während laufender Bildjobs und fehlgeschlagene Bildgenerierung ab.

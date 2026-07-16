@@ -52,6 +52,46 @@ def _as_float_or_none(value: object) -> float | None:
     return number
 
 
+def _is_missing_positive_number(value: object) -> bool:
+    number = _as_float_or_none(value)
+    return number is None or number <= 0
+
+
+def _as_positive_float_or_none(value: object) -> float | None:
+    number = _as_float_or_none(value)
+    if number is None or number <= 0:
+        return None
+    return number
+
+
+def _as_positive_int_or_none(value: object) -> int | None:
+    number = _as_float_or_none(value)
+    if number is None or number <= 0:
+        return None
+    return int(number)
+
+
+def _get_initial_sync_missing_fields(
+    product: dict, nutrition: dict[str, object]
+) -> set[str]:
+    missing_fields: set[str] = set()
+    nutrition_field_map = {
+        "calories": "calories",
+        "carbohydrates": "carbs",
+        "fat": "fat",
+        "protein": "protein",
+        "sugar": "sugar",
+    }
+    for field_name, nutrition_key in nutrition_field_map.items():
+        if _is_missing_positive_number(nutrition.get(nutrition_key)):
+            missing_fields.add(field_name)
+
+    if _is_missing_positive_number(product.get("default_best_before_days")):
+        missing_fields.add("default_best_before_days")
+
+    return missing_fields
+
+
 def _load_initial_info_sync_state() -> dict[str, dict[str, object]]:
     try:
         raw = INITIAL_INFO_SYNC_STATE_PATH.read_text(encoding="utf-8")
@@ -263,15 +303,16 @@ def _run_initial_info_sync_on_startup(settings: Settings) -> None:
         product_state_key = str(product_id)
         product_signature = _build_initial_sync_product_signature(product)
         previous_state = state.get(product_state_key, {})
-        if (
-            previous_state.get("signature") == product_signature
-            and previous_state.get("missing_fields") is False
+        previous_missing_fields = previous_state.get("missing_field_keys")
+        if previous_state.get("signature") == product_signature and (
+            isinstance(previous_missing_fields, list)
+            or previous_state.get("missing_fields") is False
         ):
             skipped_by_delta_count += 1
             next_state[product_state_key] = previous_state
             if settings.debug_mode:
                 logger.debug(
-                    "Initialer Info-Sync: Produkt %s per Delta übersprungen (unverändert ohne fehlende Felder)",
+                    "Initialer Info-Sync: Produkt %s per Delta übersprungen (unverändert)",
                     product_id,
                 )
             continue
@@ -288,25 +329,9 @@ def _run_initial_info_sync_on_startup(settings: Settings) -> None:
             )
             continue
 
-        missing_calories = not _as_float_or_none(nutrition.get("calories"))
-        missing_carbs = not _as_float_or_none(nutrition.get("carbs"))
-        missing_fat = not _as_float_or_none(nutrition.get("fat"))
-        missing_protein = not _as_float_or_none(nutrition.get("protein"))
-        missing_sugar = not _as_float_or_none(nutrition.get("sugar"))
-        missing_best_before_days = not _as_float_or_none(
-            product.get("default_best_before_days")
-        )
+        missing_fields = _get_initial_sync_missing_fields(product, nutrition)
 
-        if not any(
-            [
-                missing_calories,
-                missing_carbs,
-                missing_fat,
-                missing_protein,
-                missing_sugar,
-                missing_best_before_days,
-            ]
-        ):
+        if not missing_fields:
             if settings.debug_mode:
                 logger.debug(
                     "Initialer Info-Sync: Produkt %s hat keine fehlenden Felder",
@@ -315,6 +340,7 @@ def _run_initial_info_sync_on_startup(settings: Settings) -> None:
             next_state[product_state_key] = {
                 "signature": product_signature,
                 "missing_fields": False,
+                "missing_field_keys": [],
             }
             continue
 
@@ -329,25 +355,46 @@ def _run_initial_info_sync_on_startup(settings: Settings) -> None:
                 product_name,
                 error,
             )
+            next_state[product_state_key] = {
+                "signature": product_signature,
+                "missing_fields": True,
+                "missing_field_keys": sorted(missing_fields),
+            }
             continue
 
         calories = (
-            _as_float_or_none(ai_data.get("calories")) if missing_calories else None
+            _as_positive_float_or_none(ai_data.get("calories"))
+            if "calories" in missing_fields
+            else None
         )
         carbs = (
-            _as_float_or_none(ai_data.get("carbohydrates")) if missing_carbs else None
+            _as_positive_float_or_none(ai_data.get("carbohydrates"))
+            if "carbohydrates" in missing_fields
+            else None
         )
-        fat = _as_float_or_none(ai_data.get("fat")) if missing_fat else None
-        protein = _as_float_or_none(ai_data.get("protein")) if missing_protein else None
-        sugar = _as_float_or_none(ai_data.get("sugar")) if missing_sugar else None
+        fat = (
+            _as_positive_float_or_none(ai_data.get("fat"))
+            if "fat" in missing_fields
+            else None
+        )
+        protein = (
+            _as_positive_float_or_none(ai_data.get("protein"))
+            if "protein" in missing_fields
+            else None
+        )
+        sugar = (
+            _as_positive_float_or_none(ai_data.get("sugar"))
+            if "sugar" in missing_fields
+            else None
+        )
         best_before_days = (
-            int(_as_float_or_none(ai_data.get("default_best_before_days")) or 0)
-            if missing_best_before_days
-            else 0
+            _as_positive_int_or_none(ai_data.get("default_best_before_days"))
+            if "default_best_before_days" in missing_fields
+            else None
         )
 
         if not any(
-            value and value > 0
+            value is not None
             for value in [calories, carbs, fat, protein, sugar, best_before_days]
         ):
             if settings.debug_mode:
@@ -358,26 +405,39 @@ def _run_initial_info_sync_on_startup(settings: Settings) -> None:
             next_state[product_state_key] = {
                 "signature": product_signature,
                 "missing_fields": True,
+                "missing_field_keys": sorted(missing_fields),
             }
             continue
 
         try:
             client.update_product_nutrition(
                 product_id=product_id,
-                calories=calories if calories and calories > 0 else None,
-                carbs=carbs if carbs and carbs > 0 else None,
-                fat=fat if fat and fat > 0 else None,
-                protein=protein if protein and protein > 0 else None,
-                sugar=sugar if sugar and sugar > 0 else None,
+                calories=calories,
+                carbs=carbs,
+                fat=fat,
+                protein=protein,
+                sugar=sugar,
             )
-            if best_before_days > 0:
+            if best_before_days is not None:
                 client.set_product_default_best_before_days(
                     product_id, best_before_days
                 )
             synced_count += 1
+            remaining_missing_fields = set(missing_fields)
+            for field_name, value in {
+                "calories": calories,
+                "carbohydrates": carbs,
+                "fat": fat,
+                "protein": protein,
+                "sugar": sugar,
+                "default_best_before_days": best_before_days,
+            }.items():
+                if value is not None:
+                    remaining_missing_fields.discard(field_name)
             next_state[product_state_key] = {
                 "signature": product_signature,
-                "missing_fields": False,
+                "missing_fields": bool(remaining_missing_fields),
+                "missing_field_keys": sorted(remaining_missing_fields),
             }
         except STARTUP_GROCY_IO_EXCEPTIONS as error:
             logger.warning(
@@ -388,6 +448,7 @@ def _run_initial_info_sync_on_startup(settings: Settings) -> None:
             next_state[product_state_key] = {
                 "signature": product_signature,
                 "missing_fields": True,
+                "missing_field_keys": sorted(missing_fields),
             }
 
     _save_initial_info_sync_state(next_state)
