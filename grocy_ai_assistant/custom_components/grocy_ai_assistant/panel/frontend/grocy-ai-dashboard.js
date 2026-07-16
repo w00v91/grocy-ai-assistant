@@ -385,6 +385,10 @@ function normalizeStockProduct(item) {
   };
 }
 
+function isAutoCleanupDueStorageItem(item) {
+  return Boolean(item?.in_stock && item?.stock_id && item?.auto_cleanup_due);
+}
+
 function buildStockSignature(items) {
   return JSON.stringify(
     (Array.isArray(items) ? items : []).map((item) => ({
@@ -4028,7 +4032,7 @@ class GrocyAIDashboardPanel extends HTMLElement {
       totalCount: normalizedVisibleItems.length,
       inStockCount: normalizedVisibleItems.filter((item) => item?.in_stock).length,
       outOfStockCount: normalizedVisibleItems.filter((item) => !item?.in_stock).length,
-      cleanupDueCount: normalizedVisibleItems.filter((item) => item?.auto_cleanup_due).length,
+      cleanupDueCount: normalizedVisibleItems.filter(isAutoCleanupDueStorageItem).length,
     };
 
     const { response, payload } = await api.fetchStockProducts({
@@ -4046,7 +4050,7 @@ class GrocyAIDashboardPanel extends HTMLElement {
       totalCount: allItems.length,
       inStockCount,
       outOfStockCount: allItems.length - inStockCount,
-      cleanupDueCount: allItems.filter((item) => item?.auto_cleanup_due).length,
+      cleanupDueCount: allItems.filter(isAutoCleanupDueStorageItem).length,
     };
   }
 
@@ -4079,6 +4083,7 @@ class GrocyAIDashboardPanel extends HTMLElement {
           totalCount: items.length,
           inStockCount: items.filter((item) => item?.in_stock).length,
           outOfStockCount,
+          cleanupDueCount: items.filter(isAutoCleanupDueStorageItem).length,
         }
         : await this._fetchStorageSummary(api, {
           query: latestState.filter,

@@ -2484,11 +2484,13 @@ def dashboard_auto_cleanup_stock_products(
                 "success": True,
                 "message": "Auto-Cleanup ist deaktiviert.",
             }
-        removed_count = int(result.get("removed_count") or 0)
+        consumed_count = int(
+            result.get("consumed_count") or result.get("removed_count") or 0
+        )
         return {
             **result,
             "success": True,
-            "message": f"Auto-Cleanup abgeschlossen: {removed_count} Bestandseinträge entfernt.",
+            "message": f"Auto-Cleanup abgeschlossen: {consumed_count} abgelaufene Mengen verbraucht.",
         }
     except Exception as error:
         log_api_error(
