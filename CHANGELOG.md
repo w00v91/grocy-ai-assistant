@@ -1,3 +1,11 @@
+## 2026-07-16 (Version 8.0.77)
+
+- Fix (Shopping-UI): Produktanlage und Hintergrund-Bildgenerierung werden in den Statusmeldungen getrennt angezeigt.
+- Fix (Shopping-UI): Lokale Doppelklicks während einer Produktanlage melden nun präzise, dass die Produktanlage noch läuft.
+- Fix (Shopping-UI): HTTP-409-Konflikte zeigen verständliche Gründe für aktive Produktanlage, Suche oder Bildgenerierung.
+- Added (Tests/Frontend): Regressionstests decken Produktanlage mit Hintergrundbildjob, lokale Doppelklicks und Backend-409-Meldungen ab.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.77` erhöht.
+
 ## 2026-07-16 (Version 8.0.76)
 
 - Added (Dashboard/Lager): Standortfilter für die native Home-Assistant-Storage-UI und die Legacy-Static-UI ergänzt.

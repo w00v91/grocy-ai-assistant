@@ -362,3 +362,79 @@ test('selectVariant maps input suggestion backend conflicts to product creation 
     'Diese Produktanlage läuft bereits. Bitte kurz warten und dann erneut versuchen.',
   );
 });
+
+test('searchProduct shows separate product creation and background image job messages', async () => {
+  const { controller } = createController({
+    apiOverrides: {
+      searchProduct: async () => ({
+        response: { ok: true },
+        payload: {
+          success: true,
+          action: 'created_and_added',
+          message: 'Alter Backend-Text',
+          image_generation_started: true,
+        },
+      }),
+    },
+  });
+
+  controller.actions.setQuery('Mandelmus');
+  const result = await controller.actions.searchProduct({ forceCreate: true });
+
+  assert.equal(result.ok, true);
+  assert.equal(controller.getState().flowState, SEARCH_FLOW_STATES.SUCCESS);
+  assert.equal(
+    controller.getState().statusMessage,
+    'Produkt wurde angelegt und zur Einkaufsliste hinzugefügt. Produktbild wird im Hintergrund erstellt.',
+  );
+});
+
+test('searchProduct reports local duplicate product creation precisely', async () => {
+  const searchDeferred = createDeferred();
+  const { controller } = createController({
+    apiOverrides: {
+      searchProduct: () => searchDeferred.promise,
+    },
+  });
+
+  controller.actions.setQuery('Cashewmus');
+  const firstSearch = controller.actions.searchProduct({ forceCreate: true });
+  const secondSearch = await controller.actions.searchProduct({ forceCreate: true });
+
+  assert.deepEqual(secondSearch, {
+    ok: false,
+    payload: { action: 'product_creation_in_flight', reason: 'local_in_flight' },
+  });
+  assert.equal(controller.getState().statusMessage, 'Produktanlage läuft noch.');
+
+  searchDeferred.resolve({
+    response: { ok: true },
+    payload: { success: true, action: 'created_and_added' },
+  });
+  await firstSearch;
+});
+
+test('searchProduct maps backend 409 reasons to understandable messages', async () => {
+  const { controller } = createController({
+    apiOverrides: {
+      searchProduct: async () => ({
+        response: { ok: false, status: 409 },
+        payload: { detail: { reason: 'image_generation_in_flight' } },
+      }),
+    },
+  });
+
+  controller.actions.setQuery('Pistaziencreme');
+  const result = await controller.actions.searchProduct();
+
+  assert.equal(result.ok, false);
+  assert.equal(controller.getState().flowState, SEARCH_FLOW_STATES.ERROR);
+  assert.equal(
+    controller.getState().statusMessage,
+    'Aktive Bildgenerierung: Bitte kurz warten und dann erneut versuchen.',
+  );
+  assert.equal(
+    controller.getState().errorMessage,
+    'Aktive Bildgenerierung: Bitte kurz warten und dann erneut versuchen.',
+  );
+});

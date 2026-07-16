@@ -46,6 +46,50 @@ export function parseAmountPrefixedSearch(rawValue) {
 }
 
 
+
+function hasBackgroundImageJob(payload) {
+  return Boolean(
+    payload?.image_generation_started
+    || payload?.background_image_generation_started
+    || payload?.image_generation_queued
+    || payload?.image_job_started
+    || payload?.picture_generation_started
+  );
+}
+
+function buildProductCreationSuccessMessage(payload) {
+  const messages = ['Produkt wurde angelegt und zur Einkaufsliste hinzugefügt.'];
+  if (hasBackgroundImageJob(payload)) {
+    messages.push('Produktbild wird im Hintergrund erstellt.');
+  }
+  return messages.join(' ');
+}
+
+function getBackendConflictMessage(payload, fallbackMessage = 'Eine Anfrage läuft bereits. Bitte kurz warten und dann erneut versuchen.') {
+  const rawReason = String(
+    payload?.reason
+    || payload?.detail?.reason
+    || payload?.detail?.details?.[0]?.reason
+    || payload?.details?.[0]?.reason
+    || payload?.action
+    || payload?.detail?.action
+    || ''
+  ).toLowerCase();
+  const rawMessage = getErrorMessage(payload, '');
+  const message = String(rawMessage || '').trim();
+
+  if (rawReason.includes('product_creation') || rawReason.includes('product_creation_in_flight') || rawReason.includes('produktanlage')) {
+    return message || 'Aktive Produktanlage: Bitte kurz warten und dann erneut versuchen.';
+  }
+  if (rawReason.includes('image') || rawReason.includes('picture') || rawReason.includes('bild')) {
+    return message || 'Aktive Bildgenerierung: Bitte kurz warten und dann erneut versuchen.';
+  }
+  if (rawReason.includes('search') || rawReason.includes('suche')) {
+    return message || 'Aktive Suche: Bitte kurz warten und dann erneut versuchen.';
+  }
+  return message || fallbackMessage;
+}
+
 function getMinimumSearchLengthMessage(length) {
   const remainingCharacters = MIN_PRODUCT_SEARCH_LENGTH - length;
   if (remainingCharacters <= 0) {
@@ -288,6 +332,7 @@ export function createShoppingSearchController({
       : ((amountFromName ?? Number(getDefaultAmount())) || 1);
     const forceCreate = options.forceCreate === true;
     const isSuggestedCreationPath = options.suggestedCreation === true;
+    const isProductCreationPath = isSuggestedCreationPath || forceCreate;
     const bestBeforeDate = String(options.bestBeforeDate ?? getBestBeforeDate() ?? '').trim();
     const nextKey = JSON.stringify([
       normalizedProductName.toLowerCase(),
@@ -318,8 +363,8 @@ export function createShoppingSearchController({
     }
 
     if (activeSearchKey === nextKey) {
-      const inFlightMessage = isSuggestedCreationPath
-        ? 'Diese Produktanlage wird gerade noch verarbeitet…'
+      const inFlightMessage = isProductCreationPath
+        ? 'Produktanlage läuft noch.'
         : 'Diese Produktanfrage wird gerade noch verarbeitet…';
       if (typeof globalThis.console?.debug === 'function') {
         globalThis.console.debug('Shopping search blocked: local request still in flight.', {
@@ -340,7 +385,7 @@ export function createShoppingSearchController({
       return {
         ok: false,
         payload: {
-          action: isSuggestedCreationPath ? 'product_creation_in_flight' : 'search_in_flight',
+          action: isProductCreationPath ? 'product_creation_in_flight' : 'search_in_flight',
           reason: 'local_in_flight',
         },
       };
@@ -367,8 +412,13 @@ export function createShoppingSearchController({
       });
 
       if (!response.ok) {
-        if (isSuggestedCreationPath && response.status === 409) {
-          throw new Error('Diese Produktanlage läuft bereits. Bitte kurz warten und dann erneut versuchen.');
+        if (response.status === 409) {
+          throw new Error(getBackendConflictMessage(
+            payload,
+            isProductCreationPath
+              ? 'Aktive Produktanlage: Bitte kurz warten und dann erneut versuchen.'
+              : 'Aktive Suche: Bitte kurz warten und dann erneut versuchen.',
+          ));
         }
         throw new Error(getErrorMessage(payload, 'Produkt konnte nicht geprüft werden.'));
       }
@@ -389,7 +439,9 @@ export function createShoppingSearchController({
       }
 
       const variants = Array.isArray(payload?.variants) ? payload.variants : [];
-      const statusMessage = payload?.message || (variants.length ? 'Varianten gefunden.' : 'Produkt verarbeitet.');
+      const statusMessage = payload?.action === 'created_and_added'
+        ? buildProductCreationSuccessMessage(payload)
+        : (payload?.message || (variants.length ? 'Varianten gefunden.' : 'Produkt verarbeitet.'));
       if (payload?.action === 'variant_selection_required' && variants.length) {
         setState({
           variants,
@@ -418,7 +470,7 @@ export function createShoppingSearchController({
         isSubmitting: false,
         isLoadingVariants: false,
         flowState: SEARCH_FLOW_STATES.ERROR,
-        statusMessage: isSuggestedCreationPath && error.message.includes('Produktanlage')
+        statusMessage: error.message.includes('Aktive') || error.message.includes('Produktanlage')
           ? error.message
           : 'Produkt konnte nicht geprüft werden.',
         errorMessage: error.message,
