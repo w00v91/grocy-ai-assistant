@@ -618,12 +618,6 @@ class IngredientDetector:
                     response.raise_for_status()
                     raw_answer = response.json().get("response")
 
-    def generate_product_image(self, product_name: str) -> str:
-        if not (
-            self.settings.cloud_ai_enabled and self.settings.image_generation_enabled
-        ):
-            logger.info("Keine Bildgenerierung aktiv, Produkt wird ohne Bild angelegt.")
-            return ""
                 if self.settings.debug_mode:
                     logger.info(
                         "KI-Antwort detect_product_from_image (%s): %s",
@@ -643,7 +637,6 @@ class IngredientDetector:
             logger.warning(
                 "Keine KI-Bildanalyse verfuegbar, nutze rudimentaeren Fallback"
             )
-            logger.info("Keine Bildgenerierung aktiv, Produkt wird ohne Bild angelegt.")
         return self._empty_image_detection()
 
     def generate_product_image(self, product_name: str) -> str:
