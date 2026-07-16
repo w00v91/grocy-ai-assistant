@@ -4,6 +4,16 @@
 - Fix (API/Initial-Sync): Delta-Zustand merkt auch unveränderte Produkte mit weiterhin fehlenden Feldern, damit erfolglose oder KI-lose Starts nicht bei jedem Neustart erneut analysiert werden.
 - Added (Tests/API): Regressionstests decken Ergänzung fehlender Daten, Überspringen vollständiger Produkte, Cloud-zu-Ollama-Fallback und inaktive KI ohne falsche Werte ab.
 - Changed (Versioning): Versionsstand des Add-ons auf `8.0.77` erhöht.
+- Fix (Dashboard/Produktanlage): Produktbild-Erzeugung läuft nach Produktanlage und Einkaufslisten-Update im Hintergrund, damit Produktsuchen nicht mehr auf langsame Bildgenerierung warten.
+- Fix (Dashboard/Produktbilder): Hintergrund-Bildjobs verwenden einen eigenen Deduplication-Key pro Produkt und überspringen doppelte Bildjobs still statt die Produktsuche mit 409 zu blockieren.
+- Added (Tests/API): Regressionstests decken nicht-blockierende Bildgenerierung, parallele Produktsuchen während laufender Bildjobs und fehlgeschlagene Bildgenerierung ab.
+- Changed (KI-Provider): Zentrale Provider-Entscheidung fuer Textanalyse, Bildanalyse und Bildgenerierung eingefuehrt; Cloud wird je Faehigkeit bevorzugt, Ollama/LLaVA dient nur als Bildanalyse-Fallback und rudimentaere Fallbacks bleiben erhalten.
+- Changed (Versioning): Versionsstaende fuer Add-on und Integration auf `8.0.77` erhoeht.
+- Fix (Grocy/Auto-Cleanup): Abgelaufene Nicht-Konserven-Bestände werden jetzt mengenbasiert über Grocys Consume-Endpunkt verbraucht statt Stock-Einträge direkt zu löschen.
+- Added (Tests): Regressionstests prüfen das Parsen abgelaufener Mengen und den Consume-Aufruf inklusive Stock-ID.
+- Fix (Dashboard/Lager): Auto-Cleanup-Zähler verwenden in sichtbaren und vollständigen Produktlisten dieselben Backend-Kriterien (`in_stock`, gültige `stock_id`, `auto_cleanup_due`).
+- Added (Tests/Frontend): Regressionstest vergleicht die Cleanup-Zählkriterien für `includeAllProducts=false` und `includeAllProducts=true` mit identischem Datenbestand.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.77` erhöht.
 
 ## 2026-07-16 (Version 8.0.76)
 

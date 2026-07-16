@@ -88,6 +88,9 @@ LAST_SCAN_RESULT: dict[str, Any] = {
 SEARCH_GUARD_LOCK = threading.Lock()
 SEARCH_REQUESTS_IN_FLIGHT: dict[str, float] = {}
 SEARCH_GUARD_STALE_SECONDS = 45.0
+BACKGROUND_JOB_LOCK = threading.Lock()
+BACKGROUND_JOBS_IN_FLIGHT: dict[str, float] = {}
+BACKGROUND_JOB_STALE_SECONDS = 600.0
 
 
 def _call_homeassistant_service(
@@ -198,6 +201,95 @@ def _begin_dashboard_search_guard(
 def _end_dashboard_search_guard(guard_key: str) -> None:
     with SEARCH_GUARD_LOCK:
         SEARCH_REQUESTS_IN_FLIGHT.pop(guard_key, None)
+
+
+def _begin_background_job_guard(
+    guard_key: str, *, stale_seconds: float = BACKGROUND_JOB_STALE_SECONDS
+) -> bool:
+    now = time.monotonic()
+    cutoff = now - stale_seconds
+    with BACKGROUND_JOB_LOCK:
+        stale_keys = [
+            key
+            for key, started_at in BACKGROUND_JOBS_IN_FLIGHT.items()
+            if started_at < cutoff
+        ]
+        for key in stale_keys:
+            BACKGROUND_JOBS_IN_FLIGHT.pop(key, None)
+
+        if guard_key in BACKGROUND_JOBS_IN_FLIGHT:
+            return False
+
+        BACKGROUND_JOBS_IN_FLIGHT[guard_key] = now
+        return True
+
+
+def _end_background_job_guard(guard_key: str) -> None:
+    with BACKGROUND_JOB_LOCK:
+        BACKGROUND_JOBS_IN_FLIGHT.pop(guard_key, None)
+
+
+def _run_product_picture_background_job(
+    *,
+    guard_key: str,
+    product_name: str,
+    product_id: int,
+    detector: IngredientDetector,
+    grocy_client: GrocyClient,
+    settings: Settings,
+) -> None:
+    try:
+        _generate_and_attach_product_picture(
+            product_name=product_name,
+            product_id=product_id,
+            detector=detector,
+            grocy_client=grocy_client,
+            settings=settings,
+        )
+    except Exception:
+        logger.exception(
+            "Produktbild-Hintergrundjob für Produkt %s (%s) ist fehlgeschlagen.",
+            product_id,
+            product_name,
+        )
+    finally:
+        _end_background_job_guard(guard_key)
+
+
+def _schedule_product_picture_background_job(
+    *,
+    product_name: str,
+    product_id: int,
+    detector: IngredientDetector,
+    grocy_client: GrocyClient,
+    settings: Settings,
+) -> bool:
+    if not settings.image_generation_enabled:
+        return False
+
+    guard_key = f"product_picture:{product_id}"
+    if not _begin_background_job_guard(guard_key):
+        logger.info(
+            "Produktbild-Hintergrundjob für Produkt %s läuft bereits und wird übersprungen.",
+            product_id,
+        )
+        return False
+
+    thread = threading.Thread(
+        target=_run_product_picture_background_job,
+        kwargs={
+            "guard_key": guard_key,
+            "product_name": product_name,
+            "product_id": product_id,
+            "detector": detector,
+            "grocy_client": grocy_client,
+            "settings": settings,
+        },
+        name=f"product-picture-{product_id}",
+        daemon=True,
+    )
+    thread.start()
+    return True
 
 
 def _build_homeassistant_auth_headers() -> list[dict[str, str]]:
@@ -1011,14 +1103,7 @@ def _create_and_add_product_to_shopping_list(
                 error,
             )
 
-    if created_new_product:
-        _generate_and_attach_product_picture(
-            product_name=product_name,
-            product_id=created_object_id,
-            detector=detector,
-            grocy_client=grocy_client,
-            settings=settings,
-        )
+    picture_job_scheduled = False
     resolved_best_before_date = _resolve_best_before_date_for_product(
         grocy_client,
         product_id=created_object_id,
@@ -1042,10 +1127,23 @@ def _create_and_add_product_to_shopping_list(
         before_items=before_items,
     )
 
+    if created_new_product:
+        picture_job_scheduled = _schedule_product_picture_background_job(
+            product_name=product_name,
+            product_id=created_object_id,
+            detector=detector,
+            grocy_client=grocy_client,
+            settings=settings,
+        )
+
+    message = f"{product_name} wurde neu angelegt und zur Einkaufsliste hinzugefügt."
+    if picture_job_scheduled:
+        message = f"{message} Produktbild wird im Hintergrund erstellt."
+
     return DashboardSearchResponse(
         success=True,
         action="created_and_added",
-        message=f"{product_name} wurde neu angelegt und zur Einkaufsliste hinzugefügt.",
+        message=message,
         product_id=created_object_id,
     )
 
@@ -2484,11 +2582,13 @@ def dashboard_auto_cleanup_stock_products(
                 "success": True,
                 "message": "Auto-Cleanup ist deaktiviert.",
             }
-        removed_count = int(result.get("removed_count") or 0)
+        consumed_count = int(
+            result.get("consumed_count") or result.get("removed_count") or 0
+        )
         return {
             **result,
             "success": True,
-            "message": f"Auto-Cleanup abgeschlossen: {removed_count} Bestandseinträge entfernt.",
+            "message": f"Auto-Cleanup abgeschlossen: {consumed_count} abgelaufene Mengen verbraucht.",
         }
     except Exception as error:
         log_api_error(
