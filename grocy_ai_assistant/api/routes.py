@@ -1102,6 +1102,34 @@ def _parse_best_before_date(value: object) -> date | None:
     return None
 
 
+RECIPE_STOCK_LOCATION_EXCLUDE_NAMES = {
+    "sonstiges",
+    "sonstige",
+    "sonstiger ort",
+    "misc",
+    "miscellaneous",
+    "other",
+    "unknown",
+    "unbekannt",
+}
+
+
+def _is_recipe_stock_location_allowed(product: dict) -> bool:
+    location_name = str(product.get("location_name") or "").strip().casefold()
+    if not location_name:
+        return True
+
+    return location_name not in RECIPE_STOCK_LOCATION_EXCLUDE_NAMES
+
+
+def _filter_recipe_stock_products(stock_products: list[dict]) -> list[dict]:
+    return [
+        product
+        for product in stock_products
+        if _is_recipe_stock_location_allowed(product)
+    ]
+
+
 def _generate_recipe_suggestions(
     stock_products: list[dict],
     selected_ids: set[int],
@@ -1310,7 +1338,7 @@ def prefetch_initial_recipe_suggestions(settings: Settings) -> dict | None:
         return None
 
     grocy_client = GrocyClient(settings)
-    stock_products = grocy_client.get_stock_products()
+    stock_products = _filter_recipe_stock_products(grocy_client.get_stock_products())
     response = _generate_recipe_suggestions(
         stock_products=stock_products,
         selected_ids=set(),
@@ -2843,6 +2871,8 @@ def dashboard_recipe_suggestions(
             else grocy_client.get_stock_products()
         )
 
+        stock_products = _filter_recipe_stock_products(stock_products)
+
         if payload.soon_expiring_only:
             days = max(1, min(int(payload.expiring_within_days), 30))
             today = date.today()
@@ -2864,11 +2894,13 @@ def dashboard_recipe_suggestions(
                 if today <= best_before <= deadline:
                     expiring_product_ids.add(product_id)
 
-            stock_products = [
-                product
-                for product in stock_products
-                if product.get("id") in expiring_product_ids
-            ]
+            stock_products = _filter_recipe_stock_products(
+                [
+                    product
+                    for product in stock_products
+                    if product.get("id") in expiring_product_ids
+                ]
+            )
             selected_ids = {
                 product_id
                 for product_id in selected_ids
