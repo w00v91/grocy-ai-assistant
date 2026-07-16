@@ -1,5 +1,8 @@
 ## 2026-07-16 (Version 8.0.77)
 
+- Fix (Dashboard/Produktanlage): Produktbild-Erzeugung läuft nach Produktanlage und Einkaufslisten-Update im Hintergrund, damit Produktsuchen nicht mehr auf langsame Bildgenerierung warten.
+- Fix (Dashboard/Produktbilder): Hintergrund-Bildjobs verwenden einen eigenen Deduplication-Key pro Produkt und überspringen doppelte Bildjobs still statt die Produktsuche mit 409 zu blockieren.
+- Added (Tests/API): Regressionstests decken nicht-blockierende Bildgenerierung, parallele Produktsuchen während laufender Bildjobs und fehlgeschlagene Bildgenerierung ab.
 - Fix (KI/Textanbieter): Produktnamenanalyse nutzt Cloud-Text nur bei vollständig aktivierter Cloud-Konfiguration, fällt bei Cloud-Fehlern automatisch auf Ollama zurück und liefert bei deaktivierten/fehlgeschlagenen Textanbietern sichere Produkt-Fallbackdaten.
 - Added (Tests/KI): Regressionstests decken Cloud-Priorität, Cloud-Fehler mit Ollama-Fallback, Ollama ohne Cloud und deaktivierte Textanbieter ab.
 - Changed (KI-Provider): Zentrale Provider-Entscheidung für Textanalyse, Bildanalyse und Bildgenerierung eingeführt; Cloud wird je Fähigkeit bevorzugt, Ollama/LLaVA dient nur als Bildanalyse-Fallback und rudimentäre Fallbacks bleiben erhalten.
