@@ -1,3 +1,10 @@
+## 2026-07-16 (Version 8.0.77)
+
+- Fix (KI/Produktbilder): Produktbilder werden nur noch über aktive Cloud-/OpenAI-Bildgeneratoren erzeugt; LLaVA wird nicht als Generator-Fallback genutzt.
+- Fix (Dashboard/Produktanlage): Deaktivierte oder fehlgeschlagene Cloud-Bildgenerierung blockiert die Produktanlage nicht mehr und wird klar protokolliert.
+- Added (Tests): Regressionstests decken erfolgreiche, deaktivierte und fehlgeschlagene Cloud-Bildgenerierung bei der Produktanlage ab.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.77` erhöht.
+
 ## 2026-07-16 (Version 8.0.76)
 
 - Added (Dashboard/Lager): Standortfilter für die native Home-Assistant-Storage-UI und die Legacy-Static-UI ergänzt.

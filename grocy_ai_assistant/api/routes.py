@@ -868,13 +868,28 @@ def _generate_and_attach_product_picture(
     grocy_client: GrocyClient,
     settings: Settings,
 ) -> None:
-    if not settings.image_generation_enabled:
+    if not (settings.cloud_ai_enabled and settings.image_generation_enabled):
+        logger.info("Keine Bildgenerierung aktiv, Produkt wird ohne Bild angelegt.")
         return
 
     try:
         image_path = detector.generate_product_image(product_name)
-        if not image_path:
-            return
+    except AI_FILE_IO_EXCEPTIONS as error:
+        logger.warning(
+            "Cloud-Bildgenerierung fehlgeschlagen, Produkt bleibt ohne generiertes Bild."
+        )
+        logger.warning(
+            "Produktbild konnte nicht automatisch erstellt/gespeichert werden (%s): %s",
+            product_name,
+            error,
+        )
+        return
+
+    if not image_path:
+        logger.info("Keine Bildgenerierung aktiv, Produkt wird ohne Bild angelegt.")
+        return
+
+    try:
         grocy_client.attach_product_picture(product_id, image_path)
     except AI_FILE_IO_EXCEPTIONS as error:
         logger.warning(

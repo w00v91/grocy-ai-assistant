@@ -560,12 +560,14 @@ class IngredientDetector:
         if not (
             self.settings.cloud_ai_enabled and self.settings.image_generation_enabled
         ):
+            logger.info("Keine Bildgenerierung aktiv, Produkt wird ohne Bild angelegt.")
             return ""
 
         if not self.settings.openai_api_key:
             logger.warning(
                 "Bildgenerierung aktiv, aber openai_api_key fehlt in den Add-on Optionen"
             )
+            logger.info("Keine Bildgenerierung aktiv, Produkt wird ohne Bild angelegt.")
             return ""
 
         prompt = IMAGE_PROMPT_TEMPLATE.format(product_name=product_name)

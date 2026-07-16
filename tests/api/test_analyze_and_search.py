@@ -1398,3 +1398,66 @@ def test_dashboard_search_generates_and_attaches_image_for_new_product(
     assert response.status_code == 200
     assert response.json()["action"] == "created_and_added"
     assert calls["attached"] == (42, "/tmp/generated/apfel.png")
+
+
+def test_generate_and_attach_product_picture_skips_when_cloud_image_generation_disabled(
+    test_settings, caplog
+):
+    test_settings.cloud_ai_enabled = False
+    test_settings.image_generation_enabled = True
+    calls = {"generated": False, "attached": False}
+
+    class FakeDetector:
+        def generate_product_image(self, name):
+            calls["generated"] = True
+            return "/tmp/should-not-exist.png"
+
+    class FakeGrocyClient:
+        def attach_product_picture(self, product_id, image_path):
+            calls["attached"] = True
+
+    with caplog.at_level(logging.INFO):
+        routes._generate_and_attach_product_picture(
+            product_name="Milch",
+            product_id=42,
+            detector=FakeDetector(),
+            grocy_client=FakeGrocyClient(),
+            settings=test_settings,
+        )
+
+    assert calls == {"generated": False, "attached": False}
+    assert (
+        "Keine Bildgenerierung aktiv, Produkt wird ohne Bild angelegt." in caplog.text
+    )
+
+
+def test_generate_and_attach_product_picture_continues_when_cloud_generation_fails(
+    test_settings, caplog
+):
+    test_settings.cloud_ai_enabled = True
+    test_settings.image_generation_enabled = True
+    test_settings.openai_api_key = "sk-test"
+    calls = {"attached": False}
+
+    class FakeDetector:
+        def generate_product_image(self, name):
+            raise requests.RequestException("timeout")
+
+    class FakeGrocyClient:
+        def attach_product_picture(self, product_id, image_path):
+            calls["attached"] = True
+
+    with caplog.at_level(logging.WARNING):
+        routes._generate_and_attach_product_picture(
+            product_name="Milch",
+            product_id=42,
+            detector=FakeDetector(),
+            grocy_client=FakeGrocyClient(),
+            settings=test_settings,
+        )
+
+    assert calls["attached"] is False
+    assert (
+        "Cloud-Bildgenerierung fehlgeschlagen, Produkt bleibt ohne generiertes Bild."
+        in caplog.text
+    )
