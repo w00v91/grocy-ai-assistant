@@ -1,4 +1,5 @@
 from pathlib import Path
+import json
 import logging
 
 import pytest
@@ -1008,4 +1009,197 @@ def test_ollama_image_generation_switch_disables_image_detection(monkeypatch):
         "product_name": "",
         "brand": "",
         "hint": "",
+    }
+
+
+def _product_analysis_settings(**overrides):
+    values = {
+        "api_key": "x",
+        "addon_version": "a",
+        "required_integration_version": "1",
+        "grocy_api_key": "g",
+        "cloud_ai_enabled": False,
+        "cloud_ai_text_generation_enabled": False,
+        "openai_api_key": "",
+        "ollama_enabled": False,
+        "ollama_text_generation_enabled": False,
+    }
+    values.update(overrides)
+    return Settings(**values)
+
+
+def _analysis_payload(name):
+    return {
+        "name": name,
+        "description": "Beschreibung",
+        "location_id": 2,
+        "qu_id_purchase": 3,
+        "qu_id_stock": 4,
+        "calories": 10,
+        "carbohydrates": 11,
+        "fat": 12,
+        "protein": 13,
+        "sugar": 14,
+        "default_best_before_days": 15,
+    }
+
+
+def test_analyze_product_name_uses_cloud_when_enabled(monkeypatch):
+    calls = []
+
+    def fake_post(url, **kwargs):
+        calls.append(url)
+        return FakeResponse(
+            {
+                "choices": [
+                    {
+                        "message": {
+                            "content": json.dumps(_analysis_payload("Cloud Milch"))
+                        }
+                    }
+                ]
+            }
+        )
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.ai.ingredient_detector.requests.post", fake_post
+    )
+
+    detector = IngredientDetector(
+        _product_analysis_settings(
+            cloud_ai_enabled=True,
+            cloud_ai_text_generation_enabled=True,
+            openai_api_key="sk-test",
+            ollama_enabled=True,
+            ollama_text_generation_enabled=True,
+        )
+    )
+
+    result = detector.analyze_product_name("Milch")
+
+    assert calls == ["https://api.openai.com/v1/chat/completions"]
+    assert result["name"] == "Cloud Milch"
+    assert result["location_id"] == 2
+
+
+def test_analyze_product_name_uses_ollama_after_cloud_error(monkeypatch):
+    calls = []
+
+    def fake_post(url, **kwargs):
+        calls.append(url)
+        if "openai.com" in url:
+            raise requests.Timeout("cloud timeout")
+        return FakeResponse({"response": json.dumps(_analysis_payload("Ollama Milch"))})
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.ai.ingredient_detector.requests.post", fake_post
+    )
+
+    settings = _product_analysis_settings(
+        cloud_ai_enabled=True,
+        cloud_ai_text_generation_enabled=True,
+        openai_api_key="sk-test",
+        ollama_enabled=True,
+        ollama_text_generation_enabled=True,
+    )
+    detector = IngredientDetector(settings)
+
+    result = detector.analyze_product_name("Milch")
+
+    assert calls == ["https://api.openai.com/v1/chat/completions", settings.ollama_url]
+    assert result["name"] == "Ollama Milch"
+    assert result["default_best_before_days"] == 15
+
+
+def test_analyze_product_name_uses_ollama_when_cloud_disabled(monkeypatch):
+    calls = []
+
+    def fake_post(url, **kwargs):
+        calls.append(url)
+        return FakeResponse({"response": json.dumps(_analysis_payload("Ollama Brot"))})
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.ai.ingredient_detector.requests.post", fake_post
+    )
+
+    settings = _product_analysis_settings(
+        cloud_ai_enabled=False,
+        cloud_ai_text_generation_enabled=True,
+        openai_api_key="sk-test",
+        ollama_enabled=True,
+        ollama_text_generation_enabled=True,
+    )
+    detector = IngredientDetector(settings)
+
+    result = detector.analyze_product_name("Brot")
+
+    assert calls == [settings.ollama_url]
+    assert result["name"] == "Ollama Brot"
+
+
+def test_analyze_product_name_uses_fallback_when_text_providers_disabled(monkeypatch):
+    def fake_post(*args, **kwargs):  # pragma: no cover - must not be reached
+        raise AssertionError("no text provider should be called")
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.ai.ingredient_detector.requests.post", fake_post
+    )
+
+    detector = IngredientDetector(
+        _product_analysis_settings(
+            cloud_ai_enabled=False,
+            cloud_ai_text_generation_enabled=False,
+            openai_api_key="",
+            ollama_enabled=False,
+            ollama_text_generation_enabled=False,
+        )
+    )
+
+    result = detector.analyze_product_name("Brot")
+
+    assert result == {
+        "name": "Brot",
+        "description": "",
+        "location_id": 1,
+        "qu_id_purchase": 1,
+        "qu_id_stock": 1,
+        "calories": 0,
+        "carbohydrates": 0,
+        "fat": 0,
+        "protein": 0,
+        "sugar": 0,
+        "default_best_before_days": 0,
+    }
+
+
+def test_analyze_product_name_uses_fallback_after_ollama_error(monkeypatch):
+    def fake_post(*args, **kwargs):
+        raise requests.ConnectionError("ollama unavailable")
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.ai.ingredient_detector.requests.post", fake_post
+    )
+
+    detector = IngredientDetector(
+        _product_analysis_settings(
+            cloud_ai_enabled=False,
+            ollama_enabled=True,
+            ollama_text_generation_enabled=True,
+        )
+    )
+
+    result = detector.analyze_product_name("Joghurt")
+
+    assert result == {
+        "name": "Joghurt",
+        "description": "",
+        "location_id": 1,
+        "qu_id_purchase": 1,
+        "qu_id_stock": 1,
+        "calories": 0,
+        "carbohydrates": 0,
+        "fat": 0,
+        "protein": 0,
+        "sugar": 0,
+        "default_best_before_days": 0,
     }

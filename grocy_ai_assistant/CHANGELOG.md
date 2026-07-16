@@ -1,5 +1,7 @@
 ## 2026-07-16 (Version 8.0.77)
 
+- Fix (KI/Textanbieter): Produktnamenanalyse nutzt Cloud-Text nur bei vollständig aktivierter Cloud-Konfiguration, fällt bei Cloud-Fehlern automatisch auf Ollama zurück und liefert bei deaktivierten/fehlgeschlagenen Textanbietern sichere Produkt-Fallbackdaten.
+- Added (Tests/KI): Regressionstests decken Cloud-Priorität, Cloud-Fehler mit Ollama-Fallback, Ollama ohne Cloud und deaktivierte Textanbieter ab.
 - Changed (KI-Provider): Zentrale Provider-Entscheidung für Textanalyse, Bildanalyse und Bildgenerierung eingeführt; Cloud wird je Fähigkeit bevorzugt, Ollama/LLaVA dient nur als Bildanalyse-Fallback und rudimentäre Fallbacks bleiben erhalten.
 - Added (Tests/KI): Regressionstests decken Cloud-First-Bildanalyse und Fallback auf LLaVA ab.
 - Fix (Grocy/Auto-Cleanup): Abgelaufene Nicht-Konserven-Bestände werden jetzt mengenbasiert über Grocys Consume-Endpunkt verbraucht statt Stock-Einträge direkt zu löschen.
