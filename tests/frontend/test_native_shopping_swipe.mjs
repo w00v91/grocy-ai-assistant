@@ -137,6 +137,30 @@ test('native storage tab forwards selected locations to stock product requests',
   assert.match(source, /_fetchStorageSummary\(api, \{ query = '', visibleItems = \[\], locationIds = \[\] \} = \{\}\)/);
 });
 
+
+test('storage summary uses backend cleanup criteria for visible and all-product counts', async () => {
+  const source = await fs.readFile(nativeDashboardPath, 'utf8');
+  const legacySource = await fs.readFile(legacyDashboardPath, 'utf8');
+  const cleanupDataset = [
+    { in_stock: true, stock_id: 1, auto_cleanup_due: true },
+    { in_stock: false, stock_id: 2, auto_cleanup_due: true },
+    { in_stock: true, stock_id: null, auto_cleanup_due: true },
+    { in_stock: true, stock_id: 3, auto_cleanup_due: false },
+  ];
+  const countCleanupDue = (items) => items.filter(
+    (item) => Boolean(item?.in_stock && item?.stock_id && item?.auto_cleanup_due),
+  ).length;
+
+  assert.equal(countCleanupDue(cleanupDataset), 1);
+  assert.match(source, /function isAutoCleanupDueStorageItem\(item\) \{\s+return Boolean\(item\?\.in_stock && item\?\.stock_id && item\?\.auto_cleanup_due\);\s+\}/);
+  assert.match(source, /cleanupDueCount: normalizedVisibleItems\.filter\(isAutoCleanupDueStorageItem\)\.length/);
+  assert.match(source, /cleanupDueCount: allItems\.filter\(isAutoCleanupDueStorageItem\)\.length/);
+  assert.match(source, /cleanupDueCount: items\.filter\(isAutoCleanupDueStorageItem\)\.length/);
+  assert.match(legacySource, /cleanupDueCount: normalizedVisibleItems\.filter\(isAutoCleanupDueStorageItem\)\.length/);
+  assert.match(legacySource, /cleanupDueCount: allItems\.filter\(isAutoCleanupDueStorageItem\)\.length/);
+  assert.match(legacySource, /cleanupDueCount: dashboardState\.storageProductsCache\.filter\(isAutoCleanupDueStorageItem\)\.length/);
+});
+
 test('legacy dashboard reuses the shared swipe utility import', async () => {
   const source = await fs.readFile(legacyDashboardPath, 'utf8');
 

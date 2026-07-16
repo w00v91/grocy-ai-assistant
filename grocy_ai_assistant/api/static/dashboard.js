@@ -369,6 +369,10 @@ const recipeCreateState = {
   method: null,
 };
 
+function isAutoCleanupDueStorageItem(item) {
+  return Boolean(item?.in_stock && item?.stock_id && item?.auto_cleanup_due);
+}
+
 function buildStockSignature(items) {
   return JSON.stringify(
     (Array.isArray(items) ? items : [])
@@ -2324,7 +2328,7 @@ async function fetchStorageSummaryCounts({ query = '', visibleItems = [], locati
     totalCount: normalizedVisibleItems.length,
     inStockCount: normalizedVisibleItems.filter((item) => item?.in_stock).length,
     outOfStockCount: normalizedVisibleItems.filter((item) => !item?.in_stock).length,
-    cleanupDueCount: normalizedVisibleItems.filter((item) => item?.auto_cleanup_due).length,
+    cleanupDueCount: normalizedVisibleItems.filter(isAutoCleanupDueStorageItem).length,
   };
 
   try {
@@ -2340,7 +2344,7 @@ async function fetchStorageSummaryCounts({ query = '', visibleItems = [], locati
       totalCount: allItems.length,
       inStockCount,
       outOfStockCount: allItems.length - inStockCount,
-      cleanupDueCount: allItems.filter((item) => item?.auto_cleanup_due).length,
+      cleanupDueCount: allItems.filter(isAutoCleanupDueStorageItem).length,
     };
   } catch (error) {
     return fallbackSummary;
@@ -2446,7 +2450,7 @@ async function loadStorageProducts() {
           totalCount: dashboardState.storageProductsCache.length,
           inStockCount: dashboardState.storageProductsCache.filter((item) => item.in_stock).length,
           outOfStockCount: dashboardState.storageProductsCache.filter((item) => !item.in_stock).length,
-          cleanupDueCount: dashboardState.storageProductsCache.filter((item) => item.auto_cleanup_due).length,
+          cleanupDueCount: dashboardState.storageProductsCache.filter(isAutoCleanupDueStorageItem).length,
         }
         : await fetchStorageSummaryCounts({
           query: filterValue,
