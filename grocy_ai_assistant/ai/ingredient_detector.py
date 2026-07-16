@@ -75,7 +75,7 @@ class IngredientDetector:
         return bool(
             self.settings.cloud_ai_enabled
             and self.settings.cloud_ai_text_generation_enabled
-            and self.settings.openai_api_key
+            and str(self.settings.openai_api_key or "").strip()
         )
 
     def _request_text_json(
