@@ -713,6 +713,12 @@ def test_recipe_suggestions_prioritize_grocy_then_ai(client, monkeypatch):
         return [
             {"id": 1, "name": "Tomate", "location_name": "Kühlschrank", "amount": "2"},
             {"id": 2, "name": "Nudeln", "location_name": "Vorrat", "amount": "1"},
+            {
+                "id": 3,
+                "name": "Spülmittel",
+                "location_name": "Sonstiges",
+                "amount": "1",
+            },
         ]
 
     def fake_get_recipes(self):
@@ -818,6 +824,12 @@ def test_recipe_suggestions_uses_stock_products_when_selection_is_empty(
         return [
             {"id": 1, "name": "Tomate", "location_name": "Kühlschrank", "amount": "2"},
             {"id": 2, "name": "Nudeln", "location_name": "Vorrat", "amount": "1"},
+            {
+                "id": 3,
+                "name": "Spülmittel",
+                "location_name": "Sonstiges",
+                "amount": "1",
+            },
         ]
 
     def fake_get_recipes(self):

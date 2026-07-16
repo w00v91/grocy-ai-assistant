@@ -1,3 +1,9 @@
+## 2026-07-16 (Version 8.0.76)
+
+- Fix (Rezepte/Dashboard): Rezeptvorschläge ignorieren jetzt ungeeignete Lagerstandorte wie `Sonstiges`, sodass die KI nur mit sinnvollen Vorratsorten wie Küche, Vorrat oder Kühlschrank arbeitet.
+- Added (Tests): Regressionstest stellt sicher, dass Produkte aus `Sonstiges` nicht in die Rezeptauswahl gelangen.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.76` erhöht.
+
 ## 2026-07-13 (Version 8.0.75)
 
 - Fix (Home-Assistant-Integration/API): Die veraltete interne Add-on-URL `grocy_ai_assistant:8000` wird jetzt auf den gültigen Bindestrich-Host normalisiert und nicht mehr als Fallback versucht, damit DNS-Timeouts die Coordinator-Abfragen nicht blockieren.
