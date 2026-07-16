@@ -1,3 +1,10 @@
+## 2026-07-16 (Version 8.0.77)
+
+- Fix (Startup-Bildsync): Fehlende Produktbilder werden beim Start nur noch mit aktivem Cloud/OpenAI-Bildgenerator erzeugt; LLaVA wird dafür nicht verwendet. Ohne aktiven Generator werden Produkte ohne Bild geloggt übersprungen.
+- Fix (Startup-Bildsync): Fehler bei der Bildgenerierung eines Produkts werden geloggt und blockieren die weitere Verarbeitung anderer Produkte nicht.
+- Added (Tests/Startup-Bildsync): Regressionstests für aktive Cloud-Bildgenerierung, fehlenden Generator und Weiterverarbeitung nach Produktfehlern ergänzt.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.77` erhöht.
+
 ## 2026-07-16 (Version 8.0.76)
 
 - Added (Dashboard/Lager): Standortfilter für die native Home-Assistant-Storage-UI und die Legacy-Static-UI ergänzt.

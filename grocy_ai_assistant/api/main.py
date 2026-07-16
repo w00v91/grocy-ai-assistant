@@ -141,11 +141,16 @@ def _generate_missing_product_images_on_startup(
         )
         return {"status": "skipped_option_disabled", "generated": 0, "total": 0}
 
-    if not settings.image_generation_enabled:
+    if not (settings.cloud_ai_enabled and settings.image_generation_enabled):
         logger.info(
-            "Batch-Bildgenerierung beim Start übersprungen: image_generation_enabled ist deaktiviert"
+            "Batch-Bildgenerierung beim Start übersprungen: kein aktiver "
+            "Bildgenerator für fehlende Produktbilder verfügbar "
+            "(cloud_ai_enabled=%s, image_generation_enabled=%s)"
+            "; Produkte ohne Bild bleiben unverändert",
+            settings.cloud_ai_enabled,
+            settings.image_generation_enabled,
         )
-        return {"status": "skipped_generation_disabled", "generated": 0, "total": 0}
+        return {"status": "skipped_no_image_generator", "generated": 0, "total": 0}
 
     client = GrocyClient(settings)
     detector = IngredientDetector(settings)

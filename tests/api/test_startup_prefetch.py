@@ -2,6 +2,7 @@ import json
 
 import time
 
+import pytest
 from fastapi.testclient import TestClient
 
 import grocy_ai_assistant.api.main as api_main
@@ -182,6 +183,7 @@ def test_startup_batch_disables_option_after_completion(monkeypatch, tmp_path):
     settings = Settings(
         api_key="k",
         grocy_api_key="g",
+        cloud_ai_enabled=True,
         image_generation_enabled=True,
         generate_missing_product_images_on_startup=True,
         initial_info_sync=True,
@@ -224,6 +226,7 @@ def test_startup_batch_generates_images_for_products_without_picture(monkeypatch
     settings = Settings(
         api_key="k",
         grocy_api_key="g",
+        cloud_ai_enabled=True,
         image_generation_enabled=True,
         generate_missing_product_images_on_startup=True,
     )
@@ -252,7 +255,13 @@ def test_startup_batch_skips_when_flag_disabled(monkeypatch):
     assert result == {"status": "skipped_option_disabled", "generated": 0, "total": 0}
 
 
-def test_startup_batch_skips_when_image_generation_disabled(monkeypatch):
+@pytest.mark.parametrize(
+    ("cloud_ai_enabled", "image_generation_enabled"),
+    [(False, True), (True, False)],
+)
+def test_startup_batch_skips_when_no_image_generator_active(
+    monkeypatch, caplog, cloud_ai_enabled: bool, image_generation_enabled: bool
+):
     class DummyGrocyClient:
         def __init__(self, _settings):
             raise AssertionError("should not be created")
@@ -262,16 +271,63 @@ def test_startup_batch_skips_when_image_generation_disabled(monkeypatch):
     settings = Settings(
         api_key="k",
         grocy_api_key="g",
-        image_generation_enabled=False,
+        cloud_ai_enabled=cloud_ai_enabled,
+        image_generation_enabled=image_generation_enabled,
+        generate_missing_product_images_on_startup=True,
+    )
+
+    with caplog.at_level("INFO"):
+        result = api_main._generate_missing_product_images_on_startup(settings)
+
+    assert result == {
+        "status": "skipped_no_image_generator",
+        "generated": 0,
+        "total": 0,
+    }
+    assert "kein aktiver Bildgenerator" in caplog.text
+
+
+def test_startup_batch_continues_after_product_image_generation_error(monkeypatch):
+    attached: list[tuple[int, str]] = []
+
+    class DummyGrocyClient:
+        def __init__(self, _settings):
+            pass
+
+        def get_products_without_picture(self):
+            return [
+                {"id": 1, "name": "Nudeln"},
+                {"id": 2, "name": "Milch"},
+                {"id": 3, "name": "Tomatensauce"},
+            ]
+
+        def attach_product_picture(self, product_id: int, image_path: str):
+            attached.append((product_id, image_path))
+
+    class DummyDetector:
+        def __init__(self, _settings):
+            pass
+
+        def generate_product_image(self, product_name: str) -> str:
+            if product_name == "Milch":
+                raise ValueError("OpenAI Images Fehler")
+            return f"/tmp/{product_name}.png"
+
+    monkeypatch.setattr(api_main, "GrocyClient", DummyGrocyClient)
+    monkeypatch.setattr(api_main, "IngredientDetector", DummyDetector)
+
+    settings = Settings(
+        api_key="k",
+        grocy_api_key="g",
+        cloud_ai_enabled=True,
+        image_generation_enabled=True,
         generate_missing_product_images_on_startup=True,
     )
 
     result = api_main._generate_missing_product_images_on_startup(settings)
-    assert result == {
-        "status": "skipped_generation_disabled",
-        "generated": 0,
-        "total": 0,
-    }
+
+    assert attached == [(1, "/tmp/Nudeln.png"), (3, "/tmp/Tomatensauce.png")]
+    assert result == {"status": "completed", "generated": 2, "total": 3}
 
 
 def test_startup_initial_info_sync_updates_missing_fields(monkeypatch, tmp_path):
