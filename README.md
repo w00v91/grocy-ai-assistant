@@ -206,7 +206,7 @@ Wesentliche Schlüsselgruppen:
 - `grocy.*`: Grocy-API-Key und Basis-URL
 - `ollama.*`: Text-/Vision-Modelle und Initial-Sync
 - `scanner.*`: Barcode-/LLaVA-Timeouts und Schwellenwerte
-- `cloud_ai.*`: optionale OpenAI-Bildgenerierung
+- `cloud_ai.*`: optionale OpenAI-Bildgenerierung (einziger Generator für fehlende Produktbilder beim Startup-Bildsync)
 
 ## Native Panel-URL in Home Assistant
 

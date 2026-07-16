@@ -92,7 +92,7 @@ debug_mode: false
 | `cloud_ai.openai_api_key` | OpenAI-API-Key für die Bildgenerierung. |
 | `cloud_ai.openai_image_model` | OpenAI-Modell für die Bildgenerierung, z. B. `gpt-image-1`. |
 | `cloud_ai.openai_text_model` | OpenAI-Modell für Cloud-AI-Texterstellung, z. B. `gpt-4o-mini`. |
-| `cloud_ai.generate_missing_product_images_on_startup` | Erzeugt fehlende Produktbilder einmalig beim nächsten Start. |
+| `cloud_ai.generate_missing_product_images_on_startup` | Separater Startup-Bildsync: erzeugt fehlende Produktbilder einmalig beim nächsten Start nur über Cloud/OpenAI Images, wenn `cloud_ai_enabled` und `image_generation_enabled` aktiv sind; LLaVA wird dafür nicht verwendet. |
 | `debug_mode` | Aktiviert ausführliche Debug-Logs. |
 
 ## Nativer Dashboard-Pfad in Home Assistant

@@ -3,6 +3,19 @@
 - Fix (KI/Produktbilder): Produktbilder werden nur noch über aktive Cloud-/OpenAI-Bildgeneratoren erzeugt; LLaVA wird nicht als Generator-Fallback genutzt.
 - Fix (Dashboard/Produktanlage): Deaktivierte oder fehlgeschlagene Cloud-Bildgenerierung blockiert die Produktanlage nicht mehr und wird klar protokolliert.
 - Added (Tests): Regressionstests decken erfolgreiche, deaktivierte und fehlgeschlagene Cloud-Bildgenerierung bei der Produktanlage ab.
+- Fix (Shopping-UI): Produktanlage und Hintergrund-Bildgenerierung werden in den Statusmeldungen getrennt angezeigt.
+- Fix (Shopping-UI): Lokale Doppelklicks während einer Produktanlage melden nun präzise, dass die Produktanlage noch läuft.
+- Fix (Shopping-UI): HTTP-409-Konflikte zeigen verständliche Gründe für aktive Produktanlage, Suche oder Bildgenerierung.
+- Added (Tests/Frontend): Regressionstests decken Produktanlage mit Hintergrundbildjob, lokale Doppelklicks und Backend-409-Meldungen ab.
+- Fix (Startup-Bildsync): Fehlende Produktbilder werden beim Start nur noch mit aktivem Cloud/OpenAI-Bildgenerator erzeugt; LLaVA wird dafür nicht verwendet. Ohne aktiven Generator werden Produkte ohne Bild geloggt übersprungen.
+- Fix (Startup-Bildsync): Fehler bei der Bildgenerierung eines Produkts werden geloggt und blockieren die weitere Verarbeitung anderer Produkte nicht.
+- Added (Tests/Startup-Bildsync): Regressionstests für aktive Cloud-Bildgenerierung, fehlenden Generator und Weiterverarbeitung nach Produktfehlern ergänzt.
+- Fix (API/Initial-Sync): Initialer Info-Sync analysiert nur noch Produkte mit fehlenden Nährwerten oder fehlenden Standard-MHD-Tagen, übernimmt ausschließlich neue positive Werte und schützt vorhandene sinnvolle Werte vor Überschreiben.
+- Fix (API/Initial-Sync): Delta-Zustand merkt auch unveränderte Produkte mit weiterhin fehlenden Feldern, damit erfolglose oder KI-lose Starts nicht bei jedem Neustart erneut analysiert werden.
+- Added (Tests/API): Regressionstests decken Ergänzung fehlender Daten, Überspringen vollständiger Produkte, Cloud-zu-Ollama-Fallback und inaktive KI ohne falsche Werte ab.
+- Fix (Dashboard/Produktanlage): Produktbild-Erzeugung läuft nach Produktanlage und Einkaufslisten-Update im Hintergrund, damit Produktsuchen nicht mehr auf langsame Bildgenerierung warten.
+- Fix (Dashboard/Produktbilder): Hintergrund-Bildjobs verwenden einen eigenen Deduplication-Key pro Produkt und überspringen doppelte Bildjobs still statt die Produktsuche mit 409 zu blockieren.
+- Added (Tests/API): Regressionstests decken nicht-blockierende Bildgenerierung, parallele Produktsuchen während laufender Bildjobs und fehlgeschlagene Bildgenerierung ab.
 - Fix (KI/Textanbieter): Produktnamenanalyse nutzt Cloud-Text nur bei vollständig aktivierter Cloud-Konfiguration, fällt bei Cloud-Fehlern automatisch auf Ollama zurück und liefert bei deaktivierten/fehlgeschlagenen Textanbietern sichere Produkt-Fallbackdaten.
 - Added (Tests/KI): Regressionstests decken Cloud-Priorität, Cloud-Fehler mit Ollama-Fallback, Ollama ohne Cloud und deaktivierte Textanbieter ab.
 - Changed (KI-Provider): Zentrale Provider-Entscheidung für Textanalyse, Bildanalyse und Bildgenerierung eingeführt; Cloud wird je Fähigkeit bevorzugt, Ollama/LLaVA dient nur als Bildanalyse-Fallback und rudimentäre Fallbacks bleiben erhalten.
