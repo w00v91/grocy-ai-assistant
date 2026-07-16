@@ -115,9 +115,26 @@ test('native storage summary keeps filter badges for total, in-stock, and out-of
     storageTabSection.indexOf("className: 'card storage-list-section'"),
   );
   assert.doesNotMatch(storageHeroSection, /actions: \[[\s\S]*?label: 'Aktualisieren'/);
-  assert.match(source, /async _fetchStorageSummary\(api, \{ query = '', visibleItems = \[\] \} = \{\}\) \{/);
+  assert.match(source, /async _fetchStorageSummary\(api, \{ query = '', visibleItems = \[\], locationIds = \[\] \} = \{\}\) \{/);
   assert.match(source, /includeAllProducts: true,\s+query,/);
   assert.match(source, /const summary = latestState\.includeAllProducts[\s\S]*?: await this\._fetchStorageSummary\(api, \{/);
+});
+
+
+test('native storage tab forwards selected locations to stock product requests', async () => {
+  const source = await fs.readFile(nativeDashboardPath, 'utf8');
+  const storageSource = source.slice(
+    source.indexOf('function buildStorageTabMarkup(model = {}) {'),
+    source.indexOf('class GrocyAINotificationsTab'),
+  );
+
+  assert.match(source, /storage: \{[\s\S]*?selectedLocationIds: \[\]/);
+  assert.match(storageSource, /function renderStorageLocationFiltersMarkup\(locations, selectedLocationIds\)/);
+  assert.match(storageSource, /data-role="storage-location"/);
+  assert.match(storageSource, /new CustomEvent\('storage-location-selection-change'/);
+  assert.match(source, /_updateStorageLocationSelection\(locationIds\)/);
+  assert.match(source, /locationIds: latestState\.selectedLocationIds/);
+  assert.match(source, /_fetchStorageSummary\(api, \{ query = '', visibleItems = \[\], locationIds = \[\] \} = \{\}\)/);
 });
 
 test('legacy dashboard reuses the shared swipe utility import', async () => {

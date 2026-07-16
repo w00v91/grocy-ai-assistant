@@ -1,5 +1,8 @@
 ## 2026-07-16 (Version 8.0.76)
 
+- Added (Dashboard/Lager): Standortfilter für die native Home-Assistant-Storage-UI und die Legacy-Static-UI ergänzt.
+- Fix (Dashboard/Lager): Storage-Liste und Summary senden ausgewählte Lagerorte konsistent als `location_ids` an die Stock-Products-API.
+- Added (Tests/Frontend): Regressionstests decken die Übergabe ausgewählter Lagerorte an `/api/dashboard/stock-products` ab.
 - Fix (Rezepte/Dashboard): Rezeptvorschläge ignorieren jetzt ungeeignete Lagerstandorte wie `Sonstiges`, sodass die KI nur mit sinnvollen Vorratsorten wie Küche, Vorrat oder Kühlschrank arbeitet.
 - Added (Tests): Regressionstest stellt sicher, dass Produkte aus `Sonstiges` nicht in die Rezeptauswahl gelangen.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.76` erhöht.

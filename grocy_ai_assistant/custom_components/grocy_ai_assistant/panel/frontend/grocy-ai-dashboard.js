@@ -610,6 +610,7 @@ function buildStorageTabMarkup(model = {}) {
                 <input id="storage-include-all-products-native" class="ha-control" data-role="storage-include-all" type="checkbox"${model.includeAllProducts ? ' checked' : ''} />
                 <span>Alle anzeigen</span>
               </label>
+              ${renderStorageLocationFiltersMarkup(locations, model.selectedLocationIds || [])}
             </div>
             <div class="storage-summary">
               <span class="migration-chip">${escapeHtml(`${model.summary.totalCount} Produkte`)}</span>
@@ -805,6 +806,7 @@ function createInitialState() {
         cleanupDueCount: 0,
       },
       locations: [],
+      selectedLocationIds: [],
       filter: '',
       includeAllProducts: false,
       editModal: {
@@ -1610,6 +1612,41 @@ function renderRecipeLocationFiltersMarkup(locations, selectedLocationIds) {
             <input
               type="checkbox"
               data-role="recipes-location"
+              value="${escapeHtml(item.id)}"
+              ${selectedIds.size === 0 || selectedIds.has(Number(item.id)) ? 'checked' : ''}
+            />
+            <span class="stock-item-name"><strong>${escapeHtml(item.name || `Lagerort ${item.id}`)}</strong></span>
+          </label>
+        `).join('')}
+      </div>
+    </details>
+  `;
+}
+
+function renderStorageLocationFiltersMarkup(locations, selectedLocationIds) {
+  const items = Array.isArray(locations) ? locations : [];
+  const selectedIds = new Set((Array.isArray(selectedLocationIds) ? selectedLocationIds : []).map((value) => Number(value)));
+  if (!items.length) {
+    return '<div class="muted">Keine Lagerstandorte gefunden.</div>';
+  }
+
+  const summaryLabel = summarizeSelectedItems(items, selectedLocationIds, 'Keine Auswahl');
+
+  return `
+    <details class="location-dropdown storage-location-dropdown" data-dropdown-key="storage-locations">
+      <summary>
+        <span class="location-dropdown__summary-copy">
+          <span class="location-dropdown__summary-title">Lagerort</span>
+          <span class="location-dropdown__summary-value">${escapeHtml(summaryLabel)}</span>
+        </span>
+        ${renderStorageBadge('Standorte', String(selectedIds.size || items.length), 'location', 'location-dropdown__summary-badge')}
+      </summary>
+      <div class="location-options">
+        ${items.map((item) => `
+          <label class="stock-item">
+            <input
+              type="checkbox"
+              data-role="storage-location"
               value="${escapeHtml(item.id)}"
               ${selectedIds.size === 0 || selectedIds.has(Number(item.id)) ? 'checked' : ''}
             />
@@ -2884,6 +2921,7 @@ class GrocyAIRecipesTab extends HTMLElement {
         id: item?.id ?? null,
         name: item?.name || '',
       })),
+      selectedLocationIds: Array.isArray(value?.selectedLocationIds) ? value.selectedLocationIds : [],
       stockProducts: buildStockSignature(Array.isArray(value?.stockProducts) ? value.stockProducts : []),
     });
     if (nextSignature === this._renderSignature) return;
@@ -2942,6 +2980,18 @@ class GrocyAIStorageTab extends HTMLElement {
     this.addEventListener('change', (event) => {
       const target = event.target;
       if (!(target instanceof HTMLElement)) return;
+
+      if (target.dataset.role === 'storage-location') {
+        this.dispatchEvent(new CustomEvent('storage-location-selection-change', {
+          bubbles: true,
+          composed: true,
+          detail: {
+            locationIds: Array.from(this.querySelectorAll('input[data-role="storage-location"]:checked'))
+              .map((checkbox) => Number(checkbox.value))
+              .filter((value) => Number.isFinite(value) && value > 0),
+          },
+        }));
+      }
 
       if (target.dataset.role === 'storage-include-all') {
         this.dispatchEvent(new CustomEvent('storage-toggle-include-all', {
@@ -3006,6 +3056,7 @@ class GrocyAIStorageTab extends HTMLElement {
 
   _render() {
     const snapshot = captureFocusedFormControl(this);
+    const openDetails = captureDetailsOpenState(this);
     const model = this._viewModel || {};
     this.innerHTML = `
       <section
@@ -3022,6 +3073,7 @@ class GrocyAIStorageTab extends HTMLElement {
 
     bindShoppingImageFallbacks(this);
     bindAuthenticatedPanelImages(this, { loadImage: model.loadProtectedImage });
+    restoreDetailsOpenState(this, openDetails);
     restoreFocusedFormControl(this, snapshot);
     this._rebindSwipeInteractions();
   }
@@ -3074,6 +3126,10 @@ class GrocyAIStorageTab extends HTMLElement {
         id: item?.id ?? null,
         name: item?.name || '',
       })),
+      selectedLocationIds: Array.isArray(value?.selectedLocationIds) ? value.selectedLocationIds : [],
+      filter: value?.filter || '',
+      includeAllProducts: Boolean(value?.includeAllProducts),
+      summary: value?.summary || {},
       editModal: {
         open: Boolean(value?.editModal?.open),
         itemId: value?.editModal?.itemId ?? null,
@@ -3330,6 +3386,7 @@ class GrocyAIDashboardPanel extends HTMLElement {
     root.addEventListener('storage-refresh', () => this._loadStorageProducts());
     root.addEventListener('storage-auto-cleanup', () => this._runStorageAutoCleanup());
     root.addEventListener('storage-filter-change', (event) => this._updateStorageFilter(event.detail?.value));
+    root.addEventListener('storage-location-selection-change', (event) => this._updateStorageLocationSelection(event.detail?.locationIds || []));
     root.addEventListener('storage-toggle-include-all', (event) => this._updateStorageIncludeAllProducts(event.detail?.checked));
     root.addEventListener('storage-open-edit', (event) => this._openStorageEdit(event.detail?.itemId));
     root.addEventListener('storage-close-edit', () => this._closeStorageEdit());
@@ -3965,7 +4022,7 @@ class GrocyAIDashboardPanel extends HTMLElement {
     return this._store.getState().storage.items.find((item) => String(getActionableStorageId(item)) === String(itemId)) || null;
   }
 
-  async _fetchStorageSummary(api, { query = '', visibleItems = [] } = {}) {
+  async _fetchStorageSummary(api, { query = '', visibleItems = [], locationIds = [] } = {}) {
     const normalizedVisibleItems = Array.isArray(visibleItems) ? visibleItems : [];
     const fallbackSummary = {
       totalCount: normalizedVisibleItems.length,
@@ -3977,6 +4034,7 @@ class GrocyAIDashboardPanel extends HTMLElement {
     const { response, payload } = await api.fetchStockProducts({
       includeAllProducts: true,
       query,
+      locationIds,
     });
     if (!response.ok) {
       return fallbackSummary;
@@ -4009,6 +4067,7 @@ class GrocyAIDashboardPanel extends HTMLElement {
       const { response, payload } = await api.fetchStockProducts({
         includeAllProducts: latestState.includeAllProducts,
         query: latestState.filter,
+        locationIds: latestState.selectedLocationIds,
       });
       if (!response.ok) throw new Error(getErrorMessage(payload, 'Bestand konnte nicht geladen werden.'));
 
@@ -4024,6 +4083,7 @@ class GrocyAIDashboardPanel extends HTMLElement {
         : await this._fetchStorageSummary(api, {
           query: latestState.filter,
           visibleItems: items,
+          locationIds: latestState.selectedLocationIds,
         });
 
       this._updateStorageState({
@@ -4062,6 +4122,14 @@ class GrocyAIDashboardPanel extends HTMLElement {
         this._setTabStatus('storage', `Fehler: ${message}`, { state: TAB_VIEW_STATE.ERROR, error: message, syncTopbar: false });
       },
     });
+  }
+
+  _updateStorageLocationSelection(locationIds) {
+    const normalizedLocationIds = (Array.isArray(locationIds) ? locationIds : [])
+      .map((value) => Number(value))
+      .filter((value) => Number.isFinite(value) && value > 0);
+    this._updateStorageState({ selectedLocationIds: normalizedLocationIds });
+    void this._loadStorageProducts();
   }
 
   _updateStorageFilter(value) {
