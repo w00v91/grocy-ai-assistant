@@ -412,6 +412,91 @@ def test_dashboard_search_creates_new_product_when_missing(client, monkeypatch):
     assert calls["nutrition"] == (42, 100, None, None, None, None)
 
 
+def test_dashboard_search_rejects_parallel_identical_product_creation(
+    client, monkeypatch
+):
+    creation_started = threading.Event()
+    finish_creation = threading.Event()
+    first_completed = threading.Event()
+    routes.SEARCH_REQUESTS_IN_FLIGHT.clear()
+
+    class FakeDetector:
+        def __init__(self, settings):
+            self.settings = settings
+
+        def analyze_product_name(self, name, locations=None):
+            return _dashboard_product_data(name)
+
+        def suggest_similar_products(self, name):
+            return []
+
+    class FakeGrocyClient:
+        def __init__(self, settings):
+            self.settings = settings
+
+        def find_product_by_name(self, name):
+            return None
+
+        def search_products_by_partial_name(self, query):
+            return []
+
+        def create_product(self, payload):
+            creation_started.set()
+            assert finish_creation.wait(timeout=5)
+            return 42
+
+        def update_product_nutrition(self, **kwargs):
+            return None
+
+        def get_product_default_best_before_days(self, product_id):
+            return None
+
+        def set_product_default_best_before_days(
+            self, product_id, default_best_before_days
+        ):
+            return None
+
+        def add_product_to_shopping_list(self, product_id, amount, best_before_date=""):
+            return None
+
+    monkeypatch.setattr(routes, "IngredientDetector", FakeDetector)
+    monkeypatch.setattr(routes, "GrocyClient", FakeGrocyClient)
+
+    def run_first_creation():
+        try:
+            response = client.post(
+                "/api/dashboard/search",
+                headers={"Authorization": "Bearer test-api-key"},
+                json={"name": "Paralleles Produkt"},
+            )
+            assert response.status_code == 200
+        finally:
+            first_completed.set()
+
+    creation_thread = threading.Thread(target=run_first_creation)
+    creation_thread.start()
+    try:
+        assert creation_started.wait(timeout=5)
+
+        duplicate_response = client.post(
+            "/api/dashboard/search",
+            headers={"Authorization": "Bearer test-api-key"},
+            json={"name": "Paralleles Produkt"},
+        )
+
+        assert duplicate_response.status_code == 409
+        assert (
+            "identische Produktsuche läuft bereits"
+            in duplicate_response.json()["error"]["message"]
+        )
+    finally:
+        finish_creation.set()
+        creation_thread.join(timeout=5)
+        routes.SEARCH_REQUESTS_IN_FLIGHT.clear()
+
+    assert first_completed.is_set()
+
+
 def test_dashboard_search_uses_detector_fallback_when_ollama_analysis_fails(
     client, test_settings, monkeypatch
 ):

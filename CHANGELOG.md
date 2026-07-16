@@ -1,3 +1,10 @@
+## 2026-07-16 (Version 8.0.78)
+
+- Fix (Dashboard/Produktanlage): Der In-Flight-Guard schützt nur noch Produktsuche, Variantenprüfung, Produktanlage, Nährwerte/Haltbarkeit und Einkaufslisten-Update; Produktbild-Jobs laufen danach außerhalb des Guards.
+- Fix (Dashboard/API): HTTP-409 wird nur noch für tatsächlich parallel laufende identische Produktanlagen/Produktsuchen ausgelöst, nicht für laufende Hintergrund-Bildjobs.
+- Added (Tests/API): Regressionstests decken parallele identische Produktanlagen und Folgeanfragen während laufender Bildjobs ab.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.78` erhöht.
+
 ## 2026-07-16 (Version 8.0.77)
 
 - Fix (Dashboard/Produktanlage): Produktbild-Erzeugung läuft nach Produktanlage und Einkaufslisten-Update im Hintergrund, damit Produktsuchen nicht mehr auf langsame Bildgenerierung warten.
