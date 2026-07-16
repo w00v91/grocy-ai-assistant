@@ -1,3 +1,8 @@
+## 2026-07-16 (Version 8.0.79)
+
+- Fix (KI/Bildanalyse): Fehlerhafte Einrückung nach parallelen Änderungen korrigiert, sodass `detect_product_from_image` wieder sauber abschließt und die Produktbild-Erzeugung nur einmal definiert ist.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.79` erhöht.
+
 ## 2026-07-16 (Version 8.0.78)
 
 - Fix (Dashboard/Produktanlage): Der In-Flight-Guard schützt nur noch Produktsuche, Variantenprüfung, Produktanlage, Nährwerte/Haltbarkeit und Einkaufslisten-Update; Produktbild-Jobs laufen danach außerhalb des Guards.
