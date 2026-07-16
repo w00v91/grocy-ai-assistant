@@ -7,6 +7,48 @@ import { bindSwipeInteractions, resetSwipeVisualState } from './panel-frontend/s
 
 const MIN_PRODUCT_SEARCH_LENGTH = 2;
 
+
+function hasBackgroundImageJob(payload) {
+  return Boolean(
+    payload?.image_generation_started
+    || payload?.background_image_generation_started
+    || payload?.image_generation_queued
+    || payload?.image_job_started
+    || payload?.picture_generation_started
+  );
+}
+
+function buildProductCreationSuccessMessage(payload) {
+  const messages = ['Produkt wurde angelegt und zur Einkaufsliste hinzugefügt.'];
+  if (hasBackgroundImageJob(payload)) messages.push('Produktbild wird im Hintergrund erstellt.');
+  return messages.join(' ');
+}
+
+function getBackendConflictMessage(payload, fallbackMessage = 'Eine Anfrage läuft bereits. Bitte kurz warten und dann erneut versuchen.') {
+  const rawReason = String(
+    payload?.reason
+    || payload?.detail?.reason
+    || payload?.detail?.details?.[0]?.reason
+    || payload?.details?.[0]?.reason
+    || payload?.action
+    || payload?.detail?.action
+    || ''
+  ).toLowerCase();
+  const rawMessage = payload?.detail?.message || getErrorMessage(payload, '');
+  const message = typeof rawMessage === 'string' ? rawMessage.trim() : '';
+
+  if (rawReason.includes('product_creation') || rawReason.includes('produktanlage')) {
+    return message || 'Aktive Produktanlage: Bitte kurz warten und dann erneut versuchen.';
+  }
+  if (rawReason.includes('image') || rawReason.includes('picture') || rawReason.includes('bild')) {
+    return message || 'Aktive Bildgenerierung: Bitte kurz warten und dann erneut versuchen.';
+  }
+  if (rawReason.includes('search') || rawReason.includes('suche')) {
+    return message || 'Aktive Suche: Bitte kurz warten und dann erneut versuchen.';
+  }
+  return message || fallbackMessage;
+}
+
 function getMinimumSearchLengthMessage(length) {
   const remainingCharacters = MIN_PRODUCT_SEARCH_LENGTH - length;
   if (remainingCharacters <= 0) return 'Bereit.';
@@ -1787,7 +1829,7 @@ async function searchProduct(options = {}) {
     const status = getShoppingStatusElement();
     status?.classList.add('search-status-badge');
     if (status && !status.textContent) {
-      status.textContent = 'Produktanfrage läuft bereits...';
+      status.textContent = 'Produktanlage läuft noch.';
     }
     return;
   }
@@ -1825,7 +1867,14 @@ async function searchProduct(options = {}) {
         best_before_date: bestBeforeDate,
         force_create: forceCreate,
       });
-      status.textContent = payload.message || getErrorMessage(payload, 'Unbekannte Antwort');
+      if (!response.ok && response.status === 409) {
+        status.textContent = getBackendConflictMessage(payload);
+        dashboardState.shoppingSearchSubmitInFlight = false;
+        return;
+      }
+      status.textContent = payload.action === 'created_and_added'
+        ? buildProductCreationSuccessMessage(payload)
+        : (payload.message || getErrorMessage(payload, 'Unbekannte Antwort'));
       dashboardState.shoppingSearchSubmitInFlight = false;
 
       if (response.ok) {

@@ -1,5 +1,9 @@
 ## 2026-07-16 (Version 8.0.77)
 
+- Fix (Shopping-UI): Produktanlage und Hintergrund-Bildgenerierung werden in den Statusmeldungen getrennt angezeigt.
+- Fix (Shopping-UI): Lokale Doppelklicks während einer Produktanlage melden nun präzise, dass die Produktanlage noch läuft.
+- Fix (Shopping-UI): HTTP-409-Konflikte zeigen verständliche Gründe für aktive Produktanlage, Suche oder Bildgenerierung.
+- Added (Tests/Frontend): Regressionstests decken Produktanlage mit Hintergrundbildjob, lokale Doppelklicks und Backend-409-Meldungen ab.
 - Fix (Startup-Bildsync): Fehlende Produktbilder werden beim Start nur noch mit aktivem Cloud/OpenAI-Bildgenerator erzeugt; LLaVA wird dafür nicht verwendet. Ohne aktiven Generator werden Produkte ohne Bild geloggt übersprungen.
 - Fix (Startup-Bildsync): Fehler bei der Bildgenerierung eines Produkts werden geloggt und blockieren die weitere Verarbeitung anderer Produkte nicht.
 - Added (Tests/Startup-Bildsync): Regressionstests für aktive Cloud-Bildgenerierung, fehlenden Generator und Weiterverarbeitung nach Produktfehlern ergänzt.
