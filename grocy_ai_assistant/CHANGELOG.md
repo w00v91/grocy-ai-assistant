@@ -1,5 +1,7 @@
 ## 2026-07-16 (Version 8.0.77)
 
+- Changed (KI-Provider): Zentrale Provider-Entscheidung für Textanalyse, Bildanalyse und Bildgenerierung eingeführt; Cloud wird je Fähigkeit bevorzugt, Ollama/LLaVA dient nur als Bildanalyse-Fallback und rudimentäre Fallbacks bleiben erhalten.
+- Added (Tests/KI): Regressionstests decken Cloud-First-Bildanalyse und Fallback auf LLaVA ab.
 - Fix (Grocy/Auto-Cleanup): Abgelaufene Nicht-Konserven-Bestände werden jetzt mengenbasiert über Grocys Consume-Endpunkt verbraucht statt Stock-Einträge direkt zu löschen.
 - Added (Tests): Regressionstests prüfen das Parsen abgelaufener Mengen und den Consume-Aufruf inklusive Stock-ID.
 - Fix (Dashboard/Lager): Auto-Cleanup-Zähler verwenden in sichtbaren und vollständigen Produktlisten dieselben Backend-Kriterien (`in_stock`, gültige `stock_id`, `auto_cleanup_due`).
