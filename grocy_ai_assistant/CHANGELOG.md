@@ -3,6 +3,14 @@
 - Fix (Dashboard/Produktanlage): Produktbild-Erzeugung läuft nach Produktanlage und Einkaufslisten-Update im Hintergrund, damit Produktsuchen nicht mehr auf langsame Bildgenerierung warten.
 - Fix (Dashboard/Produktbilder): Hintergrund-Bildjobs verwenden einen eigenen Deduplication-Key pro Produkt und überspringen doppelte Bildjobs still statt die Produktsuche mit 409 zu blockieren.
 - Added (Tests/API): Regressionstests decken nicht-blockierende Bildgenerierung, parallele Produktsuchen während laufender Bildjobs und fehlgeschlagene Bildgenerierung ab.
+- Fix (KI/Textanbieter): Produktnamenanalyse nutzt Cloud-Text nur bei vollständig aktivierter Cloud-Konfiguration, fällt bei Cloud-Fehlern automatisch auf Ollama zurück und liefert bei deaktivierten/fehlgeschlagenen Textanbietern sichere Produkt-Fallbackdaten.
+- Added (Tests/KI): Regressionstests decken Cloud-Priorität, Cloud-Fehler mit Ollama-Fallback, Ollama ohne Cloud und deaktivierte Textanbieter ab.
+- Changed (KI-Provider): Zentrale Provider-Entscheidung für Textanalyse, Bildanalyse und Bildgenerierung eingeführt; Cloud wird je Fähigkeit bevorzugt, Ollama/LLaVA dient nur als Bildanalyse-Fallback und rudimentäre Fallbacks bleiben erhalten.
+- Added (Tests/KI): Regressionstests decken Cloud-First-Bildanalyse und Fallback auf LLaVA ab.
+- Fix (Grocy/Auto-Cleanup): Abgelaufene Nicht-Konserven-Bestände werden jetzt mengenbasiert über Grocys Consume-Endpunkt verbraucht statt Stock-Einträge direkt zu löschen.
+- Added (Tests): Regressionstests prüfen das Parsen abgelaufener Mengen und den Consume-Aufruf inklusive Stock-ID.
+- Fix (Dashboard/Lager): Auto-Cleanup-Zähler verwenden in sichtbaren und vollständigen Produktlisten dieselben Backend-Kriterien (`in_stock`, gültige `stock_id`, `auto_cleanup_due`).
+- Added (Tests/Frontend): Regressionstest vergleicht die Cleanup-Zählkriterien für `includeAllProducts=false` und `includeAllProducts=true` mit identischem Datenbestand.
 - Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.77` erhöht.
 
 ## 2026-07-16 (Version 8.0.76)

@@ -157,6 +157,22 @@ class GrocyClient:
         return int(text) if text.isdigit() else None
 
     @staticmethod
+    def _safe_float(value: Any) -> float | None:
+        if value is None or isinstance(value, bool):
+            return None
+        if isinstance(value, (int, float)):
+            return float(value)
+
+        text = str(value).strip().replace(",", ".")
+        if not text:
+            return None
+
+        try:
+            return float(text)
+        except ValueError:
+            return None
+
+    @staticmethod
     def _to_string_or_empty(value: Any) -> str:
         if value is None:
             return ""
@@ -1139,24 +1155,51 @@ class GrocyClient:
 
     def cleanup_expired_non_canned_stock(self) -> Dict[str, Any]:
         if not getattr(self.settings, "auto_cleanup_enabled", False):
-            return {"enabled": False, "removed_count": 0, "removed": []}
+            return {
+                "enabled": False,
+                "removed_count": 0,
+                "consumed_count": 0,
+                "removed": [],
+                "consumed": [],
+            }
 
         cutoff = self._auto_cleanup_cutoff_date()
         candidates = []
         for item in self.get_storage_products(include_all_products=False):
             metadata = self._build_auto_cleanup_metadata(item, cutoff)
+            product_id = self._safe_int(item.get("id") or item.get("product_id"))
             stock_id = self._safe_int(item.get("stock_id"))
-            if metadata["auto_cleanup_due"] and stock_id is not None:
-                candidates.append({**item, **metadata, "stock_id": stock_id})
+            amount = self._safe_float(item.get("amount"))
+            if (
+                metadata["auto_cleanup_due"]
+                and product_id is not None
+                and stock_id is not None
+                and amount is not None
+                and amount > 0
+            ):
+                candidates.append(
+                    {
+                        **item,
+                        **metadata,
+                        "id": product_id,
+                        "stock_id": stock_id,
+                        "amount": amount,
+                    }
+                )
 
-        removed = []
+        consumed = []
         for item in candidates:
-            self.delete_stock_entry(int(item["stock_id"]))
-            removed.append(
+            self.consume_stock_product(
+                product_id=int(item["id"]),
+                amount=float(item["amount"]),
+                stock_id=int(item["stock_id"]),
+            )
+            consumed.append(
                 {
                     "stock_id": item.get("stock_id"),
                     "product_id": item.get("id"),
                     "name": item.get("name"),
+                    "amount": item.get("amount"),
                     "reference_date": item.get("auto_cleanup_reference_date"),
                 }
             )
@@ -1167,8 +1210,10 @@ class GrocyClient:
                 int(getattr(self.settings, "auto_cleanup_months", 6) or 6), 1
             ),
             "cutoff_date": cutoff.strftime("%Y-%m-%d"),
-            "removed_count": len(removed),
-            "removed": removed,
+            "removed_count": len(consumed),
+            "consumed_count": len(consumed),
+            "removed": consumed,
+            "consumed": consumed,
         }
 
     def consume_stock_product(
