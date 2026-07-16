@@ -1,3 +1,10 @@
+## 2026-07-16 (Version 8.0.77)
+
+- Fix (Dashboard/Produktanlage): Produktbild-Erzeugung läuft nach Produktanlage und Einkaufslisten-Update im Hintergrund, damit Produktsuchen nicht mehr auf langsame Bildgenerierung warten.
+- Fix (Dashboard/Produktbilder): Hintergrund-Bildjobs verwenden einen eigenen Deduplication-Key pro Produkt und überspringen doppelte Bildjobs still statt die Produktsuche mit 409 zu blockieren.
+- Added (Tests/API): Regressionstests decken nicht-blockierende Bildgenerierung, parallele Produktsuchen während laufender Bildjobs und fehlgeschlagene Bildgenerierung ab.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.77` erhöht.
+
 ## 2026-07-16 (Version 8.0.76)
 
 - Added (Dashboard/Lager): Standortfilter für die native Home-Assistant-Storage-UI und die Legacy-Static-UI ergänzt.
