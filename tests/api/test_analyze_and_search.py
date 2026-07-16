@@ -1,8 +1,25 @@
 import logging
 import requests
 import threading
+import time
 
 from grocy_ai_assistant.api import routes
+
+
+def _dashboard_product_data(name: str) -> dict:
+    return {
+        "name": name,
+        "description": "",
+        "location_id": 1,
+        "qu_id_purchase": 1,
+        "qu_id_stock": 1,
+        "calories": 0,
+        "carbohydrates": 0,
+        "fat": 0,
+        "protein": 0,
+        "sugar": 0,
+        "default_best_before_days": 0,
+    }
 
 
 def test_analyze_product_returns_detector_payload(client, monkeypatch):
@@ -552,6 +569,229 @@ def test_dashboard_search_new_product_uses_userfield_nutrition_values(
     assert "protein" not in calls["created"]
     assert "sugar" not in calls["created"]
     assert calls["nutrition"] == (42, 222, 33, 4, 5, 6)
+
+
+def test_dashboard_search_slow_product_picture_generation_does_not_block_response(
+    client, test_settings, monkeypatch
+):
+    picture_started = threading.Event()
+    picture_release = threading.Event()
+    calls = {"added": False}
+    routes.BACKGROUND_JOBS_IN_FLIGHT.clear()
+    test_settings.image_generation_enabled = True
+
+    class FakeDetector:
+        def __init__(self, settings):
+            self.settings = settings
+
+        def analyze_product_name(self, name, locations=None):
+            return _dashboard_product_data(name)
+
+        def suggest_similar_products(self, name):
+            return []
+
+    class FakeGrocyClient:
+        def __init__(self, settings):
+            self.settings = settings
+
+        def find_product_by_name(self, name):
+            return None
+
+        def search_products_by_partial_name(self, query):
+            return []
+
+        def create_product(self, payload):
+            return 42
+
+        def update_product_nutrition(self, **kwargs):
+            return None
+
+        def get_product_default_best_before_days(self, product_id):
+            return None
+
+        def set_product_default_best_before_days(
+            self, product_id, default_best_before_days
+        ):
+            return None
+
+        def add_product_to_shopping_list(self, product_id, amount, best_before_date=""):
+            calls["added"] = True
+
+    def slow_picture_job(**kwargs):
+        picture_started.set()
+        picture_release.wait(timeout=5)
+
+    monkeypatch.setattr(routes, "IngredientDetector", FakeDetector)
+    monkeypatch.setattr(routes, "GrocyClient", FakeGrocyClient)
+    monkeypatch.setattr(
+        routes, "_generate_and_attach_product_picture", slow_picture_job
+    )
+
+    try:
+        started_at = time.monotonic()
+        response = client.post(
+            "/api/dashboard/search",
+            headers={"Authorization": "Bearer test-api-key"},
+            json={"name": "Langsames Bildprodukt"},
+        )
+        elapsed = time.monotonic() - started_at
+
+        assert response.status_code == 200
+        assert elapsed < 0.5
+        assert calls["added"] is True
+        assert picture_started.wait(timeout=1)
+        assert response.json()["message"].endswith(
+            "Produktbild wird im Hintergrund erstellt."
+        )
+    finally:
+        picture_release.set()
+        routes.BACKGROUND_JOBS_IN_FLIGHT.clear()
+
+
+def test_dashboard_search_second_request_ignores_running_picture_job_without_409(
+    client, test_settings, monkeypatch
+):
+    picture_release = threading.Event()
+    picture_started = threading.Event()
+    picture_calls = []
+    routes.BACKGROUND_JOBS_IN_FLIGHT.clear()
+    routes.SEARCH_REQUESTS_IN_FLIGHT.clear()
+    test_settings.image_generation_enabled = True
+
+    class FakeDetector:
+        def __init__(self, settings):
+            self.settings = settings
+
+        def analyze_product_name(self, name, locations=None):
+            return _dashboard_product_data(name)
+
+        def suggest_similar_products(self, name):
+            return []
+
+    class FakeGrocyClient:
+        def __init__(self, settings):
+            self.settings = settings
+
+        def find_product_by_name(self, name):
+            return None
+
+        def search_products_by_partial_name(self, query):
+            return []
+
+        def create_product(self, payload):
+            return 42
+
+        def update_product_nutrition(self, **kwargs):
+            return None
+
+        def get_product_default_best_before_days(self, product_id):
+            return None
+
+        def set_product_default_best_before_days(
+            self, product_id, default_best_before_days
+        ):
+            return None
+
+        def add_product_to_shopping_list(self, product_id, amount, best_before_date=""):
+            return None
+
+    def slow_picture_job(**kwargs):
+        picture_calls.append(kwargs["product_id"])
+        picture_started.set()
+        picture_release.wait(timeout=5)
+
+    monkeypatch.setattr(routes, "IngredientDetector", FakeDetector)
+    monkeypatch.setattr(routes, "GrocyClient", FakeGrocyClient)
+    monkeypatch.setattr(
+        routes, "_generate_and_attach_product_picture", slow_picture_job
+    )
+
+    try:
+        first_response = client.post(
+            "/api/dashboard/search",
+            headers={"Authorization": "Bearer test-api-key"},
+            json={"name": "Doppeltes Bildprodukt"},
+        )
+        assert first_response.status_code == 200
+        assert picture_started.wait(timeout=1)
+
+        second_response = client.post(
+            "/api/dashboard/search",
+            headers={"Authorization": "Bearer test-api-key"},
+            json={"name": "Doppeltes Bildprodukt"},
+        )
+
+        assert second_response.status_code == 200
+        assert second_response.json()["action"] == "created_and_added"
+        assert picture_calls == [42]
+    finally:
+        picture_release.set()
+        routes.BACKGROUND_JOBS_IN_FLIGHT.clear()
+        routes.SEARCH_REQUESTS_IN_FLIGHT.clear()
+
+
+def test_dashboard_search_product_creation_succeeds_when_picture_generation_fails(
+    client, test_settings, monkeypatch
+):
+    calls = {"added": False}
+    routes.BACKGROUND_JOBS_IN_FLIGHT.clear()
+    test_settings.image_generation_enabled = True
+
+    class FakeDetector:
+        def __init__(self, settings):
+            self.settings = settings
+
+        def analyze_product_name(self, name, locations=None):
+            return _dashboard_product_data(name)
+
+        def suggest_similar_products(self, name):
+            return []
+
+    class FakeGrocyClient:
+        def __init__(self, settings):
+            self.settings = settings
+
+        def find_product_by_name(self, name):
+            return None
+
+        def search_products_by_partial_name(self, query):
+            return []
+
+        def create_product(self, payload):
+            return 42
+
+        def update_product_nutrition(self, **kwargs):
+            return None
+
+        def get_product_default_best_before_days(self, product_id):
+            return None
+
+        def set_product_default_best_before_days(
+            self, product_id, default_best_before_days
+        ):
+            return None
+
+        def add_product_to_shopping_list(self, product_id, amount, best_before_date=""):
+            calls["added"] = True
+
+    def failing_picture_job(**kwargs):
+        raise RuntimeError("image backend unavailable")
+
+    monkeypatch.setattr(routes, "IngredientDetector", FakeDetector)
+    monkeypatch.setattr(routes, "GrocyClient", FakeGrocyClient)
+    monkeypatch.setattr(
+        routes, "_generate_and_attach_product_picture", failing_picture_job
+    )
+
+    response = client.post(
+        "/api/dashboard/search",
+        headers={"Authorization": "Bearer test-api-key"},
+        json={"name": "Bildfehlerprodukt"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["product_id"] == 42
+    assert calls["added"] is True
 
 
 def test_dashboard_search_rejects_blank_name(client):
