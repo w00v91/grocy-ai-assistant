@@ -1,6 +1,7 @@
 import json
-
 import time
+
+import requests
 
 from fastapi.testclient import TestClient
 
@@ -540,3 +541,193 @@ def test_startup_initial_info_sync_uses_delta_state_to_skip_unchanged_products(
     api_main._run_initial_info_sync_on_startup(settings)
 
     assert nutrition_calls == [2]
+
+
+def test_startup_initial_info_sync_skips_product_without_missing_fields(
+    monkeypatch, tmp_path
+):
+    analyze_calls: list[str] = []
+    update_calls: list[dict] = []
+    product = {"id": 1, "name": "Joghurt", "default_best_before_days": 14}
+
+    class DummyGrocyClient:
+        def __init__(self, _settings):
+            pass
+
+        def get_products(self):
+            return [product]
+
+        def get_product_nutrition(self, _product_id: int):
+            return {
+                "calories": "60",
+                "carbs": "4.5",
+                "fat": "3.5",
+                "protein": "4",
+                "sugar": "4.5",
+            }
+
+        def update_product_nutrition(self, **kwargs):
+            update_calls.append(kwargs)
+
+        def set_product_default_best_before_days(self, _product_id: int, _days: int):
+            raise AssertionError("best-before days should not be updated")
+
+    class DummyDetector:
+        def __init__(self, _settings):
+            pass
+
+        def analyze_product_name(self, product_name: str):
+            analyze_calls.append(product_name)
+            raise AssertionError("complete products should not be analyzed")
+
+    monkeypatch.setattr(
+        api_main, "INITIAL_INFO_SYNC_STATE_PATH", tmp_path / "state.json"
+    )
+    monkeypatch.setattr(api_main, "GrocyClient", DummyGrocyClient)
+    monkeypatch.setattr(api_main, "IngredientDetector", DummyDetector)
+
+    settings = Settings(api_key="k", grocy_api_key="g", initial_info_sync=True)
+    api_main._run_initial_info_sync_on_startup(settings)
+
+    assert analyze_calls == []
+    assert update_calls == []
+
+
+def test_startup_initial_info_sync_uses_ollama_when_cloud_fails(monkeypatch, tmp_path):
+    from grocy_ai_assistant.ai import ingredient_detector
+
+    updated: list[dict] = []
+    post_urls: list[str] = []
+    ingredient_detector._TEXT_PROVIDER_FAILURE_UNTIL.clear()
+
+    class DummyGrocyClient:
+        def __init__(self, _settings):
+            pass
+
+        def get_products(self):
+            return [{"id": 1, "name": "Haferflocken", "default_best_before_days": None}]
+
+        def get_product_nutrition(self, _product_id: int):
+            return {
+                "calories": "",
+                "carbs": "",
+                "fat": "",
+                "protein": "",
+                "sugar": "",
+            }
+
+        def update_product_nutrition(self, **kwargs):
+            updated.append(kwargs)
+
+        def set_product_default_best_before_days(self, product_id: int, days: int):
+            updated.append({"product_id": product_id, "default_best_before_days": days})
+
+    class DummyResponse:
+        def __init__(self, payload=None, status_code=200):
+            self._payload = payload or {}
+            self.status_code = status_code
+            self.text = ""
+
+        def raise_for_status(self):
+            if self.status_code >= 400:
+                raise requests.RequestException("cloud failed")
+
+        def json(self):
+            return self._payload
+
+    def fake_post(url, **_kwargs):
+        post_urls.append(url)
+        if "api.openai.com" in url:
+            raise requests.RequestException("cloud failed")
+        return DummyResponse(
+            {
+                "response": json.dumps(
+                    {
+                        "calories": 370,
+                        "carbohydrates": 60,
+                        "fat": 7,
+                        "protein": 13,
+                        "sugar": 1,
+                        "default_best_before_days": 180,
+                    }
+                )
+            }
+        )
+
+    monkeypatch.setattr(
+        api_main, "INITIAL_INFO_SYNC_STATE_PATH", tmp_path / "state.json"
+    )
+    monkeypatch.setattr(api_main, "GrocyClient", DummyGrocyClient)
+    monkeypatch.setattr(requests, "post", fake_post)
+
+    settings = Settings(
+        api_key="k",
+        grocy_api_key="g",
+        initial_info_sync=True,
+        cloud_ai_enabled=True,
+        cloud_ai_text_generation_enabled=True,
+        openai_api_key="openai-key",
+        ollama_enabled=True,
+        ollama_text_generation_enabled=True,
+    )
+    api_main._run_initial_info_sync_on_startup(settings)
+
+    assert post_urls[0] == "https://api.openai.com/v1/chat/completions"
+    assert post_urls[1] == settings.ollama_url
+    assert updated[0] == {
+        "product_id": 1,
+        "calories": 370,
+        "carbs": 60,
+        "fat": 7,
+        "protein": 13,
+        "sugar": 1,
+    }
+    assert updated[1] == {"product_id": 1, "default_best_before_days": 180}
+
+
+def test_startup_initial_info_sync_without_ai_writes_no_false_values(
+    monkeypatch, tmp_path
+):
+    updated: list[dict] = []
+    best_before_updates: list[tuple[int, int]] = []
+
+    class DummyGrocyClient:
+        def __init__(self, _settings):
+            pass
+
+        def get_products(self):
+            return [{"id": 1, "name": "Unbekannt", "default_best_before_days": None}]
+
+        def get_product_nutrition(self, _product_id: int):
+            return {
+                "calories": "",
+                "carbs": "",
+                "fat": "",
+                "protein": "",
+                "sugar": "",
+            }
+
+        def update_product_nutrition(self, **kwargs):
+            updated.append(kwargs)
+
+        def set_product_default_best_before_days(self, product_id: int, days: int):
+            best_before_updates.append((product_id, days))
+
+    monkeypatch.setattr(
+        api_main, "INITIAL_INFO_SYNC_STATE_PATH", tmp_path / "state.json"
+    )
+    monkeypatch.setattr(api_main, "GrocyClient", DummyGrocyClient)
+
+    settings = Settings(
+        api_key="k",
+        grocy_api_key="g",
+        initial_info_sync=True,
+        cloud_ai_enabled=False,
+        cloud_ai_text_generation_enabled=False,
+        ollama_enabled=False,
+        ollama_text_generation_enabled=False,
+    )
+    api_main._run_initial_info_sync_on_startup(settings)
+
+    assert updated == []
+    assert best_before_updates == []
