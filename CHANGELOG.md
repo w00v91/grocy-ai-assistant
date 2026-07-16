@@ -1,3 +1,10 @@
+## 2026-07-16 (Version 8.0.76)
+
+- Added (Dashboard/Lager): Standortfilter für die native Home-Assistant-Storage-UI und die Legacy-Static-UI ergänzt.
+- Fix (Dashboard/Lager): Storage-Liste und Summary senden ausgewählte Lagerorte konsistent als `location_ids` an die Stock-Products-API.
+- Added (Tests/Frontend): Regressionstests decken die Übergabe ausgewählter Lagerorte an `/api/dashboard/stock-products` ab.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.76` erhöht.
+
 ## 2026-07-13 (Version 8.0.75)
 
 - Fix (Home-Assistant-Integration/API): Die veraltete interne Add-on-URL `grocy_ai_assistant:8000` wird jetzt auf den gültigen Bindestrich-Host normalisiert und nicht mehr als Fallback versucht, damit DNS-Timeouts die Coordinator-Abfragen nicht blockieren.

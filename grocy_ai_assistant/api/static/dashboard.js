@@ -58,6 +58,7 @@ const dashboardStore = createDashboardStore({
   storageRefreshTimer: null,
   storageRefreshInFlight: false,
   storageFilterDebounce: null,
+  storageSelectedLocationIds: [],
   shoppingListSignature: '',
   variantsRequestToken: 0,
   variantsDebounce: null,
@@ -1903,6 +1904,11 @@ document.addEventListener('change', (event) => {
   if (event.target && event.target.closest('#location-filters')) {
     loadStockProducts();
   }
+
+  if (event.target && event.target.closest('#storage-location-filters')) {
+    dashboardState.storageSelectedLocationIds = getSelectedStorageLocationIds();
+    loadStorageProducts();
+  }
 });
 
 
@@ -1988,6 +1994,12 @@ function getSelectedProductIds() {
     .map((checkbox) => Number(checkbox.value));
 }
 
+function getSelectedStorageLocationIds() {
+  return Array.from(document.querySelectorAll('#storage-location-filters input[type="checkbox"]:checked'))
+    .map((checkbox) => Number(checkbox.value))
+    .filter((value) => Number.isFinite(value) && value > 0);
+}
+
 function summarizeSelectedItems(items, selectedIds, fallbackLabel) {
   const normalizedItems = Array.isArray(items) ? items : [];
   const selected = new Set(Array.isArray(selectedIds) ? selectedIds.map((value) => Number(value)) : []);
@@ -2033,6 +2045,38 @@ function renderLocations(items) {
         ${items.map((item) => `
           <label class="stock-item">
             <input type="checkbox" value="${item.id}" ${selectedLocationIds.size === 0 || selectedLocationIds.has(item.id) ? 'checked' : ''} />
+            <span class="stock-item-name"><strong>${escapeHtml(item.name)}</strong></span>
+          </label>
+        `).join('')}
+      </div>
+    </details>
+  `;
+}
+
+function renderStorageLocationFilters(items) {
+  const container = document.getElementById('storage-location-filters');
+  if (!container) return;
+
+  const selectedLocationIds = new Set(dashboardState.storageSelectedLocationIds);
+  if (!items.length) {
+    container.innerHTML = '<div class="muted">Keine Lagerstandorte gefunden.</div>';
+    return;
+  }
+
+  const summaryLabel = summarizeSelectedItems(items, dashboardState.storageSelectedLocationIds, 'Keine Auswahl');
+  container.innerHTML = `
+    <details class="location-dropdown">
+      <summary>
+        <span class="location-dropdown__summary-copy">
+          <span class="location-dropdown__summary-title">Lagerort</span>
+          <span class="location-dropdown__summary-value">${escapeHtml(summaryLabel)}</span>
+        </span>
+        <span class="badge location-dropdown__summary-badge">Standorte: ${selectedLocationIds.size || items.length}</span>
+      </summary>
+      <div class="location-options">
+        ${items.map((item) => `
+          <label class="stock-item">
+            <input type="checkbox" value="${item.id}" ${selectedLocationIds.size === 0 || selectedLocationIds.has(Number(item.id)) ? 'checked' : ''} />
             <span class="stock-item-name"><strong>${escapeHtml(item.name)}</strong></span>
           </label>
         `).join('')}
@@ -2122,6 +2166,7 @@ async function loadLocations() {
       renderStorageEditLocationOptions(dashboardState.storageEditingItem.location_id, dashboardState.storageEditingItem.location_name || '');
     }
     renderLocations(payload);
+    renderStorageLocationFilters(dashboardState.storageLocationOptions);
     recipeState.initialized = true;
     await loadStockProducts();
   } catch (_) {
@@ -2224,7 +2269,7 @@ function normalizeStorageFilterValue() {
   return String(input?.value || '').trim().toLowerCase();
 }
 
-async function fetchStorageSummaryCounts({ query = '', visibleItems = [] } = {}) {
+async function fetchStorageSummaryCounts({ query = '', visibleItems = [], locationIds = [] } = {}) {
   const normalizedVisibleItems = Array.isArray(visibleItems) ? visibleItems : [];
   const fallbackSummary = {
     totalCount: normalizedVisibleItems.length,
@@ -2237,6 +2282,7 @@ async function fetchStorageSummaryCounts({ query = '', visibleItems = [] } = {})
     const { response, payload } = await dashboardApi.fetchStockProducts({
       includeAllProducts: true,
       query,
+      locationIds,
     });
     if (!response.ok) return fallbackSummary;
     const allItems = (Array.isArray(payload) ? payload : []).map(normalizeStockProduct);
@@ -2330,6 +2376,8 @@ async function loadStorageProducts() {
     const includeAllProductsInput = document.getElementById('storage-include-all-products');
     const includeAllProducts = Boolean(includeAllProductsInput?.checked);
     const filterValue = String(document.getElementById('storage-filter-input')?.value || '').trim();
+    const selectedLocationIds = getSelectedStorageLocationIds();
+    dashboardState.storageSelectedLocationIds = selectedLocationIds;
     if (!background) {
       status.textContent = includeAllProducts ? 'Lade Lagerbestand und alle Produkte...' : 'Lade Lagerbestand...';
     }
@@ -2337,6 +2385,7 @@ async function loadStorageProducts() {
       const { response, payload } = await dashboardApi.fetchStockProducts({
         includeAllProducts,
         query: filterValue,
+        locationIds: selectedLocationIds,
       });
       if (!response.ok) throw new Error(getErrorMessage(payload, 'Bestand konnte nicht geladen werden.'));
       dashboardState.storageProductsCache = (Array.isArray(payload) ? payload : []).map(normalizeStockProduct);
@@ -2353,6 +2402,7 @@ async function loadStorageProducts() {
         : await fetchStorageSummaryCounts({
           query: filterValue,
           visibleItems: dashboardState.storageProductsCache,
+          locationIds: selectedLocationIds,
         });
       if (!background) {
         status.textContent = missingAllIds > 0
