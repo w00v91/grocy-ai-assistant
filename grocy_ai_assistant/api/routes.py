@@ -1049,6 +1049,7 @@ def _create_and_add_product_to_shopping_list(
     grocy_client: GrocyClient,
     settings: Settings,
     barcode: str = "",
+    schedule_product_picture: bool = True,
 ) -> DashboardSearchResponse:
     normalized_new_product_name = _normalize_new_product_name(product_name)
     product_data["name"] = normalized_new_product_name or product_name
@@ -1118,7 +1119,6 @@ def _create_and_add_product_to_shopping_list(
                 error,
             )
 
-    picture_job_scheduled = False
     resolved_best_before_date = _resolve_best_before_date_for_product(
         grocy_client,
         product_id=created_object_id,
@@ -1142,7 +1142,8 @@ def _create_and_add_product_to_shopping_list(
         before_items=before_items,
     )
 
-    if created_new_product:
+    picture_job_scheduled = False
+    if created_new_product and schedule_product_picture:
         picture_job_scheduled = _schedule_product_picture_background_job(
             product_name=product_name,
             product_id=created_object_id,
@@ -1908,6 +1909,7 @@ def dashboard_search(
     detector = IngredientDetector(settings)
     grocy_client = GrocyClient(settings)
 
+    created_response: DashboardSearchResponse | None = None
     try:
         if not payload.force_create:
             existing_product = grocy_client.find_product_by_name(product_name)
@@ -1967,7 +1969,7 @@ def dashboard_search(
             )
         else:
             product_data = detector.analyze_product_name(product_name)
-        return _create_and_add_product_to_shopping_list(
+        created_response = _create_and_add_product_to_shopping_list(
             product_name=product_name,
             amount=amount,
             best_before_date=payload.best_before_date,
@@ -1975,6 +1977,7 @@ def dashboard_search(
             detector=detector,
             grocy_client=grocy_client,
             settings=settings,
+            schedule_product_picture=False,
         )
     except Exception as error:
         log_api_error(
@@ -1987,6 +1990,20 @@ def dashboard_search(
         raise HTTPException(status_code=500, detail=str(error)) from error
     finally:
         _end_dashboard_search_guard(guard_key)
+
+    if created_response and created_response.product_id is not None:
+        picture_job_scheduled = _schedule_product_picture_background_job(
+            product_name=product_name,
+            product_id=created_response.product_id,
+            detector=detector,
+            grocy_client=grocy_client,
+            settings=settings,
+        )
+        if picture_job_scheduled:
+            created_response.message = (
+                f"{created_response.message} Produktbild wird im Hintergrund erstellt."
+            )
+    return created_response
 
 
 @router.post("/api/v1/grocy/sync", response_model=DashboardSearchResponse)
