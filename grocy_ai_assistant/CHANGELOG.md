@@ -1,3 +1,9 @@
+## 2026-07-16 (Version 8.0.77)
+
+- Fix (Dashboard/Lager): Auto-Cleanup-Zähler verwenden in sichtbaren und vollständigen Produktlisten dieselben Backend-Kriterien (`in_stock`, gültige `stock_id`, `auto_cleanup_due`).
+- Added (Tests/Frontend): Regressionstest vergleicht die Cleanup-Zählkriterien für `includeAllProducts=false` und `includeAllProducts=true` mit identischem Datenbestand.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.77` erhöht.
+
 ## 2026-07-16 (Version 8.0.76)
 
 - Added (Dashboard/Lager): Standortfilter für die native Home-Assistant-Storage-UI und die Legacy-Static-UI ergänzt.
