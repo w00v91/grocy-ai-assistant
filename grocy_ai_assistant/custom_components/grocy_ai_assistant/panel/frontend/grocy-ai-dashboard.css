@@ -1011,6 +1011,10 @@ select:focus-visible {
   align-items: end;
 }
 
+.storage-location-dropdown {
+  grid-column: 1 / -1;
+}
+
 .storage-controls-shell {
   width: 100%;
 }
@@ -1564,6 +1568,10 @@ select:focus-visible {
     align-items: end;
   }
 
+  .storage-location-dropdown {
+    grid-column: 1 / -1;
+  }
+
   .search-submit-button {
     width: 100%;
     min-width: 0;
@@ -1606,17 +1614,17 @@ select:focus-visible {
   }
 
   .bottom-tabbar {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    position: sticky;
+    left: auto;
+    right: auto;
+    bottom: calc(var(--panel-compact-gap) + env(safe-area-inset-bottom, 0px));
     transform: none;
     justify-content: stretch;
     flex-wrap: nowrap;
-    width: 100vw;
-    max-width: none;
-    padding: var(--panel-compact-gap) max(var(--panel-compact-gap), env(safe-area-inset-left, 0px)) calc(var(--panel-compact-gap) + env(safe-area-inset-bottom, 0px)) max(var(--panel-compact-gap), env(safe-area-inset-right, 0px));
-    border-radius: calc(var(--panel-radius) + var(--panel-compact-gap)) calc(var(--panel-radius) + var(--panel-compact-gap)) 0 0;
+    width: 100%;
+    max-width: var(--dashboard-shell-fixed-width);
+    padding: var(--panel-compact-gap);
+    border-radius: calc(var(--panel-radius) + var(--panel-compact-gap));
     overflow-x: auto;
     overscroll-behavior-x: contain;
     scrollbar-width: none;

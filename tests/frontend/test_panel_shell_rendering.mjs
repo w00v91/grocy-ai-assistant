@@ -187,11 +187,15 @@ test('storage tab keeps product filter and include-all toggle in one control row
 
 test('shopping tab starts directly with product search and keeps scanner shortcut in the bottom bar', async () => {
   const source = await fs.readFile(dashboardPath, 'utf8');
+  const shoppingTabSection = source.slice(
+    source.indexOf('class GrocyAIShoppingTab extends HTMLElement'),
+    source.indexOf('class GrocyAIRecipesTab extends HTMLElement'),
+  );
 
-  assert.doesNotMatch(source, /heroEyebrow\.textContent = 'Einkauf';/);
-  assert.doesNotMatch(source, /heroTitle\.textContent = 'Grocy AI Suche';/);
-  assert.match(source, /const searchBar = document\.createElement\('grocy-ai-shopping-search-bar'\);/);
-  assert.match(source, /root\.append\(searchBar, listSection\);/);
+  assert.doesNotMatch(shoppingTabSection, /heroEyebrow\.textContent = 'Einkauf';/);
+  assert.doesNotMatch(shoppingTabSection, /heroTitle\.textContent = 'Grocy AI Suche';/);
+  assert.match(shoppingTabSection, /const searchBar = document\.createElement\('grocy-ai-shopping-search-bar'\);/);
+  assert.match(shoppingTabSection, /root\.append\(searchBar, listSection\);/);
   assert.doesNotMatch(source, /scannerButton\.className = 'scanner-popup-button';/);
   assert.match(source, /scannerButton\.className = 'tab-button tab-button--scanner';/);
   assert.match(source, /scannerButton\.dataset\.action = 'shopping-open-scanner';/);
@@ -378,12 +382,20 @@ test('mobile panel CSS keeps native dashboard copy readable and avoids cramped t
 });
 
 
-test('bottom tab bar stays in desktop flow and spans the viewport only on mobile', async () => {
+
+test('storage location dropdown spans the full filter row width', async () => {
   const source = await fs.readFile(dashboardCssPath, 'utf8');
 
-  assert.match(source, /\.bottom-tabbar \{[\s\S]*?position: sticky;[\s\S]*?left: auto;[\s\S]*?right: auto;[\s\S]*?transform: none;[\s\S]*?justify-content: center;[\s\S]*?width: 100%;[\s\S]*?max-width: var\(--dashboard-shell-fixed-width\);/);
+  assert.match(source, /\.storage-location-dropdown \{[\s\S]*?grid-column: 1 \/ -1;/);
+  assert.match(source, /@media \(max-width: 800px\) \{[\s\S]*?\.storage-location-dropdown \{[\s\S]*?grid-column: 1 \/ -1;/);
+});
+
+test('bottom tab bar stays sticky inside the Home Assistant panel on desktop and mobile', async () => {
+  const source = await fs.readFile(dashboardCssPath, 'utf8');
+
+  assert.match(source, /\.bottom-tabbar \{[\s\S]*?position: sticky;[\s\S]*?left: auto;[\s\S]*?right: auto;[\s\S]*?transform: none;[\s\S]*?justify-content: stretch;[\s\S]*?width: 100%;[\s\S]*?max-width: var\(--dashboard-shell-fixed-width\);/);
   assert.match(source, /\.tab-button:hover,\s*\.tab-button:focus-visible \{[\s\S]*?transform: none;/);
-  assert.match(source, /@media \(max-width: 800px\) \{[\s\S]*?\.bottom-tabbar \{[\s\S]*?position: fixed;[\s\S]*?left: 0;[\s\S]*?right: 0;[\s\S]*?flex-wrap: nowrap;[\s\S]*?width: 100vw;[\s\S]*?max-width: none;[\s\S]*?overflow-x: auto;/);
+  assert.match(source, /@media \(max-width: 800px\) \{[\s\S]*?\.bottom-tabbar \{[\s\S]*?position: sticky;[\s\S]*?left: auto;[\s\S]*?right: auto;[\s\S]*?flex-wrap: nowrap;[\s\S]*?width: 100%;[\s\S]*?max-width: var\(--dashboard-shell-fixed-width\);[\s\S]*?overflow-x: auto;/);
   assert.match(source, /@media \(max-width: 800px\) \{[\s\S]*?\.tab-button \{[\s\S]*?flex: 1 1 0;[\s\S]*?white-space: nowrap;/);
   assert.match(source, /@media \(max-width: 800px\) \{[\s\S]*?\.tab-button__meta \{[\s\S]*?display: none;/);
 });

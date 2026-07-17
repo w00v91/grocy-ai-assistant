@@ -1,3 +1,10 @@
+## 2026-07-17 (Version 8.0.80)
+
+- Fix (Dashboard/Shopping): Die separate Produktsuche-Karte oberhalb der Suche entfernt, damit kein zusätzlicher Balken in der Einkaufsliste erscheint.
+- Fix (Dashboard/Lager): Lagerort-Dropdown im Storage-Filter auf volle Breite gesetzt.
+- Fix (Dashboard/Navigation): Bottom-Navigation wieder sticky und innerhalb des Home-Assistant-Panels ausgerichtet.
+- Changed (Versioning): Versionsstand der Integration auf `8.0.80` erhöht.
+
 ## 2026-07-16 (Version 8.0.79)
 
 - Fix (KI/Bildanalyse): Fehlerhafte Einrückung nach parallelen Änderungen korrigiert, sodass `detect_product_from_image` wieder sauber abschließt und die Produktbild-Erzeugung nur einmal definiert ist.
