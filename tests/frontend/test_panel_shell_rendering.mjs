@@ -390,12 +390,12 @@ test('storage location dropdown spans the full filter row width', async () => {
   assert.match(source, /@media \(max-width: 800px\) \{[\s\S]*?\.storage-location-dropdown \{[\s\S]*?grid-column: 1 \/ -1;/);
 });
 
-test('bottom tab bar stays sticky inside the Home Assistant panel on desktop and mobile', async () => {
+test('bottom tab bar stays fixed within the Home Assistant panel on desktop and mobile', async () => {
   const source = await fs.readFile(dashboardCssPath, 'utf8');
 
-  assert.match(source, /\.bottom-tabbar \{[\s\S]*?position: sticky;[\s\S]*?left: auto;[\s\S]*?right: auto;[\s\S]*?transform: none;[\s\S]*?justify-content: stretch;[\s\S]*?width: 100%;[\s\S]*?max-width: var\(--dashboard-shell-fixed-width\);/);
+  assert.match(source, /\.bottom-tabbar \{[\s\S]*?position: fixed;[\s\S]*?left: var\(--dashboard-shell-center-x\);[\s\S]*?right: auto;[\s\S]*?transform: translateX\(-50%\);[\s\S]*?justify-content: stretch;[\s\S]*?width: min\(var\(--dashboard-shell-fixed-width\), calc\(100vw - 32px\)\);[\s\S]*?max-width: var\(--dashboard-shell-fixed-width\);/);
   assert.match(source, /\.tab-button:hover,\s*\.tab-button:focus-visible \{[\s\S]*?transform: none;/);
-  assert.match(source, /@media \(max-width: 800px\) \{[\s\S]*?\.bottom-tabbar \{[\s\S]*?position: sticky;[\s\S]*?left: auto;[\s\S]*?right: auto;[\s\S]*?flex-wrap: nowrap;[\s\S]*?width: 100%;[\s\S]*?max-width: var\(--dashboard-shell-fixed-width\);[\s\S]*?overflow-x: auto;/);
+  assert.match(source, /@media \(max-width: 800px\) \{[\s\S]*?\.bottom-tabbar \{[\s\S]*?position: fixed;[\s\S]*?left: var\(--dashboard-shell-center-x\);[\s\S]*?right: auto;[\s\S]*?flex-wrap: nowrap;[\s\S]*?width: min\(var\(--dashboard-shell-fixed-width\), calc\(100vw - \(2 \* var\(--panel-compact-gap\)\)\)\);[\s\S]*?max-width: var\(--dashboard-shell-fixed-width\);[\s\S]*?overflow-x: auto;/);
   assert.match(source, /@media \(max-width: 800px\) \{[\s\S]*?\.tab-button \{[\s\S]*?flex: 1 1 0;[\s\S]*?white-space: nowrap;/);
   assert.match(source, /@media \(max-width: 800px\) \{[\s\S]*?\.tab-button__meta \{[\s\S]*?display: none;/);
 });

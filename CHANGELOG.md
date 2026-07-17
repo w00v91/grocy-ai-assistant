@@ -1,3 +1,8 @@
+## 2026-07-17 (Version 8.0.82)
+
+- Fix (Dashboard/Navigation): Die Bottom-Navigation ist wieder viewport-fixed am unteren Rand ausgerichtet, bleibt dabei auf die Dashboard-Breite begrenzt und nutzt Safe-Area-Abstände für Home-Assistant-WebViews.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.82` erhöht.
+
 ## 2026-07-17 (Version 8.0.81)
 
 - Fix (Home-Assistant-Integration/Panel/Auth): Der native Dashboard-API-Client hält Proxy-Requests jetzt lokal zurück, wenn noch kein Home-Assistant-Bearer-Token verfügbar ist. Dadurch werden periodische Einkaufslisten-Refreshes nicht mehr ohne Authentifizierung an Home Assistant gesendet und vermeiden sporadische `invalid authentication`-Logeinträge.
