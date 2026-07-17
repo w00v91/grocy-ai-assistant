@@ -21,7 +21,27 @@ async function resolveRequestHeaders(options = {}, getAuthHeaders) {
   };
 }
 
-export function createDashboardApiClient({ apiBasePath = '', ingressPrefix = '', getAuthHeaders = null } = {}) {
+function hasAuthorizationHeader(headers = {}) {
+  return Object.entries(headers || {}).some(([name, value]) => (
+    String(name).toLowerCase() === 'authorization' && String(value || '').trim()
+  ));
+}
+
+function buildMissingAuthResponse() {
+  const payload = {
+    detail: 'Home-Assistant-Authentifizierung ist noch nicht verfügbar. Anfrage wurde lokal zurückgehalten.',
+  };
+  return {
+    response: {
+      ok: false,
+      status: 401,
+      statusText: 'Missing Home Assistant authentication',
+    },
+    payload,
+  };
+}
+
+export function createDashboardApiClient({ apiBasePath = '', ingressPrefix = '', getAuthHeaders = null, requireAuthHeaders = null } = {}) {
   function buildUrl(path) {
     const normalizedPath = '/' + String(path || '').replace(/^\/+/, '');
     const normalizedBase = String(apiBasePath || '').replace(/\/+$/, '');
@@ -33,8 +53,16 @@ export function createDashboardApiClient({ apiBasePath = '', ingressPrefix = '',
     return normalizedPath;
   }
 
+  function shouldRequireAuthHeaders() {
+    if (requireAuthHeaders !== null) return Boolean(requireAuthHeaders);
+    return Boolean(getAuthHeaders && String(apiBasePath || ingressPrefix || '').startsWith('/api/'));
+  }
+
   async function request(path, options = {}) {
     const headers = await resolveRequestHeaders(options, getAuthHeaders);
+    if (shouldRequireAuthHeaders() && !hasAuthorizationHeader(headers)) {
+      return buildMissingAuthResponse();
+    }
     const response = await fetch(buildUrl(path), {
       ...options,
       headers,
