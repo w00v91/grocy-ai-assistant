@@ -1,7 +1,8 @@
-## 2026-07-17 (Version 8.0.83)
+## 2026-07-17 (Version 8.0.84)
 
 - Fix (Dashboard/Rezepte): Rezeptvorschläge werden im nativen Home-Assistant-Dashboard robuster aus API-Antworten gelesen und auch bei CamelCase- oder verschachtelten Payload-Feldern angezeigt.
-- Changed (Versioning): Versionsstand der Integration auf `8.0.83` erhöht.
+- Changed (Versioning): Versionsstand der Integration auf `8.0.84` erhöht.
+- Added (Home-Assistant/Reparaturen): Die Neustart-erforderlich-Reparaturmeldung bietet jetzt die Home-Assistant-Neustartaktion direkt als Fix-Flow an.
 
 ## 2026-07-17 (Version 8.0.82)
 

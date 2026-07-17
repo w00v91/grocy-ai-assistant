@@ -7,6 +7,9 @@ from typing import Any
 from homeassistant.core import HomeAssistant
 from .const import DOMAIN
 
+_HOMEASSISTANT_DOMAIN = "homeassistant"
+_HOMEASSISTANT_RESTART_SERVICE = "restart"
+
 _RESTART_REQUIRED_SUFFIX = "restart_required"
 _ADDON_UNREACHABLE_SUFFIX = "addon_unreachable"
 _INVALID_AUTH_SUFFIX = "invalid_auth"
@@ -50,7 +53,7 @@ async def async_sync_repairs_for_entry(
             hass,
             DOMAIN,
             restart_issue_id,
-            is_fixable=False,
+            is_fixable=True,
             severity=issue_registry.IssueSeverity.WARNING,
             translation_key="restart_required",
         )
@@ -100,3 +103,44 @@ async def async_clear_repairs_for_entry(hass: HomeAssistant, entry_id: str) -> N
     issue_registry.async_delete_issue(
         hass, DOMAIN, _issue_id(entry_id, _INVALID_AUTH_SUFFIX)
     )
+
+
+async def async_create_fix_flow(
+    hass: HomeAssistant,
+    issue_id: str,
+    data: dict[str, str | int | float | None] | None,
+) -> Any:
+    """Create repair flows for Grocy AI Assistant issues."""
+
+    if not issue_id.endswith(f"_{_RESTART_REQUIRED_SUFFIX}"):
+        raise ValueError(f"Unsupported repair issue: {issue_id}")
+
+    from homeassistant.components.repairs import RepairsFlow
+
+    class RestartHomeAssistantRepairFlow(RepairsFlow):
+        """Repair flow that offers Home Assistant's restart action."""
+
+        async def async_step_init(
+            self, user_input: dict[str, str] | None = None
+        ) -> Any:
+            """Handle the first step of the restart repair flow."""
+
+            return await self.async_step_confirm(user_input)
+
+        async def async_step_confirm(
+            self, user_input: dict[str, str] | None = None
+        ) -> Any:
+            """Confirm and trigger the standard Home Assistant restart action."""
+
+            if user_input is not None:
+                await self.hass.services.async_call(
+                    _HOMEASSISTANT_DOMAIN,
+                    _HOMEASSISTANT_RESTART_SERVICE,
+                    {},
+                    blocking=False,
+                )
+                return self.async_create_entry(title="", data={})
+
+            return self.async_show_form(step_id="confirm")
+
+    return RestartHomeAssistantRepairFlow()
