@@ -759,19 +759,19 @@ select:focus-visible {
 
 
 .bottom-tabbar {
-  position: sticky;
-  left: auto;
+  position: fixed;
+  left: var(--dashboard-shell-center-x);
   right: auto;
   bottom: calc(16px + env(safe-area-inset-bottom, 0px));
-  transform: none;
+  transform: translateX(-50%);
   z-index: 20;
   display: flex;
   justify-content: stretch;
   gap: var(--panel-compact-gap);
   flex-wrap: wrap;
-  width: 100%;
+  width: min(var(--dashboard-shell-fixed-width), calc(100vw - 32px));
   max-width: var(--dashboard-shell-fixed-width);
-  margin: var(--panel-gap) auto 0;
+  margin: 0;
   padding: var(--panel-stack-gap);
   border-radius: calc(var(--panel-radius) + var(--panel-compact-gap));
   background: color-mix(in srgb, var(--panel-card-background) 92%, transparent);
@@ -1614,14 +1614,14 @@ select:focus-visible {
   }
 
   .bottom-tabbar {
-    position: sticky;
-    left: auto;
+    position: fixed;
+    left: var(--dashboard-shell-center-x);
     right: auto;
     bottom: calc(var(--panel-compact-gap) + env(safe-area-inset-bottom, 0px));
-    transform: none;
+    transform: translateX(-50%);
     justify-content: stretch;
     flex-wrap: nowrap;
-    width: 100%;
+    width: min(var(--dashboard-shell-fixed-width), calc(100vw - (2 * var(--panel-compact-gap))));
     max-width: var(--dashboard-shell-fixed-width);
     padding: var(--panel-compact-gap);
     border-radius: calc(var(--panel-radius) + var(--panel-compact-gap));
