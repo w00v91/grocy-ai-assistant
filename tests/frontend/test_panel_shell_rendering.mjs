@@ -399,3 +399,14 @@ test('bottom tab bar stays fixed within the Home Assistant panel on desktop and 
   assert.match(source, /@media \(max-width: 800px\) \{[\s\S]*?\.tab-button \{[\s\S]*?flex: 1 1 0;[\s\S]*?white-space: nowrap;/);
   assert.match(source, /@media \(max-width: 800px\) \{[\s\S]*?\.tab-button__meta \{[\s\S]*?display: none;/);
 });
+
+test('native recipes tab normalizes recipe suggestion payloads before updating lists', async () => {
+  const source = await fs.readFile(dashboardPath, 'utf8');
+
+  assert.match(source, /function normalizeRecipeSuggestion\(item\) \{/);
+  assert.match(source, /item\?\.recipe_id \?\? item\?\.recipeId/);
+  assert.match(source, /function extractRecipeSuggestionItems\(payload, snakeKey, camelKey\) \{/);
+  assert.match(source, /const nestedResponse = payload\?\.response;/);
+  assert.match(source, /grocyRecipes: extractRecipeSuggestionItems\(payload, 'grocy_recipes', 'grocyRecipes'\)\.slice\(0, GROCY_RECIPE_DISPLAY_LIMIT\)/);
+  assert.match(source, /aiRecipes: extractRecipeSuggestionItems\(payload, 'ai_recipes', 'aiRecipes'\)\.slice\(0, AI_RECIPE_DISPLAY_LIMIT\)/);
+});
