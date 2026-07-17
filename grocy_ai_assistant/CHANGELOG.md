@@ -1,3 +1,8 @@
+## 2026-07-17 (Version 8.0.83)
+
+- Fix (Dashboard/Rezepte): Rezeptvorschläge werden im nativen Home-Assistant-Dashboard robuster aus API-Antworten gelesen und auch bei CamelCase- oder verschachtelten Payload-Feldern angezeigt.
+- Changed (Versioning): Versionsstand der Integration auf `8.0.83` erhöht.
+
 ## 2026-07-17 (Version 8.0.82)
 
 - Fix (Dashboard/Navigation): Die Bottom-Navigation ist wieder viewport-fixed am unteren Rand ausgerichtet, bleibt dabei auf die Dashboard-Breite begrenzt und nutzt Safe-Area-Abstände für Home-Assistant-WebViews.

@@ -25,7 +25,7 @@ const TAB_ICONS = Object.freeze({
 });
 const DEFAULT_POLLING_INTERVAL_SECONDS = 5;
 const DEFAULT_POLLING_INTERVAL_MS = DEFAULT_POLLING_INTERVAL_SECONDS * 1000;
-const DEFAULT_INTEGRATION_VERSION = '8.0.82';
+const DEFAULT_INTEGRATION_VERSION = '8.0.83';
 const GROCY_RECIPE_DISPLAY_LIMIT = 3;
 const AI_RECIPE_DISPLAY_LIMIT = 3;
 const TAB_VIEW_STATE = Object.freeze({
@@ -383,6 +383,37 @@ function normalizeStockProduct(item) {
     stock_id: Number.isFinite(stockId) && stockId > 0 ? stockId : null,
     in_stock: Boolean(item?.in_stock ?? true),
   };
+}
+
+
+function normalizeRecipeSuggestion(item) {
+  const recipeId = Number(item?.recipe_id ?? item?.recipeId ?? 0);
+  const ingredients = Array.isArray(item?.ingredients)
+    ? item.ingredients
+    : Array.isArray(item?.ingredient_list)
+      ? item.ingredient_list
+      : [];
+  return {
+    ...item,
+    recipe_id: Number.isFinite(recipeId) && recipeId > 0 ? recipeId : null,
+    title: String(item?.title ?? item?.name ?? '').trim(),
+    reason: String(item?.reason ?? item?.description ?? '').trim(),
+    preparation: String(item?.preparation ?? item?.instructions ?? '').trim(),
+    ingredients,
+    picture_url: item?.picture_url ?? item?.pictureUrl ?? '',
+    source: String(item?.source ?? '').trim(),
+  };
+}
+
+function extractRecipeSuggestionItems(payload, snakeKey, camelKey) {
+  const directItems = payload?.[snakeKey] ?? payload?.[camelKey];
+  if (Array.isArray(directItems)) return directItems.map(normalizeRecipeSuggestion);
+
+  const nestedResponse = payload?.response;
+  const nestedItems = nestedResponse?.[snakeKey] ?? nestedResponse?.[camelKey];
+  if (Array.isArray(nestedItems)) return nestedItems.map(normalizeRecipeSuggestion);
+
+  return [];
 }
 
 function isAutoCleanupDueStorageItem(item) {
@@ -3846,8 +3877,8 @@ class GrocyAIDashboardPanel extends HTMLElement {
       if (!response.ok) throw new Error(getErrorMessage(payload, 'Rezeptvorschläge konnten nicht geladen werden.'));
 
       this._updateRecipesState({
-        grocyRecipes: (payload.grocy_recipes || []).slice(0, GROCY_RECIPE_DISPLAY_LIMIT),
-        aiRecipes: (payload.ai_recipes || []).slice(0, AI_RECIPE_DISPLAY_LIMIT),
+        grocyRecipes: extractRecipeSuggestionItems(payload, 'grocy_recipes', 'grocyRecipes').slice(0, GROCY_RECIPE_DISPLAY_LIMIT),
+        aiRecipes: extractRecipeSuggestionItems(payload, 'ai_recipes', 'aiRecipes').slice(0, AI_RECIPE_DISPLAY_LIMIT),
         status: 'Rezeptvorschläge geladen für: Alles',
       });
       this._store.patch({ topbarStatus: 'Rezeptvorschläge geladen für: Alles' });
