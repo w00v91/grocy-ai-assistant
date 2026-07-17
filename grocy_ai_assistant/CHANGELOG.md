@@ -1,3 +1,20 @@
+## 2026-07-17 (Version 8.0.82)
+
+- Fix (Dashboard/Navigation): Navigation wieder unten sichtbar fixiert, aber panelbreit zentriert statt erst am Ende der scrollbaren Liste zu erscheinen.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.82` erhöht.
+
+## 2026-07-17 (Version 8.0.81)
+
+- Fix (Dashboard/Navigation): Navigation vom unteren Rand nach oben unter die Topbar verschoben und dort sticky im Home-Assistant-Panel ausgerichtet.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.81` erhöht.
+
+## 2026-07-17 (Version 8.0.80)
+
+- Fix (Dashboard/Shopping): Die separate Produktsuche-Karte oberhalb der Suche entfernt, damit kein zusätzlicher Balken in der Einkaufsliste erscheint.
+- Fix (Dashboard/Lager): Lagerort-Dropdown im Storage-Filter auf volle Breite gesetzt.
+- Fix (Dashboard/Navigation): Bottom-Navigation wieder sticky und innerhalb des Home-Assistant-Panels ausgerichtet.
+- Changed (Versioning): Versionsstand der Integration auf `8.0.80` erhöht.
+
 ## 2026-07-16 (Version 8.0.79)
 
 - Fix (KI/Bildanalyse): Fehlerhafte Einrückung nach parallelen Änderungen korrigiert, sodass `detect_product_from_image` wieder sauber abschließt und die Produktbild-Erzeugung nur einmal definiert ist.

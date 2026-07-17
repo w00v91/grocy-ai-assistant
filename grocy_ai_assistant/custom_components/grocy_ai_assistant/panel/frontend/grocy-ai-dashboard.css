@@ -759,19 +759,19 @@ select:focus-visible {
 
 
 .bottom-tabbar {
-  position: sticky;
-  left: auto;
+  position: fixed;
+  left: var(--dashboard-shell-center-x);
   right: auto;
   bottom: calc(16px + env(safe-area-inset-bottom, 0px));
-  transform: none;
+  transform: translateX(-50%);
   z-index: 20;
   display: flex;
   justify-content: stretch;
   gap: var(--panel-compact-gap);
   flex-wrap: wrap;
-  width: 100%;
-  max-width: var(--dashboard-shell-fixed-width);
-  margin: var(--panel-gap) auto 0;
+  width: calc(var(--dashboard-shell-fixed-width) - (2 * var(--panel-card-padding)));
+  max-width: calc(100vw - (2 * var(--panel-card-padding)));
+  margin: 0;
   padding: var(--panel-stack-gap);
   border-radius: calc(var(--panel-radius) + var(--panel-compact-gap));
   background: color-mix(in srgb, var(--panel-card-background) 92%, transparent);
@@ -1009,6 +1009,10 @@ select:focus-visible {
 .storage-controls-row {
   grid-template-columns: minmax(0, 1.6fr) auto;
   align-items: end;
+}
+
+.storage-location-dropdown {
+  grid-column: 1 / -1;
 }
 
 .storage-controls-shell {
@@ -1496,6 +1500,7 @@ select:focus-visible {
     padding: var(--panel-section-gap);
   }
 
+
   .page-shell {
     padding-bottom: calc(148px + env(safe-area-inset-bottom, 0px));
   }
@@ -1564,6 +1569,10 @@ select:focus-visible {
     align-items: end;
   }
 
+  .storage-location-dropdown {
+    grid-column: 1 / -1;
+  }
+
   .search-submit-button {
     width: 100%;
     min-width: 0;
@@ -1607,16 +1616,16 @@ select:focus-visible {
 
   .bottom-tabbar {
     position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    transform: none;
+    left: var(--dashboard-shell-center-x);
+    right: auto;
+    bottom: calc(var(--panel-compact-gap) + env(safe-area-inset-bottom, 0px));
+    transform: translateX(-50%);
     justify-content: stretch;
     flex-wrap: nowrap;
-    width: 100vw;
-    max-width: none;
-    padding: var(--panel-compact-gap) max(var(--panel-compact-gap), env(safe-area-inset-left, 0px)) calc(var(--panel-compact-gap) + env(safe-area-inset-bottom, 0px)) max(var(--panel-compact-gap), env(safe-area-inset-right, 0px));
-    border-radius: calc(var(--panel-radius) + var(--panel-compact-gap)) calc(var(--panel-radius) + var(--panel-compact-gap)) 0 0;
+    width: calc(var(--dashboard-shell-fixed-width) - (2 * var(--panel-section-gap)));
+    max-width: calc(100vw - (2 * var(--panel-section-gap)));
+    padding: var(--panel-compact-gap);
+    border-radius: calc(var(--panel-radius) + var(--panel-compact-gap));
     overflow-x: auto;
     overscroll-behavior-x: contain;
     scrollbar-width: none;

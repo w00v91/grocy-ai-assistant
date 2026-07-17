@@ -25,6 +25,7 @@ test('dashboard panel ensures its shell exists before assigning child view model
   assert.match(source, /_renderState\(state\) \{\s+this\._ensureShell\(\);/);
   assert.match(source, /const topbar = this\.shadowRoot\.querySelector\('grocy-ai-topbar'\);/);
   assert.match(source, /if \(!topbar \|\| !tabNav \|\| !shoppingTab \|\| !recipesTab \|\| !storageTab \|\| !modals \|\| !scannerBridge\) \{/);
+  assert.match(source, /<grocy-ai-scanner-bridge><\/grocy-ai-scanner-bridge>\s+<grocy-ai-tab-nav><\/grocy-ai-tab-nav>/);
 });
 
 
@@ -185,13 +186,17 @@ test('storage tab keeps product filter and include-all toggle in one control row
   assert.match(cssSource, /\.storage-summary \{[\s\S]*?display: flex;[\s\S]*?flex-wrap: wrap;[\s\S]*?justify-content: flex-start;/);
 });
 
-test('shopping tab starts directly with product search and keeps scanner shortcut in the bottom bar', async () => {
+test('shopping tab starts directly with product search and keeps scanner shortcut in the tab bar', async () => {
   const source = await fs.readFile(dashboardPath, 'utf8');
+  const shoppingTabSection = source.slice(
+    source.indexOf('class GrocyAIShoppingTab extends HTMLElement'),
+    source.indexOf('class GrocyAIRecipesTab extends HTMLElement'),
+  );
 
-  assert.doesNotMatch(source, /heroEyebrow\.textContent = 'Einkauf';/);
-  assert.doesNotMatch(source, /heroTitle\.textContent = 'Grocy AI Suche';/);
-  assert.match(source, /const searchBar = document\.createElement\('grocy-ai-shopping-search-bar'\);/);
-  assert.match(source, /root\.append\(searchBar, listSection\);/);
+  assert.doesNotMatch(shoppingTabSection, /heroEyebrow\.textContent = 'Einkauf';/);
+  assert.doesNotMatch(shoppingTabSection, /heroTitle\.textContent = 'Grocy AI Suche';/);
+  assert.match(shoppingTabSection, /const searchBar = document\.createElement\('grocy-ai-shopping-search-bar'\);/);
+  assert.match(shoppingTabSection, /root\.append\(searchBar, listSection\);/);
   assert.doesNotMatch(source, /scannerButton\.className = 'scanner-popup-button';/);
   assert.match(source, /scannerButton\.className = 'tab-button tab-button--scanner';/);
   assert.match(source, /scannerButton\.dataset\.action = 'shopping-open-scanner';/);
@@ -347,7 +352,7 @@ test('dashboard shell derives spacing and surface styling from Home Assistant ca
   assert.match(source, /--panel-radius: var\(--ha-card-border-radius, 16px\);/);
   assert.match(source, /--panel-spacing: var\(--ha-card-padding, 16px\);/);
   assert.match(source, /--panel-card-padding: var\(--panel-spacing\);/);
-  assert.match(source, /\.page-shell \{[\s\S]*?padding: var\(--panel-card-padding\) var\(--panel-card-padding\)/);
+  assert.match(source, /\.page-shell \{[\s\S]*?padding: var\(--panel-card-padding\) var\(--panel-card-padding\) calc\(132px \+ env\(safe-area-inset-bottom, 0px\)\)/);
   assert.match(source, /\.dashboard-content \{[\s\S]*?display: block;/);
   assert.match(source, /grocy-ai-shopping-tab,[\s\S]*?grocy-ai-tab-nav \{[\s\S]*?display: block;/);
   assert.match(source, /\.tab-view \{[\s\S]*?display: grid;[\s\S]*?gap: var\(--panel-gap\);[\s\S]*?align-content: start;/);
@@ -378,12 +383,20 @@ test('mobile panel CSS keeps native dashboard copy readable and avoids cramped t
 });
 
 
-test('bottom tab bar stays in desktop flow and spans the viewport only on mobile', async () => {
+
+test('storage location dropdown spans the full filter row width', async () => {
   const source = await fs.readFile(dashboardCssPath, 'utf8');
 
-  assert.match(source, /\.bottom-tabbar \{[\s\S]*?position: sticky;[\s\S]*?left: auto;[\s\S]*?right: auto;[\s\S]*?transform: none;[\s\S]*?justify-content: center;[\s\S]*?width: 100%;[\s\S]*?max-width: var\(--dashboard-shell-fixed-width\);/);
+  assert.match(source, /\.storage-location-dropdown \{[\s\S]*?grid-column: 1 \/ -1;/);
+  assert.match(source, /@media \(max-width: 800px\) \{[\s\S]*?\.storage-location-dropdown \{[\s\S]*?grid-column: 1 \/ -1;/);
+});
+
+test('bottom tab bar is fixed to the panel bottom instead of appearing after scrollable content', async () => {
+  const source = await fs.readFile(dashboardCssPath, 'utf8');
+
+  assert.match(source, /\.bottom-tabbar \{[\s\S]*?position: fixed;[\s\S]*?left: var\(--dashboard-shell-center-x\);[\s\S]*?bottom: calc\(16px \+ env\(safe-area-inset-bottom, 0px\)\);[\s\S]*?transform: translateX\(-50%\);[\s\S]*?width: calc\(var\(--dashboard-shell-fixed-width\) - \(2 \* var\(--panel-card-padding\)\)\);/);
   assert.match(source, /\.tab-button:hover,\s*\.tab-button:focus-visible \{[\s\S]*?transform: none;/);
-  assert.match(source, /@media \(max-width: 800px\) \{[\s\S]*?\.bottom-tabbar \{[\s\S]*?position: fixed;[\s\S]*?left: 0;[\s\S]*?right: 0;[\s\S]*?flex-wrap: nowrap;[\s\S]*?width: 100vw;[\s\S]*?max-width: none;[\s\S]*?overflow-x: auto;/);
+  assert.match(source, /@media \(max-width: 800px\) \{[\s\S]*?\.bottom-tabbar \{[\s\S]*?position: fixed;[\s\S]*?left: var\(--dashboard-shell-center-x\);[\s\S]*?bottom: calc\(var\(--panel-compact-gap\) \+ env\(safe-area-inset-bottom, 0px\)\);[\s\S]*?transform: translateX\(-50%\);[\s\S]*?width: calc\(var\(--dashboard-shell-fixed-width\) - \(2 \* var\(--panel-section-gap\)\)\);[\s\S]*?overflow-x: auto;/);
   assert.match(source, /@media \(max-width: 800px\) \{[\s\S]*?\.tab-button \{[\s\S]*?flex: 1 1 0;[\s\S]*?white-space: nowrap;/);
   assert.match(source, /@media \(max-width: 800px\) \{[\s\S]*?\.tab-button__meta \{[\s\S]*?display: none;/);
 });
