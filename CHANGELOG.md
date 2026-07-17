@@ -1,3 +1,8 @@
+## 2026-07-17 (Version 8.0.81)
+
+- Fix (Home-Assistant-Integration/Panel/Auth): Der native Dashboard-API-Client hält Proxy-Requests jetzt lokal zurück, wenn noch kein Home-Assistant-Bearer-Token verfügbar ist. Dadurch werden periodische Einkaufslisten-Refreshes nicht mehr ohne Authentifizierung an Home Assistant gesendet und vermeiden sporadische `invalid authentication`-Logeinträge.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.81` erhöht.
+
 ## 2026-07-17 (Version 8.0.80)
 
 - Fix (Dashboard/Shopping): Die separate Produktsuche-Karte oberhalb der Suche entfernt, damit kein zusätzlicher Balken in der Einkaufsliste erscheint.

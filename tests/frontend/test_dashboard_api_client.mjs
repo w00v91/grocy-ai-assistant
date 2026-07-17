@@ -209,3 +209,26 @@ test('dashboard api client fetches product nutrition through the dashboard produ
 
   delete globalThis.fetch;
 });
+
+
+test('dashboard api client does not call authenticated HA proxy without auth headers', async () => {
+  let fetchCalled = false;
+  globalThis.fetch = async () => {
+    fetchCalled = true;
+    throw new Error('fetch should not be called without HA auth');
+  };
+
+  const client = createDashboardApiClient({
+    apiBasePath: '/api/grocy_ai_assistant/dashboard-proxy',
+    getAuthHeaders: () => ({}),
+  });
+
+  const { response, payload } = await client.fetchShoppingList();
+
+  assert.equal(fetchCalled, false);
+  assert.equal(response.ok, false);
+  assert.equal(response.status, 401);
+  assert.match(payload.detail, /Authentifizierung/);
+
+  delete globalThis.fetch;
+});
