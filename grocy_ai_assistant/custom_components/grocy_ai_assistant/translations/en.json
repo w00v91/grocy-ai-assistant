@@ -225,7 +225,15 @@
   "issues": {
     "restart_required": {
       "title": "Home Assistant restart required",
-      "description": "Grocy AI Assistant requires a Home Assistant restart to apply compatibility changes for this config entry. Impact: synchronization and status updates may remain unreliable until restart. Next steps: restart Home Assistant completely, then verify the \"Status\" sensor."
+      "description": "Grocy AI Assistant requires a Home Assistant restart to apply compatibility changes for this config entry. Impact: synchronization and status updates may remain unreliable until restart. Next steps: restart Home Assistant completely, then verify the \"Status\" sensor.",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Restart Home Assistant",
+            "description": "This will restart Home Assistant now so Grocy AI Assistant can apply the pending compatibility changes."
+          }
+        }
+      }
     },
     "addon_unreachable": {
       "title": "Grocy AI Assistant add-on unreachable",

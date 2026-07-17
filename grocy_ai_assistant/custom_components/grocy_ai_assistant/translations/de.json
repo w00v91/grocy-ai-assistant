@@ -225,7 +225,15 @@
   "issues": {
     "restart_required": {
       "title": "Home-Assistant-Neustart erforderlich",
-      "description": "Grocy AI Assistant benötigt einen Home-Assistant-Neustart, um Kompatibilitätsänderungen für diesen Konfigurationseintrag anzuwenden. Auswirkung: Synchronisierung und Statusaktualisierung können bis zum Neustart unzuverlässig sein. Nächste Schritte: Home Assistant vollständig neu starten und danach den Sensor „Status“ prüfen."
+      "description": "Grocy AI Assistant benötigt einen Home-Assistant-Neustart, um Kompatibilitätsänderungen für diesen Konfigurationseintrag anzuwenden. Auswirkung: Synchronisierung und Statusaktualisierung können bis zum Neustart unzuverlässig sein. Nächste Schritte: Home Assistant vollständig neu starten und danach den Sensor „Status“ prüfen.",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Home Assistant neu starten",
+            "description": "Home Assistant wird jetzt neu gestartet, damit Grocy AI Assistant die ausstehenden Kompatibilitätsänderungen anwenden kann."
+          }
+        }
+      }
     },
     "addon_unreachable": {
       "title": "Grocy-AI-Assistant-Add-on nicht erreichbar",
