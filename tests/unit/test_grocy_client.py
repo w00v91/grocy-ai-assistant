@@ -197,6 +197,43 @@ def test_get_shopping_list_falls_back_to_objects_endpoint(monkeypatch):
     assert result[0]["picture_url"] == "/api/files/hafer.jpg"
 
 
+def test_get_shopping_list_falls_back_when_stock_response_is_not_json(monkeypatch):
+    class InvalidJsonResponse(FakeResponse):
+        def json(self):
+            raise requests.exceptions.JSONDecodeError(
+                "Expecting value", self._payload, 0
+            )
+
+    requested_urls = []
+
+    def fake_get(url, *args, **kwargs):
+        requested_urls.append(url)
+        if url.endswith("/stock/shoppinglist"):
+            return InvalidJsonResponse("")
+        if url.endswith("/objects/shopping_list"):
+            return FakeResponse([])
+        raise AssertionError(f"Unexpected url: {url}")
+
+    monkeypatch.setattr(
+        "grocy_ai_assistant.services.grocy_client.requests.get", fake_get
+    )
+
+    client = GrocyClient(
+        Settings(
+            api_key="x",
+            addon_version="a",
+            required_integration_version="1",
+            grocy_api_key="g",
+        )
+    )
+
+    assert client.get_shopping_list() == []
+    assert requested_urls[:2] == [
+        f"{client.settings.grocy_base_url}/stock/shoppinglist",
+        f"{client.settings.grocy_base_url}/objects/shopping_list",
+    ]
+
+
 def test_get_shopping_list_uses_picture_file_name_if_picture_url_missing(monkeypatch):
     class FailingStockResponse(FakeResponse):
         status_code = 405

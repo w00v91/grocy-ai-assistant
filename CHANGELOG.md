@@ -1,3 +1,9 @@
+## 2026-09-21 (Version 8.0.85)
+
+- Fix (Grocy/Einkaufsliste): Ungültige oder leere JSON-Antworten des Stock-Endpunkts lösen nun den kompatiblen Fallback auf `objects/shopping_list` aus, statt einen HTTP-500-Fehler zu verursachen.
+- Added (Tests): Regressionstest für leere, nicht als JSON dekodierbare Antworten des Stock-Endpunkts ergänzt.
+- Changed (Versioning): Versionsstände für Add-on und Integration auf `8.0.85` erhöht.
+
 ## 2026-07-17 (Version 8.0.84)
 
 - Fix (Dashboard/Rezepte): Rezeptvorschläge werden im nativen Home-Assistant-Dashboard robuster aus API-Antworten gelesen und auch bei CamelCase- oder verschachtelten Payload-Feldern angezeigt.
