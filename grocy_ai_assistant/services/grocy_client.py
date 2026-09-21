@@ -832,6 +832,11 @@ class GrocyClient:
             status_code = response.status_code
             if status_code != 405:
                 raise
+        except requests.exceptions.JSONDecodeError:
+            logger.warning(
+                "Grocy shopping-list stock endpoint returned invalid JSON; "
+                "falling back to the objects endpoint"
+            )
 
         objects_endpoint = f"{self.settings.grocy_base_url}/objects/shopping_list"
         response = requests.get(objects_endpoint, headers=self.headers, timeout=30)
